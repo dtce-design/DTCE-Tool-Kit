@@ -1,0 +1,88 @@
+"""Store submission API integration. Credentials are read only from environment."""
+import json, os, re, sys, tempfile, time, urllib.request, urllib.parse, urllib.error, zipfile
+from pathlib import Path
+import xml.etree.ElementTree as ET
+
+def required(name):
+    value = os.environ.get(name, '').strip()
+    if not value: raise ValueError('Missing configuration: ' + name)
+    return value
+
+def request(url, method='GET', headers=None, data=None, body=None):
+    headers = dict(headers or {})
+    if body is not None:
+        data = json.dumps(body).encode()
+        headers['Content-Type'] = 'application/json'
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, data=data, headers=headers, method=method), timeout=180) as response:
+            raw = response.read()
+            return json.loads(raw) if raw else None
+    except urllib.error.HTTPError as error:
+        raise RuntimeError('Store request failed: HTTP %s. Check permissions and submission status.' % error.code) from None
+    except urllib.error.URLError:
+        raise RuntimeError('Store connection failed; credentials were not logged.') from None
+
+def prepare(submission, filename, version, notes):
+    old = submission.get('applicationPackages', [])
+    for package in old:
+        if package.get('version') and tuple(map(int, package['version'].split('.'))) >= tuple(map(int, version.split('.'))):
+            raise ValueError('Increase package version above the existing Store version')
+    for package in old: package['fileStatus'] = 'PendingDelete'
+    submission['applicationPackages'] = old + [{'fileName': filename, 'fileStatus': 'PendingUpload'}]
+    submission['notesForCertification'] = notes
+    for listing in submission.get('listings', {}).values():
+        listing['baseListing']['releaseNotes'] = os.environ.get('STORE_RELEASE_NOTES', '').strip() or ('DTCE Tool Kit ' + version + ': maintenance update.')
+    return submission
+
+def main():
+    package = Path(sys.argv[1]).resolve()
+    with zipfile.ZipFile(package) as z:
+        if any(re.search(r'(?i)(AdminPrivateKey|\.dat$|\.pfx$|\.cs$|admin.*\.exe$)', n) for n in z.namelist()):
+            raise ValueError('Private/Admin content found in User MSIX')
+        identity = ET.fromstring(z.read('AppxManifest.xml')).find('{*}Identity')
+        if identity.get('Name') != 'DTCE.DTCEToolKit' or identity.get('Publisher') != 'CN=DBEDF414-F57B-457B-A9EC-C38F24535F31':
+            raise ValueError('Unexpected User identity')
+        version = identity.get('Version')
+    tenant, client, secret = (required(k) for k in ('STORE_TENANT_ID', 'STORE_CLIENT_ID', 'STORE_CLIENT_SECRET'))
+    app_id, notes = required('STORE_APP_ID'), required('STORE_CERTIFICATION_NOTES')
+    if app_id != '9NSQN0157W5K': raise ValueError('This workflow targets the User product only')
+    token = request('https://login.microsoftonline.com/' + urllib.parse.quote(tenant, safe='') + '/oauth2/token', 'POST',
+        {'Content-Type': 'application/x-www-form-urlencoded'}, urllib.parse.urlencode({'grant_type': 'client_credentials',
+         'client_id': client, 'client_secret': secret, 'resource': 'https://manage.devcenter.microsoft.com'}).encode())['access_token']
+    if os.environ.get('GITHUB_ACTIONS') == 'true': print('::add-mask::' + token)
+    headers = {'Authorization': 'Bearer ' + token}
+    base = 'https://manage.devcenter.microsoft.com/v1.0/my/applications/' + app_id
+    app = request(base, headers=headers)
+    if app.get('pendingApplicationSubmission'): raise ValueError('Pending Store submission exists; it will not be modified or deleted')
+    published = app.get('lastPublishedApplicationSubmission')
+    if not published: raise ValueError('Publish the initial submission in Partner Center first')
+    prepare(request(base + '/submissions/' + published['id'], headers=headers), package.name, version, notes)
+    submission = request(base + '/submissions', 'POST', headers)
+    sid, upload = submission['id'], submission['fileUploadUrl']
+    print('Created Store submission: ' + sid)
+    parsed = urllib.parse.urlsplit(upload)
+    if parsed.scheme != 'https' or not (parsed.hostname or '').endswith('.blob.core.windows.net'):
+        raise ValueError('Unexpected upload host; draft left uncommitted')
+    if os.environ.get('GITHUB_ACTIONS') == 'true': print('::add-mask::' + upload)
+    url = base + '/submissions/' + sid
+    request(url, 'PUT', headers, body=prepare(submission, package.name, version, notes))
+    with tempfile.TemporaryDirectory() as folder:
+        archive = Path(folder) / 'submission.zip'
+        with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as z: z.write(package, package.name)
+        request(upload, 'PUT', {'x-ms-blob-type': 'BlockBlob', 'Content-Type': 'application/zip'}, archive.read_bytes())
+    request(url + '/commit', 'POST', headers)
+    for _ in range(30):
+        state = request(url + '/status', headers=headers)['status']
+        print('Store status: ' + state)
+        if state.endswith('Failed') or state == 'Canceled': raise RuntimeError('Store submission failed; check certification report')
+        if state in ('PreProcessing', 'Certification', 'PendingPublication', 'Publishing', 'Published', 'Release'):
+            print('Submission accepted for processing. Certification/publication is not guaranteed.')
+            return
+        time.sleep(10)
+    raise RuntimeError('Status polling timed out; check the existing submission before retrying')
+
+if __name__ == '__main__':
+    try: main()
+    except (ValueError, RuntimeError) as error:
+        print(str(error), file=sys.stderr)
+        sys.exit(1)

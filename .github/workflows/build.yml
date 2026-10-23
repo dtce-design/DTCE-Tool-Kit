@@ -8,7 +8,7 @@ permissions:
   contents: read
 concurrency:
   group: build-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: windows-latest
@@ -23,6 +23,8 @@ jobs:
       - name: Test calculations and access protocol
         shell: pwsh
         run: ./scripts/Test.ps1
+      - name: Test Store submission payload
+        run: python -m unittest discover -s tests -p test_store_submission.py
       - name: Build User only
         shell: pwsh
         run: ./scripts/Build-User.ps1
@@ -54,3 +56,31 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           gh release create "build-${GITHUB_RUN_NUMBER}" release/DTCE-Tool-Kit-User.zip release/*.msix --target "$GITHUB_SHA" --title "DTCE Tool Kit - successful build ${GITHUB_RUN_NUMBER}" --notes "User-only build. Calculations and signed-access checks passed. Commit: ${GITHUB_SHA}. Admin/private signing key are excluded. Includes a User-only MSIX for Partner Center upload. Package generation does not submit or certify the app."
+  store-upload:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.STORE_AUTO_UPLOAD_ENABLED == 'true'
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 15
+    concurrency:
+      group: microsoft-store-user
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: DTCE-Tool-Kit-User
+          path: store-package
+      - name: Upload and submit User MSIX to Microsoft Store
+        shell: pwsh
+        env:
+          STORE_TENANT_ID: ${{ secrets.STORE_TENANT_ID }}
+          STORE_CLIENT_ID: ${{ secrets.STORE_CLIENT_ID }}
+          STORE_CLIENT_SECRET: ${{ secrets.STORE_CLIENT_SECRET }}
+          STORE_CERTIFICATION_NOTES: ${{ secrets.STORE_CERTIFICATION_NOTES }}
+          STORE_APP_ID: ${{ vars.STORE_APP_ID }}
+          STORE_RELEASE_NOTES: ${{ vars.STORE_RELEASE_NOTES }}
+        run: |
+          $packages=@(Get-ChildItem store-package -Filter *.msix)
+          if($packages.Count -ne 1){throw 'Exactly one validated User MSIX is required'}
+          python scripts/submit_store.py $packages[0].FullName
+          if($LASTEXITCODE -ne 0){throw 'Store submission did not complete successfully'}
