@@ -12,3 +12,9 @@ foreach($test in @('PieceTests','CurtailmentTests','AccessProtocolTests')){
  & $exe
  if($LASTEXITCODE-ne 0){throw "Test failed: $test"}
 }
+
+$exe=Join-Path $out 'AdminKeyStoreTests.exe'
+& $compiler /nologo /define:ADMIN_APP /target:exe /main:AdminKeyStoreTests "/out:$exe" /reference:System.Security.dll /reference:System.Core.dll "/resource:$source\AccessPublicKey.xml,AccessPublicKey.xml" @files (Join-Path $repo 'tests\AdminKeyStoreTests.cs') /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:Microsoft.CSharp.dll
+if($LASTEXITCODE-ne 0){throw 'Admin key test compilation failed'}
+& $exe
+if($LASTEXITCODE-ne 0){throw 'Admin key test failed'}

@@ -1,4 +1,5 @@
-import copy, importlib.util, unittest
+import copy, importlib.util, unittest, tempfile, zipfile
+from unittest.mock import patch
 from pathlib import Path
 spec = importlib.util.spec_from_file_location('store', Path(__file__).parents[1] / 'scripts' / 'submit_store.py')
 store = importlib.util.module_from_spec(spec)
@@ -21,5 +22,39 @@ class StoreTests(unittest.TestCase):
         for version in ('1.4.23.0', '1.4.22.0'):
             with self.assertRaises(ValueError):
                 store.prepare({'applicationPackages': [{'version': '1.4.23.0'}]}, 'update.msix', version, 'notes')
+
+class EditionTests(unittest.TestCase):
+    def make_package(self, folder, edition, private=False):
+        package=Path(folder)/'app.msix'
+        name='DTCE.DTCEToolKit-Admin' if edition=='Admin' else 'DTCE.DTCEToolKit'
+        exe='DTCE-Tool-Kit-Admin.exe' if edition=='Admin' else 'DTCE-Tool-Kit.exe'
+        manifest='<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"><Identity Name="'+name+'" Publisher="CN=DBEDF414-F57B-457B-A9EC-C38F24535F31" Version="1.4.24.0" /></Package>'
+        with zipfile.ZipFile(package,'w') as z:
+            z.writestr('AppxManifest.xml',manifest)
+            z.writestr(exe,b'test fixture')
+            if private:z.writestr('AdminPrivateKey.dat',b'not a key')
+        return package
+
+    def test_both_editions_pass_identity_then_require_credentials(self):
+        for edition in ('User','Admin'):
+            with tempfile.TemporaryDirectory(dir=Path(__file__).parents[1] / "test-results") as folder:
+                package=self.make_package(folder,edition)
+                with patch.dict(store.os.environ,{'STORE_EDITION':edition},clear=True),patch.object(store.sys,'argv',['submit',str(package)]):
+                    with self.assertRaisesRegex(ValueError,'STORE_TENANT_ID'):store.main()
+
+    def test_wrong_edition_and_private_material_refused(self):
+        for edition,private,expected in [('User',False,'edition executable'),('Admin',True,'Private/Admin')]:
+            with tempfile.TemporaryDirectory(dir=Path(__file__).parents[1] / "test-results") as folder:
+                package=self.make_package(folder,'Admin',private)
+                with patch.dict(store.os.environ,{'STORE_EDITION':edition},clear=True),patch.object(store.sys,'argv',['submit',str(package)]):
+                    with self.assertRaisesRegex(ValueError,expected):store.main()
+
+    def test_wrong_store_product_refused_without_network(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).parents[1] / "test-results") as folder:
+            package=self.make_package(folder,'Admin')
+            env={'STORE_EDITION':'Admin','STORE_TENANT_ID':'fixture','STORE_CLIENT_ID':'fixture','STORE_CLIENT_SECRET':'fixture','STORE_APP_ID':'9NSQN0157W5K','STORE_CERTIFICATION_NOTES':'fixture'}
+            with patch.dict(store.os.environ,env,clear=True),patch.object(store.sys,'argv',['submit',str(package)]),patch.object(store,'request') as network:
+                with self.assertRaisesRegex(ValueError,'product does not match'):store.main()
+                network.assert_not_called()
 
 if __name__ == '__main__': unittest.main()

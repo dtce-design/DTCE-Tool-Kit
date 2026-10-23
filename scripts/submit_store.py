@@ -36,16 +36,23 @@ def prepare(submission, filename, version, notes):
 
 def main():
     package = Path(sys.argv[1]).resolve()
+    edition = os.environ.get('STORE_EDITION', 'User')
+    identities = {'User': ('DTCE.DTCEToolKit', '9NSQN0157W5K'), 'Admin': ('DTCE.DTCEToolKit-Admin', '9P53CR08ZSZ3')}
+    if edition not in identities: raise ValueError('Invalid edition')
+    identity_name, expected_id = identities[edition]
     with zipfile.ZipFile(package) as z:
-        if any(re.search(r'(?i)(AdminPrivateKey|\.dat$|\.pfx$|\.cs$|admin.*\.exe$)', n) for n in z.namelist()):
+        if any(re.search(r'(?i)(AdminPrivateKey|\.dat$|\.pfx$|\.cs$)', n) for n in z.namelist()):
             raise ValueError('Private/Admin content found in User MSIX')
+        executable = 'DTCE-Tool-Kit-Admin.exe' if edition == 'Admin' else 'DTCE-Tool-Kit.exe'
+        if executable not in z.namelist(): raise ValueError('Missing edition executable')
+        if any(n.lower().endswith('.exe') and n != executable for n in z.namelist()): raise ValueError('Unexpected executable in package')
         identity = ET.fromstring(z.read('AppxManifest.xml')).find('{*}Identity')
-        if identity.get('Name') != 'DTCE.DTCEToolKit' or identity.get('Publisher') != 'CN=DBEDF414-F57B-457B-A9EC-C38F24535F31':
+        if identity.get('Name') != identity_name or identity.get('Publisher') != 'CN=DBEDF414-F57B-457B-A9EC-C38F24535F31':
             raise ValueError('Unexpected User identity')
         version = identity.get('Version')
     tenant, client, secret = (required(k) for k in ('STORE_TENANT_ID', 'STORE_CLIENT_ID', 'STORE_CLIENT_SECRET'))
     app_id, notes = required('STORE_APP_ID'), required('STORE_CERTIFICATION_NOTES')
-    if app_id != '9NSQN0157W5K': raise ValueError('This workflow targets the User product only')
+    if app_id != expected_id: raise ValueError('Store product does not match package edition')
     token = request('https://login.microsoftonline.com/' + urllib.parse.quote(tenant, safe='') + '/oauth2/token', 'POST',
         {'Content-Type': 'application/x-www-form-urlencoded'}, urllib.parse.urlencode({'grant_type': 'client_credentials',
          'client_id': client, 'client_secret': secret, 'resource': 'https://manage.devcenter.microsoft.com'}).encode())['access_token']

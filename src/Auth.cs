@@ -81,12 +81,11 @@ class CodeGeneratorForm:Form {
   var clear=new Button{Text="Clear",Location=new Point(630,455),Size=new Size(280,40)};clear.Click+=(o,e)=>{request.Clear();output.Clear();};Controls.Add(clear);
   message=new Label{Location=new Point(25,420),Size=new Size(280,145)};Controls.Add(message);
   request.TextChanged+=(o,e)=>output.Clear();
-  try{
-   string keyPath=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"AdminPrivateKey.dat");
-   privateKey=Encoding.UTF8.GetString(ProtectedData.Unprotect(File.ReadAllBytes(keyPath),null,DataProtectionScope.CurrentUser));
-   using(var rsa=new RSACryptoServiceProvider()){rsa.PersistKeyInCsp=false;rsa.FromXmlString(privateKey);if(rsa.ToXmlString(false)!=AccessCodes.PublicKey())throw new Exception("The admin key does not match this app build.");}
-   message.Text="Key ID: "+AccessCodes.KeyId(AccessCodes.PublicKey())+"\nOwner only. To refuse future access, do not generate a new code.";
-  }catch(Exception){generate.Enabled=false;message.Text="Admin key unavailable. Run this app under the Windows account used to build it. Keep AdminPrivateKey.dat beside this app.";}
+  var import=new Button{Text="Import existing key",Location=new Point(25,405),Size=new Size(280,32)};Controls.Add(import);
+  message.Location=new Point(25,445);message.Size=new Size(280,120);
+  Action loadKey=()=>{try{privateKey=AdminKeyStore.Load();generate.Enabled=true;message.Text="Key ID: "+AccessCodes.KeyId(AccessCodes.PublicKey())+"\nOwner only. Keep a backup of your existing key.";}catch(Exception){privateKey=null;generate.Enabled=false;message.Text="Import your existing AdminPrivateKey.dat. It must match this app and be used under its original Windows account.";}};
+  import.Click+=(o,e)=>{using(var dialog=new OpenFileDialog{Title="Import existing Admin private key",Filter="Admin private key|AdminPrivateKey.dat",CheckFileExists=true}){if(dialog.ShowDialog(this)!=DialogResult.OK)return;try{AdminKeyStore.Import(dialog.FileName);output.Clear();loadKey();}catch(Exception){MessageBox.Show(this,"Cannot import this key. Use the matching original key under its original Windows account.","Key import failed");}}};
+  loadKey();
   generate.Click+=(o,e)=>{output.Clear();try{output.Text=AccessCodes.Generate(request.Text,privateKey,(apps.GetItemChecked(0)?1:0)|(apps.GetItemChecked(1)?2:0)|(apps.GetItemChecked(2)?4:0));message.Text="Key ID: "+AccessCodes.KeyId(AccessCodes.PublicKey())+"\nApproved for 8 hours from now, including after reopening the user app.";}catch(Exception ex){MessageBox.Show(this,ex.Message,"Cannot generate code");}};
  }
 }

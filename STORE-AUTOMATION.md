@@ -19,7 +19,7 @@ GitHub Settings > Secrets and variables > Actions > repository secrets:
 - STORE_CERTIFICATION_NOTES (actual usable reviewer access instructions)
 
 Repository variables:
-- STORE_APP_ID = 9NSQN0157W5K
+- Product IDs are fixed and edition-validated in the workflow.
 - STORE_AUTO_UPLOAD_ENABLED = true (enable only when all prerequisites are ready)
 - STORE_RELEASE_NOTES = optional version-specific release notes
 
@@ -32,8 +32,25 @@ following Microsoft approval. Upload success is not certification approval.
 Do not manually edit an API-created draft while automation is processing it.
 If a request fails the draft is kept for investigation; no automatic deletion.
 
-Admin is a separate Store product. It requires its exact identity and a separately
-validated key-free package. This workflow validates User identity and cannot
-upload to an Admin product.
-
 Reference: https://learn.microsoft.com/en-us/windows/uwp/monetize/manage-app-submissions
+
+## Admin edition (now configured)
+Store ID: 9P53CR08ZSZ3
+Identity: DTCE.DTCEToolKit-Admin
+Publisher: CN=DBEDF414-F57B-457B-A9EC-C38F24535F31
+Publisher display name: DTCE
+
+Both editions build from shared src/ at the same version. GitHub artifacts and
+releases now include separate User and key-free Admin ZIP/MSIX packages.
+The per-edition jobs validate fixed product IDs; STORE_APP_ID is no longer needed.
+Admin uses the same STORE_TENANT_ID / STORE_CLIENT_ID / STORE_CLIENT_SECRET.
+Add secret STORE_ADMIN_CERTIFICATION_NOTES with usable Admin reviewer access,
+and optional variable STORE_ADMIN_RELEASE_NOTES. Enable Admin independently with
+STORE_ADMIN_AUTO_UPLOAD_ENABLED=true after its initial Store release is published.
+An Admin build never contains AdminPrivateKey.dat. Open Access Code Generator and
+click Import existing key. Select the original matching DAT under the Windows
+account that protected it. The encrypted copy is saved under
+%LOCALAPPDATA%\DTCE Tool Kit\Admin\AdminPrivateKey.dat, outside the read-only
+Store installation. No new key is generated. Back up your original DAT.
+Admin generator cannot work on another Windows account with the original
+CurrentUser DPAPI-protected file. Import checks both decryption and public key.

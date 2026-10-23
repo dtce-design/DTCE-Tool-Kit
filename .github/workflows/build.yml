@@ -1,4 +1,4 @@
-name: Build, test and upload User release
+name: Build, test and upload both editions
 on:
   push:
     branches: [main]
@@ -28,14 +28,21 @@ jobs:
       - name: Build User only
         shell: pwsh
         run: ./scripts/Build-User.ps1
+      - name: Build key-free Admin
+        shell: pwsh
+        run: ./scripts/Build-Admin.ps1
+      - name: Build and validate Admin Store MSIX
+        shell: pwsh
+        run: ./scripts/Build-MSIX.ps1 -Edition Admin
       - name: Build and validate Store MSIX
         shell: pwsh
         run: ./scripts/Build-MSIX.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: DTCE-Tool-Kit-User
+          name: DTCE-Tool-Kit-Packages
           path: |
             dist/DTCE-Tool-Kit-User.zip
+            dist/DTCE-Tool-Kit-Admin.zip
             dist/*.msix
           if-no-files-found: error
           retention-days: 30
@@ -48,15 +55,15 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: DTCE-Tool-Kit-User
+          name: DTCE-Tool-Kit-Packages
           path: release
       - name: Publish successful build
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "build-${GITHUB_RUN_NUMBER}" release/DTCE-Tool-Kit-User.zip release/*.msix --target "$GITHUB_SHA" --title "DTCE Tool Kit - successful build ${GITHUB_RUN_NUMBER}" --notes "User-only build. Calculations and signed-access checks passed. Commit: ${GITHUB_SHA}. Admin/private signing key are excluded. Includes a User-only MSIX for Partner Center upload. Package generation does not submit or certify the app."
-  store-upload:
+          gh release create "build-${GITHUB_RUN_NUMBER}" release/DTCE-Tool-Kit-User.zip release/DTCE-Tool-Kit-Admin.zip release/*.msix --target "$GITHUB_SHA" --title "DTCE Tool Kit - successful build ${GITHUB_RUN_NUMBER}" --notes "User and key-free Admin builds. Calculations and signed-access checks passed. Commit: ${GITHUB_SHA}. Private signing keys are excluded. Includes separate User and Admin MSIX packages. Package generation does not submit or certify the app."
+  store-user-upload:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.STORE_AUTO_UPLOAD_ENABLED == 'true'
     needs: build
     runs-on: windows-latest
@@ -68,7 +75,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: DTCE-Tool-Kit-User
+          name: DTCE-Tool-Kit-Packages
           path: store-package
       - name: Upload and submit User MSIX to Microsoft Store
         shell: pwsh
@@ -77,10 +84,41 @@ jobs:
           STORE_CLIENT_ID: ${{ secrets.STORE_CLIENT_ID }}
           STORE_CLIENT_SECRET: ${{ secrets.STORE_CLIENT_SECRET }}
           STORE_CERTIFICATION_NOTES: ${{ secrets.STORE_CERTIFICATION_NOTES }}
-          STORE_APP_ID: ${{ vars.STORE_APP_ID }}
+          STORE_EDITION: User
+          STORE_APP_ID: 9NSQN0157W5K
           STORE_RELEASE_NOTES: ${{ vars.STORE_RELEASE_NOTES }}
         run: |
-          $packages=@(Get-ChildItem store-package -Filter *.msix)
+          $packages=@(Get-ChildItem store-package -Filter DTCE-Tool-Kit_*.msix)
           if($packages.Count -ne 1){throw 'Exactly one validated User MSIX is required'}
+          python scripts/submit_store.py $packages[0].FullName
+          if($LASTEXITCODE -ne 0){throw 'Store submission did not complete successfully'}
+
+  store-admin-upload:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.STORE_ADMIN_AUTO_UPLOAD_ENABLED == 'true'
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 15
+    concurrency:
+      group: microsoft-store-admin
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: DTCE-Tool-Kit-Packages
+          path: store-package
+      - name: Upload and submit Admin MSIX to Microsoft Store
+        shell: pwsh
+        env:
+          STORE_TENANT_ID: ${{ secrets.STORE_TENANT_ID }}
+          STORE_CLIENT_ID: ${{ secrets.STORE_CLIENT_ID }}
+          STORE_CLIENT_SECRET: ${{ secrets.STORE_CLIENT_SECRET }}
+          STORE_CERTIFICATION_NOTES: ${{ secrets.STORE_ADMIN_CERTIFICATION_NOTES }}
+          STORE_EDITION: Admin
+          STORE_APP_ID: 9P53CR08ZSZ3
+          STORE_RELEASE_NOTES: ${{ vars.STORE_ADMIN_RELEASE_NOTES }}
+        run: |
+          $packages=@(Get-ChildItem store-package -Filter DTCE-Tool-Kit-Admin_*.msix)
+          if($packages.Count -ne 1){throw 'Exactly one validated Admin MSIX is required'}
           python scripts/submit_store.py $packages[0].FullName
           if($LASTEXITCODE -ne 0){throw 'Store submission did not complete successfully'}
