@@ -1,0 +1,14 @@
+*.dat
+*.pfx
+*.p12
+*.pem
+*.key
+Admin/
+*Owner-WithKey*
+dist/
+test-results/
+*.exe
+*.pdb
+*.zip
+.env
+.env.*

@@ -1,0 +1,51 @@
+name: Build, test and upload User release
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate no private signing material
+        shell: pwsh
+        run: |
+          $bad=git ls-files | Where-Object {$_ -match '(?i)(AdminPrivateKey|\.dat$|\.pfx$|\.p12$|Owner-WithKey)'}
+          if($bad){throw 'Private signing material must not be committed'}
+      - name: Test calculations and access protocol
+        shell: pwsh
+        run: ./scripts/Test.ps1
+      - name: Build User only
+        shell: pwsh
+        run: ./scripts/Build-User.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DTCE-Tool-Kit-User
+          path: dist/DTCE-Tool-Kit-User.zip
+          if-no-files-found: error
+          retention-days: 30
+  release:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: DTCE-Tool-Kit-User
+          path: release
+      - name: Publish successful build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "build-${GITHUB_RUN_NUMBER}" release/DTCE-Tool-Kit-User.zip --target "$GITHUB_SHA" --title "DTCE Tool Kit - successful build ${GITHUB_RUN_NUMBER}" --notes "User-only build. Calculations and signed-access checks passed. Commit: ${GITHUB_SHA}. Admin/private signing key are excluded. This is a portable build, not a Microsoft Store submission."
