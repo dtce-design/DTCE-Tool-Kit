@@ -28,11 +28,12 @@ The Admin signing key remains offline with its original Windows account.
 
 ## Microsoft Store status
 
-GitHub build/upload automation is separate from Store publication. This repo
-currently produces a portable User ZIP, not an MSIX. Store package identity,
-User-only MSIX packaging, first submission/certification and Partner Center API
-credentials must be configured before Store uploads can be automated. No Store
-credentials or automatic Store submission are enabled here.
+GitHub now generates both a portable User ZIP and a validated User-only x64 MSIX.
+Store identity: DTCE.DTCEToolKit; publisher DTCE. Download the .msix from Releases
+and upload it to Partner Center Packages. MSIX is unsigned for Store certification;
+it is not a directly trusted sideload installer. Store review/first publication,
+reviewer access and Partner Center API credentials remain to be configured.
+No automatic Partner Center submission or Store credentials are enabled here.
 
 Current application release: 1.4.23. Admin watermark is DTCE; User watermark is
 DPWH. Original DTCE logo and app name remain in both editions. Code approval is

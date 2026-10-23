@@ -26,10 +26,15 @@ jobs:
       - name: Build User only
         shell: pwsh
         run: ./scripts/Build-User.ps1
+      - name: Build and validate Store MSIX
+        shell: pwsh
+        run: ./scripts/Build-MSIX.ps1
       - uses: actions/upload-artifact@v4
         with:
           name: DTCE-Tool-Kit-User
-          path: dist/DTCE-Tool-Kit-User.zip
+          path: |
+            dist/DTCE-Tool-Kit-User.zip
+            dist/*.msix
           if-no-files-found: error
           retention-days: 30
   release:
@@ -48,4 +53,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "build-${GITHUB_RUN_NUMBER}" release/DTCE-Tool-Kit-User.zip --target "$GITHUB_SHA" --title "DTCE Tool Kit - successful build ${GITHUB_RUN_NUMBER}" --notes "User-only build. Calculations and signed-access checks passed. Commit: ${GITHUB_SHA}. Admin/private signing key are excluded. This is a portable build, not a Microsoft Store submission."
+          gh release create "build-${GITHUB_RUN_NUMBER}" release/DTCE-Tool-Kit-User.zip release/*.msix --target "$GITHUB_SHA" --title "DTCE Tool Kit - successful build ${GITHUB_RUN_NUMBER}" --notes "User-only build. Calculations and signed-access checks passed. Commit: ${GITHUB_SHA}. Admin/private signing key are excluded. Includes a User-only MSIX for Partner Center upload. Package generation does not submit or certify the app."
