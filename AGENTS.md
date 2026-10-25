@@ -16,3 +16,8 @@ setup are complete. Do not claim a GitHub release is a Microsoft Store release.
 
 The current user authorizes automatic tested GitHub uploads. This does not
 authorize repository visibility changes or disclosure of the owner's key.
+
+Mobile app source is mobile/. Never commit/export real .dtcekey files or owner keys.
+Test.ps1 exercises .NET/Web Crypto interoperability using ephemeral keys.
+Build-Mobile.ps1 packages only an allowlist of key-free static assets.
+Pages hosting is opt-in; preserve repository visibility and keep exported keys local.

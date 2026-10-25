@@ -14,3 +14,5 @@ test-results/
 .env.*
 
 __pycache__/
+
+*.dtcekey

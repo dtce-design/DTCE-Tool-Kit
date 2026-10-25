@@ -18,3 +18,13 @@ $exe=Join-Path $out 'AdminKeyStoreTests.exe'
 if($LASTEXITCODE-ne 0){throw 'Admin key test compilation failed'}
 & $exe
 if($LASTEXITCODE-ne 0){throw 'Admin key test failed'}
+
+$exe=Join-Path $out 'MobileInteropTests.exe'
+& $compiler /nologo /define:ADMIN_APP /target:exe /main:MobileInteropTests "/out:$exe" /reference:System.Security.dll /reference:System.Core.dll "/resource:$source\AccessPublicKey.xml,AccessPublicKey.xml" @files (Join-Path $repo 'tests\MobileInteropTests.cs') /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:Microsoft.CSharp.dll
+if($LASTEXITCODE-ne 0){throw 'Mobile interop compilation failed'}
+& $exe fixture $out
+if($LASTEXITCODE-ne 0){throw 'Mobile encrypted fixture failed'}
+& node (Join-Path $repo 'tests\mobile-crypto.test.mjs') $out
+if($LASTEXITCODE-ne 0){throw 'Mobile Web Crypto test failed'}
+& $exe verify $out
+if($LASTEXITCODE-ne 0){throw 'Desktop/mobile signature compatibility failed'}

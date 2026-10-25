@@ -18,13 +18,16 @@ jobs:
       - name: Validate no private signing material
         shell: pwsh
         run: |
-          $bad=git ls-files | Where-Object {$_ -match '(?i)(AdminPrivateKey|\.dat$|\.pfx$|\.p12$|Owner-WithKey)'}
+          $bad=git ls-files | Where-Object {$_ -match '(?i)(AdminPrivateKey|\.dtcekey$|\.dat$|\.pfx$|\.p12$|Owner-WithKey)'}
           if($bad){throw 'Private signing material must not be committed'}
       - name: Test calculations and access protocol
         shell: pwsh
         run: ./scripts/Test.ps1
       - name: Test Store submission payload
         run: python -m unittest discover -s tests -p test_store_submission.py
+      - name: Build mobile access generator
+        shell: pwsh
+        run: ./scripts/Build-Mobile.ps1
       - name: Build User only
         shell: pwsh
         run: ./scripts/Build-User.ps1
@@ -43,6 +46,7 @@ jobs:
           path: |
             dist/DTCE-Tool-Kit-User.zip
             dist/DTCE-Tool-Kit-Admin.zip
+            dist/DTCE-Mobile-Access.zip
             dist/*.msix
           if-no-files-found: error
           retention-days: 30
@@ -62,7 +66,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "build-${GITHUB_RUN_NUMBER}" release/DTCE-Tool-Kit-User.zip release/DTCE-Tool-Kit-Admin.zip release/*.msix --target "$GITHUB_SHA" --title "DTCE Tool Kit - successful build ${GITHUB_RUN_NUMBER}" --notes "User and key-free Admin builds. Calculations and signed-access checks passed. Commit: ${GITHUB_SHA}. Private signing keys are excluded. Includes separate User and Admin MSIX packages. Package generation does not submit or certify the app."
+          gh release create "build-${GITHUB_RUN_NUMBER}" release/DTCE-Tool-Kit-User.zip release/DTCE-Tool-Kit-Admin.zip release/DTCE-Mobile-Access.zip release/*.msix --target "$GITHUB_SHA" --title "DTCE Tool Kit - successful build ${GITHUB_RUN_NUMBER}" --notes "User and key-free Admin builds. Calculations and signed-access checks passed. Commit: ${GITHUB_SHA}. Private signing keys are excluded. Includes separate User and Admin MSIX packages. Package generation does not submit or certify the app."
   store-user-upload:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.STORE_AUTO_UPLOAD_ENABLED == 'true'
     needs: build
@@ -122,3 +126,29 @@ jobs:
           if($packages.Count -ne 1){throw 'Exactly one validated Admin MSIX is required'}
           python scripts/submit_store.py $packages[0].FullName
           if($LASTEXITCODE -ne 0){throw 'Store submission did not complete successfully'}
+
+  mobile-pages:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.MOBILE_PAGES_ENABLED == 'true'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: DTCE-Tool-Kit-Packages
+          path: packages
+      - name: Extract key-free mobile web app only
+        run: unzip packages/DTCE-Mobile-Access.zip -d mobile-site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: mobile-site
+      - name: Deploy iPhone web app
+        id: deployment
+        uses: actions/deploy-pages@v4

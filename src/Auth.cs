@@ -86,6 +86,18 @@ class CodeGeneratorForm:Form {
   Action loadKey=()=>{try{privateKey=AdminKeyStore.Load();generate.Enabled=true;message.Text="Key ID: "+AccessCodes.KeyId(AccessCodes.PublicKey())+"\nOwner only. Keep a backup of your existing key.";}catch(Exception){privateKey=null;generate.Enabled=false;message.Text="Import your existing AdminPrivateKey.dat. It must match this app and be used under its original Windows account.";}};
   import.Click+=(o,e)=>{using(var dialog=new OpenFileDialog{Title="Import existing Admin private key",Filter="Admin private key|AdminPrivateKey.dat",CheckFileExists=true}){if(dialog.ShowDialog(this)!=DialogResult.OK)return;try{AdminKeyStore.Import(dialog.FileName);output.Clear();loadKey();}catch(Exception){MessageBox.Show(this,"Cannot import this key. Use the matching original key under its original Windows account.","Key import failed");}}};
   loadKey();
+  var exportMobile=new Button{Text="Export key for iPhone",Location=new Point(630,510),Size=new Size(280,40)};Controls.Add(exportMobile);
+  exportMobile.Click+=async(o,e)=>{
+   try{
+    string key=AdminKeyStore.Load();string password;
+    using(var prompt=new MobileExportPasswordForm()){if(prompt.ShowDialog(this)!=DialogResult.OK)return;password=prompt.ExportPassword;}
+    using(var save=new SaveFileDialog{Title="Save password-protected mobile key",Filter="DTCE encrypted mobile key|*.dtcekey",FileName="DTCE-Mobile-Access.dtcekey",DefaultExt="dtcekey",AddExtension=true}){
+     if(save.ShowDialog(this)!=DialogResult.OK)return;exportMobile.Enabled=false;
+     try{string encrypted=await System.Threading.Tasks.Task.Run(()=>MobileKeyExport.Create(key,password,AccessCodes.PublicKey()));File.WriteAllText(save.FileName,encrypted,new UTF8Encoding(false));MessageBox.Show(this,"Mobile key exported. Transfer it privately to your iPhone Files app. Do not upload it to GitHub. The original Windows key is unchanged.","Export complete");}
+     finally{exportMobile.Enabled=true;password=null;key=null;}
+    }
+   }catch(Exception){MessageBox.Show(this,"Cannot export the mobile key. Import the matching existing Admin key first and choose a writable file location.","Export failed");}
+  };
   generate.Click+=(o,e)=>{output.Clear();try{output.Text=AccessCodes.Generate(request.Text,privateKey,(apps.GetItemChecked(0)?1:0)|(apps.GetItemChecked(1)?2:0)|(apps.GetItemChecked(2)?4:0));message.Text="Key ID: "+AccessCodes.KeyId(AccessCodes.PublicKey())+"\nApproved for 8 hours from now, including after reopening the user app.";}catch(Exception ex){MessageBox.Show(this,ex.Message,"Cannot generate code");}};
  }
 }
