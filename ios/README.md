@@ -42,8 +42,8 @@ system cryptography; no compliance approval is assumed by this project.
 If you already have an Apple Developer account, the next setup inputs are your
 Team ID and chosen registered bundle identifier; do not send passwords, private
 certificates or App Store Connect private keys in chat. Apple credentials are
-not needed for unsigned CI tests. This repository currently does NOT upload
-builds to TestFlight automatically.
+not needed for unsigned CI tests. The tested main-branch workflow now attempts Apple cloud signing and TestFlight
+upload using the API secrets below. Apple account permissions still need validation.
 
 ## First device test
 1. Install the signed app; enroll Face ID in iPhone Settings.
@@ -56,3 +56,27 @@ builds to TestFlight automatically.
    after a changed Face ID enrollment. Never use the only key backup for testing.
 
 The existing Safari web app remains available during native signing setup.
+
+## Automatic TestFlight uploads
+Team: 8R5VUGW834. Bundle: com.dtce.accessadmin.
+Set repository secrets ASC_KEY_ID, ASC_ISSUER_ID and ASC_PRIVATE_KEY (full .p8 text).
+After native-ios passes on main, testflight-upload authenticates with Apple,
+checks the app record, chooses release Xcode 26+, archives the iPhone app,
+requests cloud distribution signing/upload, and checks Apple build processing.
+All API keys are written with owner-only permissions outside the checkout and
+removed in an always-running cleanup step. No private keys or signed build logs
+are uploaded as artifacts. Signing-key export files for DTCE are never needed.
+
+The upload uses Apple cloud-managed signing through xcodebuild. An App Manager
+API key can upload builds, but cloud signing also requires the appropriate
+certificate/provisioning permissions on the Apple team. If Apple denies signing,
+the workflow stops; it does not grant roles, change permissions, or revoke/create
+certificates through a custom API. Follow the actual Apple error before changing
+credentials. Certificate access is separate from normal upload access.
+
+Build numbers use run number.run attempt to avoid reusing a build on a rerun.
+Set repository variable IOS_TESTFLIGHT_DISABLED=true to pause automatic uploads.
+A successful upload is not public App Store publication. After Apple processing,
+finish encryption compliance and add only yourself to an internal TestFlight
+group in App Store Connect. No external testers or public releases are created.
+If processing times out after upload, check TestFlight before re-running.

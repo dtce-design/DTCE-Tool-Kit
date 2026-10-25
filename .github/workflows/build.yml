@@ -194,3 +194,58 @@ jobs:
             DTCE-Access-iOS-Simulator.zip
           if-no-files-found: error
           retention-days: 30
+
+  testflight-upload:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.IOS_TESTFLIGHT_DISABLED != 'true'
+    needs: native-ios
+    runs-on: macos-15
+    timeout-minutes: 30
+    concurrency:
+      group: apple-testflight-native
+      cancel-in-progress: false
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test Apple upload authentication implementation
+        run: python3 -m unittest discover -s tests -p test_apple_upload.py
+      - name: Validate Apple credentials and app record
+        id: apple
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          export ASC_KEY_PATH="$RUNNER_TEMP/DTCE-ASC-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.p8"
+          echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
+          python3 ios/ci/app_store.py prepare
+      - name: Select an installed release Xcode 26 or newer
+        shell: bash
+        run: |
+          developer_dir=$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+          choices=[]
+          for app in Path('/Applications').glob('Xcode*.app'):
+              match=re.fullmatch(r'Xcode_(\d+(?:\.\d+)*)\.app',app.name)
+              if match and int(match[1].split('.')[0])>=26:
+                  choices.append((tuple(map(int,match[1].split('.'))),app))
+          if not choices:
+              raise SystemExit('No release Xcode 26+ found. Use a GitHub macOS image containing the current Apple SDK.')
+          print(max(choices)[1]/'Contents/Developer')
+          PY
+          )
+          echo "DEVELOPER_DIR=$developer_dir" >> "$GITHUB_ENV"
+          DEVELOPER_DIR="$developer_dir" xcodebuild -version
+      - name: Cloud sign and upload the native iPhone app
+        shell: bash
+        run: bash ios/ci/upload_testflight.sh
+      - name: Verify Apple build processing
+        env:
+          APPLE_APP_ID: ${{ steps.apple.outputs.app_id }}
+        run: python3 ios/ci/app_store.py check "$APPLE_APP_ID" "${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+      - name: Remove temporary API private key
+        if: always()
+        run: |
+          if [[ -n "${ASC_KEY_PATH:-}" ]]; then
+            rm -f -- "$ASC_KEY_PATH"
+          fi
