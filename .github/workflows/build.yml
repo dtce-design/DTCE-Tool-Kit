@@ -25,6 +25,15 @@ jobs:
         run: ./scripts/Test.ps1
       - name: Test Store submission payload
         run: python -m unittest discover -s tests -p test_store_submission.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DTCE-Native-Test-Fixture
+          path: |
+            test-results/mobile-fixture.json
+            test-results/mobile-public.json
+            test-results/mobile-code.txt
+          retention-days: 1
+          if-no-files-found: error
       - name: Build mobile access generator
         shell: pwsh
         run: ./scripts/Build-Mobile.ps1
@@ -152,3 +161,36 @@ jobs:
       - name: Deploy iPhone web app
         id: deployment
         uses: actions/deploy-pages@v4
+
+  native-ios:
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: DTCE-Native-Test-Fixture
+          path: ios-fixture
+      - name: Check native public key configuration
+        run: cmp mobile/public-key.json ios/DTCEAccess/public-key.json
+      - name: Test native crypto against desktop and Web Crypto
+        run: |
+          swiftc ios/DTCEAccess/AccessCrypto.swift ios/Tests/main.swift -o native-crypto-tests
+          ./native-crypto-tests ios-fixture
+      - name: Build native iPhone simulator app
+        run: xcodebuild -project ios/DTCEAccess.xcodeproj -scheme DTCEAccess -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath ios-build CODE_SIGNING_ALLOWED=NO build
+      - name: Build unsigned iPhone archive
+        run: xcodebuild -project ios/DTCEAccess.xcodeproj -scheme DTCEAccess -configuration Release -destination 'generic/platform=iOS' -archivePath ios-build/DTCEAccess.xcarchive CODE_SIGNING_ALLOWED=NO archive
+      - name: Package native build for review (not installable without Apple signing)
+        run: |
+          ditto -c -k --keepParent ios-build/DTCEAccess.xcarchive DTCE-Access-iOS-unsigned.xcarchive.zip
+          ditto -c -k --keepParent ios-build/Build/Products/Debug-iphonesimulator/DTCEAccess.app DTCE-Access-iOS-Simulator.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DTCE-Access-Native-iOS
+          path: |
+            DTCE-Access-iOS-unsigned.xcarchive.zip
+            DTCE-Access-iOS-Simulator.zip
+          if-no-files-found: error
+          retention-days: 30

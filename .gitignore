@@ -16,3 +16,12 @@ test-results/
 __pycache__/
 
 *.dtcekey
+
+*.ipa
+*.mobileprovision
+*.p8
+*.xcuserstate
+ios-build/
+ios-fixture/
+native-crypto-tests
+xcuserdata/

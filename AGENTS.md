@@ -21,3 +21,8 @@ Mobile app source is mobile/. Never commit/export real .dtcekey files or owner k
 Test.ps1 exercises .NET/Web Crypto interoperability using ephemeral keys.
 Build-Mobile.ps1 packages only an allowlist of key-free static assets.
 Pages hosting is opt-in; preserve repository visibility and keep exported keys local.
+
+Native iPhone source is ios/. Native crypto must pass the macOS interop test and
+Xcode simulator/device builds. Never commit Apple signing files or private keys.
+Unsigned archives cannot be installed on a physical iPhone. No automatic claim
+of Face ID hardware verification; device enrollment/unlock tests require iPhone.
