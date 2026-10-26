@@ -39,3 +39,13 @@ export async function generateCode(key, input, apps, now = Date.now()) {
   const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5',key,utf8.encode(`BEAM-ACCESS-V3|${request}|${issued}.${expiry}|${apps}`));
   return {code:`BA3.${issued}.${expiry}.${apps}.${encode64(signature)}`, expiry, request};
 }
+
+// Store review credential: no device binding; exact User version; all apps; 30 days.
+export async function generateCertificationCode(key, version, now = Date.now()) {
+  if (typeof version !== 'string' || !/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(version) || version.split('.').some(x => Number(x) > 65535)) throw new Error('Enter the exact User version, for example 1.4.27 (three numbers).');
+  if (!Number.isFinite(now) || now < 0 || now > 253399708799000) throw new Error('Check the date and time on your phone.');
+  const issued = Math.floor(now / 1000), expiry = issued + 2592000, target = version.replaceAll('.', '-');
+  const message = `DTCE-CERTIFICATION-V1|${issued}.${expiry}|7|${target}`;
+  const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, utf8.encode(message));
+  return {code:`BC1.${issued}.${expiry}.7.${target}.${encode64(signature)}`, expiry, version};
+}

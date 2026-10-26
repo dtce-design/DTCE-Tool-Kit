@@ -24,3 +24,13 @@ guard actual.code == code, actual.expires.timeIntervalSince1970 == issued+28800 
 for mask in [0,8,-1] { try rejects { _ = try AccessCrypto.generate(key:key,request:request,apps:mask) } }
 try rejects { _ = try AccessCrypto.generate(key:key,request:"invalid",apps:1) }
 print("PASS: native Swift decrypts actual .NET encrypted export and produces byte-identical BA3 signature; tamper/password/key/mask/expiry checks passed. Ephemeral test key only.")
+
+let certification = String(decoding:try read("mobile-cert.txt"),as:UTF8.self)
+let certParts = certification.split(separator:".")
+let certIssued = TimeInterval(certParts[1])!
+let certVersion = certParts[4].replacingOccurrences(of:"-",with:".")
+let nativeCertification = try AccessCrypto.generateCertification(key:key,version:certVersion,now:Date(timeIntervalSince1970:certIssued))
+guard nativeCertification.code == certification, nativeCertification.expires.timeIntervalSince1970 == certIssued+2592000 else { throw AccessError.invalid("Native certification signature not compatible with desktop/Web Crypto") }
+for version in ["", "1.4", "1.4.27.0", "01.4.27", "1.4.-1", "1.4.65536", "1-4-27"] { try rejects { _ = try AccessCrypto.generateCertification(key:key,version:version) } }
+for time in [Double.nan,Double.infinity,-1] { try rejects { _ = try AccessCrypto.generateCertification(key:key,version:certVersion,now:Date(timeIntervalSince1970:time)) } }
+print("PASS: native 30-day certification signature exactly matches desktop/Web Crypto; invalid versions/dates rejected.")

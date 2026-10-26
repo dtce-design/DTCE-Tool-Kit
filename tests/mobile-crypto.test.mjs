@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';import path from 'node:path';import {webcrypto} from 'node:crypto';
-import {validateEnvelope,unlockEnvelope,generateCode} from '../mobile/crypto.mjs';
+import {validateEnvelope,unlockEnvelope,generateCode,generateCertificationCode} from '../mobile/crypto.mjs';
 if(!globalThis.crypto)globalThis.crypto=webcrypto;
 const folder=process.argv[2];
 const envelope=JSON.parse(fs.readFileSync(path.join(folder,'mobile-fixture.json'),'utf8'));
@@ -23,3 +23,12 @@ const data=new TextEncoder().encode(`BEAM-ACCESS-V3|${request}|${parts[1]}.${par
 assert.equal(await crypto.subtle.verify('RSASSA-PKCS1-v1_5',verifyKey,Buffer.from(parts[4],'base64'),data),true);
 fs.writeFileSync(path.join(folder,'mobile-code.txt'),generated.code);
 console.log('PASS: .NET encrypted export and Web Crypto signing; password, tamper, key identity, mask and expiry checks.');
+
+const reference=fs.readFileSync(path.join(folder,'cert-reference.txt'),'utf8');
+const certParts=reference.split('.'), version=certParts[4].replaceAll('-','.');
+const cert=await generateCertificationCode(key,version,Number(certParts[1])*1000);
+assert.equal(cert.code,reference);assert.equal(cert.expiry-Number(certParts[1]),2592000);
+for(const invalid of ['', '1.4', '1.4.27.0', '01.4.27', '1.4.-1', '1.4.65536', '1-4-27'])await assert.rejects(()=>generateCertificationCode(key,invalid));
+for(const invalidTime of [NaN,Infinity,-1])await assert.rejects(()=>generateCertificationCode(key,version,invalidTime));
+fs.writeFileSync(path.join(folder,'mobile-cert.txt'),cert.code);
+console.log('PASS: 30-day version-bound certification signature matches desktop; invalid versions and dates rejected.');

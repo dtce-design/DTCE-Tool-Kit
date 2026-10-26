@@ -10,6 +10,7 @@ class MobileInteropTests {
     File.WriteAllText(Path.Combine(folder,"mobile-fixture.json"),MobileKeyExport.Create(priv,Password,pub));
     File.WriteAllText(Path.Combine(folder,"mobile-public.json"),"{\"keyId\":\""+AccessCodes.KeyId(pub)+"\",\"n\":\""+Url(p.Modulus)+"\",\"e\":\""+Url(p.Exponent)+"\"}");
     File.WriteAllText(Path.Combine(folder,"mobile-public.xml"),pub);
+    File.WriteAllText(Path.Combine(folder,"cert-reference.txt"),AccessCodes.GenerateCertificationAt(priv,Engine.Version,DateTime.UtcNow));
     try{MobileKeyExport.Create(priv,"short",pub);throw new Exception("Short password accepted");}catch(ArgumentException){}
    }
    Console.WriteLine("Created ephemeral encrypted mobile fixture. No owner signing key used.");return 0;
@@ -17,6 +18,9 @@ class MobileInteropTests {
   string code=File.ReadAllText(Path.Combine(folder,"mobile-code.txt")),publicKey=File.ReadAllText(Path.Combine(folder,"mobile-public.xml"));DateTime end;
   if(!AccessCodes.ValidateAt("BEAM-0123456789ABCDEF0123456789ABCDEF01234567",code,publicKey,DateTime.UtcNow,out end))throw new Exception("iPhone protocol signature rejected by desktop verifier");
   if(AccessCodes.ValidateAt("BEAM-FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",code,publicKey,DateTime.UtcNow,out end))throw new Exception("Wrong request accepted");
+  string cert=File.ReadAllText(Path.Combine(folder,"mobile-cert.txt"));
+  if(cert!=File.ReadAllText(Path.Combine(folder,"cert-reference.txt"))||!AccessCodes.ValidateAt("",cert,publicKey,DateTime.UtcNow,out end))throw new Exception("Mobile certification signature rejected by desktop verifier");
+  Console.WriteLine("PASS: Web Crypto certification matches desktop signature exactly and unlocks without a request.");
   Console.WriteLine("PASS: Web Crypto generated code accepted by desktop BA3 verifier; wrong request rejected.");return 0;
  }
 }

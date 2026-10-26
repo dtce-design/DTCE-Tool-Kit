@@ -32,6 +32,7 @@ jobs:
             test-results/mobile-fixture.json
             test-results/mobile-public.json
             test-results/mobile-code.txt
+            test-results/mobile-cert.txt
           retention-days: 1
           if-no-files-found: error
       - name: Build mobile access generator

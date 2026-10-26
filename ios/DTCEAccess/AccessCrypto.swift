@@ -116,4 +116,19 @@ enum AccessCrypto {
         guard let signature = SecKeyCreateSignature(key, .rsaSignatureMessagePKCS1v15SHA256, message as CFData, &error) as Data? else { if let error = error?.takeRetainedValue() { throw error }; throw AccessError.invalid("Signing failed.") }
         return GeneratedAccess(code:"BA3.\(issued).\(expiry).\(apps).\(signature.base64EncodedString())", expires:Date(timeIntervalSince1970:TimeInterval(expiry)))
     }
+    static func generateCertification(key: SecKey, version: String, now: Date = Date()) throws -> GeneratedAccess {
+        let parts = version.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 3, parts.allSatisfy({ part in
+            guard let value = Int(part), (0...65535).contains(value) else { return false }
+            return String(value) == String(part)
+        }) else { throw AccessError.invalid("Enter the exact User version, for example 1.4.27 (three numbers).") }
+        guard now.timeIntervalSince1970.isFinite, (0...253399708799).contains(now.timeIntervalSince1970) else { throw AccessError.invalid("Check your iPhone date and time.") }
+        let issued = Int64(now.timeIntervalSince1970), expiry = issued + 2592000
+        let target = version.replacingOccurrences(of: ".", with: "-")
+        let message = Data("DTCE-CERTIFICATION-V1|\(issued).\(expiry)|7|\(target)".utf8)
+        var error: Unmanaged<CFError>?
+        guard let signature = SecKeyCreateSignature(key, .rsaSignatureMessagePKCS1v15SHA256, message as CFData, &error) as Data? else { if let error = error?.takeRetainedValue() { throw error }; throw AccessError.invalid("Signing failed.") }
+        return GeneratedAccess(code:"BC1.\(issued).\(expiry).7.\(target).\(signature.base64EncodedString())", expires:Date(timeIntervalSince1970:TimeInterval(expiry)))
+    }
+
 }

@@ -80,3 +80,6 @@ A successful upload is not public App Store publication. After Apple processing,
 finish encryption compliance and add only yourself to an internal TestFlight
 group in App Store Connect. No external testers or public releases are created.
 If processing times out after upload, check TestFlight before re-running.
+
+
+Certification access is available in v1.1.0: choose Certification, enter the exact Windows User version (1.4.27), and generate a 30-day all-tools credential without a request code. See docs/Certification-Access.md. Keep generated review codes private. Windows User v1.4.27 or newer is required.

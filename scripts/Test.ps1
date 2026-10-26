@@ -28,3 +28,10 @@ if($LASTEXITCODE-ne 0){throw 'Mobile encrypted fixture failed'}
 if($LASTEXITCODE-ne 0){throw 'Mobile Web Crypto test failed'}
 & $exe verify $out
 if($LASTEXITCODE-ne 0){throw 'Desktop/mobile signature compatibility failed'}
+
+# Real activation/DPAPI restore with the ephemeral interop public key, isolated from owner approvals.
+$exe=Join-Path $out 'CertificationCacheTests.exe'
+& $compiler /nologo /target:exe /main:CertificationCacheTests "/out:$exe" /reference:System.Security.dll /reference:System.Core.dll "/resource:$out\mobile-public.xml,AccessPublicKey.xml" @files (Join-Path $repo 'tests\CertificationCacheTests.cs') /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:Microsoft.CSharp.dll
+if($LASTEXITCODE-ne 0){throw 'Certification cache compilation failed'}
+& $exe $out
+if($LASTEXITCODE-ne 0){throw 'Certification activation/cache test failed'}

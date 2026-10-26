@@ -39,15 +39,24 @@ struct AccessView: View {
                             Text("Locks when backgrounded and after 5 minutes of inactivity. Face ID enrollment changes require importing the key again.").font(.caption).foregroundStyle(.secondary)
                         }
                         card {
-                            Text("2. Request & permissions").font(.headline)
+                            Text("2. Access type & permissions").font(.headline)
+                            Picker("Code type",selection:$model.certification) {
+                                Text("Normal access").tag(false)
+                                Text("Certification").tag(true)
+                            }.pickerStyle(.segmented)
+                            if model.certification {
+                                TextField("Exact User app version",text:$model.userVersion).textInputAutocapitalization(.never).autocorrectionDisabled().textFieldStyle(.roundedBorder).accessibilityLabel("Exact User app version")
+                                Text("30 days. No request needed. All apps included. Anyone holding this code can use the matching version until expiry. Share only in Notes for certification.").font(.footnote).foregroundStyle(.secondary)
+                            } else {
                             TextEditor(text:$model.request).font(.system(.footnote,design:.monospaced)).frame(minHeight:78).padding(8).background(Color(.secondarySystemBackground)).clipShape(RoundedRectangle(cornerRadius:10)).textInputAutocapitalization(.characters).autocorrectionDisabled().accessibilityLabel("User request code")
                             Text("Paste the complete BEAM request from the User app.").font(.caption).foregroundStyle(.secondary)
                             ForEach([(1,"Beam Schedule Formatter"),(2,"Beam Estimator"),(4,"Splice, Development & Hooks")],id:\.0) { app in
                                 Toggle(app.1,isOn:Binding(get:{model.allowedApps.contains(app.0)},set:{enabled in if enabled {model.allowedApps.insert(app.0)} else {model.allowedApps.remove(app.0)} })).tint(.teal)
                             }
                             Label("Project Information included",systemImage:"checkmark.circle.fill").foregroundStyle(.teal).font(.caption)
-                            Button("Generate 8-hour access") { model.generate() }.buttonStyle(.borderedProminent).frame(maxWidth:.infinity).disabled(!model.unlocked || model.busy || model.allowedApps.isEmpty)
-                            Text("Eight hours starts at generation. Keep iPhone Date & Time set automatically.").font(.caption).foregroundStyle(.secondary)
+                            }
+                            Button(model.certification ? "Generate certification code":"Generate 8-hour access") { model.generate() }.buttonStyle(.borderedProminent).frame(maxWidth:.infinity).disabled(!model.unlocked || model.busy || (!model.certification && model.allowedApps.isEmpty))
+                            Text(model.certification ? "Requires updated User v1.4.27 or newer, matching the version above. Thirty days starts at generation." : "Eight hours starts at generation. Keep iPhone Date & Time set automatically.").font(.caption).foregroundStyle(.secondary)
                         }
                         card {
                             Text("3. Send access code").font(.headline)

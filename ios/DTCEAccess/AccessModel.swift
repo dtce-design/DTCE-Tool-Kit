@@ -4,6 +4,8 @@ import Security
 import LocalAuthentication
 
 @MainActor final class AccessModel: ObservableObject {
+    @Published var certification = false { didSet { clearOutput() } }
+    @Published var userVersion = "1.4.27" { didSet { clearOutput() } }
     @Published var request = "" { didSet { clearOutput() } }
     @Published var allowedApps: Set<Int> = [] { didSet { clearOutput() } }
     @Published var password = ""
@@ -59,7 +61,7 @@ import LocalAuthentication
     func generate() {
         guard unlocked, let key = key else { message = "Unlock with Face ID first."; return }
         clearOutput()
-        do { let result = try AccessCrypto.generate(key:key,request:request,apps:allowedApps.reduce(0) { $0 | $1 }); code = result.code; expires = result.expires; message = "Access code ready. Valid for eight hours from generation." }
+        do { let result: GeneratedAccess; if certification { result = try AccessCrypto.generateCertification(key:key,version:userVersion.trimmingCharacters(in:.whitespacesAndNewlines)) } else { result = try AccessCrypto.generate(key:key,request:request,apps:allowedApps.reduce(0) { $0 | $1 }) }; code = result.code; expires = result.expires; message = certification ? "Certification code ready. All apps, 30 days, User v\(userVersion) only. Put it in Notes for certification." : "Access code ready. Valid for eight hours from generation." }
         catch { message = error.localizedDescription }
     }
     func lock() { generation += 1; authContext?.invalidate(); authContext = nil; key = nil; unlocked = false; password = ""; clearOutput(); message = "Locked. Use Face ID to continue." }

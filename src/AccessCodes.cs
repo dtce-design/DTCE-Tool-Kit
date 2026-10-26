@@ -12,7 +12,8 @@ class AccessLease {
  public static readonly TimeSpan Duration=TimeSpan.FromHours(8);
  public AccessLease(Func<TimeSpan> clock){now=clock;}
  public void Start(){Start(Duration);}
- public void Start(TimeSpan remaining){started=now();validFor=remaining;granted=remaining>TimeSpan.Zero&&remaining<=Duration;}
+ public void Start(TimeSpan remaining){Start(remaining,false);}
+ public void Start(TimeSpan remaining,bool certification){started=now();validFor=remaining;granted=remaining>TimeSpan.Zero&&remaining<=(certification?TimeSpan.FromDays(30):Duration);}
  public void Reset(){granted=false;}
  public bool IsValid {get{TimeSpan elapsed=now()-started;return granted&&elapsed>=TimeSpan.Zero&&elapsed<validFor;}}
 }
@@ -56,10 +57,33 @@ static class AccessCodes {
   byte[] message=Encoding.UTF8.GetBytes("BEAM-ACCESS-V3|"+request+"|"+times+"|"+apps);
   using(var rsa=new RSACryptoServiceProvider()){rsa.PersistKeyInCsp=false;rsa.FromXmlString(privateKey);byte[] sig=rsa.SignData(message,CryptoConfig.MapNameToOID("SHA256"));return "BA3."+times+"."+apps+"."+Convert.ToBase64String(sig);}
  }
+ public static bool ValidCertificationVersion(string value){
+  Version parsed;return !string.IsNullOrEmpty(value)&&Version.TryParse(value,out parsed)&&parsed.Revision==-1&&parsed.Build>=0&&parsed.Major<=65535&&parsed.Minor<=65535&&parsed.Build<=65535&&parsed.ToString(3)==value;
+ }
+ public static string GenerateCertification(string privateKey,string version){return GenerateCertificationAt(privateKey,version,DateTime.UtcNow);}
+ public static string GenerateCertificationAt(string privateKey,string version,DateTime issuedUtc){
+  if(!ValidCertificationVersion(version))throw new ArgumentException("Enter the exact User app version, for example "+Engine.Version+" (three numbers).");
+  long issued=(long)(issuedUtc.ToUniversalTime()-Epoch).TotalSeconds,expiry=checked(issued+2592000);
+  string times=issued.ToString(CultureInfo.InvariantCulture)+"."+expiry.ToString(CultureInfo.InvariantCulture),target=version.Replace('.','-');
+  using(var rsa=new RSACryptoServiceProvider()){rsa.PersistKeyInCsp=false;rsa.FromXmlString(privateKey);byte[] sig=rsa.SignData(Encoding.UTF8.GetBytes("DTCE-CERTIFICATION-V1|"+times+"|7|"+target),CryptoConfig.MapNameToOID("SHA256"));return "BC1."+times+".7."+target+"."+Convert.ToBase64String(sig);}
+ }
+ public static bool IsCertification(string code){return CleanCode(code).StartsWith("BC1.",StringComparison.Ordinal);}
  public static bool Verify(string request,string code,string publicKey){DateTime end;return ValidateAt(request,code,publicKey,DateTime.UtcNow,out end);}
  public static bool ValidateAt(string request,string code,string publicKey,DateTime nowUtc,out DateTime end){
+  return ValidateForVersionAt(request,code,publicKey,nowUtc,Engine.Version,out end);
+ }
+ internal static bool ValidateForVersionAt(string request,string code,string publicKey,DateTime nowUtc,string version,out DateTime end){
   end=DateTime.MinValue;
   try{
+   if(string.IsNullOrWhiteSpace(code)||code.Length>2048)return false;
+   if(IsCertification(code)){
+    string[] cert=CleanCode(code).Split('.');long issuedCert,expiryCert;
+    if(cert.Length!=6||cert[3]!="7"||!ValidCertificationVersion(version)||cert[4]!=version.Replace('.','-')||!long.TryParse(cert[1],NumberStyles.None,CultureInfo.InvariantCulture,out issuedCert)||!long.TryParse(cert[2],NumberStyles.None,CultureInfo.InvariantCulture,out expiryCert)||issuedCert<0||expiryCert<issuedCert||expiryCert-issuedCert!=2592000)return false;
+    DateTime startCert=Epoch.AddSeconds(issuedCert);DateTime endCert=Epoch.AddSeconds(expiryCert);
+    if(startCert>nowUtc.ToUniversalTime().AddMinutes(5)||endCert<=nowUtc.ToUniversalTime())return false;
+    using(var rsa=new RSACryptoServiceProvider()){rsa.PersistKeyInCsp=false;rsa.FromXmlString(publicKey);if(!rsa.VerifyData(Encoding.UTF8.GetBytes("DTCE-CERTIFICATION-V1|"+cert[1]+"."+cert[2]+"|7|"+cert[4]),CryptoConfig.MapNameToOID("SHA256"),Convert.FromBase64String(cert[5])))return false;}
+    end=endCert;return true;
+   }
    request=Normalize(request);if(!ValidRequest(request)||string.IsNullOrWhiteSpace(code)||code.Length>2048)return false;
    string[] parts=CleanCode(code).Split('.');long issued,expiry;int apps;
    if(parts.Length!=5||parts[0]!="BA3"||!int.TryParse(parts[3],NumberStyles.None,CultureInfo.InvariantCulture,out apps)||apps<1||(apps&~AllApps)!=0||!long.TryParse(parts[1],NumberStyles.None,CultureInfo.InvariantCulture,out issued)||!long.TryParse(parts[2],NumberStyles.None,CultureInfo.InvariantCulture,out expiry)||issued<0||expiry<issued||expiry-issued!=28800)return false;
@@ -89,11 +113,11 @@ static class AccessCodes {
  public static bool TryRestore(){
   lease.Reset();expiresUtc=DateTime.MinValue;var data=Load();DateTime end;
   if(!ClockOkay(data)||!ValidateAt(data[0],data[1],PublicKey(),DateTime.UtcNow,out end))return false;
-  Save(data[0],data[1],DateTime.UtcNow);allowedApps=int.Parse(CleanCode(data[1]).Split('.')[3],CultureInfo.InvariantCulture);expiresUtc=end;lease.Start(end-DateTime.UtcNow);return Granted;
+  Save(data[0],data[1],DateTime.UtcNow);allowedApps=int.Parse(CleanCode(data[1]).Split('.')[3],CultureInfo.InvariantCulture);expiresUtc=end;lease.Start(end-DateTime.UtcNow,IsCertification(data[1]));return Granted;
  }
  public static bool Accept(string request,string code){
   DateTime end;if(!ValidateAt(request,code,PublicKey(),DateTime.UtcNow,out end))return false;
-  Save(Normalize(request),code,DateTime.UtcNow);allowedApps=int.Parse(CleanCode(code).Split('.')[3],CultureInfo.InvariantCulture);expiresUtc=end;lease.Start(end-DateTime.UtcNow);return Granted;
+  Save(Normalize(request),code,DateTime.UtcNow);allowedApps=int.Parse(CleanCode(code).Split('.')[3],CultureInfo.InvariantCulture);expiresUtc=end;lease.Start(end-DateTime.UtcNow,IsCertification(code));return Granted;
  }
  public static void Checkpoint(){
   if(!Granted)return;var data=Load();long ticks;if(data!=null&&long.TryParse(data[2],out ticks)&&DateTime.UtcNow.Ticks-ticks>TimeSpan.FromMinutes(1).Ticks)Save(data[0],data[1],DateTime.UtcNow);
