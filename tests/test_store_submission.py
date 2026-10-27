@@ -57,4 +57,28 @@ class EditionTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,'product does not match'):store.main()
                 network.assert_not_called()
 
+class DraftTests(EditionTests):
+    def test_existing_submission_status_gate(self):
+        for status in ('PendingCommit', 'CertificationFailed', 'Certification', 'Publishing'):
+            with tempfile.TemporaryDirectory(dir=Path(__file__).parents[1] / 'test-results') as folder:
+                package=self.make_package(folder,'Admin')
+                env={'STORE_EDITION':'Admin','STORE_TENANT_ID':'fixture','STORE_CLIENT_ID':'fixture','STORE_CLIENT_SECRET':'fixture','STORE_APP_ID':'9P53CR08ZSZ3','STORE_CERTIFICATION_NOTES':'notes'}
+                calls=[]
+                def fake(url, method='GET', headers=None, data=None, body=None):
+                    calls.append((url,method,body))
+                    if 'oauth2/token' in url:return {'access_token':'fixture'}
+                    if url.endswith('/applications/9P53CR08ZSZ3'):return {'pendingApplicationSubmission':{'id':'draft'}}
+                    if url.endswith('/status'):return {'status':status}
+                    if method=='GET':return {'id':'draft','fileUploadUrl':'https://fixture.blob.core.windows.net/upload','applicationPackages':[{'version':'1.4.23.0'}]}
+                    if method=='PUT' and body is not None:
+                        self.assertEqual('notes',body['notesForCertification'])
+                        self.assertEqual('PendingDelete',body['applicationPackages'][0]['fileStatus'])
+                        raise RuntimeError('STOP_AFTER_VERIFIED_PUT')
+                    raise AssertionError('Unexpected mutation')
+                with patch.dict(store.os.environ,env,clear=True),patch.object(store.sys,'argv',['submit',str(package)]),patch.object(store,'request',side_effect=fake):
+                    with self.assertRaisesRegex((ValueError,RuntimeError),'STOP_AFTER_VERIFIED_PUT' if status in ('PendingCommit','CertificationFailed') else 'not editable'):
+                        store.main()
+                self.assertFalse(any(method in ('POST','DELETE') and 'oauth2/token' not in url for url,method,_ in calls))
+                if status in ('Certification','Publishing'):self.assertFalse(any(method=='PUT' for _,method,_ in calls))
+
 if __name__ == '__main__': unittest.main()

@@ -60,13 +60,24 @@ def main():
     headers = {'Authorization': 'Bearer ' + token}
     base = 'https://manage.devcenter.microsoft.com/v1.0/my/applications/' + app_id
     app = request(base, headers=headers)
-    if app.get('pendingApplicationSubmission'): raise ValueError('Pending Store submission exists; it will not be modified or deleted')
-    published = app.get('lastPublishedApplicationSubmission')
-    if not published: raise ValueError('Publish the initial submission in Partner Center first')
-    prepare(request(base + '/submissions/' + published['id'], headers=headers), package.name, version, notes)
-    submission = request(base + '/submissions', 'POST', headers)
+    pending = app.get('pendingApplicationSubmission')
+    if pending:
+        url = base + '/submissions/' + pending['id']
+        state = request(url + '/status', headers=headers)['status']
+        print('Existing submission status: ' + state)
+        if state not in ('PendingCommit', 'CommitFailed', 'PreProcessingFailed', 'CertificationFailed'):
+            raise ValueError('Existing submission is not editable: ' + state + '. It was not changed.')
+        submission = request(url, headers=headers)
+        # Validate before any PUT; preserve the same submission and Store settings.
+        prepare(json.loads(json.dumps(submission)), package.name, version, notes)
+        print('Updating existing editable submission: ' + pending['id'])
+    else:
+        published = app.get('lastPublishedApplicationSubmission')
+        if not published: raise ValueError('Complete the initial submission in Partner Center first')
+        prepare(request(base + '/submissions/' + published['id'], headers=headers), package.name, version, notes)
+        submission = request(base + '/submissions', 'POST', headers)
+        print('Created Store submission: ' + submission['id'])
     sid, upload = submission['id'], submission['fileUploadUrl']
-    print('Created Store submission: ' + sid)
     parsed = urllib.parse.urlsplit(upload)
     if parsed.scheme != 'https' or not (parsed.hostname or '').endswith('.blob.core.windows.net'):
         raise ValueError('Unexpected upload host; draft left uncommitted')
