@@ -77,13 +77,15 @@ def main():
         prepare(request(base + '/submissions/' + published['id'], headers=headers), package.name, version, notes)
         submission = request(base + '/submissions', 'POST', headers)
         print('Created Store submission: ' + submission['id'])
-    sid, upload = submission['id'], submission['fileUploadUrl']
+    sid = submission['id']
+    url = base + '/submissions/' + sid
+    updated = request(url, 'PUT', headers, body=prepare(submission, package.name, version, notes))
+    upload = (updated or {}).get('fileUploadUrl')
+    if not upload: raise ValueError('Updated draft has no upload URL; package not uploaded or committed')
     parsed = urllib.parse.urlsplit(upload)
     if parsed.scheme != 'https' or not (parsed.hostname or '').endswith('.blob.core.windows.net'):
         raise ValueError('Unexpected upload host; draft left uncommitted')
     if os.environ.get('GITHUB_ACTIONS') == 'true': print('::add-mask::' + upload)
-    url = base + '/submissions/' + sid
-    request(url, 'PUT', headers, body=prepare(submission, package.name, version, notes))
     with tempfile.TemporaryDirectory() as folder:
         archive = Path(folder) / 'submission.zip'
         with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as z: z.write(package, package.name)

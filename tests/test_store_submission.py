@@ -69,7 +69,7 @@ class DraftTests(EditionTests):
                     if 'oauth2/token' in url:return {'access_token':'fixture'}
                     if url.endswith('/applications/9P53CR08ZSZ3'):return {'pendingApplicationSubmission':{'id':'draft'}}
                     if url.endswith('/status'):return {'status':status}
-                    if method=='GET':return {'id':'draft','fileUploadUrl':'https://fixture.blob.core.windows.net/upload','applicationPackages':[{'version':'1.4.23.0'}]}
+                    if method=='GET':return {'id':'draft','applicationPackages':[{'version':'1.4.23.0'}]}
                     if method=='PUT' and body is not None:
                         self.assertEqual('notes',body['notesForCertification'])
                         self.assertEqual('PendingDelete',body['applicationPackages'][0]['fileStatus'])
