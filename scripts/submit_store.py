@@ -18,7 +18,17 @@ def request(url, method='GET', headers=None, data=None, body=None):
             raw = response.read()
             return json.loads(raw) if raw else None
     except urllib.error.HTTPError as error:
-        raise RuntimeError('Store request failed: HTTP %s. Check permissions and submission status.' % error.code) from None
+        detail = ''
+        try:
+            fault = json.loads(error.read())
+            if isinstance(fault.get('error'), dict): fault = fault['error']
+            detail = str(fault.get('code', '')) + ': ' + str(fault.get('message', ''))
+            for name in ('STORE_CLIENT_SECRET', 'STORE_CERTIFICATION_NOTES'):
+                value = os.environ.get(name, '')
+                if value: detail = detail.replace(value, '[redacted]')
+            detail = re.sub(r'https?://\S+', '[URL]', detail)[:500]
+        except (ValueError, AttributeError): pass
+        raise RuntimeError('Store request failed: HTTP %s during %s. %s' % (error.code, method, detail)) from None
     except urllib.error.URLError:
         raise RuntimeError('Store connection failed; credentials were not logged.') from None
 
@@ -79,6 +89,7 @@ def main():
         print('Created Store submission: ' + submission['id'])
     sid = submission['id']
     url = base + '/submissions/' + sid
+    print('Updating submission metadata and requesting upload URL', flush=True)
     updated = request(url, 'PUT', headers, body=prepare(submission, package.name, version, notes))
     upload = (updated or {}).get('fileUploadUrl')
     if not upload: raise ValueError('Updated draft has no upload URL; package not uploaded or committed')
@@ -89,7 +100,9 @@ def main():
     with tempfile.TemporaryDirectory() as folder:
         archive = Path(folder) / 'submission.zip'
         with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as z: z.write(package, package.name)
+        print('Uploading package archive', flush=True)
         request(upload, 'PUT', {'x-ms-blob-type': 'BlockBlob', 'Content-Type': 'application/zip'}, archive.read_bytes())
+    print('Committing updated submission', flush=True)
     request(url + '/commit', 'POST', headers)
     for _ in range(30):
         state = request(url + '/status', headers=headers)['status']
