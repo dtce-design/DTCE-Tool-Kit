@@ -21,9 +21,17 @@ class CertificationCacheTests {
    string normal=File.ReadAllText(Path.Combine(folder,"mobile-code.txt"));
    Check(AccessCodes.Accept("BEAM-0123456789ABCDEF0123456789ABCDEF01234567",normal),"Normal activation regressed");
    Check(AccessCodes.CanUseApp(1)&&AccessCodes.CanUseApp(4)&&AccessCodes.CanUseApp(8)&&!AccessCodes.CanUseApp(2),"Normal app restrictions changed");
-   AccessCodes.Granted=false;Check(AccessCodes.TryRestore(),"Normal cache restore regressed");
+   string firstRequest=AccessCodes.GetRequest();
+   AccessCodes.Checkpoint();Check(!File.Exists((string)field.GetValue(null)),"Normal approval was persisted");
+   AccessCodes.Granted=false;Check(!AccessCodes.TryRestore(),"Normal approval restored after app restart");
+   string secondRequest=AccessCodes.GetRequest();Check(firstRequest!=secondRequest,"Request reused across sessions");
+   Check(!AccessCodes.Accept(secondRequest,normal),"Previous session code accepted on new request");
+   // Simulate an approval left by the previous release: it must not reopen normal access.
+   var save=typeof(AccessCodes).GetMethod("Save",BindingFlags.NonPublic|BindingFlags.Static);
+   save.Invoke(null,new object[]{"BEAM-0123456789ABCDEF0123456789ABCDEF01234567",normal,DateTime.UtcNow});
+   Check(!AccessCodes.TryRestore(),"Legacy normal cache bypassed session policy");
    File.WriteAllBytes((string)field.GetValue(null),new byte[]{1,2,3});AccessCodes.Granted=false;Check(!AccessCodes.TryRestore(),"Damaged cache accepted");
-   Console.WriteLine("PASS: "+checks+" isolated DPAPI activation/cache/reopen/app selection checks; ephemeral test key only.");return 0;
+   Console.WriteLine("PASS: "+checks+" isolated DPAPI activation, certification restore, normal session restart and app selection checks; ephemeral test key only.");return 0;
   }finally{AccessCodes.Granted=false;field.SetValue(null,original);foreach(string file in Directory.GetFiles(isolated))File.Delete(file);Directory.Delete(isolated);}
  }
 }

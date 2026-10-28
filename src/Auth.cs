@@ -12,13 +12,13 @@ class LoginForm:Form {
  public LoginForm(){AppBrand.Apply(this);
   Text="DTCE Tool Kit - Access code";ClientSize=new Size(620,440);StartPosition=FormStartPosition.CenterScreen;FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;Font=new Font("Segoe UI",10);BackColor=Color.FromArgb(245,248,251);
   Controls.Add(new Label{Text="DTCE TOOL KIT",Location=new Point(25,22),Size=new Size(570,35),Font=new Font("Segoe UI",14,FontStyle.Bold)});
-  Controls.Add(new Label{Text="Normal access: send this request to the owner (8 hours).",Location=new Point(25,75),Size=new Size(565,25)});
+  Controls.Add(new Label{Text="Send this request to the owner for a new access code.",Location=new Point(25,75),Size=new Size(565,25)});
   var req=new TextBox{Text=request,ReadOnly=true,Location=new Point(25,105),Size=new Size(445,58),Multiline=true};Controls.Add(req);
   var copy=new Button{Text="Copy request",Location=new Point(480,105),Size=new Size(115,58)};copy.Click+=(o,e)=>Copy(request);Controls.Add(copy);
   Controls.Add(new Label{Text="Paste your access code or Store certification code:",Location=new Point(25,177),Size=new Size(565,25)});
   response=new TextBox{Location=new Point(25,210),Size=new Size(570,78),Multiline=true,MaxLength=2048,ScrollBars=ScrollBars.Vertical};Controls.Add(response);
   var unlock=new Button{Text="Unlock DTCE Tool Kit",Location=new Point(25,300),Size=new Size(570,40),BackColor=Color.FromArgb(0,139,139),ForeColor=Color.White};Controls.Add(unlock);AcceptButton=unlock;
-  message=new Label{Text="Normal: 8 hours. Certification: 30 days, exact app version only.\nVersion: "+Engine.Version+" | Key ID: "+AccessCodes.KeyId(AccessCodes.PublicKey()),Location=new Point(25,355),Size=new Size(570,65)};Controls.Add(message);
+  message=new Label{Text="Normal: until app closes or 8 hours expire, whichever comes first.\nCertification: 30 days, exact app version only.\nVersion: "+Engine.Version+" | Key ID: "+AccessCodes.KeyId(AccessCodes.PublicKey()),Location=new Point(25,355),Size=new Size(570,65)};Controls.Add(message);
   delay=new Timer{Interval=1500};delay.Tick+=(o,e)=>{delay.Stop();unlock.Enabled=true;};FormClosed+=(o,e)=>delay.Dispose();
   unlock.Click+=(o,e)=>{try{
    if(AccessCodes.Accept(request,response.Text)){response.Clear();DialogResult=DialogResult.OK;Close();return;}
@@ -74,7 +74,7 @@ class CodeGeneratorForm:Form {
   Controls.Add(new Label{Text="Paste the request from the user's currently open formatter.",Location=new Point(335,75),Size=new Size(575,25)});
   request=new TextBox{Location=new Point(335,107),Size=new Size(575,78),Multiline=true,MaxLength=200};Controls.Add(request);
   Controls.Add(new Label{Text="APPS ALLOWED",Location=new Point(25,75),Size=new Size(280,25),Font=new Font("Segoe UI",11,FontStyle.Bold)});Controls.Add(new Label{Text="GENERATED ACCESS CODE",Location=new Point(335,200),Size=new Size(575,25),Font=new Font("Segoe UI",11,FontStyle.Bold)});
-  var apps=new CheckedListBox{Location=new Point(25,110),Size=new Size(280,150),CheckOnClick=true,BorderStyle=BorderStyle.FixedSingle,BackColor=Color.White,Font=new Font("Segoe UI",11),IntegralHeight=false,HorizontalScrollbar=true};apps.Items.AddRange(new object[]{"Beam Schedule Formatter","Beam Estimator","Splice / Development / Hooks"});Controls.Add(apps);Controls.Add(new Label{Text="Project Information is included automatically with valid access.",Location=new Point(25,280),Size=new Size(280,60)});apps.ItemCheck+=(o,e)=>output.Clear();
+  var apps=new CheckedListBox{Location=new Point(25,110),Size=new Size(280,150),CheckOnClick=true,BorderStyle=BorderStyle.FixedSingle,BackColor=Color.White,Font=new Font("Segoe UI",11),IntegralHeight=false,HorizontalScrollbar=true};apps.Items.AddRange(new object[]{"Beam Schedule Formatter","Program of Works / Estimators","Splice / Development / Hooks"});Controls.Add(apps);Controls.Add(new Label{Text="Project Information is included automatically with valid access.",Location=new Point(25,280),Size=new Size(280,60)});apps.ItemCheck+=(o,e)=>output.Clear();
   var generate=new Button{Text="Generate selected app access",Location=new Point(25,350),Size=new Size(280,50)};Controls.Add(generate);
   output=new TextBox{Location=new Point(335,230),Size=new Size(575,210),Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical,Font=new Font("Consolas",10),BackColor=Color.White};Controls.Add(output);
   var copy=new Button{Text="Copy access code",Location=new Point(335,455),Size=new Size(280,40)};copy.Click+=(o,e)=>{if(output.Text!="")LoginForm.Copy(output.Text);};Controls.Add(copy);

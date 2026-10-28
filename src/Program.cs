@@ -72,7 +72,7 @@ class TemplateLayout {
  public string LegText(string value){string raw=Leg.Get(1);return raw.StartsWith("{")&&raw.Contains(";")?raw.Substring(0,raw.LastIndexOf(';')+1)+value+"}":value;}
 }
 class Engine {
- public const string Version="1.4.27";
+ public const string Version="1.4.28";
  public static string Normal(string s){return Regex.Replace(s.ToUpperInvariant().Replace("%%C","Ø").Replace("\\U+2205","Ø").Replace("--","-"),@"\s+","");}
  public static string Format(string s){if(s=="-"||s=="--")return "--";s=s.Replace("#","%%C").Replace("\\U+2205","%%C").Replace("%%c","%%C");s=Regex.Replace(s,@"^(\d+)-","$1 - ");return Regex.Replace(s,@"(%%C\d+)(EF)$","$1 EF");}
  const string BeamToken=@"\d*[A-Z]+\d+";
@@ -265,9 +265,8 @@ class MainForm:Form {
   prefixBox.Leave+=(o,e)=>{if(Engine.ValidPrefix(prefixBox.Text))floorBox.Text=Engine.FloorFor(prefixBox.Text);};
   merge=new CheckBox{Text="Merge identical rows",Checked=true,Width=194,Height=34,Margin=new Padding(0,12,0,3)};flow.Controls.Add(merge);
   AddLabel(flow,"Beam marks are excluded from comparison.\nOriginal beam numbers stay beside each group.",false,58);
-  var actions=new FlowLayoutPanel{Dock=DockStyle.Bottom,Height=154,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(0,4,0,0)};
+  var actions=new FlowLayoutPanel{Dock=DockStyle.Bottom,Height=112,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(0,4,0,0)};
   ActionPanel=actions;
-  var estimatorButton=ButtonOf("Beam estimator",194,false);estimatorButton.Click+=(o,e)=>{if(!AccessCodes.CanUseApp(1)){MessageBox.Show("Access code required.");return;}try{using(var estimator=new EstimatorForm(result))estimator.ShowDialog(this);}catch(Exception ex){MessageBox.Show(ex.Message,"Beam estimator");}};actions.Controls.Add(estimatorButton);
   process=ButtonOf("Build preview",194,true);process.Enabled=false;process.Click+=async(o,e)=>await BuildAsync();actions.Controls.Add(process);export=ButtonOf("Export revised DXF",194,false);export.Enabled=false;export.Click+=(o,e)=>ExportFile();actions.Controls.Add(export);side.Controls.Add(actions);
   var content=new Panel{Dock=DockStyle.Fill,Padding=new Padding(18)};summary=new Label{Dock=DockStyle.Top,Height=66,Font=new Font("Segoe UI Semibold",12),ForeColor=Navy,Text="Your revised schedule\nChoose a DXF to start.",Padding=new Padding(3,6,0,0)};
   tabs=new TabControl{Dock=DockStyle.Fill};var tableTab=new TabPage("Schedule values"){BackColor=Color.White};var cadTab=new TabPage("CAD layout preview"){BackColor=Color.FromArgb(33,40,46)};
@@ -296,7 +295,7 @@ class MainForm:Form {
  }
  void AddLabel(FlowLayoutPanel f,string t,bool strong=false,int height=0){var l=new Label{Text=t.TrimStart('\n'),Width=194,AutoSize=false,Height=height>0?height:strong?26:23,ForeColor=strong?Navy:Muted,Font=new Font("Segoe UI",strong?9.2f:9,strong?FontStyle.Bold:FontStyle.Regular),Margin=new Padding(0,strong?9:2,0,strong?4:2)};f.Controls.Add(l);}
  void PaintReinforcement(object sender,DataGridViewCellPaintingEventArgs e){
-  if(e.RowIndex==-1&&e.ColumnIndex>=0){e.Paint(e.ClipBounds,DataGridViewPaintParts.Background|DataGridViewPaintParts.Border);var rect=e.CellBounds;bool grouped=e.ColumnIndex>=1&&e.ColumnIndex<=11;if(grouped){rect.Y+=32;rect.Height-=32;int start=e.ColumnIndex<=2?1:e.ColumnIndex<=5?3:e.ColumnIndex<=8?6:9;int end=start==1?2:start+2;string title=start==1?"SIZE":start==3?"BOTTOM REINFORCEMENT":start==6?"TOP REINFORCEMENT":"SHEAR REINFORCEMENTS";int groupLeft=e.CellBounds.Left,groupWidth=0;for(int j=start;j<=end;j++){groupWidth+=grid.Columns[j].Width;if(j<e.ColumnIndex)groupLeft-=grid.Columns[j].Width;}var group=new Rectangle(groupLeft,e.CellBounds.Top,groupWidth,32);var clip=new Rectangle(e.CellBounds.Left,e.CellBounds.Top,e.CellBounds.Width,32);var state=e.Graphics.Save();e.Graphics.SetClip(clip);using(var brush=new SolidBrush(Navy))e.Graphics.FillRectangle(brush,group);using(var pen=new Pen(Color.FromArgb(210,220,230)))e.Graphics.DrawRectangle(pen,group.Left,group.Top,group.Width-1,group.Height-1);using(var f=new StringFormat{Alignment=StringAlignment.Center,LineAlignment=StringAlignment.Center})using(var textBrush=new SolidBrush(Color.White))e.Graphics.DrawString(title,e.CellStyle.Font,textBrush,group,f);e.Graphics.Restore(state);}string[] captions={"BEAM MARK","B","D","LEFT","MIDSPAN","RIGHT","LEFT","MIDSPAN","RIGHT","LEG","Ø","SPACING","SFR","ORIGINAL BEAM NUMBERS"};TextRenderer.DrawText(e.Graphics,captions[e.ColumnIndex],e.CellStyle.Font,rect,Color.White,TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter|TextFormatFlags.WordBreak);e.Handled=true;return;}
+  if(e.RowIndex==-1&&e.ColumnIndex>=0){e.Paint(e.ClipBounds,DataGridViewPaintParts.Background|DataGridViewPaintParts.Border);var rect=e.CellBounds;bool grouped=e.ColumnIndex>=1&&e.ColumnIndex<=11;if(grouped){rect.Y+=32;rect.Height-=32;int start=e.ColumnIndex<=2?1:e.ColumnIndex<=5?3:e.ColumnIndex<=8?6:9;int end=start==1?2:start+2;string title=start==1?"SIZE":start==3?"BOTTOM REINFORCEMENT":start==6?"TOP REINFORCEMENT":"SHEAR REINFORCEMENTS";int groupLeft=e.CellBounds.Left,groupWidth=0;for(int j=start;j<=end;j++){groupWidth+=grid.Columns[j].Width;if(j<e.ColumnIndex)groupLeft-=grid.Columns[j].Width;}var group=new Rectangle(groupLeft,e.CellBounds.Top,groupWidth,32);var clip=new Rectangle(e.CellBounds.Left,e.CellBounds.Top,e.CellBounds.Width,32);var state=e.Graphics.Save();e.Graphics.SetClip(clip);using(var brush=new SolidBrush(Navy))e.Graphics.FillRectangle(brush,group);using(var pen=new Pen(Color.FromArgb(210,220,230)))e.Graphics.DrawRectangle(pen,group.Left,group.Top,group.Width-1,group.Height-1);using(var f=new StringFormat{Alignment=StringAlignment.Center,LineAlignment=StringAlignment.Center})using(var textBrush=new SolidBrush(Color.White))e.Graphics.DrawString(title,e.CellStyle.Font,textBrush,group,f);e.Graphics.Restore(state);}string[] captions={"BEAM MARK","B","D","LEFT","MIDSPAN","RIGHT","LEFT","MIDSPAN","RIGHT","LEG","Ø","SPACING","SFR","ORIGINAL BEAM NUMBERS"};TextRenderer.DrawText(e.Graphics,captions[e.ColumnIndex],e.CellStyle.Font,rect,PowTheme.Ink,TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter|TextFormatFlags.WordBreak);e.Handled=true;return;}
   if(e.RowIndex<0||e.ColumnIndex<3||e.ColumnIndex>8||result==null||e.RowIndex>=result.Rows.Count)return;
   e.Paint(e.ClipBounds,DataGridViewPaintParts.Background|DataGridViewPaintParts.SelectionBackground|DataGridViewPaintParts.Border);
   var bars=result.Rows[e.RowIndex].Cells[e.ColumnIndex-1];var color=(e.State&DataGridViewElementStates.Selected)!=0?e.CellStyle.SelectionForeColor:e.CellStyle.ForeColor;
@@ -364,7 +363,7 @@ static class Program {
    #if TEST_BUILD
    if(args.Length>0&&args[0]=="--self-test")return SelfTest(args);
    if(args.Length==3&&args[0]=="--ui-test"){using(var form=new MainForm())form.RenderForTest(args[1],args[2]);return 0;}
-   
+
    #endif
    #if ADMIN_APP
    if(!AdminPasswordGate.Unlock())return 0;Application.Run(new LauncherForm());return 0;

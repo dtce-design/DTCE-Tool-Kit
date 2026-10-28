@@ -1,0 +1,21 @@
+using System;using System.Linq;using System.Collections.Generic;
+namespace BeamScheduleFormatter {
+class FinishItem {
+ public string Id,Description,Code,Category,Wall,Kind,Side,Basis,MaterialName;public double Length,Width,Deduction;public int Quantity;
+ public bool OnA{get{return Side=="A"||Side=="Both";}}public bool OnB{get{return Side=="B"||Side=="Both";}}
+ public int Faces{get{return Category=="Wall"&&Side=="Both"?2:1;}}
+ public void Validate(){if(string.IsNullOrWhiteSpace(Id)||string.IsNullOrWhiteSpace(Description)||string.IsNullOrWhiteSpace(Code))throw new Exception("Enter Entry ID, description and finish/tile code.");if(Category!="Wall"&&Category!="Ceiling"&&Category!="Floor")throw new Exception("Invalid finish category.");if(Category=="Wall"){if(string.IsNullOrWhiteSpace(Wall))throw new Exception("Select a linked Wall ID.");if(Side!="A"&&Side!="B"&&Side!="Both")throw new Exception("Select wall Side A, B or Both.");if(Kind!="Tiles"&&Kind!="Paint"&&Kind!="Other")throw new Exception("Select finish type.");if(Basis!="Dimensions"&&Basis!="Whole wall (auto)")throw new Exception("Select Dimensions or Whole wall (auto).");}
+  if(Category!="Wall"||Basis!="Whole wall (auto)"){foreach(double v in new[]{Length,Width,Deduction})if(double.IsNaN(v)||double.IsInfinity(v)||v<0||v>100000000)throw new Exception("Check finish dimensions and deduction.");if(Length<=0||Width<=0||Quantity<1||Quantity>100000)throw new Exception("Enter positive finish dimensions and whole quantity.");if(Deduction>Length*Width*Quantity+.0000001)throw new Exception("Finish deduction exceeds gross area.");}}
+ public double GrossPerFace(WallItem wall,IEnumerable<OpeningItem> openings){Validate();if(Category=="Wall"&&Basis=="Whole wall (auto)"){if(wall==null)throw new Exception("Wall ID not found.");return wall.Gross;}return Length*Width*Quantity;}
+ public double DeductPerFace(WallItem wall,IEnumerable<OpeningItem> openings){if(Category=="Wall"&&Basis=="Whole wall (auto)"){if(wall==null)throw new Exception("Wall ID not found.");return wall.Deduction(openings);}return Deduction;}
+ public double PerFace(WallItem wall,IEnumerable<OpeningItem> openings){return Math.Max(0,GrossPerFace(wall,openings)-DeductPerFace(wall,openings));}
+ public bool AutoSurface{get{return AutoPaint||(Category=="Wall"&&Basis=="Whole wall (auto)"&&FinishTypeCatalog.IsPlaster(MaterialName));}}
+ public bool AutoPaint{get{return Category=="Wall"&&Basis=="Whole wall (auto)"&&Kind=="Paint";}}
+ public double PaintFace(WallItem wall,IEnumerable<OpeningItem> openings,IEnumerable<FinishItem> all,bool sideA){double net=PerFace(wall,openings);double tiles=all.Where(f=>f.Category=="Wall"&&f.Kind=="Tiles"&&string.Equals(f.Wall.Trim(),Wall.Trim(),StringComparison.OrdinalIgnoreCase)&&(sideA?f.OnA:f.OnB)).Sum(f=>f.PerFace(wall,openings));return Math.Max(0,net-tiles);}
+ public double Total(WallItem wall,IEnumerable<OpeningItem> openings,IEnumerable<FinishItem> all=null){if(AutoSurface&&all!=null)return (OnA?PaintFace(wall,openings,all,true):0)+(OnB?PaintFace(wall,openings,all,false):0);return PerFace(wall,openings)*Faces;}
+}
+class PlasterTakeoff {
+ public double Gross,TileDeduction,Net,TileA,TileB;
+ public static PlasterTakeoff Calculate(WallItem wall,IEnumerable<OpeningItem> openings,IEnumerable<FinishItem> finishes,string selectedSides=null){double net=wall.Net(openings);string sides=selectedSides??wall.Plaster;bool a=sides=="1 side (A)"||sides=="2 sides",b=sides=="1 side (B)"||sides=="2 sides";if(!a&&!b&&!(selectedSides!=null&&sides=="None"))throw new Exception("Select 1 side (A), 1 side (B), or 2 sides for plastering.");double ta=0,tb=0;foreach(var f in finishes.Where(f=>f.Category=="Wall"&&f.Kind=="Tiles"&&string.Equals(f.Wall.Trim(),wall.Id.Trim(),StringComparison.OrdinalIgnoreCase))){double area=f.PerFace(wall,openings);if(f.OnA)ta+=area;if(f.OnB)tb+=area;}if(ta>net+.0000001||tb>net+.0000001)throw new Exception("Wall tile area exceeds net wall area on a face. Check duplicate/overlapping entries.");double gross=net*((a?1:0)+(b?1:0)),deduct=(a?ta:0)+(b?tb:0);return new PlasterTakeoff{Gross=gross,TileA=ta,TileB=tb,TileDeduction=deduct,Net=Math.Max(0,gross-deduct)};}
+}
+}

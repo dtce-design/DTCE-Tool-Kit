@@ -19,6 +19,7 @@ class AccessLease {
 }
 static class AccessCodes {
  static readonly AccessLease lease=new AccessLease(()=>TimeSpan.FromSeconds((double)Stopwatch.GetTimestamp()/Stopwatch.Frequency));
+ static string sessionRequest;static DateTime requestExpiresUtc=DateTime.MinValue;
  static int allowedApps; public const int AllApps=7;
  static DateTime expiresUtc=DateTime.MinValue;
  static string storePath=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"BeamScheduleFormatter","access-v3-"+InstallationKey(System.Reflection.Assembly.GetExecutingAssembly().Location)+".dat");
@@ -41,7 +42,7 @@ static class AccessCodes {
  return Granted&&(app==8||(allowedApps&app)==app);
  #endif
  }
- public static int AppFor(System.Windows.Forms.Form form){return form is EstimatorForm?2:form is RebarLengthForm?4:form is ProjectInformationForm?8:1;} public static string NewRequest(){byte[] bytes=new byte[20];using(var r=RandomNumberGenerator.Create())r.GetBytes(bytes);return "BEAM-"+BitConverter.ToString(bytes).Replace("-","");}
+ public static int AppFor(System.Windows.Forms.Form form){return (form is EstimatorForm||form is SlabEstimatorForm||form is ProgramOfWorksForm)?2:form is RebarLengthForm?4:form is ProjectInformationForm?8:1;} public static string NewRequest(){byte[] bytes=new byte[20];using(var r=RandomNumberGenerator.Create())r.GetBytes(bytes);return "BEAM-"+BitConverter.ToString(bytes).Replace("-","");}
  public static string Normalize(string value){return new string((value??"").Where(c=>!char.IsWhiteSpace(c)).ToArray()).ToUpperInvariant();}
  static string CleanCode(string value){return new string((value??"").Where(c=>!char.IsWhiteSpace(c)).ToArray());}
  public static bool ValidRequest(string value){return System.Text.RegularExpressions.Regex.IsMatch(Normalize(value),"^BEAM-[A-F0-9]{40}$");}
@@ -106,21 +107,21 @@ static class AccessCodes {
  }
  static bool ClockOkay(string[] data){long ticks;return data!=null&&long.TryParse(data[2],out ticks)&&ticks<=DateTime.UtcNow.AddMinutes(5).Ticks;}
  public static string GetRequest(){
-  var data=Load();DateTime end;
-  if(data!=null&&ClockOkay(data)&&(data[1]==""||ValidateAt(data[0],data[1],PublicKey(),DateTime.UtcNow,out end)))return data[0];
-  string fresh=NewRequest();Save(fresh,"",DateTime.UtcNow);return fresh;
+  if(sessionRequest==null||DateTime.UtcNow>=requestExpiresUtc){sessionRequest=NewRequest();requestExpiresUtc=DateTime.UtcNow.AddHours(8);}
+  return sessionRequest;
  }
  public static bool TryRestore(){
-  lease.Reset();expiresUtc=DateTime.MinValue;var data=Load();DateTime end;
-  if(!ClockOkay(data)||!ValidateAt(data[0],data[1],PublicKey(),DateTime.UtcNow,out end))return false;
-  Save(data[0],data[1],DateTime.UtcNow);allowedApps=int.Parse(CleanCode(data[1]).Split('.')[3],CultureInfo.InvariantCulture);expiresUtc=end;lease.Start(end-DateTime.UtcNow,IsCertification(data[1]));return Granted;
+  lease.Reset();allowedApps=0;expiresUtc=DateTime.MinValue;sessionRequest=null;requestExpiresUtc=DateTime.MinValue;var data=Load();DateTime end;
+  if(!ClockOkay(data)||!IsCertification(data[1])||!ValidateAt(data[0],data[1],PublicKey(),DateTime.UtcNow,out end))return false;
+  sessionRequest=data[0];requestExpiresUtc=end;Save(data[0],data[1],DateTime.UtcNow);allowedApps=int.Parse(CleanCode(data[1]).Split('.')[3],CultureInfo.InvariantCulture);expiresUtc=end;lease.Start(end-DateTime.UtcNow,IsCertification(data[1]));return Granted;
  }
  public static bool Accept(string request,string code){
   DateTime end;if(!ValidateAt(request,code,PublicKey(),DateTime.UtcNow,out end))return false;
-  Save(Normalize(request),code,DateTime.UtcNow);allowedApps=int.Parse(CleanCode(code).Split('.')[3],CultureInfo.InvariantCulture);expiresUtc=end;lease.Start(end-DateTime.UtcNow,IsCertification(code));return Granted;
+  if(IsCertification(code))Save(Normalize(request),code,DateTime.UtcNow);else if(File.Exists(storePath))File.Delete(storePath);
+  sessionRequest=Normalize(request);requestExpiresUtc=end;allowedApps=int.Parse(CleanCode(code).Split('.')[3],CultureInfo.InvariantCulture);expiresUtc=end;lease.Start(end-DateTime.UtcNow,IsCertification(code));return Granted;
  }
  public static void Checkpoint(){
-  if(!Granted)return;var data=Load();long ticks;if(data!=null&&long.TryParse(data[2],out ticks)&&DateTime.UtcNow.Ticks-ticks>TimeSpan.FromMinutes(1).Ticks)Save(data[0],data[1],DateTime.UtcNow);
+  if(!Granted)return;var data=Load();if(data==null||!IsCertification(data[1]))return;long ticks;if(data!=null&&long.TryParse(data[2],out ticks)&&DateTime.UtcNow.Ticks-ticks>TimeSpan.FromMinutes(1).Ticks)Save(data[0],data[1],DateTime.UtcNow);
  }
 }
 }

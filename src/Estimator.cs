@@ -40,7 +40,7 @@ class BeamEstimate {
 static class EstimatorEngine {
  public static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
  public static string DisplayPart(string part){if(part.EndsWith(" CONTINUOUS"))return part.Replace(" CONTINUOUS"," STRAIGHT / CONTINUOUS");if(part=="Bottom CUT MIDSPAN")return "Bottom CURTAILED MIDSPAN";if(part=="Bottom CUT LEFT"||part=="Bottom CUT RIGHT")return part.Replace("CUT","END EXTRA");if(part.StartsWith("Top CUT "))return part.Replace("Top CUT ","Top EXTRA ");return part;}
- public static double UnitMass(int diameter){return Math.PI/4*diameter*diameter*.00785;}
+ public static double UnitMass(int diameter){switch(diameter){case 10:return .617;case 12:return .888;case 16:return 1.578;case 20:return 2.466;case 25:return 3.853;case 28:return 4.834;case 32:return 6.313;case 36:return 7.990;case 40:return 9.865;case 50:return 15.41;default:throw new Exception("No configured nominal rebar mass for "+diameter+"mm.");}}
  public static Dictionary<int,int> Bars(IEnumerable<string> raw,bool eachFace=false){
   var result=new Dictionary<int,int>();foreach(string text in raw){string s=Engine.Normal(text).Replace("#","O").Replace("Ø","O");if(s=="-"||s==""||s=="+")continue;
    var m=Regex.Match(s,@"^(\d+)-O(\d+)(EF)?$");if(!m.Success)throw new Exception("Unsupported bar notation: "+text);
@@ -73,7 +73,7 @@ static class EstimatorEngine {
   if(cutOverride.HasValue&&(cutOverride<=0||double.IsNaN(cutOverride.Value)||double.IsInfinity(cutOverride.Value)))throw new Exception("Tie cut length must be greater than zero.");
   var result=new BeamEstimate();double[] zones={length*o.Left,length*(1-o.Left-o.Right),length*o.Right};string[] names={"LEFT","MIDSPAN","RIGHT"};
   AddMainBars(result,row,beam,length,zones,o);
-  foreach(var bar in Bars(row.Cells[11],true)){double hooks=0,allowance=0;if(o.LengthConfig!=null){var p=o.LengthConfig;var v=p.Values(bar.Key,false);hooks=o.MainHook==0?0:2*p.Rounded(o.MainHook==90?v.Cut90:v.Cut180)/1000;allowance=o.Anchorage==1?2*p.Rounded(v.Ld)/1000:o.Anchorage==2?p.Rounded(v.Lap)/1000:o.Anchorage==3?2*Math.Max(0,p.Rounded(v.Ldh)-(v.MainInside/2+bar.Key))/1000:0;}Add(result,beam,"Side-face",bar.Key,bar.Value*(length+o.Extra+hooks+allowance),bar.Value+" bars (EF doubled) x ("+F(length)+"m span + "+F(o.Extra)+"m extra + "+F(hooks)+"m hooks + "+F(allowance)+"m Ld/lap)m",o);}
+  foreach(var bar in Bars(row.Cells[11],true)){double hooks=0,allowance=0;if(o.LengthConfig!=null){var p=o.LengthConfig;var v=p.Values(bar.Key,false);hooks=o.MainHook==0?0:2*p.Rounded(o.MainHook==90?v.Cut90:v.Cut180)/1000;allowance=o.Anchorage==1?2*p.Rounded(v.Ld)/1000:o.Anchorage==2?p.Rounded(v.Lap)/1000:o.Anchorage==3?2*Math.Max(0,p.Rounded(v.Ldh)-(v.MainInside/2+bar.Key))/1000:0;}Add(result,beam,"Side-face",bar.Key,bar.Value*(length+o.Extra+hooks+allowance),bar.Value+" bars (EF doubled) x ("+F(length)+"m span + "+F(o.Extra)+"m extra + "+F(hooks)+"m hooks + "+F(allowance)+"m Ld/lap)m",o);var sfr=result.Lines[result.Lines.Count-1];sfr.PiecesPerBeam=bar.Value;sfr.CutLength=length+o.Extra+hooks+allowance;}
   foreach(int col in new[]{12})if(row.Cells[col].Any(x=>Engine.Normal(x)!="-"&&Engine.Normal(x)!=""))throw new Exception("Unrecognised additional reinforcement: "+row.Cell(col)+". Review separately.");
   if(!string.IsNullOrEmpty(row.RevisedSpacing)){RevisedSchedule.AddTies(result,row,beam,length,o,countOverride,cutOverride);return result;}
   var ties=Enumerable.Range(8,3).Select(c=>ParseTie(row.Cell(c))).ToArray();if(ties.All(t=>t==null))throw new Exception("No stirrup spacing found.");
@@ -88,7 +88,7 @@ static class EstimatorEngine {
   for(int c=0;c<3;c++)if(counts[c]>0){var t=ties[c];double w=(width-2*o.Cover-t.Dia)/1000,h=(depth-2*o.Cover-t.Dia)/1000;
    if(w<=0||h<=0)throw new Exception("Cover is too large for the beam/tie diameter.");
    double cut=cutOverride??HookGeometry.TieCut(width,depth,t.Dia,t.Leg,o);
-   double metres=counts[c]*cut;Add(result,beam,"Stirrups",t.Dia,metres,names[c]+": "+counts[c]+" sets x "+F(cut)+"m/set = "+F(metres)+"m; "+t.Leg+"L"+(cutOverride.HasValue?" (manual cut)":"; w="+F(w)+"m,h="+F(h)+"m,r="+F((HookGeometry.Inside(t.Dia,true)+t.Dia)/2000)+"m,tail="+F(Math.Max(Math.Max(6,o.Hook)*t.Dia,75)/1000)+"m"),o);result.Ties+=counts[c];
+   double metres=counts[c]*cut;Add(result,beam,"Stirrups",t.Dia,metres,names[c]+": "+counts[c]+" sets x "+F(cut)+"m/set = "+F(metres)+"m; "+t.Leg+"L"+(cutOverride.HasValue?" (manual cut)":"; w="+F(w)+"m,h="+F(h)+"m,r="+F((HookGeometry.Inside(t.Dia,true)+t.Dia)/2000)+"m,tail="+F(Math.Max(Math.Max(6,o.Hook)*t.Dia,75)/1000)+"m"),o);var detail=result.Lines[result.Lines.Count-1];var shape=cutOverride.HasValue?null:HookGeometry.TieParts(width,depth,t.Dia,t.Leg,o);detail.TieSetsPerBeam=counts[c];detail.CutLength=cut;detail.TieOverride=cutOverride.HasValue;detail.MainHoopCut=shape==null?0:shape.MainHoop;detail.AdditionalLegCut=shape==null?0:shape.AdditionalLeg;detail.AdditionalLegs=t.Leg-2;result.Ties+=counts[c];
   }
   result.Notes.Add("Main bars are decomposed per diameter into continuous and contiguous cut pieces. SFR EF is counted on both faces.");
   result.Notes.Add("Stirrups recounted from entered length and source spacings; source piece counts are reference only. Shared zone boundaries counted once; end offsets included.");
@@ -96,10 +96,10 @@ static class EstimatorEngine {
   result.Notes.Add("Hook geometry is the same for Grade 40/60; development and lap lengths are NOT hook tail lengths and must come from the project detail. Main hooks apply at exterior beam ends only.");
   result.Notes.Add("Straight Ld reference: ACI 318M-14 Eq 25.4.2.3a, normal-weight uncoated bars, lambda=1, psi_e=1, psi_s=0.8 up to 19mm else 1; top psi_t=1.3 conservatively, others=1.0; minimum 300mm. User bond ratio must match actual cover/spacing/confinement. No excess-steel reduction.");
   result.Notes.Add("Ld/lap allowance applies per actual main-bar piece. SFR uses full length and configured allowances. Verify splice locations, support embedment and continuity. Hooked development/seismic joint anchorage are not checked.");
-  result.Notes.Add("No automatic support widths, chairs or stock-bar cutting waste. Extra length and wastage are user settings.");
+  result.Notes.Add("Commercial stock cutting is calculated separately from net reinforcement and percentage allowance. Support widths and chairs are not inferred.");
   return result;
  }
 }
 
-class EstimateInput {public string Description="",ScheduleLabel="";public string Beam;public BeamRow Source;public string Length="",Quantity="1",TieCount="",TieCut="";public BeamEstimate Result;public string Error="";}
+class EstimateInput {public string Support="Elevated slab",SlabThickness="0",MeasureError="";public BeamQuantities Measures;public string Description="",ScheduleLabel="";public string Beam;public BeamRow Source;public string Length="",Quantity="1",TieCount="",TieCut="";public BeamEstimate Result;public string Error="";}
 }
