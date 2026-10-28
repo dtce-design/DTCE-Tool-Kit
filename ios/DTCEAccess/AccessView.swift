@@ -50,7 +50,7 @@ struct AccessView: View {
                             } else {
                             TextEditor(text:$model.request).font(.system(.footnote,design:.monospaced)).frame(minHeight:78).padding(8).background(Color(.secondarySystemBackground)).clipShape(RoundedRectangle(cornerRadius:10)).textInputAutocapitalization(.characters).autocorrectionDisabled().accessibilityLabel("User request code")
                             Text("Paste the complete BEAM request from the User app.").font(.caption).foregroundStyle(.secondary)
-                            ForEach([(1,"Beam Schedule Formatter"),(2,"Beam Estimator"),(4,"Splice, Development & Hooks")],id:\.0) { app in
+                            ForEach([(1,"Beam / Slab Schedule Formatter"),(2,"Beam Estimator"),(4,"Splice, Development & Hooks")],id:\.0) { app in
                                 Toggle(app.1,isOn:Binding(get:{model.allowedApps.contains(app.0)},set:{enabled in if enabled {model.allowedApps.insert(app.0)} else {model.allowedApps.remove(app.0)} })).tint(.teal)
                             }
                             Label("Project Information included",systemImage:"checkmark.circle.fill").foregroundStyle(.teal).font(.caption)
