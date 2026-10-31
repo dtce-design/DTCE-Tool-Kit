@@ -101,5 +101,5 @@ static class EstimatorEngine {
  }
 }
 
-class EstimateInput {public string Support="Elevated slab",SlabThickness="0",MeasureError="";public BeamQuantities Measures;public string Description="",ScheduleLabel="";public string Beam;public BeamRow Source;public string Length="",Quantity="1",TieCount="",TieCut="";public BeamEstimate Result;public string Error="";}
+class EstimateInput {public string ExcavationDepth="",WorkingAllowance="0.30",Swell="20",Shrink="10",OtherBuriedConcrete="0";public BeamEarthworks Earthworks;public string EarthworkError="";public string Support="Elevated slab",SlabThickness="0",MeasureError="";public BeamQuantities Measures;public string Description="",ScheduleLabel="";public string Beam;public BeamRow Source;public string Length="",Quantity="1",TieCount="",TieCut="";public BeamEstimate Result;public string Error="";}
 }
