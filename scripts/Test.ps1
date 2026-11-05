@@ -54,3 +54,14 @@ $exe=Join-Path $out 'SteelFeatureTests.exe'
 if($LASTEXITCODE-ne 0){throw 'Steel and design sheet test compilation failed'}
 & $exe
 if($LASTEXITCODE-ne 0){throw 'Steel and design sheet tests failed'}
+
+# Capture each edition from its compiled UI using synthetic, saved test projects.
+foreach($edition in @('Admin','User')){
+ $exe=Join-Path $out "StoreScreenshots-$edition.exe"
+ $screenshotCompilerArgs=@('/nologo','/target:exe','/main:StoreScreenshotTests',"/out:$exe",'/reference:System.Security.dll','/reference:System.Core.dll','/reference:System.Windows.Forms.dll','/reference:System.Drawing.dll','/reference:Microsoft.CSharp.dll',"/resource:$source\AccessPublicKey.xml,AccessPublicKey.xml","/resource:$source\app.ico,DtceIcon.ico","/resource:$source\DtceLogo.png,DtceLogo.png","/resource:$source\DpwhLogo.png,DpwhLogo.png","/resource:$source\SlabTemplate.dxf,SlabTemplate.dxf")
+ if($edition -eq 'Admin'){$screenshotCompilerArgs+= '/define:ADMIN_APP'}
+ & $compiler @screenshotCompilerArgs @files (Join-Path $repo 'tests\StoreScreenshotTests.cs')
+ if($LASTEXITCODE-ne 0){throw "$edition screenshot compilation failed"}
+ & $exe (Join-Path $out "store-screenshots\$edition")
+ if($LASTEXITCODE-ne 0){throw "$edition screenshot capture failed"}
+}

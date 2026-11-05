@@ -61,8 +61,12 @@ CurrentUser DPAPI-protected file. Import checks both decryption and public key.
 `store/listings.json` contains the reviewed description, Features list, edition-specific
 text and version-specific release notes. The submission script applies these fields
 only to existing supported English listings (`en-us`, `en-gb`, `en-ph`); it does not
-create/remove locales or replace non-English translations. Images, pricing, audience,
-product names and publication mode are preserved. Version-specific release notes in
+create/remove locales or replace non-English translations. Pricing, audience, product names and publication mode are preserved. With
+STORE_SCREENSHOT_DIR configured, the submission archive includes eight current
+screenshots from that edition's compiled UI. Existing desktop screenshots are marked
+for replacement; logos and other image types are preserved. Without that setting,
+all images are preserved. CI captures User and Admin separately using synthetic
+test projects and retains both galleries as the DTCE-Store-Screenshots artifact. Version-specific release notes in
 this file take precedence over repository-variable release notes.
 
 Normal access codes now use BA4 program masks. Existing BA3 signatures remain
@@ -75,3 +79,11 @@ Program of Works Excel links export final quantities to one output worksheet.
 Project inputs/DXF data remain in Save Program of Works files; they are no longer
 embedded in Excel by the UI. Older workbook snapshots are left untouched and are
 not used to restore projects through Open / Link Excel.
+
+Version 1.4.35 adds group Start settings and the Bill of Quantities with source rows.
+Plate thickness inputs use mm; whole-sheet weights use nominal handbook dimensions
+and 7850 kg/m3. Plate fitting compares rotated guillotine layouts and reuses
+compatible offcuts. It is an estimating heuristic, not a global optimum guarantee.
+Area-only entries calculate net weight but need cut dimensions before final
+procurement export. Soil defaults (100% suitable, 20% swell, 10% bank shrink) are
+editable estimating assumptions at Earthworks & Gravel > Start.

@@ -254,7 +254,7 @@ static class SteelCatalog {
  data.Add(new SteelProfile{Name="Pipe OD219.1x8.2mm",Kind="HSS circle / pipe",H=219.1,B=219.1,T=8.2,KgM=42.647,Source="Regan 2026 handbook PDF p.24"});
  data.Add(new SteelProfile{Name="Pipe OD273x9.3mm",Kind="HSS circle / pipe",H=273,B=273,T=9.3,KgM=60.476,Source="Regan 2026 handbook PDF p.24"});
  data.Add(new SteelProfile{Name="Pipe OD323.8x10.3mm",Kind="HSS circle / pipe",H=323.8,B=323.8,T=10.3,KgM=76.628,Source="Regan 2026 handbook PDF p.24"});
- return data;}
+ FlatBarCatalog.AddTo(data);return data;}
  public static SteelProfile Find(string name){return Profiles.FirstOrDefault(p=>p.Name==name);}
 }
 }

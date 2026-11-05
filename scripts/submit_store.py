@@ -48,6 +48,35 @@ def listing_content(edition):
         raise ValueError('Store features must contain 1 to 200 characters')
     return content, description, features
 
+SCREENSHOT_NAMES = ('Main-Dashboard','Bill-of-Quantities','RC-Settings','Canopy-Ledge','Earthworks-Gravel','Doors-Windows','Steel-Plates','Metal-Fascia')
+
+def screenshot_assets(version):
+    folder = os.environ.get('STORE_SCREENSHOT_DIR', '').strip()
+    if not folder: return []
+    edition = os.environ.get('STORE_EDITION', 'User')
+    assets = []
+    for name in SCREENSHOT_NAMES:
+        source = Path(folder) / (name + '.png')
+        data = source.read_bytes()
+        if len(data) < 24 or data[:8] != b'\x89PNG\r\n\x1a\n' or data[12:16] != b'IHDR':
+            raise ValueError('Invalid screenshot PNG: ' + name)
+        width, height = int.from_bytes(data[16:20], 'big'), int.from_bytes(data[20:24], 'big')
+        if width < 1366 or height < 768:
+            raise ValueError('Screenshot must be at least 1366 x 768: ' + name)
+        assets.append((source, 'DTCE-' + edition + '-' + version + '-' + name + '.png', name.replace('-', ' ')))
+    return assets
+
+def update_screenshots(listing, assets):
+    if not assets: return
+    names = {filename for _, filename, _ in assets}
+    kept = []
+    for image in listing.get('images', []):
+        if image.get('fileName') in names and image.get('fileStatus') == 'PendingUpload': continue
+        image = dict(image)
+        if image.get('imageType') == 'DesktopScreenshot': image['fileStatus'] = 'PendingDelete'
+        kept.append(image)
+    listing['images'] = kept + [dict(fileName=filename, fileStatus='PendingUpload', imageType='DesktopScreenshot', description=description) for _, filename, description in assets]
+
 def prepare(submission, filename, version, notes):
     content, description, features = listing_content(os.environ.get('STORE_EDITION', 'User'))
     release_notes = (content['releaseNotesByVersion'].get(version)
@@ -55,6 +84,7 @@ def prepare(submission, filename, version, notes):
                      or ('DTCE Tool Kit ' + version + ': maintenance update.'))
     if len(release_notes) > 1500:
         raise ValueError('Store release notes exceed 1500 characters')
+    assets = screenshot_assets(version)
     old = submission.get('applicationPackages', [])
     for package in old:
         if package.get('version') and tuple(map(int, package['version'].split('.'))) >= tuple(map(int, version.split('.'))):
@@ -66,9 +96,11 @@ def prepare(submission, filename, version, notes):
         # Do not replace localized text with English or modify images/product settings.
         if locale.lower() in content['locales']:
             listing['baseListing'].update(description=description, features=list(features), releaseNotes=release_notes)
+            update_screenshots(listing['baseListing'], assets)
             for override in listing.get('platformOverrides', {}).values():
                 if isinstance(override, dict):
                     override.update(description=description, features=list(features), releaseNotes=release_notes)
+                    if 'images' in override: update_screenshots(override, assets)
     return submission
 
 def main():
@@ -126,7 +158,9 @@ def main():
     if os.environ.get('GITHUB_ACTIONS') == 'true': print('::add-mask::' + upload)
     with tempfile.TemporaryDirectory() as folder:
         archive = Path(folder) / 'submission.zip'
-        with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as z: z.write(package, package.name)
+        with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as z:
+            z.write(package, package.name)
+            for source, filename, _ in screenshot_assets(version): z.write(source, filename)
         print('Uploading package archive', flush=True)
         request(upload, 'PUT', {'x-ms-blob-type': 'BlockBlob', 'Content-Type': 'application/zip'}, archive.read_bytes())
     print('Committing updated submission', flush=True)

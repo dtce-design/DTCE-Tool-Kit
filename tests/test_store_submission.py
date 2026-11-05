@@ -42,6 +42,23 @@ class ListingTests(unittest.TestCase):
             self.assertTrue(all(len(f)<=200 for f in english['features']))
             self.assertEqual(edition=='Admin',any('Access Code Generator' in f for f in english['features']))
 
+class ScreenshotTests(unittest.TestCase):
+    def test_assets_are_packaged_and_replace_only_desktop_screenshots(self):
+        with tempfile.TemporaryDirectory() as folder:
+            header=b'\x89PNG\r\n\x1a\n'+b'\x00\x00\x00\x0dIHDR'+(1500).to_bytes(4,'big')+(960).to_bytes(4,'big')
+            for name in store.SCREENSHOT_NAMES: (Path(folder)/(name+'.png')).write_bytes(header)
+            with patch.dict(store.os.environ,{'STORE_EDITION':'User','STORE_SCREENSHOT_DIR':folder},clear=True):
+                assets=store.screenshot_assets('1.4.35.0')
+                listing={'images':[{'fileName':'old.png','imageType':'DesktopScreenshot','fileStatus':'Uploaded'},{'fileName':'icon.png','imageType':'StoreLogo','fileStatus':'Uploaded'}]}
+                store.update_screenshots(listing,assets)
+                store.update_screenshots(listing,assets)
+                self.assertEqual(len(store.SCREENSHOT_NAMES),sum(i['fileStatus']=='PendingUpload' for i in listing['images']))
+                self.assertEqual('PendingDelete',listing['images'][0]['fileStatus'])
+                self.assertEqual('Uploaded',listing['images'][1]['fileStatus'])
+                self.assertTrue(all(name.startswith('DTCE-User-1.4.35.0-') for _,name,_ in assets))
+                (Path(folder)/(store.SCREENSHOT_NAMES[0]+'.png')).write_bytes(b'bad')
+                with self.assertRaises(ValueError):store.screenshot_assets('1.4.35.0')
+
 class EditionTests(unittest.TestCase):
     def make_package(self, folder, edition, private=False):
         package=Path(folder)/'app.msix'

@@ -16,9 +16,11 @@ class CutFillInterval {
  public void Validate(){QuantityMath.Finite(Start,End,CutStart,CutEnd,FillStart,FillEnd);if(string.IsNullOrWhiteSpace(Alignment)||End<=Start)throw new Exception("Enter alignment ID and station end greater than start.");}
  public static void CheckOverlap(IEnumerable<CutFillInterval> list){foreach(var group in list.GroupBy(x=>x.Alignment.Trim(),StringComparer.OrdinalIgnoreCase)){double previous=-1;foreach(var row in group.OrderBy(x=>x.Start)){row.Validate();if(row.Start<previous-1e-8)throw new Exception("Overlapping station intervals: "+group.Key);previous=row.End;}}}
 }
+class EarthworkSourceUse {public EarthworkMaterial Material;public double LooseUsed,LooseSurplus,UnsuitableLoose;}
 class EarthworkBalance {
+ public readonly List<EarthworkSourceUse> Sources=new List<EarthworkSourceUse>();
  public double Excavation,Fill,LooseFromExcavation,LooseCommonBorrow,LooseSurplus,UnsuitableLoose,AvailableCompacted;public double BorrowSwell,BorrowShrink;
- public static EarthworkBalance Calculate(IEnumerable<EarthworkMaterial> data,double borrowSwell=20,double borrowShrink=10){var rows=data.ToList();foreach(var row in rows)row.Validate();new EarthworkMaterial{Swell=borrowSwell,Shrink=borrowShrink}.Validate();var b=new EarthworkBalance{BorrowSwell=borrowSwell,BorrowShrink=borrowShrink,Excavation=rows.Sum(x=>x.Bank),Fill=rows.Sum(x=>x.Fill),AvailableCompacted=rows.Sum(x=>x.CompactedAvailable)};double remaining=b.Fill;foreach(var row in rows){double use=Math.Min(remaining,row.CompactedAvailable);b.LooseFromExcavation+=use/(1-row.Shrink/100)*(1+row.Swell/100);remaining=Math.Max(0,remaining-use);b.LooseSurplus+=Math.Max(0,row.LooseAvailable-use/(1-row.Shrink/100)*(1+row.Swell/100));b.UnsuitableLoose+=row.Bank*(1-row.Reusable/100)*(1+row.Swell/100);}b.LooseCommonBorrow=remaining/(1-borrowShrink/100)*(1+borrowSwell/100);return b;}
+ public static EarthworkBalance Calculate(IEnumerable<EarthworkMaterial> data,double borrowSwell=20,double borrowShrink=10){var rows=data.ToList();foreach(var row in rows)row.Validate();new EarthworkMaterial{Swell=borrowSwell,Shrink=borrowShrink}.Validate();var b=new EarthworkBalance{BorrowSwell=borrowSwell,BorrowShrink=borrowShrink,Excavation=rows.Sum(x=>x.Bank),Fill=rows.Sum(x=>x.Fill),AvailableCompacted=rows.Sum(x=>x.CompactedAvailable)};double remaining=b.Fill;foreach(var row in rows){double use=Math.Min(remaining,row.CompactedAvailable);b.LooseFromExcavation+=use/(1-row.Shrink/100)*(1+row.Swell/100);remaining=Math.Max(0,remaining-use);b.LooseSurplus+=Math.Max(0,row.LooseAvailable-use/(1-row.Shrink/100)*(1+row.Swell/100));b.UnsuitableLoose+=row.Bank*(1-row.Reusable/100)*(1+row.Swell/100);double looseUse=use/(1-row.Shrink/100)*(1+row.Swell/100);b.Sources.Add(new EarthworkSourceUse{Material=row,LooseUsed=looseUse,LooseSurplus=Math.Max(0,row.LooseAvailable-looseUse),UnsuitableLoose=row.Bank*(1-row.Reusable/100)*(1+row.Swell/100)});}b.LooseCommonBorrow=remaining/(1-borrowShrink/100)*(1+borrowSwell/100);return b;}
 }
 class FootingBarSpec {public int Diameter;public double Spacing;public int Count;}
 class FootingTakeoff {
@@ -32,3 +34,4 @@ class FootingTakeoff {
  }
 }
 }
+

@@ -29,6 +29,12 @@ jobs:
           path: test-results/ui-*.png
           if-no-files-found: warn
           retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DTCE-Store-Screenshots
+          path: test-results/store-screenshots/
+          if-no-files-found: error
+          retention-days: 30
       - name: Test Store submission payload
         run: python -m unittest discover -s tests -p test_store_submission.py
       - uses: actions/upload-artifact@v4
@@ -97,6 +103,10 @@ jobs:
         with:
           name: DTCE-Tool-Kit-Packages
           path: store-package
+      - uses: actions/download-artifact@v4
+        with:
+          name: DTCE-Store-Screenshots
+          path: store-screenshots
       - name: Upload and submit User MSIX to Microsoft Store
         shell: pwsh
         env:
@@ -104,6 +114,7 @@ jobs:
           STORE_CLIENT_ID: ${{ secrets.STORE_CLIENT_ID }}
           STORE_CLIENT_SECRET: ${{ secrets.STORE_CLIENT_SECRET }}
           STORE_CERTIFICATION_NOTES: ${{ secrets.STORE_CERTIFICATION_NOTES }}
+          STORE_SCREENSHOT_DIR: store-screenshots/User
           STORE_EDITION: User
           STORE_APP_ID: 9NSQN0157W5K
           STORE_RELEASE_NOTES: ${{ vars.STORE_RELEASE_NOTES }}
@@ -127,6 +138,10 @@ jobs:
         with:
           name: DTCE-Tool-Kit-Packages
           path: store-package
+      - uses: actions/download-artifact@v4
+        with:
+          name: DTCE-Store-Screenshots
+          path: store-screenshots
       - name: Upload and submit Admin MSIX to Microsoft Store
         shell: pwsh
         env:
@@ -134,6 +149,7 @@ jobs:
           STORE_CLIENT_ID: ${{ secrets.STORE_CLIENT_ID }}
           STORE_CLIENT_SECRET: ${{ secrets.STORE_CLIENT_SECRET }}
           STORE_CERTIFICATION_NOTES: ${{ secrets.STORE_ADMIN_CERTIFICATION_NOTES }}
+          STORE_SCREENSHOT_DIR: store-screenshots/Admin
           STORE_EDITION: Admin
           STORE_APP_ID: 9P53CR08ZSZ3
           STORE_RELEASE_NOTES: ${{ vars.STORE_ADMIN_RELEASE_NOTES }}
