@@ -279,3 +279,75 @@ jobs:
           if [[ -n "${ASC_KEY_PATH:-}" ]]; then
             rm -f -- "$ASC_KEY_PATH"
           fi
+
+  set-public-links:
+    needs: hold-unlisted
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify public GitHub Pages links without authentication
+        run: |
+          python3 - <<'PY'
+          import urllib.request,time
+          links={'privacy':'https://dtce-design.github.io/Support-Page/dtce-access-admin/privacy.html','support':'https://dtce-design.github.io/Support-Page/dtce-access-admin/support.html'}
+          for name,url in links.items():
+              for attempt in range(24):
+                  try:
+                      with urllib.request.urlopen(url,timeout=20) as response:
+                          text=response.read().decode()
+                          if response.status!=200 or 'DTCE Tool Kit Access Admin' not in text:raise ValueError('Unexpected page content')
+                      print('Public '+name+' page verified: '+url)
+                      break
+                  except Exception:
+                      if attempt==23:raise RuntimeError('Public '+name+' URL is not available; Apple listing was not changed.') from None
+                      time.sleep(5)
+          PY
+      - name: Authenticate with Apple
+        id: apple
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          export ASC_KEY_PATH="$RUNNER_TEMP/DTCE-Policy-$GITHUB_RUN_ID.p8"
+          echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
+          python3 ios/ci/app_store.py prepare
+      - name: Save privacy and support URLs in the Apple draft
+        env:
+          APPLE_APP_ID: ${{ steps.apple.outputs.app_id }}
+        run: |
+          python3 - <<'PY'
+          import os,sys,json,urllib.request,urllib.error
+          sys.path.insert(0,'ios/ci')
+          from app_store import API,api_get,jwt,required
+          app_id=os.environ['APPLE_APP_ID']
+          def patch(resource,kind,identifier,attribute,url):
+              current=api_get(resource+'/'+identifier)['data']['attributes'].get(attribute)
+              if current and current!=url:raise ValueError('An existing different '+attribute+' needs review; it was not overwritten.')
+              if current!=url:
+                  token=jwt(required('ASC_KEY_PATH'),required('ASC_KEY_ID'),required('ASC_ISSUER_ID'))
+                  payload={'data':{'type':kind,'id':identifier,'attributes':{attribute:url}}}
+                  request=urllib.request.Request(API+resource+'/'+identifier,data=json.dumps(payload).encode(),method='PATCH',headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'})
+                  try:
+                      with urllib.request.urlopen(request,timeout=60) as response:json.load(response)
+                  except urllib.error.HTTPError as error:raise RuntimeError('Apple URL update failed: HTTP '+str(error.code)) from None
+              saved=api_get(resource+'/'+identifier)['data']['attributes'].get(attribute)
+              if saved!=url:raise RuntimeError('Apple did not retain '+attribute)
+              print('Apple '+attribute+' saved: '+saved)
+          infos=[v for v in api_get('apps/'+app_id+'/appInfos').get('data',[]) if v['attributes'].get('appStoreState')=='PREPARE_FOR_SUBMISSION']
+          versions=[v for v in api_get('apps/'+app_id+'/appStoreVersions').get('data',[]) if v['attributes'].get('platform')=='IOS' and v['attributes'].get('appStoreState')=='PREPARE_FOR_SUBMISSION']
+          if len(infos)!=1 or len(versions)!=1:raise ValueError('Expected one editable Apple draft.')
+          for loc in api_get('appInfos/'+infos[0]['id']+'/appInfoLocalizations').get('data',[]):
+              if loc['attributes'].get('locale')=='en-US':patch('appInfoLocalizations','appInfoLocalizations',loc['id'],'privacyPolicyUrl','https://dtce-design.github.io/Support-Page/dtce-access-admin/privacy.html')
+          for loc in api_get('appStoreVersions/'+versions[0]['id']+'/appStoreVersionLocalizations').get('data',[]):
+              if loc['attributes'].get('locale')=='en-US':patch('appStoreVersionLocalizations','appStoreVersionLocalizations',loc['id'],'supportUrl','https://dtce-design.github.io/Support-Page/dtce-access-admin/support.html')
+          print('Public links configured. App release remains held for Unlisted review.')
+          PY
+      - name: Remove temporary Apple API key
+        if: always()
+        run: |
+          if [[ -n "${ASC_KEY_PATH:-}" ]]; then
+            rm -f -- "$ASC_KEY_PATH"
+          fi
