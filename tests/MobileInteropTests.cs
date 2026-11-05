@@ -21,6 +21,7 @@ class MobileInteropTests {
   string cert=File.ReadAllText(Path.Combine(folder,"mobile-cert.txt"));
   if(cert!=File.ReadAllText(Path.Combine(folder,"cert-reference.txt"))||!AccessCodes.ValidateAt("",cert,publicKey,DateTime.UtcNow,out end))throw new Exception("Mobile certification signature rejected by desktop verifier");
   Console.WriteLine("PASS: Web Crypto certification matches desktop signature exactly and unlocks without a request.");
-  Console.WriteLine("PASS: Web Crypto generated code accepted by desktop BA3 verifier; wrong request rejected.");return 0;
+  Console.WriteLine("PASS: Web Crypto generated code accepted by desktop BA4 verifier; wrong request rejected.");return 0;
  }
 }
+

@@ -1,15 +1,15 @@
 using System;using System.Linq;using System.Text;using System.Collections.Generic;using System.Globalization;
 namespace BeamScheduleFormatter {
 static class PurchaseReports {
- public static void Summary(StringBuilder b,List<StockAllocation> plan){plan=plan.Where(a=>a.Choice!=null).ToList();
+ public static void Summary(StringBuilder b,List<StockAllocation> plan,bool includeOrders=true){plan=plan.Where(a=>a.Choice!=null).ToList();
   b.AppendLine("01  REBAR PURCHASE SUMMARY");b.AppendLine(new string('-',92));b.AppendLine(string.Format("{0,-8}{1,6}{2,15}{3,15}{4,15}{5,15}","GRADE","DIA","CUT STEEL kg","ADDED LAP kg","OFFCUT kg","BUY kg"));foreach(int grade in new[]{40,60}){var steel=plan.Where(a=>a.Demand.Grade==grade).ToList();foreach(var g in steel.GroupBy(a=>a.Demand.Diameter).OrderBy(g=>g.Key))b.AppendLine(string.Format(CultureInfo.InvariantCulture,"{0,-8}{1,6}{2,15:0.00}{3,15:0.00}{4,15:0.00}{5,15:0.00}","G"+grade,g.Key,g.Sum(a=>a.Net),g.Sum(a=>a.Splice),g.Sum(a=>a.Waste),g.Sum(a=>a.Purchase)));b.AppendLine(string.Format(CultureInfo.InvariantCulture,"GRADE {0} TOTAL TO BUY: {1:0.00} kg",grade,steel.Sum(a=>a.Purchase)));b.AppendLine();}b.AppendLine("GRAND TOTAL TO BUY: "+plan.Sum(a=>a.Purchase).ToString("0.00",CultureInfo.InvariantCulture)+" kg");
-  b.AppendLine();b.AppendLine("SELECTED COMMERCIAL BARS TO ORDER");b.AppendLine(string.Format("{0,-8}{1,6}{2,13}{3,13}{4,16}","GRADE","DIA","LENGTH m","WHOLE BARS","BUY kg"));var stock=plan.Where(a=>a.Choice!=null).GroupBy(a=>a.Choice).Select(g=>g.First());foreach(var g in stock.GroupBy(a=>new{a.Demand.Grade,a.Demand.Diameter,a.Choice.Length}).OrderBy(g=>g.Key.Grade).ThenBy(g=>g.Key.Diameter).ThenBy(g=>g.Key.Length))b.AppendLine(string.Format(CultureInfo.InvariantCulture,"{0,-8}{1,6}{2,13:0.00}{3,13}{4,16:0.00}","G"+g.Key.Grade,g.Key.Diameter,g.Key.Length,g.Sum(a=>a.Choice.Bars),g.Sum(a=>a.Choice.Purchased*EstimatorEngine.UnitMass(a.Demand.Diameter))));
+  if(!includeOrders)return;b.AppendLine();b.AppendLine("SELECTED COMMERCIAL BARS TO ORDER");b.AppendLine(string.Format("{0,-8}{1,6}{2,13}{3,13}{4,16}","GRADE","DIA","LENGTH m","WHOLE BARS","BUY kg"));var stock=plan.SelectMany(a=>a.Stocks).Distinct();foreach(var g in stock.GroupBy(a=>new{a.Grade,a.Diameter,a.Length}).OrderBy(g=>g.Key.Grade).ThenBy(g=>g.Key.Diameter).ThenBy(g=>g.Key.Length))b.AppendLine(string.Format(CultureInfo.InvariantCulture,"{0,-8}{1,6}{2,13:0.00}{3,13}{4,16:0.00}","G"+g.Key.Grade,g.Key.Diameter,g.Key.Length,g.Sum(a=>a.Count),g.Sum(a=>a.Length*a.Count*EstimatorEngine.UnitMass(a.Diameter))));
  }
  public static void Basis(StringBuilder b){
   b.AppendLine();b.AppendLine("REPORT BASIS");
   b.AppendLine("Buy kg = cut steel + added splice steel + stock offcuts. No percentage factor.");
   b.AppendLine("Entry weights share pooled whole-bar orders; order quantities appear in the summary.");
-  b.AppendLine("Only identical cuts are pooled. Different-cut offcuts are not reused; kerf = 0.");
+  b.AppendLine("Compatible different-length cuts share stock/offcuts; grade and diameter stay separate; kerf = 0.");
   b.AppendLine("Gross concrete excludes opening/overlap deductions. Forms exclude top/end faces.");
   b.AppendLine("Splice positions follow the structural drawings. Totals use unrounded values.");
  }
@@ -32,3 +32,4 @@ static class PurchaseReports {
  }
 }
 }
+

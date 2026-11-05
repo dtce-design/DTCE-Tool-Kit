@@ -23,6 +23,25 @@ class StoreTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 store.prepare({'applicationPackages': [{'version': '1.4.23.0'}]}, 'update.msix', version, 'notes')
 
+class ListingTests(unittest.TestCase):
+    def test_both_editions_update_features_and_description_preserving_other_fields(self):
+        for edition in ('User','Admin'):
+            original={'applicationPackages':[], 'listings':{'en-us':{'baseListing':{'description':'Old','features':['Old'],'images':[{'id':'screenshot'}],'keywords':['DTCE']},'platformOverrides':{'Windows.Desktop':{'description':'Keep override'}}},'fr-fr':{'baseListing':{'description':'French','features':['French']}}}}
+            with patch.dict(store.os.environ,{'STORE_EDITION':edition,'STORE_RELEASE_NOTES':'Old generic note'},clear=True):
+                result=store.prepare(copy.deepcopy(original),'update.msix','1.4.34.0','reviewer')
+            english=result['listings']['en-us']['baseListing']
+            self.assertIn('final quantities',english['description'])
+            self.assertIn('13.5', ' '.join(english['features']))
+            self.assertIn('separate access',english['releaseNotes'])
+            self.assertNotIn('Old generic note',english['releaseNotes'])
+            self.assertEqual([{'id':'screenshot'}],english['images'])
+            self.assertEqual(['DTCE'],english['keywords'])
+            self.assertEqual(original['listings']['fr-fr'],result['listings']['fr-fr'])
+            self.assertEqual(english['description'],result['listings']['en-us']['platformOverrides']['Windows.Desktop']['description'])
+            self.assertLessEqual(len(english['features']),20)
+            self.assertTrue(all(len(f)<=200 for f in english['features']))
+            self.assertEqual(edition=='Admin',any('Access Code Generator' in f for f in english['features']))
+
 class EditionTests(unittest.TestCase):
     def make_package(self, folder, edition, private=False):
         package=Path(folder)/'app.msix'
@@ -82,3 +101,4 @@ class DraftTests(EditionTests):
                 if status in ('Certification','Publishing'):self.assertFalse(any(method=='PUT' for _,method,_ in calls))
 
 if __name__ == '__main__': unittest.main()
+

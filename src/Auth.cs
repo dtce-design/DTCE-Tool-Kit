@@ -67,14 +67,15 @@ class AdminForm:MainForm {
  public void OpenGenerator(){if(generator==null||generator.IsDisposed){generator=new CodeGeneratorForm();generator.Show(this);}else{generator.Show();generator.BringToFront();}}
 }
 class CodeGeneratorForm:Form {
+ internal static int SelectedPrograms(CheckedListBox apps){int selected=0;for(int n=0;n<ProgramAccess.Ids.Length;n++)if(apps.GetItemChecked(n))selected|=ProgramAccess.Ids[n];return selected;}
  TextBox request,output;Label message;string privateKey;
  public CodeGeneratorForm(){AppBrand.Apply(this);
   Text="DTCE Tool Kit Admin - Code Generator";ClientSize=new Size(940,715);StartPosition=FormStartPosition.CenterScreen;FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;Font=new Font("Segoe UI",10);BackColor=Color.FromArgb(245,248,251);
   Controls.Add(new Label{Text="DTCE TOOL KIT - ACCESS ADMIN",Location=new Point(25,22),Size=new Size(890,35),Font=new Font("Segoe UI",18,FontStyle.Bold)});
-  Controls.Add(new Label{Text="Paste the request from the user's currently open formatter.",Location=new Point(335,75),Size=new Size(575,25)});
+  Controls.Add(new Label{Text="Paste the request from the user's currently open app.",Location=new Point(335,75),Size=new Size(575,25)});
   request=new TextBox{Location=new Point(335,107),Size=new Size(575,78),Multiline=true,MaxLength=200};Controls.Add(request);
   Controls.Add(new Label{Text="APPS ALLOWED",Location=new Point(25,75),Size=new Size(280,25),Font=new Font("Segoe UI",11,FontStyle.Bold)});Controls.Add(new Label{Text="GENERATED ACCESS CODE",Location=new Point(335,200),Size=new Size(575,25),Font=new Font("Segoe UI",11,FontStyle.Bold)});
-  var apps=new CheckedListBox{Location=new Point(25,110),Size=new Size(280,150),CheckOnClick=true,BorderStyle=BorderStyle.FixedSingle,BackColor=Color.White,Font=new Font("Segoe UI",11),IntegralHeight=false,HorizontalScrollbar=true};apps.Items.AddRange(new object[]{"Beam / Slab Schedule Formatter","Program of Works / Estimators","Splice / Development / Hooks"});Controls.Add(apps);Controls.Add(new Label{Text="Project Information is included automatically with valid access.",Location=new Point(25,280),Size=new Size(280,60)});apps.ItemCheck+=(o,e)=>output.Clear();
+  var apps=new CheckedListBox{Location=new Point(25,110),Size=new Size(280,165),CheckOnClick=true,BorderStyle=BorderStyle.FixedSingle,BackColor=Color.White,Font=new Font("Segoe UI",11),IntegralHeight=false,HorizontalScrollbar=true};apps.Items.AddRange(ProgramAccess.Names);Controls.Add(apps);Controls.Add(new Label{Text="Project Information is included automatically with valid access.",Location=new Point(25,280),Size=new Size(280,60)});apps.ItemCheck+=(o,e)=>output.Clear();
   var generate=new Button{Text="Generate selected app access",Location=new Point(25,350),Size=new Size(280,50)};Controls.Add(generate);
   output=new TextBox{Location=new Point(335,230),Size=new Size(575,210),Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical,Font=new Font("Consolas",10),BackColor=Color.White};Controls.Add(output);
   var copy=new Button{Text="Copy access code",Location=new Point(335,455),Size=new Size(280,40)};copy.Click+=(o,e)=>{if(output.Text!="")LoginForm.Copy(output.Text);};Controls.Add(copy);
@@ -104,8 +105,9 @@ class CodeGeneratorForm:Form {
     }
    }catch(Exception){MessageBox.Show(this,"Cannot export the mobile key. Import the matching existing Admin key first and choose a writable file location.","Export failed");}
   };
-  generate.Click+=(o,e)=>{output.Clear();try{output.Text=certification.Checked?AccessCodes.GenerateCertification(privateKey,certVersion.Text.Trim()):AccessCodes.Generate(request.Text,privateKey,(apps.GetItemChecked(0)?1:0)|(apps.GetItemChecked(1)?2:0)|(apps.GetItemChecked(2)?4:0));message.Text="Key ID: "+AccessCodes.KeyId(AccessCodes.PublicKey())+(certification.Checked?"\nCertification: all apps, 30 days. User v"+certVersion.Text.Trim()+" only. Expires "+DateTime.UtcNow.AddDays(30).ToLocalTime().ToString("yyyy-MM-dd HH:mm") :"\nApproved for 8 hours from now, including after reopening the user app.");}catch(Exception ex){MessageBox.Show(this,ex.Message,"Cannot generate code");}};
+  generate.Click+=(o,e)=>{output.Clear();try{output.Text=certification.Checked?AccessCodes.GenerateCertification(privateKey,certVersion.Text.Trim()):AccessCodes.Generate(request.Text,privateKey,SelectedPrograms(apps));message.Text="Key ID: "+AccessCodes.KeyId(AccessCodes.PublicKey())+(certification.Checked?"\nCertification: all apps, 30 days. User v"+certVersion.Text.Trim()+" only. Expires "+DateTime.UtcNow.AddDays(30).ToLocalTime().ToString("yyyy-MM-dd HH:mm") :"\nApproved for 8 hours from now, including after reopening the user app.");}catch(Exception ex){MessageBox.Show(this,ex.Message,"Cannot generate code");}};
  }
 }
 #endif
 }
+

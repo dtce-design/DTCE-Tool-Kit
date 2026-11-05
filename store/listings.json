@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "locales": [
+    "en-us",
+    "en-gb",
+    "en-ph"
+  ],
+  "description": "DTCE Tool Kit brings schedule formatting, construction quantity estimates and engineering calculation sheets into one Windows workspace. Start with dashboard cards for Formatters, Program of Works, Design Sheets and Project Information.\n\nFormat beam and slab schedules from DXF files. Estimate reinforced concrete, rebar, earthworks, masonry, doors and windows, roofing and structural steel. Review quantities and backup computations, then export reports to Excel or PDF.\n\nProgram of Works includes beam, slab and footing settings, concrete strengths, rebar grades and selectable commercial bar lengths from 6 m to 15 m. Footing reinforcement accepts spacing or a bar count in each direction. Structural steel estimates cover purlins, angle bars, machine bolts, anchor bolts, plates, crossbracing and metal fascia frames, with cutting plans that reuse compatible offcuts from 6 m stock.\n\nDesign Sheets includes Splice, Development & Hooks, Purlin Design and Truss Connections. Purlin and connection sheets use the supplied workbook methods and handbook profile dimensions, with stated assumptions, calculation reports and selected STAAD end-force table imports. These sheets perform the listed checks; complete cold-formed member, HSS joint and other omitted limit states require separate verification by the responsible engineer.\n\nSave Program of Works files retain estimate inputs, loaded DXF contents, profile snapshots and computation data. Reopen the saved project without needing the original DXF files. Link Excel for final quantities in a single output worksheet. Save roof profiles in the app for reuse across projects.\n\nAccess is selected by program. Project Information is included with valid access. Engineering inputs, material specifications and calculation results must be reviewed for the actual project.",
+  "features": [
+    "Dashboard workspaces for Formatters, Program of Works, Design Sheets and Project Information.",
+    "Beam and slab DXF schedule formatting with grouped schedules and report exports.",
+    "Concrete, rebar and formwork takeoffs for beams, slabs and footings.",
+    "Footing rebar inputs by spacing or bar count in either direction; excavation, gravel and backfill quantities.",
+    "Concrete strength and rebar grade settings, with selectable 6, 7.5, 9, 10.5, 12, 13.5 and 15 m rebar stock lengths.",
+    "Separate net wall areas for 100/150 mm CHB, load-bearing CHB, louver blocks and AAC, with linked opening deductions.",
+    "Door and window schedules with automatic jamb defaults, standard 45 mm wooden door leaves, hinges and locksets.",
+    "Saved longspan roof profiles with applicable side laps, insulation roll settings, flashings and gutters.",
+    "Purlin, angle-bar and metal fascia estimates with 6 m cutting plans and compatible offcut reuse across rows.",
+    "A307/A325 bolt shaft weights from overall length, plate weights by area or dimensions, and diagonal crossbracing weights.",
+    "One matching-size turnbuckle per crossbracing line.",
+    "Splice, Development & Hooks, Purlin Design and Truss Connections calculation sheets with stated check limits.",
+    "Import selected STAAD end-force tables for axial truss connection checks, retaining load-case and member references.",
+    "Save Program of Works files retain DXFs, inputs, profiles and computations. Excel links export final quantities in one worksheet.",
+    "Excel and PDF backups, with stable input rows and automatic wrapping for longer details.",
+    "Detailed design reports show formulas, substituted values, governing checks and demand/capacity ratios."
+  ],
+  "editions": {
+    "User": {
+      "descriptionSuffix": "User edition: use the programs included in your approved access.",
+      "features": []
+    },
+    "Admin": {
+      "descriptionSuffix": "Admin edition: includes the Access Code Generator for authorized administrators, with separate program selections and Store certification codes. Existing matching administrator credentials are required for code generation.",
+      "features": [
+        "Admin Access Code Generator with a separate access selection for each program."
+      ]
+    }
+  },
+  "releaseNotesByVersion": {
+    "1.4.33.0": "Adds structural steel estimates for purlins, angles, bolts, plates, crossbracing and metal fascia frames, with 6 m cutting plans and compatible offcut reuse. Adds Purlin Design and Truss Connections sheets using workbook methods, handbook profiles and STAAD end-force table imports. Updates Start to dashboard cards and groups Splice, Development & Hooks in one sheet. Combines AAC thicknesses in one tab with separate 100/150 mm totals. Adds applicable roof side-lap choices, reusable app roof profiles, portable Excel/XLSM project data, stable input rows, and 13.50 m and 15 m rebar stock lengths. Calculation reports state supported checks and remaining verification requirements.",
+    "1.4.34.0": "Adds separate access selections for each program, including each Design Sheet, in Windows and iPhone code generators. Design tabs open their sheets automatically. Detailed purlin and truss connection reports show formulas, substituted values, governing cases and demand/capacity ratios. Table headings wrap and resize to display all wording. Cutting allocation runs internally and reuses compatible offcuts across structural steel, reinforcing-bar and roofing-accessory entries. Excel exports final quantities in one worksheet; use Save Program of Works to retain full project inputs, DXF contents, profiles and computations. Invalid exports now identify the input issues to resolve."
+  }
+}

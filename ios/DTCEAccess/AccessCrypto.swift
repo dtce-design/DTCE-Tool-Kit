@@ -106,15 +106,15 @@ enum AccessCrypto {
     static func generate(key: SecKey, request input: String, apps: Int, now: Date = Date()) throws -> GeneratedAccess {
         let request = input.components(separatedBy: .whitespacesAndNewlines).joined().uppercased()
         guard request.range(of: "^BEAM-[A-F0-9]{40}$", options: .regularExpression) != nil else { throw AccessError.invalid("Paste the complete BEAM request code from the User app.") }
-        guard (1...7).contains(apps) else { throw AccessError.invalid("Select at least one app.") }
+        guard apps > 0 && (apps & ~119) == 0 else { throw AccessError.invalid("Select at least one app.") }
         guard now.timeIntervalSince1970.isFinite, (0...253402300799).contains(now.timeIntervalSince1970) else { throw AccessError.invalid("Check your iPhone date and time.") }
         let issued = Int64(now.timeIntervalSince1970)
         guard issued >= 0 else { throw AccessError.invalid("Check your iPhone date and time.") }
         let expiry = issued + 28800
-        let message = Data("BEAM-ACCESS-V3|\(request)|\(issued).\(expiry)|\(apps)".utf8)
+        let message = Data("BEAM-ACCESS-V4|\(request)|\(issued).\(expiry)|\(apps)".utf8)
         var error: Unmanaged<CFError>?
         guard let signature = SecKeyCreateSignature(key, .rsaSignatureMessagePKCS1v15SHA256, message as CFData, &error) as Data? else { if let error = error?.takeRetainedValue() { throw error }; throw AccessError.invalid("Signing failed.") }
-        return GeneratedAccess(code:"BA3.\(issued).\(expiry).\(apps).\(signature.base64EncodedString())", expires:Date(timeIntervalSince1970:TimeInterval(expiry)))
+        return GeneratedAccess(code:"BA4.\(issued).\(expiry).\(apps).\(signature.base64EncodedString())", expires:Date(timeIntervalSince1970:TimeInterval(expiry)))
     }
     static func generateCertification(key: SecKey, version: String, now: Date = Date()) throws -> GeneratedAccess {
         let parts = version.split(separator: ".", omittingEmptySubsequences: false)
@@ -132,3 +132,4 @@ enum AccessCrypto {
     }
 
 }
+

@@ -10,7 +10,7 @@ class CertificationCacheTests {
    Check(!AccessCodes.TryRestore(),"Empty cache granted access");
    string request=AccessCodes.GetRequest(),code=File.ReadAllText(Path.Combine(folder,"mobile-cert.txt"));
    Check(AccessCodes.Accept(request,code),"Certification not accepted by real activation path");
-   foreach(int app in new[]{1,2,4,8})Check(AccessCodes.CanUseApp(app),"Certification app unavailable");
+   foreach(int app in new[]{1,2,4,8,16,32,64})Check(AccessCodes.CanUseApp(app),"Certification app unavailable");
    AccessCodes.Granted=false;
    Check(AccessCodes.TryRestore(),"Certification lost on reopen");
    Check(AccessCodes.GetRequest()==request,"Valid cached request changed");
@@ -20,7 +20,7 @@ class CertificationCacheTests {
    Check(AccessCodes.Accept(AccessCodes.GetRequest(),code),"Certification cannot unlock second test machine");
    string normal=File.ReadAllText(Path.Combine(folder,"mobile-code.txt"));
    Check(AccessCodes.Accept("BEAM-0123456789ABCDEF0123456789ABCDEF01234567",normal),"Normal activation regressed");
-   Check(AccessCodes.CanUseApp(1)&&AccessCodes.CanUseApp(4)&&AccessCodes.CanUseApp(8)&&!AccessCodes.CanUseApp(2),"Normal app restrictions changed");
+   Check(AccessCodes.CanUseApp(1)&&AccessCodes.CanUseApp(4)&&AccessCodes.CanUseApp(8)&&!AccessCodes.CanUseApp(2)&&!AccessCodes.CanUseApp(16)&&!AccessCodes.CanUseApp(32)&&!AccessCodes.CanUseApp(64),"Normal app restrictions changed");
    string firstRequest=AccessCodes.GetRequest();
    AccessCodes.Checkpoint();Check(!File.Exists((string)field.GetValue(null)),"Normal approval was persisted");
    AccessCodes.Granted=false;Check(!AccessCodes.TryRestore(),"Normal approval restored after app restart");
@@ -35,3 +35,4 @@ class CertificationCacheTests {
   }finally{AccessCodes.Granted=false;field.SetValue(null,original);foreach(string file in Directory.GetFiles(isolated))File.Delete(file);Directory.Delete(isolated);}
  }
 }
+

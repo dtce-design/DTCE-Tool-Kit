@@ -59,7 +59,7 @@ struct AccessView: View {
                                 if model.request.isEmpty { Text("Paste the BEAM request code here").font(.footnote.monospaced()).foregroundStyle(.secondary).padding(.horizontal,13).padding(.top,16).allowsHitTesting(false) }
                             }.background(inputSurface,in:RoundedRectangle(cornerRadius:10)).overlay(RoundedRectangle(cornerRadius:10).strokeBorder(outline,lineWidth:1))
                             Text("Paste the complete BEAM request from the User app.").font(.caption).foregroundStyle(.secondary)
-                            ForEach([(1,"Beam / Slab Schedule Formatter"),(2,"Program of Works / Estimators"),(4,"Splice, Development & Hooks")],id:\.0) { app in
+                            ForEach([(1,"Beam Schedule Formatter"),(64,"Slab Schedule Formatter"),(2,"Program of Works / Estimators"),(4,"Splice, Development & Hooks"),(16,"Purlin Design"),(32,"Truss Connections")],id:\.0) { app in
                                 Toggle(app.1,isOn:Binding(get:{model.allowedApps.contains(app.0)},set:{enabled in if enabled {model.allowedApps.insert(app.0)} else {model.allowedApps.remove(app.0)} })).tint(accent)
                             }
                             Label("Project Information included",systemImage:"checkmark.circle.fill").foregroundStyle(accent).font(.caption)
@@ -112,3 +112,4 @@ struct AccessView_Previews: PreviewProvider {
     }
 }
 #endif
+

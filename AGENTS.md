@@ -14,8 +14,10 @@ Keep edition watermark rules: Admin DTCE, User DPWH.
 Store submission is not enabled until MSIX identity/packaging and account API
 setup are complete. Do not claim a GitHub release is a Microsoft Store release.
 
-The current user authorizes automatic tested GitHub uploads. This does not
-authorize repository visibility changes or disclosure of the owner's key.
+Prepare and test requested changes first. Push or submit only when the user explicitly
+asks for that task; do not assume future changes are authorized for automatic upload.
+An instruction to push after finishing authorizes that task's tested release. This does
+not authorize repository visibility changes or disclosure of the owner's key.
 
 Mobile app source is mobile/. Never commit/export real .dtcekey files or owner keys.
 Test.ps1 exercises .NET/Web Crypto interoperability using ephemeral keys.
@@ -26,3 +28,4 @@ Native iPhone source is ios/. Native crypto must pass the macOS interop test and
 Xcode simulator/device builds. Never commit Apple signing files or private keys.
 Unsigned archives cannot be installed on a physical iPhone. No automatic claim
 of Face ID hardware verification; device enrollment/unlock tests require iPhone.
+

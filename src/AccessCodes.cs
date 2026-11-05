@@ -20,7 +20,7 @@ class AccessLease {
 static class AccessCodes {
  static readonly AccessLease lease=new AccessLease(()=>TimeSpan.FromSeconds((double)Stopwatch.GetTimestamp()/Stopwatch.Frequency));
  static string sessionRequest;static DateTime requestExpiresUtc=DateTime.MinValue;
- static int allowedApps; public const int AllApps=7;
+ static int allowedApps; public const int AllApps=ProgramAccess.All;
  static DateTime expiresUtc=DateTime.MinValue;
  static string storePath=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"BeamScheduleFormatter","access-v3-"+InstallationKey(System.Reflection.Assembly.GetExecutingAssembly().Location)+".dat");
  static readonly DateTime Epoch=new DateTime(1970,1,1,0,0,0,DateTimeKind.Utc);
@@ -39,10 +39,10 @@ static class AccessCodes {
  #if ADMIN_APP
  return true;
  #else
- return Granted&&(app==8||(allowedApps&app)==app);
+ return Granted&&ProgramAccess.Allows(allowedApps,app);
  #endif
  }
- public static int AppFor(System.Windows.Forms.Form form){return (form is EstimatorForm||form is SlabEstimatorForm||form is ProgramOfWorksForm)?2:form is RebarLengthForm?4:form is ProjectInformationForm?8:1;} public static string NewRequest(){byte[] bytes=new byte[20];using(var r=RandomNumberGenerator.Create())r.GetBytes(bytes);return "BEAM-"+BitConverter.ToString(bytes).Replace("-","");}
+ public static int AppFor(System.Windows.Forms.Form form){return (form is EstimatorForm||form is SlabEstimatorForm||form is ProgramOfWorksForm)?2:form is RebarLengthForm?4:form is PurlinDesignForm?16:form is TrussConnectionForm?32:form is SlabFormatterForm?64:form is ProjectInformationForm?8:1;} public static string NewRequest(){byte[] bytes=new byte[20];using(var r=RandomNumberGenerator.Create())r.GetBytes(bytes);return "BEAM-"+BitConverter.ToString(bytes).Replace("-","");}
  public static string Normalize(string value){return new string((value??"").Where(c=>!char.IsWhiteSpace(c)).ToArray()).ToUpperInvariant();}
  static string CleanCode(string value){return new string((value??"").Where(c=>!char.IsWhiteSpace(c)).ToArray());}
  public static bool ValidRequest(string value){return System.Text.RegularExpressions.Regex.IsMatch(Normalize(value),"^BEAM-[A-F0-9]{40}$");}
@@ -55,8 +55,8 @@ static class AccessCodes {
   request=Normalize(request);if(!ValidRequest(request))throw new Exception("Paste the complete request code from the user's formatter.");
   long issued=(long)(issuedUtc.ToUniversalTime()-Epoch).TotalSeconds,expiry=checked(issued+28800);
   string times=issued.ToString(CultureInfo.InvariantCulture)+"."+expiry.ToString(CultureInfo.InvariantCulture);
-  byte[] message=Encoding.UTF8.GetBytes("BEAM-ACCESS-V3|"+request+"|"+times+"|"+apps);
-  using(var rsa=new RSACryptoServiceProvider()){rsa.PersistKeyInCsp=false;rsa.FromXmlString(privateKey);byte[] sig=rsa.SignData(message,CryptoConfig.MapNameToOID("SHA256"));return "BA3."+times+"."+apps+"."+Convert.ToBase64String(sig);}
+  byte[] message=Encoding.UTF8.GetBytes("BEAM-ACCESS-V4|"+request+"|"+times+"|"+apps);
+  using(var rsa=new RSACryptoServiceProvider()){rsa.PersistKeyInCsp=false;rsa.FromXmlString(privateKey);byte[] sig=rsa.SignData(message,CryptoConfig.MapNameToOID("SHA256"));return "BA4."+times+"."+apps+"."+Convert.ToBase64String(sig);}
  }
  public static bool ValidCertificationVersion(string value){
   Version parsed;return !string.IsNullOrEmpty(value)&&Version.TryParse(value,out parsed)&&parsed.Revision==-1&&parsed.Build>=0&&parsed.Major<=65535&&parsed.Minor<=65535&&parsed.Build<=65535&&parsed.ToString(3)==value;
@@ -87,11 +87,11 @@ static class AccessCodes {
    }
    request=Normalize(request);if(!ValidRequest(request)||string.IsNullOrWhiteSpace(code)||code.Length>2048)return false;
    string[] parts=CleanCode(code).Split('.');long issued,expiry;int apps;
-   if(parts.Length!=5||parts[0]!="BA3"||!int.TryParse(parts[3],NumberStyles.None,CultureInfo.InvariantCulture,out apps)||apps<1||(apps&~AllApps)!=0||!long.TryParse(parts[1],NumberStyles.None,CultureInfo.InvariantCulture,out issued)||!long.TryParse(parts[2],NumberStyles.None,CultureInfo.InvariantCulture,out expiry)||issued<0||expiry<issued||expiry-issued!=28800)return false;
+   if(parts.Length!=5||(parts[0]!="BA3"&&parts[0]!="BA4")||!int.TryParse(parts[3],NumberStyles.None,CultureInfo.InvariantCulture,out apps)||apps<1||(apps&~(parts[0]=="BA3"?7:AllApps))!=0||!long.TryParse(parts[1],NumberStyles.None,CultureInfo.InvariantCulture,out issued)||!long.TryParse(parts[2],NumberStyles.None,CultureInfo.InvariantCulture,out expiry)||issued<0||expiry<issued||expiry-issued!=28800)return false;
    DateTime start=Epoch.AddSeconds(issued);end=Epoch.AddSeconds(expiry);
    if(start>nowUtc.ToUniversalTime().AddMinutes(5)||end<=nowUtc.ToUniversalTime())return false;
    byte[] sig=Convert.FromBase64String(parts[4]);
-   using(var rsa=new RSACryptoServiceProvider()){rsa.PersistKeyInCsp=false;rsa.FromXmlString(publicKey);return rsa.VerifyData(Encoding.UTF8.GetBytes("BEAM-ACCESS-V3|"+request+"|"+parts[1]+"."+parts[2]+"|"+parts[3]),CryptoConfig.MapNameToOID("SHA256"),sig);}
+   using(var rsa=new RSACryptoServiceProvider()){rsa.PersistKeyInCsp=false;rsa.FromXmlString(publicKey);return rsa.VerifyData(Encoding.UTF8.GetBytes((parts[0]=="BA3"?"BEAM-ACCESS-V3|":"BEAM-ACCESS-V4|")+request+"|"+parts[1]+"."+parts[2]+"|"+parts[3]),CryptoConfig.MapNameToOID("SHA256"),sig);}
   }catch(FormatException){return false;}catch(CryptographicException){return false;}catch(ArgumentOutOfRangeException){return false;}catch(System.Xml.XmlException){return false;}
  }
  static string[] Load(){
@@ -113,15 +113,17 @@ static class AccessCodes {
  public static bool TryRestore(){
   lease.Reset();allowedApps=0;expiresUtc=DateTime.MinValue;sessionRequest=null;requestExpiresUtc=DateTime.MinValue;var data=Load();DateTime end;
   if(!ClockOkay(data)||!IsCertification(data[1])||!ValidateAt(data[0],data[1],PublicKey(),DateTime.UtcNow,out end))return false;
-  sessionRequest=data[0];requestExpiresUtc=end;Save(data[0],data[1],DateTime.UtcNow);allowedApps=int.Parse(CleanCode(data[1]).Split('.')[3],CultureInfo.InvariantCulture);expiresUtc=end;lease.Start(end-DateTime.UtcNow,IsCertification(data[1]));return Granted;
+  sessionRequest=data[0];requestExpiresUtc=end;Save(data[0],data[1],DateTime.UtcNow);allowedApps=AppsForApprovedCode(data[1]);expiresUtc=end;lease.Start(end-DateTime.UtcNow,IsCertification(data[1]));return Granted;
  }
+ internal static int AppsForApprovedCode(string code){if(IsCertification(code))return AllApps;var parts=CleanCode(code).Split('.');int mask=int.Parse(parts[3],CultureInfo.InvariantCulture);return parts[0]=="BA3"?ProgramAccess.LegacyMask(mask):mask;}
  public static bool Accept(string request,string code){
   DateTime end;if(!ValidateAt(request,code,PublicKey(),DateTime.UtcNow,out end))return false;
   if(IsCertification(code))Save(Normalize(request),code,DateTime.UtcNow);else if(File.Exists(storePath))File.Delete(storePath);
-  sessionRequest=Normalize(request);requestExpiresUtc=end;allowedApps=int.Parse(CleanCode(code).Split('.')[3],CultureInfo.InvariantCulture);expiresUtc=end;lease.Start(end-DateTime.UtcNow,IsCertification(code));return Granted;
+  sessionRequest=Normalize(request);requestExpiresUtc=end;allowedApps=AppsForApprovedCode(code);expiresUtc=end;lease.Start(end-DateTime.UtcNow,IsCertification(code));return Granted;
  }
  public static void Checkpoint(){
   if(!Granted)return;var data=Load();if(data==null||!IsCertification(data[1]))return;long ticks;if(data!=null&&long.TryParse(data[2],out ticks)&&DateTime.UtcNow.Ticks-ticks>TimeSpan.FromMinutes(1).Ticks)Save(data[0],data[1],DateTime.UtcNow);
  }
 }
 }
+

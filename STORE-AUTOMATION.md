@@ -54,3 +54,24 @@ account that protected it. The encrypted copy is saved under
 Store installation. No new key is generated. Back up your original DAT.
 Admin generator cannot work on another Windows account with the original
 CurrentUser DPAPI-protected file. Import checks both decryption and public key.
+
+
+## Listing content
+
+`store/listings.json` contains the reviewed description, Features list, edition-specific
+text and version-specific release notes. The submission script applies these fields
+only to existing supported English listings (`en-us`, `en-gb`, `en-ph`); it does not
+create/remove locales or replace non-English translations. Images, pricing, audience,
+product names and publication mode are preserved. Version-specific release notes in
+this file take precedence over repository-variable release notes.
+
+Normal access codes now use BA4 program masks. Existing BA3 signatures remain
+verifiable, including the original combined beam/slab formatter permission; they do
+not implicitly approve the new Purlin Design or Truss Connections programs. BC1
+certification codes retain their version-bound all-program review access. Keys are
+unchanged. Update Windows and phone generators together.
+
+Program of Works Excel links export final quantities to one output worksheet.
+Project inputs/DXF data remain in Save Program of Works files; they are no longer
+embedded in Excel by the UI. Older workbook snapshots are left untouched and are
+not used to restore projects through Open / Link Excel.

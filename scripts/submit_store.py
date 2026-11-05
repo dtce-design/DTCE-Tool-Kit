@@ -32,7 +32,29 @@ def request(url, method='GET', headers=None, data=None, body=None):
     except urllib.error.URLError:
         raise RuntimeError('Store connection failed; credentials were not logged.') from None
 
+def listing_content(edition):
+    if edition not in ('User', 'Admin'):
+        raise ValueError('Invalid edition')
+    path = Path(__file__).parents[1] / 'store' / 'listings.json'
+    content = json.loads(path.read_text(encoding='utf-8'))
+    if content.get('schemaVersion') != 1:
+        raise ValueError('Unsupported Store listing content')
+    specific = content['editions'][edition]
+    description = content['description'] + '\n\n' + specific['descriptionSuffix']
+    features = content['features'] + specific['features']
+    if not description.strip() or len(description) > 10000 or not 1 <= len(features) <= 20:
+        raise ValueError('Invalid Store description or feature count')
+    if any(not feature.strip() or len(feature) > 200 for feature in features):
+        raise ValueError('Store features must contain 1 to 200 characters')
+    return content, description, features
+
 def prepare(submission, filename, version, notes):
+    content, description, features = listing_content(os.environ.get('STORE_EDITION', 'User'))
+    release_notes = (content['releaseNotesByVersion'].get(version)
+                     or os.environ.get('STORE_RELEASE_NOTES', '').strip()
+                     or ('DTCE Tool Kit ' + version + ': maintenance update.'))
+    if len(release_notes) > 1500:
+        raise ValueError('Store release notes exceed 1500 characters')
     old = submission.get('applicationPackages', [])
     for package in old:
         if package.get('version') and tuple(map(int, package['version'].split('.'))) >= tuple(map(int, version.split('.'))):
@@ -40,8 +62,13 @@ def prepare(submission, filename, version, notes):
     for package in old: package['fileStatus'] = 'PendingDelete'
     submission['applicationPackages'] = old + [{'fileName': filename, 'fileStatus': 'PendingUpload'}]
     submission['notesForCertification'] = notes
-    for listing in submission.get('listings', {}).values():
-        listing['baseListing']['releaseNotes'] = os.environ.get('STORE_RELEASE_NOTES', '').strip() or ('DTCE Tool Kit ' + version + ': maintenance update.')
+    for locale, listing in submission.get('listings', {}).items():
+        # Do not replace localized text with English or modify images/product settings.
+        if locale.lower() in content['locales']:
+            listing['baseListing'].update(description=description, features=list(features), releaseNotes=release_notes)
+            for override in listing.get('platformOverrides', {}).values():
+                if isinstance(override, dict):
+                    override.update(description=description, features=list(features), releaseNotes=release_notes)
     return submission
 
 def main():
@@ -119,3 +146,4 @@ if __name__ == '__main__':
     except (ValueError, RuntimeError) as error:
         print(str(error), file=sys.stderr)
         sys.exit(1)
+

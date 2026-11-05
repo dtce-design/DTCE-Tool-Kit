@@ -2,7 +2,7 @@ using System;using System.Linq;using System.Collections;using System.Collections
 public class FakeWorksApp {public int Calculations;public bool EnableEvents=true;public void CalculateFull(){Calculations++;}}
 public class FakeWorksBook {public readonly FakeWorksSheets Worksheets=new FakeWorksSheets();public int Saves;public void Save(){Saves++;}}
 public class FakeWorksSheets:IEnumerable {
- readonly List<FakeWorksSheet> list=new List<FakeWorksSheet>();public FakeWorksSheet Add(){var s=new FakeWorksSheet();list.Add(s);return s;}public FakeWorksSheet this[string name]{get{return list.First(x=>x.Name==name);}}public IEnumerator GetEnumerator(){return list.GetEnumerator();}}
+ readonly List<FakeWorksSheet> list=new List<FakeWorksSheet>();public int Count{get{return list.Count;}}public FakeWorksSheet this[int index]{get{return list[index-1];}}public FakeWorksSheet Add(){var s=new FakeWorksSheet();list.Add(s);return s;}public FakeWorksSheet this[string name]{get{return list.First(x=>x.Name==name);}}public IEnumerator GetEnumerator(){return list.GetEnumerator();}}
 public class FakeWorksSheet {
  public string Name{get;set;}public int Visible{get;set;}public readonly Dictionary<string,object> Values=new Dictionary<string,object>();public readonly Dictionary<string,string> Formats=new Dictionary<string,string>();public FakeWorksRanges Range{get{return new FakeWorksRanges(this);}}public FakeWorksCells Cells{get{return new FakeWorksCells(this);}}public FakeWorksRange UsedRange{get{return new FakeWorksRange(this,1,1,10000,52);}}public void Activate(){}
  public object At(int row,int col){object v;return Values.TryGetValue(row+":"+col,out v)?v:null;}}
@@ -13,7 +13,7 @@ public class FakeWorksRanges {
  public FakeWorksRange this[object a,object b]{get{var x=(FakeWorksRange)a;var y=(FakeWorksRange)b;return new FakeWorksRange(s,x.R1,x.C1,y.R2,y.C2);}}}
 public class FakeWorksFont {public bool Bold{get;set;}}
 public class FakeWorksRange {
- readonly FakeWorksSheet s;public readonly int R1,C1,R2,C2;public FakeWorksRange(FakeWorksSheet sheet,int r1,int c1,int r2,int c2){s=sheet;R1=r1;C1=c1;R2=r2;C2=c2;}public FakeWorksFont Font{get{return new FakeWorksFont();}}public FakeWorksRange Columns{get{return this;}}public void AutoFit(){}public string NumberFormat{set{for(int r=R1;r<=R2;r++)for(int c=C1;c<=C2;c++)s.Formats[r+":"+c]=value;}}
+ readonly FakeWorksSheet s;public readonly int R1,C1,R2,C2;public FakeWorksRange(FakeWorksSheet sheet,int r1,int c1,int r2,int c2){s=sheet;R1=r1;C1=c1;R2=r2;C2=c2;}public FakeWorksFont Font{get{return new FakeWorksFont();}}public double ColumnWidth{get;set;}public bool WrapText{get;set;}public FakeWorksRange Rows{get{return this;}}public FakeWorksRange Columns{get{return this;}}public void AutoFit(){}public string NumberFormat{set{for(int r=R1;r<=R2;r++)for(int c=C1;c<=C2;c++)s.Formats[r+":"+c]=value;}}
  public object Value2{get{return s.At(R1,C1);}set{var array=value as object[,];for(int r=R1;r<=R2;r++)for(int c=C1;c<=C2;c++)s.Values[r+":"+c]=array==null?value:array[r-R1,c-C1];}}
  public void ClearContents(){foreach(string key in s.Values.Keys.ToList()){var bits=key.Split(':');int r=int.Parse(bits[0]),c=int.Parse(bits[1]);if(r>=R1&&r<=R2&&c>=C1&&c<=C2)s.Values.Remove(key);}}
 }

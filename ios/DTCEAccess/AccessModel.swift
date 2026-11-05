@@ -5,7 +5,7 @@ import LocalAuthentication
 
 @MainActor final class AccessModel: ObservableObject {
     @Published var certification = false { didSet { clearOutput() } }
-    @Published var userVersion = "1.4.30" { didSet { clearOutput() } }
+    @Published var userVersion = "1.4.34" { didSet { clearOutput() } }
     @Published var request = "" { didSet { clearOutput() } }
     @Published var allowedApps: Set<Int> = [] { didSet { clearOutput() } }
     @Published var password = ""
@@ -72,3 +72,4 @@ import LocalAuthentication
         catch { message = error.localizedDescription }
     }
 }
+
