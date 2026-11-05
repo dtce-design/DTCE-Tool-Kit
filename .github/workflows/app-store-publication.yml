@@ -59,3 +59,91 @@ jobs:
           path: test-results/ios-app-store/*.png
           if-no-files-found: error
           retention-days: 30
+  prepare-listing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Authenticate with Apple
+        id: apple
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          export ASC_KEY_PATH="$RUNNER_TEMP/DTCE-Draft-$GITHUB_RUN_ID.p8"
+          echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
+          python3 ios/ci/app_store.py prepare
+      - name: Fill missing draft listing fields
+        env:
+          APPLE_APP_ID: ${{ steps.apple.outputs.app_id }}
+        run: |
+          python3 - <<'PY'
+          import os,sys
+          sys.path.insert(0,"ios/ci")
+          """Fill missing native iOS listing fields; never submit or overwrite existing copy."""
+          import json
+          import urllib.request
+          import urllib.error
+          from pathlib import Path
+          from app_store import API, api_get, jwt, required
+          
+          
+          def write(resource, body):
+              token = jwt(required('ASC_KEY_PATH'), required('ASC_KEY_ID'), required('ASC_ISSUER_ID'))
+              request = urllib.request.Request(API + resource, data=json.dumps(body).encode(), method='PATCH', headers={'Authorization':'Bearer ' + token, 'Content-Type':'application/json'})
+              try:
+                  with urllib.request.urlopen(request, timeout=60) as response:
+                      return json.load(response)
+              except urllib.error.HTTPError as error:
+                  # Only print error codes and field paths, never Apple credentials or contact data.
+                  try:
+                      errors = json.loads(error.read()).get('errors', [])
+                      codes = ', '.join(str(item.get('code')) + ' ' + str(item.get('source', {}).get('pointer', '')) for item in errors)
+                  except (ValueError, AttributeError):
+                      codes = ''
+                  raise RuntimeError('Apple draft update failed: HTTP ' + str(error.code) + ' ' + codes) from None
+          
+          
+          def fill(resource, kind, identifier, current, proposed):
+              attributes = {name:value for name,value in proposed.items() if value and not current.get(name)}
+              if attributes:
+                  write(resource + '/' + identifier, {'data':{'type':kind, 'id':identifier, 'attributes':attributes}})
+                  print('Prepared ' + resource + ': ' + ', '.join(attributes))
+          
+          
+          def prepare(app_id):
+              content = json.loads((Path(__file__).parents[1] / 'store/listing.en-US.json').read_text())
+              versions = api_get('apps/' + app_id + '/appStoreVersions').get('data', [])
+              versions = [row for row in versions if row['attributes'].get('platform') == 'IOS' and row['attributes'].get('appStoreState') == 'PREPARE_FOR_SUBMISSION']
+              if len(versions) != 1:
+                  raise ValueError('Expected one editable iOS version; existing releases were not changed.')
+              version = versions[0]
+              fill('appStoreVersions', 'appStoreVersions', version['id'], version['attributes'], {'copyright':content['copyright']})
+              for localized in api_get('appStoreVersions/' + version['id'] + '/appStoreVersionLocalizations').get('data', []):
+                  if localized['attributes']['locale'] == 'en-US':
+                      fill('appStoreVersionLocalizations', 'appStoreVersionLocalizations', localized['id'], localized['attributes'], {key:content.get(key) for key in ('description','keywords','supportUrl')})
+              for info in api_get('apps/' + app_id + '/appInfos').get('data', []):
+                  if info['attributes'].get('appStoreState') != 'PREPARE_FOR_SUBMISSION':
+                      continue
+                  category = api_get('appInfos/' + info['id'] + '/relationships/primaryCategory')
+                  if not category.get('data'):
+                      write('appInfos/' + info['id'], {'data':{'type':'appInfos', 'id':info['id'], 'relationships':{'primaryCategory':{'data':{'type':'appCategories','id':content['primaryCategory']}}}}})
+                      print('Prepared primary category: Utilities')
+                  for localized in api_get('appInfos/' + info['id'] + '/appInfoLocalizations').get('data', []):
+                      if localized['attributes']['locale'] == 'en-US':
+                          fill('appInfoLocalizations', 'appInfoLocalizations', localized['id'], localized['attributes'], {key:content.get(key) for key in ('subtitle','privacyPolicyUrl')})
+              print('Draft copy is prepared. Review contact, privacy/support URLs and reviewer access are still required before submission.')
+          
+          
+          
+          prepare(os.environ["APPLE_APP_ID"])
+          PY
+      - name: Remove temporary Apple API key
+        if: always()
+        run: |
+          if [[ -n "${ASC_KEY_PATH:-}" ]]; then
+            rm -f -- "$ASC_KEY_PATH"
+          fi
+
