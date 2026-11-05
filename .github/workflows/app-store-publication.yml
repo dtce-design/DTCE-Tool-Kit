@@ -52,14 +52,17 @@ jobs:
           )
           echo "DEVELOPER_DIR=$developer_dir" >> "$GITHUB_ENV"
       - name: Capture actual iPhone listing screenshot
-        run: bash ios/ci/capture_store_screenshot.sh
+        run: |
+          bash ios/ci/capture_store_screenshot.sh
+          sips -s format jpeg -s formatOptions 100 test-results/ios-app-store/DTCE-Access-iPhone.png --out test-results/ios-app-store/DTCE-Access-iPhone.jpg > /dev/null
       - uses: actions/upload-artifact@v4
         with:
           name: DTCE-iOS-AppStore-Screenshots
-          path: test-results/ios-app-store/*.png
+          path: test-results/ios-app-store/
           if-no-files-found: error
           retention-days: 30
   prepare-listing:
+    needs: screenshots
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -67,6 +70,10 @@ jobs:
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: DTCE-iOS-AppStore-Screenshots
+          path: ios-store-screenshots
       - name: Authenticate with Apple
         id: apple
         env:
@@ -82,6 +89,7 @@ jobs:
           python3 - <<'PY'
           import os,sys
           sys.path.insert(0,"ios/ci")
+          __file__="ios/ci/app_store_draft.py"
           """Fill missing native iOS listing fields; never submit or overwrite existing copy."""
           import json
           import urllib.request
@@ -140,10 +148,84 @@ jobs:
           
           prepare(os.environ["APPLE_APP_ID"])
           PY
+      - name: Upload actual iPhone screenshot
+        env:
+          APPLE_APP_ID: ${{ steps.apple.outputs.app_id }}
+        run: |
+          python3 - <<'PY'
+          import os,sys
+          sys.path.insert(0,"ios/ci")
+          __file__="ios/ci/app_store_screenshot.py"
+          """Upload an actual iPhone screenshot to an editable Apple listing."""
+          import hashlib
+          import json
+          import sys
+          import time
+          import urllib.request
+          import urllib.error
+          from pathlib import Path
+          from app_store import API, api_get, jwt, required
+          
+          
+          def write(resource, method, body):
+              token = jwt(required('ASC_KEY_PATH'), required('ASC_KEY_ID'), required('ASC_ISSUER_ID'))
+              request = urllib.request.Request(API + resource, data=json.dumps(body).encode(), method=method, headers={'Authorization':'Bearer ' + token, 'Content-Type':'application/json'})
+              try:
+                  with urllib.request.urlopen(request, timeout=60) as response:
+                      return json.load(response)
+              except urllib.error.HTTPError as error:
+                  try:
+                      errors = json.loads(error.read()).get('errors', [])
+                      codes = ', '.join(str(item.get('code')) + ' ' + str(item.get('source', {}).get('pointer', '')) for item in errors)
+                  except (ValueError, AttributeError):
+                      codes = ''
+                  raise RuntimeError('Apple screenshot request failed: HTTP ' + str(error.code) + ' ' + codes) from None
+          
+          
+          def upload(app_id, path):
+              versions = api_get('apps/' + app_id + '/appStoreVersions').get('data', [])
+              versions = [v for v in versions if v['attributes'].get('platform') == 'IOS' and v['attributes'].get('appStoreState') == 'PREPARE_FOR_SUBMISSION']
+              if len(versions) != 1:
+                  raise ValueError('Expected one editable iOS version. Existing releases were not changed.')
+              localizations = api_get('appStoreVersions/' + versions[0]['id'] + '/appStoreVersionLocalizations').get('data', [])
+              locale = next(v for v in localizations if v['attributes']['locale'] == 'en-US')
+              sets = api_get('appStoreVersionLocalizations/' + locale['id'] + '/appScreenshotSets').get('data', [])
+              # Apple's largest iPhone API bucket is APP_IPHONE_67, including 1320x2868 Pro Max images.
+              group = next((v for v in sets if v['attributes']['screenshotDisplayType'] == 'APP_IPHONE_67'), None)
+              if group is None:
+                  group = write('appScreenshotSets', 'POST', {'data':{'type':'appScreenshotSets','attributes':{'screenshotDisplayType':'APP_IPHONE_67'},'relationships':{'appStoreVersionLocalization':{'data':{'type':'appStoreVersionLocalizations','id':locale['id']}}}}})['data']
+              images = api_get('appScreenshotSets/' + group['id'] + '/appScreenshots').get('data', [])
+              if images:
+                  print('Existing iPhone screenshot set retained; no images were replaced.')
+                  return
+              data = path.read_bytes()
+              image = write('appScreenshots', 'POST', {'data':{'type':'appScreenshots','attributes':{'fileName':path.name,'fileSize':len(data)},'relationships':{'appScreenshotSet':{'data':{'type':'appScreenshotSets','id':group['id']}}}}})['data']
+              for operation in image['attributes']['uploadOperations']:
+                  headers = {v['name']:v['value'] for v in operation.get('requestHeaders', [])}
+                  chunk = data[operation['offset']:operation['offset']+operation['length']]
+                  request = urllib.request.Request(operation['url'], data=chunk, headers=headers, method=operation['method'])
+                  # Signed upload URLs are never logged and never receive our Apple API JWT.
+                  with urllib.request.urlopen(request, timeout=120) as response:
+                      response.read()
+              write('appScreenshots/' + image['id'], 'PATCH', {'data':{'type':'appScreenshots','id':image['id'],'attributes':{'uploaded':True,'sourceFileChecksum':hashlib.md5(data).hexdigest()}}})
+              for _ in range(30):
+                  state = (api_get('appScreenshots/' + image['id'])['data']['attributes'].get('assetDeliveryState') or {}).get('state')
+                  print('Apple screenshot processing: ' + str(state))
+                  if state == 'COMPLETE':
+                      print('Actual iPhone screenshot uploaded and processed successfully.')
+                      return
+                  if state == 'FAILED':
+                      raise RuntimeError('Apple screenshot processing failed. Inspect the listing asset in App Store Connect.')
+                  time.sleep(2)
+              raise RuntimeError('Screenshot uploaded; processing is still pending. Check the existing asset before retrying.')
+          
+          
+          
+          upload(os.environ["APPLE_APP_ID"], Path("ios-store-screenshots/DTCE-Access-iPhone.jpg"))
+          PY
       - name: Remove temporary Apple API key
         if: always()
         run: |
           if [[ -n "${ASC_KEY_PATH:-}" ]]; then
             rm -f -- "$ASC_KEY_PATH"
           fi
-
