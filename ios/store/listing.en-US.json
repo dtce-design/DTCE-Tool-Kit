@@ -10,5 +10,14 @@
   "reviewContact": null,
   "reviewAccess": "Pending reviewer/demo access configuration",
   "privacyPolicyDraft": "DTCE Tool Kit Access Admin processes signing keys, request codes and generated approvals on your device. It does not include analytics or advertising SDKs. Your imported signing key is protected in a device-only iPhone Keychain item. Face ID authentication is handled by iOS; the app does not receive your biometric templates. Files are accessed only when you select them. Codes are copied or shared when you choose those actions. Changing Face ID enrollment may require re-importing your original encrypted mobile export. Use Remove saved key to remove the app signing key from this iPhone.",
-  "supportPageDraft": "Import a compatible .dtcekey export from Windows Admin using Files, enter its export password and enable Face ID. Reopen the app and use Unlock with Face ID to generate approvals. If Face ID enrollment changes, keep your original encrypted export backed up, remove the inaccessible saved key and import it again. Contact details will be added before publication."
+  "supportPageDraft": "Import a compatible .dtcekey export from Windows Admin using Files, enter its export password and enable Face ID. Reopen the app and use Unlock with Face ID to generate approvals. If Face ID enrollment changes, keep your original encrypted export backed up, remove the inaccessible saved key and import it again. Contact details will be added before publication.",
+  "distributionIntent": "UNLISTED",
+  "releaseType": "MANUAL",
+  "unlistedRequestDraft": {
+    "audience": "Authorized DTCE Tool Kit administrators who approve access for users of the Windows DTCE Tool Kit.",
+    "purpose": "A native Face ID-protected companion utility for generating request-specific access approvals using an existing administrator signing-key export.",
+    "reasonForUnlisted": "The app is intended for a limited administrative audience rather than general App Store discovery. Authorized administrators will receive the direct App Store link.",
+    "accessControl": "Downloading the app does not provide signing authority. Normal use requires an existing compatible encrypted mobile key export and local Face ID authentication.",
+    "submissionPrerequisite": "Complete App Review submission first, then submit the separate Apple Unlisted distribution request. Hold release pending approval."
+  }
 }
