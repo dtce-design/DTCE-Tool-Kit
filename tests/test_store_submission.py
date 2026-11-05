@@ -49,12 +49,13 @@ class ScreenshotTests(unittest.TestCase):
             for name in store.SCREENSHOT_NAMES: (Path(folder)/(name+'.png')).write_bytes(header)
             with patch.dict(store.os.environ,{'STORE_EDITION':'User','STORE_SCREENSHOT_DIR':folder},clear=True):
                 assets=store.screenshot_assets('1.4.35.0')
-                listing={'images':[{'fileName':'old.png','imageType':'DesktopScreenshot','fileStatus':'Uploaded'},{'fileName':'icon.png','imageType':'StoreLogo','fileStatus':'Uploaded'}]}
+                listing={'images':[{'fileName':'old.png','imageType':'Screenshot','fileStatus':'Uploaded'},{'fileName':'icon.png','imageType':'StoreLogo','fileStatus':'Uploaded'}]}
                 store.update_screenshots(listing,assets)
                 store.update_screenshots(listing,assets)
                 self.assertEqual(len(store.SCREENSHOT_NAMES),sum(i['fileStatus']=='PendingUpload' for i in listing['images']))
                 self.assertEqual('PendingDelete',listing['images'][0]['fileStatus'])
                 self.assertEqual('Uploaded',listing['images'][1]['fileStatus'])
+                self.assertTrue(all(i['imageType']=='Screenshot' for i in listing['images'] if i['fileStatus']=='PendingUpload'))
                 self.assertTrue(all(name.startswith('DTCE-User-1.4.35.0-') for _,name,_ in assets))
                 (Path(folder)/(store.SCREENSHOT_NAMES[0]+'.png')).write_bytes(b'bad')
                 with self.assertRaises(ValueError):store.screenshot_assets('1.4.35.0')

@@ -73,9 +73,10 @@ def update_screenshots(listing, assets):
     for image in listing.get('images', []):
         if image.get('fileName') in names and image.get('fileStatus') == 'PendingUpload': continue
         image = dict(image)
-        if image.get('imageType') == 'DesktopScreenshot': image['fileStatus'] = 'PendingDelete'
+        # Submission API: desktop images use Screenshot (Microsoft Learn, Image resource).
+        if image.get('imageType') == 'Screenshot': image['fileStatus'] = 'PendingDelete'
         kept.append(image)
-    listing['images'] = kept + [dict(fileName=filename, fileStatus='PendingUpload', imageType='DesktopScreenshot', description=description) for _, filename, description in assets]
+    listing['images'] = kept + [dict(fileName=filename, fileStatus='PendingUpload', imageType='Screenshot', description=description) for _, filename, description in assets]
 
 def prepare(submission, filename, version, notes):
     content, description, features = listing_content(os.environ.get('STORE_EDITION', 'User'))
