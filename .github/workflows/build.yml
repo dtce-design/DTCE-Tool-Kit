@@ -23,6 +23,12 @@ jobs:
       - name: Test calculations and access protocol
         shell: pwsh
         run: ./scripts/Test.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DTCE-Workspace-Previews
+          path: test-results/ui-*.png
+          if-no-files-found: warn
+          retention-days: 7
       - name: Test Store submission payload
         run: python -m unittest discover -s tests -p test_store_submission.py
       - uses: actions/upload-artifact@v4
