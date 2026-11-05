@@ -1,5 +1,5 @@
 using System;using System.Linq;using System.Collections;using System.Collections.Generic;using System.Reflection;using System.Runtime.Serialization;using BeamScheduleFormatter;
-public class FakeWorksApp {public int Calculations;public void CalculateFull(){Calculations++;}}
+public class FakeWorksApp {public int Calculations;public bool EnableEvents=true;public void CalculateFull(){Calculations++;}}
 public class FakeWorksBook {public readonly FakeWorksSheets Worksheets=new FakeWorksSheets();public int Saves;public void Save(){Saves++;}}
 public class FakeWorksSheets:IEnumerable {
  readonly List<FakeWorksSheet> list=new List<FakeWorksSheet>();public FakeWorksSheet Add(){var s=new FakeWorksSheet();list.Add(s);return s;}public FakeWorksSheet this[string name]{get{return list.First(x=>x.Name==name);}}public IEnumerator GetEnumerator(){return list.GetEnumerator();}}

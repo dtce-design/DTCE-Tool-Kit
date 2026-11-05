@@ -10,7 +10,7 @@ static class CommercialBars {
   return rows;
  }
 
- public static readonly double[] Lengths={6,7.5,9,10.5,12};
+ public static readonly double[] Lengths={6,7.5,9,10.5,12,13.5,15};
  public static List<double> Available(IEnumerable<double> values){var list=(values??Lengths).Distinct().OrderBy(x=>x).ToList();if(list.Count==0||list.Any(x=>!Lengths.Contains(x)))throw new ArgumentException("Select at least one supported commercial length.");return list;}
  public static string FormatLengths(IEnumerable<double> values){return string.Join(",",values.Select(v=>v.ToString("0.##",CultureInfo.InvariantCulture)));}
  public static List<double> ParseLengths(string text){return string.IsNullOrWhiteSpace(text)?Available(null):Available(text.Split(',').Select(x=>double.Parse(x,CultureInfo.InvariantCulture)));}

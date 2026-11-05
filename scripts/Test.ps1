@@ -47,3 +47,10 @@ $exe=Join-Path $out 'CertificationCacheTests.exe'
 if($LASTEXITCODE-ne 0){throw 'Certification cache compilation failed'}
 & $exe $out
 if($LASTEXITCODE-ne 0){throw 'Certification activation/cache test failed'}
+
+
+$exe=Join-Path $out 'SteelFeatureTests.exe'
+& $compiler /nologo /define:ADMIN_APP /target:exe /main:SteelFeatureTests "/out:$exe" /reference:System.Security.dll /reference:System.Core.dll "/resource:$source\AccessPublicKey.xml,AccessPublicKey.xml" "/resource:$source\app.ico,DtceIcon.ico" "/resource:$source\DtceLogo.png,DtceLogo.png" @files (Join-Path $repo 'tests\SteelFeatureTests.cs') (Join-Path $repo 'tests\WorksWorkbookWriterTests.cs') /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:Microsoft.CSharp.dll
+if($LASTEXITCODE-ne 0){throw 'Steel and design sheet test compilation failed'}
+& $exe
+if($LASTEXITCODE-ne 0){throw 'Steel and design sheet tests failed'}

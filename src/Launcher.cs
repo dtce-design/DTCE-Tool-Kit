@@ -1,54 +1,59 @@
-using System;using System.Drawing;using System.Linq;using System.Windows.Forms;
+using System;using System.Drawing;using System.Linq;using System.Windows.Forms;using System.Collections.Generic;
 namespace BeamScheduleFormatter {
 class LauncherForm:Form {
- Form formatter,slabFormatter,lengths,project,works;readonly TabControl workspaceTabs=new TabControl{Dock=DockStyle.Fill};readonly TabControl designTabs=new TabControl{Dock=DockStyle.Fill};TabPage designGroup;
+ Form formatter,slabFormatter,lengths,project,works;
  #if ADMIN_APP
  Form generator;
  #endif
- public LauncherForm(){AppBrand.Apply(this);Text="DTCE Tool Kit v"+Engine.Version;ClientSize=new Size(820,650);MinimumSize=new Size(700,600);StartPosition=FormStartPosition.CenterScreen;Font=new Font("Segoe UI",10);BackColor=Color.FromArgb(243,246,250);
-  Controls.Add(new PictureBox{Image=AppBrand.Logo,SizeMode=PictureBoxSizeMode.Zoom,Location=new Point(30,12),Size=new Size(72,72)});
-  var title=new Label{Text="DTCE TOOL KIT",Font=new Font("Segoe UI",18,FontStyle.Bold),ForeColor=Color.FromArgb(20,33,51),Location=new Point(110,30),Size=new Size(460,40)};Controls.Add(title);Controls.Add(new Label{Text="Engineering estimates, schedules and calculation tools.",Location=new Point(32,90),Size=new Size(530,30)});
-  Add("Beam Schedule Formatter",120,()=>{if(formatter==null||formatter.IsDisposed){formatter=new MainForm();
-   #if !ADMIN_APP
-   var renewal=new AccessRenewal(formatter);formatter.FormClosed+=(o,e)=>renewal.Dispose();
-   #endif
-   ShowTool(formatter,"Beam Formatter");}else{ShowTool(formatter,"Beam Formatter");formatter.WindowState=FormWindowState.Normal;formatter.Activate();}});
-  Add("Slab Schedule Formatter",445,()=>{if(slabFormatter==null||slabFormatter.IsDisposed){slabFormatter=new SlabFormatterForm();ShowTool(slabFormatter,"Slab Formatter");}else{ShowTool(slabFormatter,"Slab Formatter");slabFormatter.WindowState=FormWindowState.Normal;slabFormatter.Activate();}});
-  Add("Program of Works",185,()=>{if(works==null||works.IsDisposed){works=new ProgramOfWorksForm();ShowTool(works,"Program of Works");}else{ShowTool(works,"Program of Works");works.WindowState=FormWindowState.Normal;works.Activate();}});
-  Add("Project Information",315,()=>{if(project==null||project.IsDisposed){project=new ProjectInformationForm();ShowTool(project,"Project Information");}else{ShowTool(project,"Project Information");project.WindowState=FormWindowState.Normal;project.Activate();}});
-  Add("Splice, Development & Hooks",250,()=>{if(lengths==null||lengths.IsDisposed){lengths=new RebarLengthForm();ShowTool(lengths,"Splice, Development & Hooks");}else{ShowTool(lengths,"Splice, Development & Hooks");lengths.WindowState=FormWindowState.Normal;lengths.Activate();}});
-  #if ADMIN_APP
-  Add("Access Code Generator",380,()=>{if(generator==null||generator.IsDisposed){generator=new CodeGeneratorForm();ShowTool(generator,"Access Code Generator");}else{ShowTool(generator,"Access Code Generator");generator.Activate();}});
-  #endif
-  Controls.Add(new Label{Text="v"+Engine.Version+" | Developed by Engr. Daryl O. Tomaneng",Location=new Point(32,610),Size=new Size(750,25),ForeColor=Color.FromArgb(91,107,125)});
+ readonly Panel home=new Panel{Dock=DockStyle.Fill},groupHost=new Panel{Dock=DockStyle.Fill,Visible=false},groupContent=new Panel{Dock=DockStyle.Fill};
+ readonly Label groupTitle=new Label{AutoSize=true,Padding=new Padding(18,8,0,0),Font=new Font("Segoe UI",13,FontStyle.Bold)};
+ readonly TabControl formatterTabs=new TabControl{Dock=DockStyle.Fill},designTabs=new TabControl{Dock=DockStyle.Fill};readonly Dictionary<string,Form> designModules=new Dictionary<string,Form>();
+ public LauncherForm(){AppBrand.Apply(this);Text="DTCE Tool Kit v"+Engine.Version;ClientSize=new Size(1100,800);MinimumSize=new Size(900,650);Font=new Font("Segoe UI",10);StartPosition=FormStartPosition.CenterScreen;Controls.Add(home);Controls.Add(groupHost);
+  home.Controls.Add(new PictureBox{Image=AppBrand.Logo,SizeMode=PictureBoxSizeMode.Zoom,Left=28,Top=18,Width=76,Height=76});home.Controls.Add(new Label{Text="DTCE TOOL KIT",Left=120,Top=28,Width=600,Height=44,Font=new Font("Segoe UI",23,FontStyle.Bold),ForeColor=PowTheme.Ink});home.Controls.Add(new Label{Text="Choose a workspace. Settings, estimates and design sheets stay inside their group.",Left=30,Top=106,Width=1000,Height=28,ForeColor=PowTheme.Muted});
   var edition=new Label{Text=
    #if ADMIN_APP
    "ADMIN EDITION"
    #else
    "USER EDITION"
    #endif
-   ,ForeColor=PowTheme.Teal,Font=new Font("Segoe UI",9,FontStyle.Bold),Left=600,Top=40,Width=180,Height=25,Anchor=AnchorStyles.Top|AnchorStyles.Right};Controls.Add(edition);
-  var footer=Controls.OfType<Label>().First(l=>l.Text.StartsWith("v"+Engine.Version));footer.Dock=DockStyle.Bottom;footer.Height=36;footer.Padding=new Padding(24,8,0,0);footer.BackColor=Color.White;
-  var cards=Controls.OfType<ToolModuleButton>().OrderBy(b=>b.ModuleIndex).ToArray();
-  var workspace=new FlowLayoutPanel{Left=24,Top=135,Width=ClientSize.Width-48,Height=ClientSize.Height-180,AutoScroll=true,Anchor=AnchorStyles.Top|AnchorStyles.Bottom|AnchorStyles.Left|AnchorStyles.Right,Padding=new Padding(2)};
-  Controls.Add(workspace);foreach(var card in cards){workspace.Controls.Add(card);card.Margin=new Padding(0,0,16,16);card.Height=132;}
-  Action layout=()=>{int width=Math.Max(280,(workspace.ClientSize.Width-44)/2);foreach(var card in cards)card.Width=width;};workspace.Resize+=(s,e)=>layout();layout();
-  var startPage=new TabPage("Start");foreach(Control item in Controls.Cast<Control>().ToArray())startPage.Controls.Add(item);workspaceTabs.TabPages.Add(startPage);Controls.Add(workspaceTabs);InitializeDesignSheets(cards.First(c=>c.Text=="Splice, Development & Hooks"));
-  FormClosing+=(o,e)=>{foreach(var child in new[]{formatter,slabFormatter,lengths,project,works})if(child!=null&&!child.IsDisposed){child.Close();if(!child.IsDisposed){e.Cancel=true;return;}}
+   ,ForeColor=PowTheme.Teal,Left=ClientSize.Width-190,Top=45,Width=160,Height=25,Anchor=AnchorStyles.Top|AnchorStyles.Right};home.Controls.Add(edition);
+  var cards=new FlowLayoutPanel{Left=24,Top=150,Width=ClientSize.Width-48,Height=ClientSize.Height-206,AutoScroll=true,Anchor=AnchorStyles.Top|AnchorStyles.Bottom|AnchorStyles.Left|AnchorStyles.Right,Padding=new Padding(2)};home.Controls.Add(cards);
+  AddCard(cards,"Formatters","Beam and slab schedule formatters, grouped in one workspace.",()=>ShowGroup(formatterTabs,"Formatters"));AddCard(cards,"Program of Works","Concrete, masonry, roofing, structural steel and complete quantity backups.",()=>UseTool(ref works,()=>new ProgramOfWorksForm(),"Program of Works",null,2));AddCard(cards,"Design Sheets","Splice, Development & Hooks; Purlin Design; Truss Connections.",ShowDesignSheets);AddCard(cards,"Project Information","Project details shared by calculations, schedules and reports.",()=>UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8));
+  #if ADMIN_APP
+  AddCard(cards,"Access Code Generator","Generate and manage approved access to the tool kit.",()=>UseTool(ref generator,()=>new CodeGeneratorForm(),"Access Code Generator",null,8));
+  #endif
+  cards.Resize+=(s,e)=>{int width=Math.Max(280,(cards.ClientSize.Width-36)/2);foreach(Control item in cards.Controls)item.Width=width;};foreach(Control item in cards.Controls)item.Width=Math.Max(280,(cards.ClientSize.Width-36)/2);
+  home.Controls.Add(new Label{Text="v"+Engine.Version+" | Developed by Engr. Daryl O. Tomaneng",Dock=DockStyle.Bottom,Height=38,Padding=new Padding(26,9,0,0),ForeColor=PowTheme.Muted,BackColor=Color.White});
+  var header=new FlowLayoutPanel{Dock=DockStyle.Top,Height=58,Padding=new Padding(10),BackColor=Color.White};var back=new Button{Text="Back to Start",Width=130,Height=34};back.Click+=(s,e)=>ShowStart();header.Controls.Add(back);header.Controls.Add(groupTitle);groupHost.Controls.Add(groupContent);groupHost.Controls.Add(header);
+  AddEntry(formatterTabs,"Beam Formatter","Open Beam Formatter",()=>UseTool(ref formatter,CreateBeam,"Beam Formatter",formatterTabs,1));AddEntry(formatterTabs,"Slab Formatter","Open Slab Formatter",()=>UseTool(ref slabFormatter,()=>new SlabFormatterForm(),"Slab Formatter",formatterTabs,1));AddEntry(designTabs,"Splice, Development & Hooks","Open combined design sheet",()=>UseTool(ref lengths,()=>new RebarLengthForm(),"Splice, Development & Hooks",designTabs,4));AddEntry(designTabs,"Purlin Design","Open Purlin Design",()=>OpenDesign("Purlin Design",()=>new PurlinDesignForm()));AddEntry(designTabs,"Truss Connections","Open Truss Connections",()=>OpenDesign("Truss Connections",()=>new TrussConnectionForm()));
+  FormClosing+=(s,e)=>{var children=new[]{formatter,slabFormatter,lengths,project,works}.Concat(designModules.Values).Where(f=>f!=null&&!f.IsDisposed).Distinct().ToList();
    #if ADMIN_APP
-   if(generator!=null&&!generator.IsDisposed)generator.Close();
+   if(generator!=null&&!generator.IsDisposed)children.Add(generator);
    #endif
-  };
+   foreach(var child in children){child.Close();if(!child.IsDisposed){e.Cancel=true;return;}}
+  };ShowStart();
  }
- void InitializeDesignSheets(Button openSheet){designGroup=new TabPage("Design Sheets");designGroup.Controls.Add(designTabs);var first=new TabPage("Splice, Development & Hooks");var open=new Button{Text="Open design sheet",Width=200,Height=40,Left=24,Top=30};open.Click+=(s,e)=>{workspaceTabs.SelectedIndex=0;openSheet.PerformClick();};first.Controls.Add(open);first.Controls.Add(new Label{Text="Development, lap splice and hook calculations. Additional design sheets can be added to this group.",Left=24,Top=90,Width=700,Height=60});designTabs.TabPages.Add(first);workspaceTabs.TabPages.Add(designGroup);}
- void ShowTool(Form form,string title){var target=title=="Splice, Development & Hooks"?designTabs:workspaceTabs;var page=target.TabPages.Cast<TabPage>().FirstOrDefault(p=>p.Text==title);if(page!=null&&page.Tag!=form){target.TabPages.Remove(page);page.Dispose();page=null;}if(page==null){page=new TabPage(title){Tag=form};form.TopLevel=false;form.FormBorderStyle=FormBorderStyle.None;form.Dock=DockStyle.Fill;page.Controls.Add(form);target.TabPages.Add(page);}target.SelectedTab=page;if(target==designTabs)workspaceTabs.SelectedTab=designGroup;form.Show();form.BringToFront();}
- void Add(string text,int y,Action action){int index=y==120?0:y==185?1:y==250?2:y==315?3:y==445?5:4;var button=new ToolModuleButton{Text=text,Location=new Point(32+(index%2)*390,140+(index/2)*150),Size=new Size(365,128),Anchor=AnchorStyles.Top|AnchorStyles.Left,ModuleIndex=index};button.Click+=(o,e)=>{if(!AccessCodes.CanUseFormatter){using(var login=new LoginForm())if(login.ShowDialog(this)!=DialogResult.OK)return;}int app=(text=="Beam Schedule Formatter"||text=="Slab Schedule Formatter")?1:(text=="Beam Estimator"||text=="Slab Estimator"||text=="Program of Works")?2:text=="Splice, Development & Hooks"?4:8;if(!AccessCodes.CanUseApp(app)){MessageBox.Show(this,"This app is not included in your approved access. Ask the admin for a new code with this app selected.","App access");return;}try{action();}catch(Exception ex){MessageBox.Show(ex.Message,"DTCE Tool Kit");}};Controls.Add(button);}
+ Form CreateBeam(){var form=new MainForm();
+  #if !ADMIN_APP
+  var renewal=new AccessRenewal(form);form.FormClosed+=(s,e)=>renewal.Dispose();
+  #endif
+  return form;
+ }
+ bool Authorize(int app){if(!AccessCodes.CanUseFormatter){using(var login=new LoginForm())if(login.ShowDialog(this)!=DialogResult.OK)return false;}if(!AccessCodes.CanUseApp(app)){MessageBox.Show(this,"This workspace is not included in your approved access.","App access");return false;}return true;}
+ void UseTool(ref Form form,Func<Form> create,string title,TabControl tabs,int app){try{if(!Authorize(app))return;if(form==null||form.IsDisposed)form=create();ShowTool(form,title,tabs);}catch(Exception ex){MessageBox.Show(this,ex.Message,"DTCE Tool Kit");}}
+ void OpenDesign(string title,Func<Form> create){try{if(!Authorize(4))return;Form form;if(!designModules.TryGetValue(title,out form)||form.IsDisposed){form=create();designModules[title]=form;}ShowTool(form,title,designTabs);}catch(Exception ex){MessageBox.Show(this,ex.Message,"Design Sheet");}}
+ void ShowTool(Form form,string title,TabControl tabs){if(form.TopLevel){form.TopLevel=false;form.FormBorderStyle=FormBorderStyle.None;}form.MinimumSize=Size.Empty;form.MaximumSize=Size.Empty;form.Dock=DockStyle.Fill;if(tabs==null){ShowGroup(form,title);form.Show();return;}var page=tabs.TabPages.Cast<TabPage>().FirstOrDefault(p=>p.Text==title);int position=page==null?tabs.TabPages.Count:tabs.TabPages.IndexOf(page);if(page!=null&&page.Tag!=form){tabs.TabPages.Remove(page);page.Dispose();page=null;}if(page==null){page=new TabPage(title){Tag=form};page.Controls.Add(form);tabs.TabPages.Insert(Math.Min(position,tabs.TabPages.Count),page);}tabs.SelectedTab=page;ShowGroup(tabs,tabs==formatterTabs?"Formatters":"Design Sheets");form.Show();form.BringToFront();}
+ void ShowGroup(Control content,string title){groupContent.Controls.Clear();content.Dock=DockStyle.Fill;groupContent.Controls.Add(content);groupTitle.Text=title;home.Visible=false;groupHost.Visible=true;groupHost.BringToFront();content.Visible=true;PowTheme.Apply(groupHost);}
+ internal void ShowStart(){groupHost.Visible=false;home.Visible=true;home.BringToFront();}
+ internal void ShowDesignSheets(){ShowGroup(designTabs,"Design Sheets");}
+ void AddCard(FlowLayoutPanel panel,string title,string description,Action action){var card=new ToolModuleButton{Text=title,Description=description,Height=138,Width=470,Margin=new Padding(0,0,14,14)};card.Click+=(s,e)=>action();panel.Controls.Add(card);}
+ void AddEntry(TabControl tabs,string title,string buttonText,Action action){var page=new TabPage(title);var open=new Button{Text=buttonText,Left=24,Top=28,Width=300,Height=42};open.Click+=(s,e)=>action();page.Controls.Add(open);tabs.TabPages.Add(page);}
 }
 class ToolModuleButton:Button {
- public int ModuleIndex;bool hover;
+ public int ModuleIndex;public string Description;bool hover;
  static readonly string[] descriptions={"Format and review beam schedules from DXF files.","Beam, slab and footing takeoffs, earthworks and project reports.","Development, lap splice and standard hook calculations.","Set the project name and location for your reports.","Generate access codes and manage approved tools.","Group identical slab schedules and export the final DXF layout."};
  public ToolModuleButton(){SetStyle(ControlStyles.UserPaint|ControlStyles.OptimizedDoubleBuffer|ControlStyles.AllPaintingInWmPaint,true);Cursor=Cursors.Hand;FlatStyle=FlatStyle.Flat;TabStop=true;MouseEnter+=(s,e)=>{hover=true;Invalidate();};MouseLeave+=(s,e)=>{hover=false;Invalidate();};GotFocus+=(s,e)=>Invalidate();LostFocus+=(s,e)=>Invalidate();}
- protected override void OnPaint(PaintEventArgs e){e.Graphics.Clear(hover?Color.FromArgb(238,249,249):Color.White);using(var pen=new Pen(hover||Focused?PowTheme.Teal:Color.FromArgb(207,219,230),Focused?2:1))e.Graphics.DrawRectangle(pen,1,1,Width-3,Height-3);using(var accent=new SolidBrush(PowTheme.Teal))e.Graphics.FillRectangle(accent,1,1,4,Height-2);using(var title=new Font("Segoe UI",11,FontStyle.Bold))TextRenderer.DrawText(e.Graphics,Text,title,new Rectangle(20,20,Width-40,29),PowTheme.Ink,TextFormatFlags.Left|TextFormatFlags.EndEllipsis|TextFormatFlags.NoPrefix);using(var body=new Font("Segoe UI",9.5f))TextRenderer.DrawText(e.Graphics,descriptions[Math.Min(5,ModuleIndex)],body,new Rectangle(20,57,Width-42,54),Color.FromArgb(92,111,128),TextFormatFlags.Left|TextFormatFlags.WordBreak|TextFormatFlags.NoPrefix);}
+ protected override void OnPaint(PaintEventArgs e){e.Graphics.Clear(hover?Color.FromArgb(238,249,249):Color.White);using(var pen=new Pen(hover||Focused?PowTheme.Teal:Color.FromArgb(207,219,230),Focused?2:1))e.Graphics.DrawRectangle(pen,1,1,Width-3,Height-3);using(var accent=new SolidBrush(PowTheme.Teal))e.Graphics.FillRectangle(accent,1,1,4,Height-2);using(var title=new Font("Segoe UI",11,FontStyle.Bold))TextRenderer.DrawText(e.Graphics,Text,title,new Rectangle(20,20,Width-40,29),PowTheme.Ink,TextFormatFlags.Left|TextFormatFlags.EndEllipsis|TextFormatFlags.NoPrefix);using(var body=new Font("Segoe UI",9.5f))TextRenderer.DrawText(e.Graphics,Description??descriptions[Math.Min(5,ModuleIndex)],body,new Rectangle(20,57,Width-42,54),Color.FromArgb(92,111,128),TextFormatFlags.Left|TextFormatFlags.WordBreak|TextFormatFlags.NoPrefix);}
 }
 
 }
