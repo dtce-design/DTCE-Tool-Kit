@@ -1,0 +1,61 @@
+name: App Store publication readiness
+on:
+  push:
+    branches: [codex/app-store-publication]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Authenticate with Apple
+        id: apple
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          export ASC_KEY_PATH="$RUNNER_TEMP/DTCE-AppStore-$GITHUB_RUN_ID.p8"
+          echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
+          python3 ios/ci/app_store.py prepare
+      - name: Inspect public release requirements
+        env:
+          APPLE_APP_ID: ${{ steps.apple.outputs.app_id }}
+        run: python3 ios/ci/app_store_release.py "$APPLE_APP_ID"
+      - name: Remove temporary Apple API key
+        if: always()
+        run: |
+          if [[ -n "${ASC_KEY_PATH:-}" ]]; then
+            rm -f -- "$ASC_KEY_PATH"
+          fi
+  screenshots:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select current Xcode
+        run: |
+          developer_dir=$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+          choices=[]
+          for app in Path('/Applications').glob('Xcode*.app'):
+              match=re.fullmatch(r'Xcode_(\d+(?:\.\d+)*)\.app',app.name)
+              if match and int(match[1].split('.')[0])>=26:
+                  choices.append((tuple(map(int,match[1].split('.'))),app))
+          print(max(choices)[1]/'Contents/Developer')
+          PY
+          )
+          echo "DEVELOPER_DIR=$developer_dir" >> "$GITHUB_ENV"
+      - name: Capture actual iPhone listing screenshot
+        run: bash ios/ci/capture_store_screenshot.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DTCE-iOS-AppStore-Screenshots
+          path: test-results/ios-app-store/*.png
+          if-no-files-found: error
+          retention-days: 30

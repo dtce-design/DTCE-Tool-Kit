@@ -1,0 +1,14 @@
+{
+  "name": "DTCE Tool Kit Access Admin",
+  "subtitle": "Face ID access code generator",
+  "description": "DTCE Tool Kit Access Admin is a companion utility for authorized administrators of the Windows DTCE Tool Kit. Import your existing password-protected mobile signing-key export, protect it with Face ID, and generate time-limited access approvals on your iPhone.\n\nChoose access separately for Beam Formatter, Slab Formatter, Program of Works, Splice/Development/Hooks, Purlin Design and Truss Connections. Project Information is included with approved access. Generate request-specific eight-hour approvals or version-specific thirty-day certification credentials. Copy or share the generated code using iOS.\n\nSigning operations run on the device. The imported key is stored in the device-only iPhone Keychain with Face ID protection. The app locks when moved to the background and after five minutes without interaction. Reopening requires Face ID while retaining the saved key.\n\nRequires iOS 16 or later, an iPhone with enrolled Face ID, and a compatible mobile key exported by an authorized Windows administrator. Keep your original encrypted export backed up. Windows estimation, formatting and structural design tasks run in the Windows DTCE Tool Kit.",
+  "keywords": "DTCE,access,administrator,Face ID,Windows,engineering,approval,toolkit",
+  "primaryCategory": "UTILITIES",
+  "copyright": "2026 DTCE",
+  "supportUrl": null,
+  "privacyPolicyUrl": null,
+  "reviewContact": null,
+  "reviewAccess": "Pending reviewer/demo access configuration",
+  "privacyPolicyDraft": "DTCE Tool Kit Access Admin processes signing keys, request codes and generated approvals on your device. It does not include analytics or advertising SDKs. Your imported signing key is protected in a device-only iPhone Keychain item. Face ID authentication is handled by iOS; the app does not receive your biometric templates. Files are accessed only when you select them. Codes are copied or shared when you choose those actions. Changing Face ID enrollment may require re-importing your original encrypted mobile export. Use Remove saved key to remove the app signing key from this iPhone.",
+  "supportPageDraft": "Import a compatible .dtcekey export from Windows Admin using Files, enter its export password and enable Face ID. Reopen the app and use Unlock with Face ID to generate approvals. If Face ID enrollment changes, keep your original encrypted export backed up, remove the inaccessible saved key and import it again. Contact details will be added before publication."
+}
