@@ -231,7 +231,7 @@ jobs:
             rm -f -- "$ASC_KEY_PATH"
           fi
 
-  hold-owner-only:
+  hold-unlisted:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -247,7 +247,7 @@ jobs:
           export ASC_KEY_PATH="$RUNNER_TEMP/DTCE-Unlisted-$GITHUB_RUN_ID.p8"
           echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
           python3 ios/ci/app_store.py prepare
-      - name: Hold release for requested owner-only distribution
+      - name: Hold release for requested Unlisted distribution
         env:
           APPLE_APP_ID: ${{ steps.apple.outputs.app_id }}
         run: |
@@ -271,13 +271,7 @@ jobs:
           print('App Store state: '+current['appStoreState'])
           print('Release type: '+current['releaseType'])
           if current['releaseType']!='MANUAL':raise RuntimeError('Manual release was not confirmed.')
-          print('Release held for owner-only distribution; no public release is authorized.')
-          app_id=os.environ['APPLE_APP_ID']
-          groups=api_get('apps/'+app_id+'/betaGroups',{'limit':'200'}).get('data',[])
-          print('TestFlight groups: '+json.dumps([{'id':g['id'],'name':g['attributes'].get('name'),'internal':g['attributes'].get('isInternalGroup'),'publicLinkEnabled':g['attributes'].get('publicLinkEnabled')} for g in groups]))
-          testers=api_get('apps/'+app_id+'/betaTesters',{'limit':'200'}).get('data',[])
-          print('Existing TestFlight tester count: '+str(len(testers)))
-
+          print('Release held pending App Review and separate Apple Unlisted distribution approval.')
           PY
       - name: Remove temporary Apple API key
         if: always()
