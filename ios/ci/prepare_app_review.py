@@ -35,7 +35,15 @@ def write(resource, method, body=None):
     except urllib.error.HTTPError as error:
         try:
             errors = json.loads(error.read()).get('errors', [])
-            detail = '; '.join(str(e.get('code',''))+': '+str(e.get('detail',e.get('title',''))) for e in errors)
+            def messages(value):
+                if isinstance(value, dict):
+                    if 'code' in value:
+                        yield str(value.get('code',''))+': '+str(value.get('detail',value.get('title','')))
+                    for key, nested in value.items():
+                        if key not in ('code','detail','title'): yield from messages(nested)
+                elif isinstance(value, list):
+                    for nested in value: yield from messages(nested)
+            detail = '; '.join(messages(errors))
         except (ValueError, AttributeError):
             detail = ''
         raise RuntimeError('Apple API HTTP '+str(error.code)+' '+detail[:3000]) from None
