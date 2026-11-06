@@ -81,6 +81,25 @@ jobs:
           if len(list(out.glob('DTCE-*.jpg')))!=4:raise ValueError('Expected four tested iPhone screenshots')
           print('Prepared four actual iPhone screenshots; no key import or account data is shown.')
           PY
+      - name: Preserve the authorized Unlisted manual release hold
+        run: |
+          python3 - <<'PY'
+          import sys
+          sys.path.insert(0,'ios/ci')
+          from app_store import api_get
+          from prepare_app_review import patch, APP_ID
+          app=api_get('apps/'+APP_ID)['data']
+          if app['attributes']['bundleId']!='com.dtce.accessadmin':raise ValueError('Unexpected app')
+          version=api_get('appStoreVersions/6d4daf11-827c-45c3-85b7-7963d964531d')['data']
+          attrs=version['attributes']
+          print('Current version state: '+str(attrs.get('appStoreState'))+'; release: '+str(attrs.get('releaseType')))
+          if attrs.get('platform')!='IOS' or attrs.get('versionString')!='1.1.0':raise ValueError('Unexpected version')
+          if attrs.get('appStoreState') not in ('PREPARE_FOR_SUBMISSION','READY_FOR_REVIEW','REJECTED','METADATA_REJECTED','DEVELOPER_REJECTED'):raise ValueError('Version is not editable; inspect its review state before any change')
+          if attrs.get('releaseType')!='MANUAL':patch('appStoreVersions',version['id'],{'releaseType':'MANUAL'})
+          verified=api_get('appStoreVersions/'+version['id'])['data']['attributes']
+          if verified.get('releaseType')!='MANUAL':raise ValueError('Manual hold was not saved')
+          print('Unlisted manual release hold verified.')
+          PY
       - name: Select tested build and prepare reviewer instructions
         run: python3 ios/ci/prepare_app_review.py prepare "$APPLE_BUILD_NUMBER"
       - name: Upload and verify the four current UI screenshots
