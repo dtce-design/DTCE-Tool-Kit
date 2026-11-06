@@ -90,6 +90,12 @@ def prepare(expected_build):
     patch('appStoreReviewDetails',review['id'],{'demoAccountRequired':False,'notes':NOTES})
     if not app['attributes'].get('contentRightsDeclaration'):
         patch('apps',APP_ID,{'contentRightsDeclaration':'DOES_NOT_USE_THIRD_PARTY_CONTENT'})
+    game = api_get('appStoreVersions/'+version['id']+'/gameCenterAppVersion').get('data')
+    if game and game['attributes'].get('enabled'):
+        patch('gameCenterAppVersions',game['id'],{'enabled':False})
+    verified = api_get('appStoreVersions/'+version['id']+'/gameCenterAppVersion').get('data')
+    if verified and verified['attributes'].get('enabled'): raise ValueError('Game Center must be disabled for this non-game utility')
+    print('Game Center disabled and verified for this utility.')
     print('Tested iOS build '+expected_build+' selected for version '+train+'. Reviewer instructions saved. Release remains MANUAL.')
 
 
