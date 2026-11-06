@@ -13,8 +13,23 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 20
+    outputs:
+      windows_changed: ${{ steps.changes.outputs.windows_changed }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Detect Windows package changes
+        id: changes
+        shell: pwsh
+        run: |
+          $changed=$true
+          if($env:GITHUB_EVENT_NAME -in @('push','pull_request')){
+            $paths=@(git diff --name-only HEAD^ HEAD)
+            if($LASTEXITCODE -ne 0){throw 'Cannot determine changed package inputs'}
+            $changed=[bool]@($paths | Where-Object {$_ -match '^(src/|store/|scripts/Build-(User|Admin|MSIX)\.ps1$|scripts/submit_store\.py$)'})
+          }
+          "windows_changed=$($changed.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
       - name: Validate no private signing material
         shell: pwsh
         run: |
@@ -90,7 +105,7 @@ jobs:
         run: |
           gh release create "build-${GITHUB_RUN_NUMBER}" release/DTCE-Tool-Kit-User.zip release/DTCE-Tool-Kit-Admin.zip release/DTCE-Mobile-Access.zip release/*.msix --target "$GITHUB_SHA" --title "DTCE Tool Kit - successful build ${GITHUB_RUN_NUMBER}" --notes "User and key-free Admin builds. Calculations and signed-access checks passed. Commit: ${GITHUB_SHA}. Private signing keys are excluded. Includes separate User and Admin MSIX packages. Package generation does not submit or certify the app."
   store-user-upload:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.STORE_AUTO_UPLOAD_ENABLED == 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.STORE_AUTO_UPLOAD_ENABLED == 'true' && needs.build.outputs.windows_changed == 'true'
     needs: build
     runs-on: windows-latest
     timeout-minutes: 15
@@ -125,7 +140,7 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Store submission did not complete successfully'}
 
   store-admin-upload:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.STORE_ADMIN_AUTO_UPLOAD_ENABLED == 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.STORE_ADMIN_AUTO_UPLOAD_ENABLED == 'true' && needs.build.outputs.windows_changed == 'true'
     needs: build
     runs-on: windows-latest
     timeout-minutes: 15
@@ -201,6 +216,34 @@ jobs:
         run: |
           swiftc ios/DTCEAccess/AccessCrypto.swift ios/Tests/main.swift -o native-crypto-tests
           ./native-crypto-tests ios-fixture
+      - name: Test demo and owner model separation
+        run: |
+          swiftc -parse-as-library ios/DTCEAccess/AccessCrypto.swift ios/DTCEAccess/KeyVault.swift ios/DTCEAccess/AccessModel.swift ios/Tests/DemoModelTests.swift -o native-demo-model-tests
+          ./native-demo-model-tests
+      - name: Select current Xcode for iPhone UI tests
+        shell: bash
+        run: |
+          developer_dir=$(python3 - <<'PYCODE'
+          import re
+          from pathlib import Path
+          choices=[]
+          for app in Path('/Applications').glob('Xcode*.app'):
+              match=re.fullmatch(r'Xcode_(\d+(?:\.\d+)*)\.app',app.name)
+              if match and int(match[1].split('.')[0])>=26:
+                  choices.append((tuple(map(int,match[1].split('.'))),app))
+          print(max(choices)[1]/'Contents/Developer')
+          PYCODE
+          )
+          echo "DEVELOPER_DIR=$developer_dir" >> "$GITHUB_ENV"
+      - name: Test visible demo flow on iPhone simulator
+        run: bash ios/ci/test_demo_ui.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DTCE-iOS-Demo-Screenshots
+          path: test-results/ios-demo-screenshots/
+          if-no-files-found: warn
+          retention-days: 30
       - name: Build native iPhone simulator app
         run: xcodebuild -project ios/DTCEAccess.xcodeproj -scheme DTCEAccess -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath ios-build CODE_SIGNING_ALLOWED=NO build
       - name: Build unsigned iPhone archive

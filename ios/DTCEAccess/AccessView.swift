@@ -22,15 +22,20 @@ struct AccessView: View {
                     VStack(alignment:.leading,spacing:20) {
                         HStack(spacing:14) {
                             Image("DTCELogo").resizable().scaledToFit().frame(width:56,height:56).padding(6).background(Color.white).clipShape(RoundedRectangle(cornerRadius:14)).overlay(RoundedRectangle(cornerRadius:14).strokeBorder(outline,lineWidth:1))
-                            VStack(alignment:.leading) { Text("OWNER TOOLS").font(.caption2.bold()).tracking(2); Text("Access Admin").font(.title2.bold()); Text("DTCE Tool Kit").foregroundStyle(.secondary).font(.subheadline) }
+                            VStack(alignment:.leading) { Text(model.isDemo ? "REVIEW DEMO":"OWNER TOOLS").font(.caption2.bold()).tracking(2); Text("Access Admin").font(.title2.bold()); Text("DTCE Tool Kit").foregroundStyle(.secondary).font(.subheadline) }
                             Spacer()
-                            Image(systemName:model.unlocked ? "lock.open.fill":"faceid").font(.title2).foregroundStyle(model.unlocked ? Color.green:accent).accessibilityLabel(model.unlocked ? "Unlocked":"Locked")
+                            Image(systemName:model.isDemo ? "testtube.2":model.unlocked ? "lock.open.fill":"faceid").font(.title2).foregroundStyle(model.unlocked ? Color.green:accent).accessibilityLabel(model.isDemo ? "Demo mode":model.unlocked ? "Unlocked":"Locked")
                         }
                         card {
+                            if model.isDemo {
+                                Label("DEMO MODE",systemImage:"testtube.2").font(.headline).accessibilityIdentifier("demo-banner")
+                                Text("Sample approvals only. These codes cannot activate Windows. Your saved administrator key is not used or replaced.").font(.footnote)
+                                Button("Exit demo mode") { model.lock() }.buttonStyle(.bordered).accessibilityIdentifier("exit-demo")
+                            } else {
                             HStack { Text("1. Signing key").font(.headline); Spacer(); if model.unlocked { Button("Lock") { model.lock() } } }
                             if model.hasSavedKey {
                                 Label("Saved in this iPhone Keychain",systemImage:"checkmark.shield").font(.subheadline).foregroundStyle(.secondary)
-                                if !model.unlocked { Button { Task { await model.unlockKey() } } label: { Label("Unlock with Face ID",systemImage:"faceid").frame(maxWidth:.infinity) }.buttonStyle(.borderedProminent).tint(primaryButton).disabled(model.busy) }
+                                if !model.unlocked { Button { Task { await model.unlockKey() } } label: { Label("Unlock with Face ID",systemImage:"faceid").frame(maxWidth:.infinity) }.buttonStyle(.borderedProminent).tint(primaryButton).foregroundStyle(.white).disabled(model.busy) }
                             }
                             DisclosureGroup(model.hasSavedKey ? "Import / replace signing key":"Import your mobile key") {
                                 VStack(alignment:.leading,spacing:12) {
@@ -38,21 +43,24 @@ struct AccessView: View {
                                     Button("Choose mobile key from Files") { choosingFile = true }.buttonStyle(.bordered).disabled(model.busy)
                                     Text(model.fileName).font(.caption).foregroundStyle(.secondary)
                                     SecureField("Export password",text:$model.password).textContentType(.password).textInputAutocapitalization(.never).autocorrectionDisabled().textFieldStyle(.roundedBorder)
-                                    Button("Import & protect with Face ID") { Task { await model.importKey() } }.buttonStyle(.borderedProminent).tint(primaryButton).disabled(model.busy || model.password.isEmpty)
+                                    Button("Import & protect with Face ID") { Task { await model.importKey() } }.buttonStyle(.borderedProminent).tint(primaryButton).foregroundStyle(.white).disabled(model.busy || model.password.isEmpty)
                                 }.padding(.top,10)
                             }
                             if model.busy { ProgressView("Processing securely on this iPhone…").font(.caption) }
                             Text("Locks when backgrounded and after 5 minutes of inactivity. Face ID enrollment changes require importing the key again.").font(.caption).foregroundStyle(.secondary)
+                            Button("Try demo mode") { model.startDemo() }.buttonStyle(.bordered).disabled(model.busy).accessibilityIdentifier("start-demo")
+                            Text("Preview sample approvals without importing a key. Demo codes cannot activate Windows.").font(.caption).foregroundStyle(.secondary)
+                            }
                         }
                         card {
                             Text("2. Access type & permissions").font(.headline)
                             Picker("Code type",selection:$model.certification) {
                                 Text("Normal access").tag(false)
                                 Text("Certification").tag(true)
-                            }.pickerStyle(.segmented)
+                            }.pickerStyle(.segmented).accessibilityIdentifier("code-type")
                             if model.certification {
                                 TextField("Exact User app version",text:$model.userVersion).textInputAutocapitalization(.never).autocorrectionDisabled().textFieldStyle(.roundedBorder).accessibilityLabel("Exact User app version")
-                                Text("30 days. No request needed. All apps included. Anyone holding this code can use the matching version until expiry. Share only in Notes for certification.").font(.footnote).foregroundStyle(.secondary)
+                                Text(model.isDemo ? "Demo of a 30-day version-specific certification code. Sample output cannot activate Windows.":"30 days. No request needed. All apps included. Anyone holding this code can use the matching version until expiry. Share only in Notes for certification.").font(.footnote).foregroundStyle(.secondary)
                             } else {
                             ZStack(alignment:.topLeading) {
                                 TextEditor(text:$model.request).font(.system(.footnote,design:.monospaced)).foregroundStyle(.primary).scrollContentBackground(.hidden).frame(minHeight:100).padding(8).textInputAutocapitalization(.characters).autocorrectionDisabled().accessibilityLabel("User request code")
@@ -64,28 +72,28 @@ struct AccessView: View {
                             }
                             Label("Project Information included",systemImage:"checkmark.circle.fill").foregroundStyle(accent).font(.caption)
                             }
-                            Button(model.certification ? "Generate certification code":"Generate 8-hour access") { model.generate() }.buttonStyle(.borderedProminent).tint(primaryButton).frame(maxWidth:.infinity).disabled(!model.unlocked || model.busy || (!model.certification && model.allowedApps.isEmpty))
-                            Text(model.certification ? "Requires updated User v1.4.27 or newer, matching the version above. Thirty days starts at generation." : "Eight hours starts at generation. Keep iPhone Date & Time set automatically.").font(.caption).foregroundStyle(.secondary)
+                            Button(model.isDemo ? (model.certification ? "Generate demo certification":"Generate demo access") : model.certification ? "Generate certification code":"Generate 8-hour access") { model.generate() }.buttonStyle(.borderedProminent).tint(primaryButton).foregroundStyle(.white).frame(maxWidth:.infinity).disabled(!model.unlocked || model.busy || (!model.certification && model.allowedApps.isEmpty)).accessibilityIdentifier("generate-code")
+                            Text(model.isDemo ? "Sample timing only; demo codes cannot activate Windows." : model.certification ? "Requires updated User v1.4.27 or newer, matching the version above. Thirty days starts at generation." : "Eight hours starts at generation. Keep iPhone Date & Time set automatically.").font(.caption).foregroundStyle(.secondary)
                         }
                         card {
-                            Text("3. Send access code").font(.headline)
+                            Text(model.isDemo ? "3. Demo output":"3. Send access code").font(.headline)
                             if model.code.isEmpty { Text("Your code will appear here.").font(.footnote).foregroundStyle(.secondary) }
                             else {
-                                Text(model.code).font(.system(.caption,design:.monospaced)).foregroundStyle(.primary).textSelection(.enabled).fixedSize(horizontal:false,vertical:true).frame(maxWidth:.infinity,alignment:.leading).padding(12).background(inputSurface,in:RoundedRectangle(cornerRadius:10)).overlay(RoundedRectangle(cornerRadius:10).strokeBorder(outline,lineWidth:1))
+                                Text(model.code).accessibilityIdentifier("generated-code").font(.system(.caption,design:.monospaced)).foregroundStyle(.primary).textSelection(.enabled).fixedSize(horizontal:false,vertical:true).frame(maxWidth:.infinity,alignment:.leading).padding(12).background(inputSurface,in:RoundedRectangle(cornerRadius:10)).overlay(RoundedRectangle(cornerRadius:10).strokeBorder(outline,lineWidth:1))
                                 if let expiry = model.expires { Text("Expires \(expiry.formatted(date:.abbreviated,time:.shortened))").font(.caption).foregroundStyle(.secondary) }
-                                HStack { Button { UIPasteboard.general.string = model.code; model.message = "Access code copied."; model.touch() } label: { Label("Copy",systemImage:"doc.on.doc") }.buttonStyle(.bordered)
+                                HStack { Button { UIPasteboard.general.string = model.code; model.message = model.isDemo ? "Demo code copied; it cannot activate Windows.":"Access code copied."; model.touch() } label: { Label("Copy",systemImage:"doc.on.doc") }.buttonStyle(.bordered)
                                     ShareLink(item:model.code) { Label("Share",systemImage:"square.and.arrow.up") }.buttonStyle(.bordered)
                                 }
                             }
                         }
                         Text(model.message).font(.footnote).foregroundStyle(.primary).frame(maxWidth:.infinity,alignment:.leading).padding(14).background(Color(uiColor:.secondarySystemGroupedBackground),in:RoundedRectangle(cornerRadius:12)).overlay(RoundedRectangle(cornerRadius:12).strokeBorder(outline,lineWidth:1)).accessibilityAddTraits(.updatesFrequently)
                         VStack(alignment:.leading,spacing:8) {
-                            Text("Key ID: \(model.keyId)").font(.caption.monospaced())
+                            if !model.isDemo { Text("Key ID: \(model.keyId)").font(.caption.monospaced()) }
                             Text("No signing server. Key import and access generation work on this device.").font(.caption).foregroundStyle(.secondary)
-                            if model.hasSavedKey { Button("Remove saved signing key",role:.destructive) { confirmRemove = true }.font(.footnote) }
+                            if model.hasSavedKey && !model.isDemo { Button("Remove saved signing key",role:.destructive) { confirmRemove = true }.font(.footnote) }
                         }.padding(.horizontal,4)
                     }.padding(20)
-                }.background(Color(.systemGroupedBackground)).navigationTitle("DTCE Access").navigationBarTitleDisplayMode(.inline)
+                }.background(Color(.systemGroupedBackground)).navigationTitle(model.isDemo ? "DTCE Demo":"DTCE Access").navigationBarTitleDisplayMode(.inline)
             }.tint(accent)
             if phase != .active { navy.ignoresSafeArea().overlay { VStack(spacing:14) { Image(systemName:"faceid").font(.system(size:46)); Text("DTCE Access Admin").font(.headline) }.foregroundStyle(.white) } }
         }

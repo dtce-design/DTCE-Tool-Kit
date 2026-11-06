@@ -35,3 +35,18 @@ for version in ["", "1.4", "1.4.27.0", "01.4.27", "1.4.-1", "1.4.65536", "1-4-27
 for time in [Double.nan,Double.infinity,-1] { try rejects { _ = try AccessCrypto.generateCertification(key:key,version:certVersion,now:Date(timeIntervalSince1970:time)) } }
 print("PASS: native 30-day certification signature exactly matches desktop/Web Crypto; invalid versions/dates rejected.")
 
+
+let demo = try DemoAccess()
+let demoGrant = try demo.generate(request:request,apps:119,now:Date(timeIntervalSince1970:issued))
+let demoParts = demoGrant.code.split(separator:".")
+guard demoParts.count == 6, demoParts[0] == "DEMO", demoParts[1] == "BA4" else { throw AccessError.invalid("Demo marker missing") }
+let demoMessage = Data("BEAM-ACCESS-V4|\(request)|\(demoParts[2]).\(demoParts[3])|\(demoParts[4])".utf8)
+let demoSignature = Data(base64Encoded:String(demoParts[5]))!
+var demoError: Unmanaged<CFError>?
+guard let realPublicKey = SecKeyCopyPublicKey(key), !SecKeyVerifySignature(realPublicKey,.rsaSignatureMessagePKCS1v15SHA256,demoMessage as CFData,demoSignature as CFData,&demoError) else { throw AccessError.invalid("Demo signing identity was accepted as a real signing key") }
+let anotherDemo = try DemoAccess()
+let anotherGrant = try anotherDemo.generate(request:request,apps:119,now:Date(timeIntervalSince1970:issued))
+guard anotherGrant.code != demoGrant.code else { throw AccessError.invalid("Demo reused its signing identity across sessions") }
+let demoCert = try demo.certification(version:certVersion,now:Date(timeIntervalSince1970:certIssued))
+guard demoCert.code.hasPrefix("DEMO.BC1."), demoCert.expires.timeIntervalSince1970 == certIssued+2592000 else { throw AccessError.invalid("Certification demo marker/expiry changed") }
+print("PASS: demo uses a fresh transient RSA identity; removing DEMO marker still cannot verify against the real test identity.")

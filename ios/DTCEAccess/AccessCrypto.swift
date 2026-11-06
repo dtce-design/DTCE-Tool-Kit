@@ -133,3 +133,28 @@ enum AccessCrypto {
 
 }
 
+
+// A separate, transient signing identity for the visible review/demo mode.
+// No production key can be supplied to this initializer or persisted by this class.
+final class DemoAccess {
+    static let sampleRequest = "BEAM-0123456789ABCDEF0123456789ABCDEF01234567"
+    static let prefix = "DEMO."
+    private let key: SecKey
+    init() throws {
+        var error: Unmanaged<CFError>?
+        let attributes: [String:Any] = [kSecAttrKeyType as String:kSecAttrKeyTypeRSA, kSecAttrKeySizeInBits as String:2048, kSecPrivateKeyAttrs as String:[kSecAttrIsPermanent as String:false]]
+        guard let value = SecKeyCreateRandomKey(attributes as CFDictionary, &error) else {
+            if let error = error?.takeRetainedValue() { throw error }
+            throw AccessError.invalid("Unable to start the demo session.")
+        }
+        key = value
+    }
+    func generate(request: String, apps: Int, now: Date = Date()) throws -> GeneratedAccess {
+        let sample = try AccessCrypto.generate(key:key,request:request,apps:apps,now:now)
+        return GeneratedAccess(code:Self.prefix+sample.code,expires:sample.expires)
+    }
+    func certification(version: String, now: Date = Date()) throws -> GeneratedAccess {
+        let sample = try AccessCrypto.generateCertification(key:key,version:version,now:now)
+        return GeneratedAccess(code:Self.prefix+sample.code,expires:sample.expires)
+    }
+}
