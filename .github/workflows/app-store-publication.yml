@@ -351,3 +351,53 @@ jobs:
           if [[ -n "${ASC_KEY_PATH:-}" ]]; then
             rm -f -- "$ASC_KEY_PATH"
           fi
+
+  save-review-contact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Authenticate with Apple
+        id: apple
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          export ASC_KEY_PATH="$RUNNER_TEMP/DTCE-Review-$GITHUB_RUN_ID.p8"
+          echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
+          python3 ios/ci/app_store.py prepare
+      - name: Save supplied review contact without logging values
+        env:
+          APPLE_APP_ID: ${{ steps.apple.outputs.app_id }}
+        run: |
+          python3 - <<'PY'
+          import os,sys,json,base64,urllib.request,urllib.error
+          sys.path.insert(0,'ios/ci')
+          from app_store import API,api_get,jwt,required
+          contact=json.loads(base64.b64decode('eyJjb250YWN0Rmlyc3ROYW1lIjoiRGFyeWwiLCJjb250YWN0TGFzdE5hbWUiOiJUb21hbmVuZyIsImNvbnRhY3RFbWFpbCI6ImRldmVsb3BlckBkdGNlLm9ubGluZSIsImNvbnRhY3RQaG9uZSI6Iis2Mzk0NTk3MjU2MTIiLCJkZW1vQWNjb3VudFJlcXVpcmVkIjpmYWxzZX0='))
+          for value in contact.values():
+              if isinstance(value,str):print('::add-mask::'+value)
+          versions=[v for v in api_get('apps/'+os.environ['APPLE_APP_ID']+'/appStoreVersions').get('data',[]) if v['attributes'].get('platform')=='IOS' and v['attributes'].get('appStoreState')=='PREPARE_FOR_SUBMISSION']
+          if len(versions)!=1:raise ValueError('Expected one editable iOS draft.')
+          version=versions[0]
+          current=api_get('appStoreVersions/'+version['id']+'/appStoreReviewDetail').get('data')
+          data={'type':'appStoreReviewDetails','attributes':contact}
+          if current:
+              data['id']=current['id'];resource='appStoreReviewDetails/'+current['id'];method='PATCH'
+          else:
+              data['relationships']={'appStoreVersion':{'data':{'type':'appStoreVersions','id':version['id']}}};resource='appStoreReviewDetails';method='POST'
+          token=jwt(required('ASC_KEY_PATH'),required('ASC_KEY_ID'),required('ASC_ISSUER_ID'))
+          request=urllib.request.Request(API+resource,data=json.dumps({'data':data}).encode(),method=method,headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'})
+          try:
+              with urllib.request.urlopen(request,timeout=60) as response:json.load(response)
+          except urllib.error.HTTPError as error:raise RuntimeError('Apple review contact update failed: HTTP '+str(error.code)) from None
+          saved=api_get('appStoreVersions/'+version['id']+'/appStoreReviewDetail')['data']['attributes']
+          if any(saved.get(k)!=v for k,v in contact.items()):raise RuntimeError('Apple did not retain the supplied review contact.')
+          print('Apple reviewer name, email and international phone number saved successfully.')
+          PY
+      - name: Remove temporary Apple API key
+        if: always()
+        run: |
+          if [[ -n "${ASC_KEY_PATH:-}" ]]; then rm -f -- "$ASC_KEY_PATH"; fi
