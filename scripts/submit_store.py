@@ -48,7 +48,7 @@ def listing_content(edition):
         raise ValueError('Store features must contain 1 to 200 characters')
     return content, description, features
 
-SCREENSHOT_NAMES = ('Main-Dashboard','Bill-of-Quantities','RC-Settings','Canopy-Ledge','Earthworks-Gravel','Doors-Windows','Steel-Plates','Metal-Fascia')
+SCREENSHOT_NAMES = ('Main-Dashboard','Bill-of-Quantities','RC-Settings','Canopy-Ledge','Earthworks-Gravel','Doors-Windows','Steel-Plates','Metal-Fascia','Moulding')
 
 def screenshot_assets(version):
     folder = os.environ.get('STORE_SCREENSHOT_DIR', '').strip()

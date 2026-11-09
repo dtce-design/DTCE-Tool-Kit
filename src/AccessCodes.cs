@@ -36,6 +36,7 @@ static class AccessCodes {
   }
  }
  public static bool CanUseApp(int app){
+ if(StoreUpdateState.Blocked)return false;
  #if ADMIN_APP
  return true;
  #else
@@ -126,4 +127,5 @@ static class AccessCodes {
  }
 }
 }
+
 

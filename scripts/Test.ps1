@@ -65,3 +65,10 @@ foreach($edition in @('Admin','User')){
  & $exe (Join-Path $out "store-screenshots\$edition")
  if($LASTEXITCODE-ne 0){throw "$edition screenshot capture failed"}
 }
+
+# Background Store access policy and purchase-quantity contracts, plus Windows UI persistence.
+$exe=Join-Path $out 'UpdateAndQuantityTests.exe'
+& $compiler /nologo /define:ADMIN_APP,WINDOWS_TESTS /target:exe /main:UpdateAndQuantityTests "/out:$exe" /reference:System.Security.dll /reference:System.Core.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:Microsoft.CSharp.dll "/resource:$source\AccessPublicKey.xml,AccessPublicKey.xml" "/resource:$source\app.ico,DtceIcon.ico" "/resource:$source\DtceLogo.png,DtceLogo.png" "/resource:$source\SlabTemplate.dxf,SlabTemplate.dxf" @files (Join-Path $repo 'tests\UpdateAndQuantityTests.cs')
+if($LASTEXITCODE-ne 0){throw 'Update and quantity tests compilation failed'}
+& $exe
+if($LASTEXITCODE-ne 0){throw 'Update and quantity tests failed'}

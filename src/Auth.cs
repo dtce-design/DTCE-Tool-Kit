@@ -34,7 +34,7 @@ class AccessRenewal:IDisposable {
  public AccessRenewal(Form owner){form=owner;timer=new Timer{Interval=1000};timer.Tick+=(o,e)=>Check();form.Activated+=Activated;timer.Start();}
  void Activated(object sender,EventArgs args){Check();}
  public void Check(){
-  if(form.IsDisposed||locked!=null||renewing)return;
+  if(form.IsDisposed||locked!=null||renewing||StoreUpdateState.Blocked)return;
   if(AccessCodes.CanUseApp(AccessCodes.AppFor(form))){try{AccessCodes.Checkpoint();}catch(IOException){}catch(UnauthorizedAccessException){}return;}
   timer.Stop();AccessCodes.Granted=false;originalDrop=form.AllowDrop;form.AllowDrop=false;
   states.Clear();foreach(Control c in form.Controls){states[c]=c.Enabled;c.Enabled=false;}
@@ -110,4 +110,5 @@ class CodeGeneratorForm:Form {
 }
 #endif
 }
+
 

@@ -32,7 +32,7 @@ class LauncherForm:Form {
    if(generator!=null&&!generator.IsDisposed)children.Add(generator);
    #endif
    foreach(var child in children){child.Close();if(!child.IsDisposed){e.Cancel=true;return;}}
-  };ShowStart();
+  };new StoreUpdateMonitor(this);ShowStart();
  }
  Form CreateBeam(){var form=new MainForm();
   #if !ADMIN_APP
@@ -61,4 +61,5 @@ class ToolModuleButton:Button {
 }
 
 }
+
 
