@@ -1,0 +1,24 @@
+name: Store review access preflight
+on:
+  push:
+    branches: [codex/app-store-publication]
+    paths: [.github/workflows/store-review-preflight.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  review-access:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check configured review access without revealing codes
+        env:
+          REVIEW_NOTES: ${{ secrets.STORE_CERTIFICATION_NOTES }}
+          ADMIN_REVIEW_NOTES: ${{ secrets.STORE_ADMIN_CERTIFICATION_NOTES }}
+        run: |
+          python3 - <<'PY'
+          import os,re,time,json
+          for edition,key in [('User','REVIEW_NOTES'),('Admin','ADMIN_REVIEW_NOTES')]:
+              notes=os.environ.get(key,'')
+              tokens=re.findall(r'BC1\.(\d+)\.(\d+)\.[A-Fa-f0-9]+\.(\d+-\d+-\d+)\.[A-Za-z0-9+/=]+',notes)
+              print(json.dumps({'edition':edition,'notesConfigured':bool(notes),'certificationTokenPresent':bool(tokens),'matchingUnexpiredV36Token':any(v=='1-4-36' and int(i)<=time.time()<int(e) for i,e,v in tokens),'configuredTokenVersions':sorted({v.replace('-','.') for i,e,v in tokens})}))
+          PY
