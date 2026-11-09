@@ -8,9 +8,10 @@ permissions:
   contents: read
 jobs:
   review-access:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Check configured review access without revealing codes
+        shell: bash
         env:
           REVIEW_NOTES: ${{ secrets.STORE_CERTIFICATION_NOTES }}
           ADMIN_REVIEW_NOTES: ${{ secrets.STORE_ADMIN_CERTIFICATION_NOTES }}
