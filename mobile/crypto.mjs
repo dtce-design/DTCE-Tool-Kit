@@ -33,7 +33,7 @@ export async function unlockEnvelope(envelope, password, expected) {
 export async function generateCode(key, input, apps, now = Date.now()) {
   const request = normalizeRequest(input);
   if (!/^BEAM-[A-F0-9]{40}$/.test(request)) throw new Error('Paste the complete BEAM request code from the User app.');
-  if (!Number.isInteger(apps) || apps < 1 || apps > 119 || (apps & ~119) !== 0) throw new Error('Select at least one app.');
+  if (!Number.isInteger(apps) || apps < 1 || apps > 247 || (apps & ~247) !== 0) throw new Error('Select at least one app.');
   if (!Number.isFinite(now) || now < 0) throw new Error('Check the date and time on your phone.');
   const issued = Math.floor(now / 1000), expiry = issued + 28800;
   const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5',key,utf8.encode(`BEAM-ACCESS-V4|${request}|${issued}.${expiry}|${apps}`));

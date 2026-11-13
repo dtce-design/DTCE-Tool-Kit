@@ -13,7 +13,7 @@ $refs=@('/nologo','/target:winexe','/optimize+','/reference:System.Windows.Forms
 $resources=@("/resource:$source\SlabTemplate.dxf,SlabTemplate.dxf","/resource:$source\StandardTemplate.dxf,StandardTemplate.dxf","/resource:$source\AccessPublicKey.xml,AccessPublicKey.xml","/resource:$source\DpwhLogo.png,DpwhLogo.png","/resource:$source\DtceLogo.png,DtceLogo.png","/resource:$source\app.ico,DtceIcon.ico","/resource:$source\BeamSummaryTemplate.xlsx,BeamSummaryTemplate.xlsx")
 $files=Get-ChildItem $source -Filter '*.cs' | ForEach-Object FullName
 $exe=Join-Path $stage 'DTCE-Tool-Kit.exe'
-& $compiler @refs @resources "/win32manifest:$source\app.manifest" "/win32icon:$source\app.ico" "/out:$exe" @files
+& $compiler /reference:System.IO.Compression.dll "/resource:$source\WindSurfaces.txt,WindSurfaces.txt" "/resource:$source\WindMap27.jpg,WindMap27.jpg" "/resource:$source\WindMap28.jpg,WindMap28.jpg" "/resource:$source\WindMap29.jpg,WindMap29.jpg" @refs @resources "/win32manifest:$source\app.manifest" "/win32icon:$source\app.ico" "/out:$exe" @files
 if($LASTEXITCODE -ne 0){throw 'User compilation failed'}
 Copy-Item (Join-Path $source 'DTCE-Tool-Kit.exe.config') "$exe.config" -Force
 [IO.File]::WriteAllText((Join-Path $stage 'README.txt'),"DTCE Tool Kit - User build. Keep EXE/config together. Requires .NET Framework4.8. Access approval from owner required. No Admin/private signing key included.")

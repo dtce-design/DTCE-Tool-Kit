@@ -1,0 +1,20 @@
+Wind module reconstructed from the owner-supplied RCB Wind v.3.3.xlsm.
+
+Maps are I=image29 (essential/highest), II=image28, III-V=image27.
+Delaunay TIN/barycentric interpolation uses digitized contours. Registration and
+source hashes are in reference-review/wind/manifest.json; reproducible extraction
+is scripts/Rebuild-Wind-Contours.py. This is approximate raster interpolation,
+not an exact/authoritative coordinate wind-speed dataset.
+
+8 wind-from terrain profiles, automatic preliminary Kzt/exposure suggestions,
+Kz and velocity-pressure qz use public terrain/WorldCover data. Obstruction
+heights, full sector coverage, isolation and feature applicability require review.
+Missing terrain never silently defaults to C/Kzt1. qz is not final roof/wall pressure.
+Site page displays the embedded map even before coordinates. XML retains all
+samples offline. Wind permission is independent (128); all-programs mask247.
+
+Admin/User .NET4.8/C#5 compile. 40 wind model/state checks PASS.
+Windows UI and full desktop activation/Excel require Windows verification.
+
+This is a source checkpoint, with pending owner requests retained separately.
+No Microsoft Store, TestFlight or Pages publication was requested.

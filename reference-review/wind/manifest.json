@@ -1,0 +1,69 @@
+{
+  "workbookSHA256": "7ecc49c0567542579dbbfdc1f8730130b1462c61b033ffdbeae51e444e3202d4",
+  "source": "Owner-supplied RCB Wind v.3.3.xlsm, embedded NSCP2015 maps; I essential/highest, II intermediate, III-V lower",
+  "method": "Delaunay TIN/barycentric interpolation of traced contours;12px grid sampling; Web Mercator fitted to Natural Earth 1:10m coastline",
+  "registration": {
+    "sx": 285.44426359379383,
+    "cx": 1439.1606355295341,
+    "sy": -286.2266754481752,
+    "cy": 2406.3534453301895
+  },
+  "medianResidualPixels": 1.5089563759982085,
+  "p90ResidualPixels": 3.7657511281815634,
+  "surfaces": [
+    {
+      "category": "I",
+      "image": 29,
+      "nodes": 3299,
+      "triangles": 6579,
+      "contourSpeeds": [
+        310,
+        300,
+        320,
+        340,
+        330,
+        290,
+        280,
+        260,
+        270,
+        250,
+        240
+      ]
+    },
+    {
+      "category": "II",
+      "image": 28,
+      "nodes": 3069,
+      "triangles": 6126,
+      "contourSpeeds": [
+        300,
+        290,
+        310,
+        330,
+        320,
+        280,
+        270,
+        260,
+        250
+      ]
+    },
+    {
+      "category": "III-V",
+      "image": 27,
+      "nodes": 3049,
+      "triangles": 6087,
+      "contourSpeeds": [
+        290,
+        320,
+        300,
+        310,
+        280,
+        270,
+        260,
+        250,
+        240
+      ]
+    }
+  ],
+  "limitations": "Approximate raster digitization, not exact site wind speed. Coastal continuation outside hull must be flagged. Special wind regions require review."
+}

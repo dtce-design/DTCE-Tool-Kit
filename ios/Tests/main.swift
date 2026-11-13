@@ -21,8 +21,8 @@ let issued = TimeInterval(parts[1])!
 let request = "BEAM-0123456789ABCDEF0123456789ABCDEF01234567"
 let actual = try AccessCrypto.generate(key:key,request:request.lowercased(),apps:5,now:Date(timeIntervalSince1970:issued))
 guard actual.code == code, actual.expires.timeIntervalSince1970 == issued+28800 else { throw AccessError.invalid("Native signature not compatible with desktop/Web Crypto") }
-for mask in [0,8,15,120,128,-1] { try rejects { _ = try AccessCrypto.generate(key:key,request:request,apps:mask) } }
-try rejects { _ = try AccessCrypto.generate(key:key,request:"invalid",apps:1) }; for mask in [1,2,4,16,32,64,119] { let grant = try AccessCrypto.generate(key:key,request:request,apps:mask); guard grant.code.split(separator:".")[3] == Substring(String(mask)) else { throw AccessError.invalid("Program mask changed") } }
+for mask in [0,8,15,120,256,-1] { try rejects { _ = try AccessCrypto.generate(key:key,request:request,apps:mask) } }
+try rejects { _ = try AccessCrypto.generate(key:key,request:"invalid",apps:1) }; for mask in [1,2,4,16,32,64,128,119,247] { let grant = try AccessCrypto.generate(key:key,request:request,apps:mask); guard grant.code.split(separator:".")[3] == Substring(String(mask)) else { throw AccessError.invalid("Program mask changed") } }
 print("PASS: native Swift decrypts actual .NET encrypted export and produces byte-identical BA4 signature; tamper/password/key/mask/expiry checks passed. Ephemeral test key only.")
 
 let certification = String(decoding:try read("mobile-cert.txt"),as:UTF8.self)

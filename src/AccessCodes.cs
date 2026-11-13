@@ -43,7 +43,7 @@ static class AccessCodes {
  return Granted&&ProgramAccess.Allows(allowedApps,app);
  #endif
  }
- public static int AppFor(System.Windows.Forms.Form form){return (form is EstimatorForm||form is SlabEstimatorForm||form is ProgramOfWorksForm)?2:form is RebarLengthForm?4:form is PurlinDesignForm?16:form is TrussConnectionForm?32:form is SlabFormatterForm?64:form is ProjectInformationForm?8:1;} public static string NewRequest(){byte[] bytes=new byte[20];using(var r=RandomNumberGenerator.Create())r.GetBytes(bytes);return "BEAM-"+BitConverter.ToString(bytes).Replace("-","");}
+ public static int AppFor(System.Windows.Forms.Form form){return (form is EstimatorForm||form is SlabEstimatorForm||form is ProgramOfWorksForm)?2:form is RebarLengthForm?4:form is PurlinDesignForm?16:form is TrussConnectionForm?32:form is WindDesignForm?128:form is SlabFormatterForm?64:form is ProjectInformationForm?8:1;} public static string NewRequest(){byte[] bytes=new byte[20];using(var r=RandomNumberGenerator.Create())r.GetBytes(bytes);return "BEAM-"+BitConverter.ToString(bytes).Replace("-","");}
  public static string Normalize(string value){return new string((value??"").Where(c=>!char.IsWhiteSpace(c)).ToArray()).ToUpperInvariant();}
  static string CleanCode(string value){return new string((value??"").Where(c=>!char.IsWhiteSpace(c)).ToArray());}
  public static bool ValidRequest(string value){return System.Text.RegularExpressions.Regex.IsMatch(Normalize(value),"^BEAM-[A-F0-9]{40}$");}
