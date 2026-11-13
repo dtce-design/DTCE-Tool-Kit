@@ -4,6 +4,19 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish_microsoft_store:
+        description: Explicitly upload to Microsoft Store (requires owner instruction)
+        type: boolean
+        default: false
+      publish_ios:
+        description: Explicitly upload to TestFlight (requires owner instruction)
+        type: boolean
+        default: false
+      publish_mobile_pages:
+        description: Explicitly deploy mobile Pages (requires owner instruction)
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -88,7 +101,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
   release:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.build.outputs.windows_changed == 'true'
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -105,7 +118,7 @@ jobs:
         run: |
           gh release create "build-${GITHUB_RUN_NUMBER}" release/DTCE-Tool-Kit-User.zip release/DTCE-Tool-Kit-Admin.zip release/DTCE-Mobile-Access.zip release/*.msix --target "$GITHUB_SHA" --title "DTCE Tool Kit - successful build ${GITHUB_RUN_NUMBER}" --notes "User and key-free Admin builds. Calculations and signed-access checks passed. Commit: ${GITHUB_SHA}. Private signing keys are excluded. Includes separate User and Admin MSIX packages. Package generation does not submit or certify the app."
   store-user-upload:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.STORE_AUTO_UPLOAD_ENABLED == 'true' && needs.build.outputs.windows_changed == 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish_microsoft_store == true && vars.STORE_AUTO_UPLOAD_ENABLED == 'true' && needs.build.outputs.windows_changed == 'true'
     needs: build
     runs-on: windows-latest
     timeout-minutes: 15
@@ -140,7 +153,7 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Store submission did not complete successfully'}
 
   store-admin-upload:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.STORE_ADMIN_AUTO_UPLOAD_ENABLED == 'true' && needs.build.outputs.windows_changed == 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish_microsoft_store == true && vars.STORE_ADMIN_AUTO_UPLOAD_ENABLED == 'true' && needs.build.outputs.windows_changed == 'true'
     needs: build
     runs-on: windows-latest
     timeout-minutes: 15
@@ -175,7 +188,7 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Store submission did not complete successfully'}
 
   mobile-pages:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.MOBILE_PAGES_ENABLED == 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish_mobile_pages == true && vars.MOBILE_PAGES_ENABLED == 'true'
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -262,7 +275,7 @@ jobs:
           retention-days: 30
 
   testflight-upload:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.IOS_TESTFLIGHT_DISABLED != 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish_ios == true && vars.IOS_TESTFLIGHT_DISABLED != 'true'
     needs: native-ios
     runs-on: macos-15
     timeout-minutes: 30

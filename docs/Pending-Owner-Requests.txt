@@ -1,0 +1,22 @@
+DTCE TOOL KIT - PENDING UPDATE
+
+BLOCKED: execution workspace reset during edits; /workspace/DTCE-Tool-Kit and local v1.4.37-39 source/build files are absent in the current executor. No new tested build delivered.
+dtce-design/DTCE-Tool-Kit main src/Program.cs Engine.Version=1.4.36, confirmed via connected GitHub read after reset.
+
+1. Rebar inputs: explicit Spacing (mm) / Number of bars selection per direction in RC wall, footing, wall footing, canopy and septic/catch member sheets. Show only the selected input; clear inactive values safely and retain chosen method on save/open.
+
+2. Excel performance: KEEP the existing linked Excel workflow. User explicitly retracted the proposal to replace it with an internal Program of Works. Run Excel COM work on one dedicated STA worker, keep UI responsive, coalesce edits without losing newer updates, write changed quantities only, avoid CalculateFull and defer full workbook saves until idle. Preserve named-range row and item-signature safeguards.
+
+3. Computed quantities must immediately appear in the Tool Kit BOQ and sync to the correct linked BACKUP totals. Show unassigned computed sources instead of hiding them. Resolve exact code+description+unit matches automatically; never guess among duplicate pay items. Do not export structural design stresses or velocity pressures as material quantities.
+
+4. Wind Design: show the embedded source map immediately, including before coordinates are entered, and show the site/TIN marker after valid coordinates. Keep the v1.4.39 wind module and saved offline terrain profiles.
+
+5. Wall Footing: separate Reinforced Concrete Works calculation tab for strip/continuous wall footings, with concrete, steel, forms, excavation, embankment and gravel; separate BOQ concrete source/pay item, without counting it again as pad footing concrete.
+
+6. Lean concrete: checkbox per pad/wall footing; editable shared thickness in RC Start/Settings, saved with defaults and projects. Volume = footing footprint L*B*lean thickness*quantity; separate from structural concrete. Account for lean in excavation layer depth and backfill deductions. Send volume to the lean-concrete BOQ item.
+
+7. Carpentry & Joinery Works: Roof Frame and Floor Frame subtabs, bd.ft quantities. Board feet = thickness(in)*width(in)*length(ft)/12*pieces, with consistent metre/foot conversion. Show net and purchased stock board feet. Reuse offcuts only for compatible timber sections/specifications; do not infer structural splices.
+
+8. Painting: Include painting checkbox for drywall and ceiling finish rows. Net area follows actual finished faces, quantities and deductions. Distinct BOQ items: 1032(1)b - Wood Painting Works (Dry Wall); 1032(1)b - Wood Painting Works (Ceiling). Match descriptions as well as item number since codes repeat.
+
+9. Local builds only; NO GitHub push, Microsoft Store upload or App Store submission authorized for this task. Use versioned ZIP and extracted folder names; do not use Local Fix labels.

@@ -1,0 +1,17 @@
+Recovery checkpoint: 14 November 2026 (Asia/Manila)
+
+The owner supplied DTCE-Tool-Kit-Admin-v1.4.37.zip.
+SHA256: 4bd601cea3bfcdd2cadf14b90108a269bf3142f1d1b050708a327897d8ac83ee
+The ZIP contains only the Admin EXE, EXE configuration, and README.
+No owner private key is required for source/resource recovery.
+
+GitHub main initially remains v1.4.36 at
+b8e42c097e928b4fa4b95d329c23c499d843c73c.
+
+v1.4.37 source recovery is in progress from the supplied executable. This
+checkpoint does not claim to restore v1.4.38/v1.4.39 or deliver a newer app.
+The missing wind module can be rebuilt from the owner-supplied RCB Wind v.3.3.xlsm.
+
+Owner instructions: push completed checked updates to GitHub; do NOT submit
+Microsoft Store packages. Store/TestFlight/Pages upload jobs now require explicit
+workflow_dispatch publication inputs and cannot publish merely from a push.

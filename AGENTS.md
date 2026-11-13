@@ -29,3 +29,12 @@ Xcode simulator/device builds. Never commit Apple signing files or private keys.
 Unsigned archives cannot be installed on a physical iPhone. No automatic claim
 of Face ID hardware verification; device enrollment/unlock tests require iPhone.
 
+
+## Current owner instructions (14 November 2026, Asia/Manila)
+
+Push each completed, checked update and its source to GitHub so workspace resets
+do not lose the work. Keep explicit recovery checkpoints in GitHub when needed.
+Do not upload to Microsoft Store unless the owner separately requests it.
+A GitHub push is not authorization for Store, TestFlight or Pages publication.
+Publication workflows must default to off and require explicit manual inputs.
+Never include signing keys in a recovery checkpoint or source archive.
