@@ -80,6 +80,49 @@ class SlabEstimatorForm:Form {
  void Link(){Guard();using(var d=new SaveFileDialog{Filter="Excel macro-enabled workbook|*.xlsm|Excel workbook|*.xlsx",FileName="Slab-Summary.xlsm",OverwritePrompt=false}){if(d.ShowDialog(this)!=DialogResult.OK)return;var next=new ExcelLiveLink(d.FileName);try{string snapshot=next.ReadEstimate();bool restore=snapshot!=null;if(restore&&sourceFiles.Count>0){var answer=MessageBox.Show(this,"Load the slab estimate saved in this workbook?\\nYes: load saved estimate. No: replace workbook data with current estimate.","Slab workbook",MessageBoxButtons.YesNoCancel);if(answer==DialogResult.Cancel){next.Dispose();return;}restore=answer==DialogResult.Yes;}if(snapshot!=null){var check=new XmlDocument{XmlResolver=null};using(var input=new StringReader(snapshot))using(var reader=XmlReader.Create(input,new XmlReaderSettings{DtdProcessing=DtdProcessing.Prohibit,XmlResolver=null}))check.Load(reader);if(check.DocumentElement.Name!="SlabEstimate")throw new Exception("Use a separate Excel workbook for slabs; beam estimates were not overwritten.");}var old=excel;excel=null;try{if(restore)Restore(snapshot);else if(sourceFiles.Count==0)throw new Exception("Load a slab schedule or choose a workbook with a saved slab estimate.");}catch{excel=old;throw;}if(old!=null)old.Dispose();excel=next;Recalculate();SyncExcel();}catch{if(excel!=next)next.Dispose();throw;}}}
  void Disconnect(){timer.Stop();if(excel==null)return;try{SyncExcel();}catch(Exception x){if(MessageBox.Show(this,x.Message+"\\nDisconnect without saving latest edits?","Excel",MessageBoxButtons.YesNo)!=DialogResult.Yes)return;}excel.Dispose();excel=null;status.Text="Excel disconnected; saved workbook retained.";}
  void SyncExcel(){if(excel==null)return;Guard();var plan=CommercialBars.Allocate(results.Select(r=>r.Steel),configuration,stockLengths);if(plan.Any(a=>a.Choice==null))throw new Exception("Resolve stock cuts before Excel sync.");var groups=plan.GroupBy(a=>new{a.Entry,a.Demand.Grade,a.Demand.Diameter}).ToList();var rows=new object[groups.Count,12];for(int n=0;n<groups.Count;n++){var g=groups[n];rows[n,0]=g.Key.Entry.Description;rows[n,1]=g.Key.Entry.Beam;rows[n,2]="Slab schedules";rows[n,3]=g.Key.Grade;rows[n,4]=g.Key.Diameter;rows[n,5]=g.Sum(a=>a.Net);rows[n,6]=0;rows[n,7]=0;rows[n,8]=g.Sum(a=>a.Splice+a.Waste);rows[n,9]=g.Sum(a=>a.Purchase);rows[n,10]=0;rows[n,11]=int.Parse(g.Key.Entry.Quantity);}var concrete=new object[results.Count,8];for(int n=0;n<results.Count;n++){var r=results[n];concrete[n,0]=r.Steel.Description;concrete[n,1]=r.Steel.Beam;concrete[n,2]=r.Measures.SoffitTotal>0?"Elevated slab":"On gravel fill";concrete[n,3]=int.Parse(r.Steel.Quantity);concrete[n,4]=r.Measures.ConcreteTotal;concrete[n,5]=r.Measures.EdgeFormsTotal;concrete[n,6]=r.Measures.SoffitTotal;concrete[n,7]=r.Measures.FormworkTotal;}excel.Update(rows,(errors.Count>0?"PARTIAL | ":"")+"Slab purchase kg; Main=all slab bars; allowance=lap+offcut; forms sheet includes slab edges/soffit",Snapshot(),concrete);saved=State();status.Text="Slab Excel synced "+DateTime.Now.ToString("HH:mm:ss");}
+
+internal decimal WorksCoverMm
+		{
+			get
+			{
+				return cover.Value;
+			}
+			set
+			{
+				cover.Value = value;
+			}
+		}
+internal bool WorksHasEntries
+		{
+			get
+			{
+				return grid.Rows.Cast<DataGridViewRow>().Any((DataGridViewRow r) => !r.IsNewRow && Cell(r, 0) != "");
+			}
+		}
+internal void WriteRCDefaults(XmlElement root)
+		{
+			XmlElement xmlElement = root.OwnerDocument.CreateElement("SlabDefaults");
+			root.AppendChild(xmlElement);
+			xmlElement.SetAttribute("stock", CommercialBars.FormatLengths(stockLengths));
+			XmlElement xmlElement2 = root.OwnerDocument.CreateElement("Configuration");
+			xmlElement.AppendChild(xmlElement2);
+			configuration.Write(xmlElement2);
+		}
+internal void ReadRCDefaults(XmlElement e)
+		{
+			if (e != null)
+			{
+				stockLengths = CommercialBars.ParseLengths(e.GetAttribute("stock"));
+				configuration = LengthConfiguration.Read(e["Configuration"]);
+				storedProfile = true;
+				ComboBox comboBox = fc;
+				ComboBox comboBox2 = small;
+				bool flag = (large.Enabled = false);
+				bool enabled = (comboBox2.Enabled = flag);
+				comboBox.Enabled = enabled;
+				Recalculate();
+			}
+		}
 }
 }
 

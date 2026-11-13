@@ -133,6 +133,42 @@ class EstimatorForm:Form { ExcelLiveLink excelLink;Timer excelTimer=new Timer{In
  void UpdateConfigurationLabel(){if(lengthProfile==null)return;calculationLabel.Text=(profileSnapshot?"Saved estimate calculation: ":"Automatic calculation: ")+lengthProfile.Name+" | "+(lengthProfile.Input.Simplified?"Simplified":"General bond ratio")+" | Round UP "+lengthProfile.Input.Round+"mm\nB and D come from the revised DXF. Concrete / steel selections choose the saved calculation values.";Text="Beam Estimator v"+Engine.Version+" | "+lengthProfile.Name;}
  public void ApplyLengthConfiguration(LengthConfiguration c){if(c==null){profileSnapshot=false;AutoConfiguration();return;}c.Validate();filling=true;try{lengthProfile=CalculationStore.Clone(c);profileSnapshot=true;gradeSmall.SelectedIndex=AddSteel(gradeSmall,c.GradeSmall,c.FySmall);grade.SelectedIndex=AddSteel(grade,c.GradeLarge,c.FyLarge);SetConcrete(c.Input.Fc);if(mainHook.SelectedIndex!=0&&anchorage.SelectedIndex==1)anchorage.SelectedIndex=3;}finally{filling=false;}UpdateConfigurationLabel();Recalculate();} void ShowCurtailment(){using(var f=new Form{Text="Curtailment Settings - Fixed",ClientSize=new Size(660,430),FormBorderStyle=FormBorderStyle.FixedDialog,MaximizeBox=false,MinimizeBox=false,StartPosition=FormStartPosition.CenterParent,Font=new Font("Segoe UI",10),BackColor=Color.FromArgb(242,245,249)}){var topGroup=new GroupBox{Text="Top steel curtailment location",Location=new Point(18,16),Size=new Size(300,105)};topGroup.Controls.Add(new Label{Text="End support                         L / 4\n\nContinuous support              L / 4",Dock=DockStyle.Fill,Padding=new Padding(12,12,0,0)});var bottom=new GroupBox{Text="Bottom steel curtailment location",Location=new Point(18,130),Size=new Size(300,145)};bottom.Controls.Add(new Label{Text="Midspan cutoff                     L / 6\n\nEnd support                         L / 4\n\nContinuous support              L / 4",Dock=DockStyle.Fill,Padding=new Padding(12,12,0,0)});var shear=new GroupBox{Text="Shear zone presets (reference)",Location=new Point(334,16),Size=new Size(307,259)};shear.Controls.Add(new Label{Text="Ductile beam\nDepth factor:  D x 2\n\nNon-ductile beam\nLength factor:  L / 3\n\nTie quantities follow the actual\nspacing/count pattern in revised DXF.",Dock=DockStyle.Fill,Padding=new Padding(12,12,0,0)});var note=new Label{Text="Fixed from supplied curtailment reference. Bottom midspan bars start L/6 from each end (body=2L/3). Continuous bars remain full length. Top middle-only cuts use the central L/2. Development/hook allowances are added separately.",Location=new Point(20,290),Size=new Size(620,76)};var ok=new Button{Text="OK",Location=new Point(535,378),Size=new Size(105,32),DialogResult=DialogResult.OK};f.Controls.AddRange(new Control[]{topGroup,bottom,shear,note,ok});f.AcceptButton=ok;f.CancelButton=ok;f.ShowDialog(this);}} bool SaveProjectDialog(){using(var d=new SaveFileDialog{Filter="Beam estimate project (*.beam-estimate.xml)|*.beam-estimate.xml",FileName="Beam-Estimate.beam-estimate.xml"}){if(d.ShowDialog(this)!=DialogResult.OK)return false;SaveTo(d.FileName);return true;}}
  void SaveProject(){if(Allowed())SaveProjectDialog();}void OpenProject(){if(!Allowed()||!ReplaceOkay())return;using(var d=new OpenFileDialog{Filter="Beam estimate project (*.beam-estimate.xml)|*.beam-estimate.xml"})if(d.ShowDialog(this)==DialogResult.OK)OpenFrom(d.FileName);}
+
+internal decimal WorksCoverMm
+		{
+			get
+			{
+				return cover.Value;
+			}
+			set
+			{
+				cover.Value = value;
+			}
+		}
+internal bool WorksHasEntries
+		{
+			get
+			{
+				return beams.Rows.Cast<DataGridViewRow>().Any((DataGridViewRow r) => !r.IsNewRow && Cell(r, 0) != "");
+			}
+		}
+internal void WriteRCDefaults(XmlElement root)
+		{
+			XmlElement xmlElement = root.OwnerDocument.CreateElement("BeamDefaults");
+			root.AppendChild(xmlElement);
+			xmlElement.SetAttribute("stock", CommercialBars.FormatLengths(stockLengths));
+			XmlElement xmlElement2 = root.OwnerDocument.CreateElement("Configuration");
+			xmlElement.AppendChild(xmlElement2);
+			lengthProfile.Write(xmlElement2);
+		}
+internal void ReadRCDefaults(XmlElement e)
+		{
+			if (e != null)
+			{
+				stockLengths = CommercialBars.ParseLengths(e.GetAttribute("stock"));
+				ApplyLengthConfiguration(LengthConfiguration.Read(e["Configuration"]));
+			}
+		}
 }
 }
 

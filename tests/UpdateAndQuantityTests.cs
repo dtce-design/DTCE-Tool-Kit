@@ -29,7 +29,7 @@ class UpdateAndQuantityTests {
   var moulding=Grid(form,"mouldingEntries");moulding.Rows.Add("M1","Cornice","Concrete 150 x 50 mm","4","3");form.Recalculate();Near(Convert.ToDouble(moulding.Rows[0].Cells[5].Value),12,"Manual moulding UI computes");
   var bill=form.BillOfQuantities();Check(bill.Any(q=>q.Section=="Moulding"&&Math.Abs(q.Quantity-12)<1e-8),"BOQ includes manual grouped moulding");
   var tables=form.FinalQuantityTables();Check(!tables.Any(t=>Enumerable.Range(0,t.Rows.GetLength(0)).Any(r=>Convert.ToString(t.Rows[r,0]).Contains("rolls to buy")||Convert.ToString(t.Rows[r,0]).Contains("stock bars to buy"))),"Final Excel exports omit roll/stock counts");
-  var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;string xml=(string)form.GetType().GetMethod("DataXml",flags).Invoke(form,null);Check(xml.Contains("version=\"15\"")&&xml.Contains("MouldingEntries"),"New schema persists moulding inputs");
+  var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;string xml=(string)form.GetType().GetMethod("DataXml",flags).Invoke(form,null);Check(xml.Contains("version=\"19\"")&&xml.Contains("MouldingEntries"),"New schema persists moulding inputs");
   using(var copy=new ProgramOfWorksForm()){copy.OpenProjectXml(xml);Near(Convert.ToDouble(Grid(copy,"mouldingEntries").Rows[0].Cells[5].Value),12,"Moulding project save/open round-trip");}
   var legacy=new System.Xml.XmlDocument();legacy.LoadXml(xml);legacy.DocumentElement.SetAttribute("version","14");legacy.DocumentElement.RemoveChild(legacy.DocumentElement["MouldingEntries"]);using(var copy=new ProgramOfWorksForm())copy.OpenProjectXml(legacy.OuterXml);
 

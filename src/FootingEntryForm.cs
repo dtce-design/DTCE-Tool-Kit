@@ -20,9 +20,5 @@ class FootingEntryForm:Form {
    catch(Exception ex){result.ForeColor=Color.Firebrick;result.Text=ex.Message;}
  }
 }
-partial class ProgramOfWorksForm {
- void EditFooting(bool add){Guard();Commit();var row=add?null:footings.CurrentRow;if(!add&&(row==null||row.IsNewRow))throw new Exception("Select a footing row first.");string[] values=new string[28];if(row!=null){for(int i=0;i<28;i++)values[i]=Cell(row,i);}else{var defaults=new[]{"","","2","2","0.40","1","","75","16","150","","16","150","","","","","","","","0","Formed sides","100","20","10",footingFc.Text,footingSmall.Text,footingLarge.Text};Array.Copy(defaults,values,28);}
-  values[22]=suitableSoil.Value.ToString(CultureInfo.InvariantCulture);values[23]=borrowSwell.Value.ToString(CultureInfo.InvariantCulture);values[24]=borrowShrink.Value.ToString(CultureInfo.InvariantCulture);using(var dialog=new FootingEntryForm(values)){if(dialog.ShowDialog(this)!=DialogResult.OK)return;if(footings.Rows.Cast<DataGridViewRow>().Any(r=>!r.IsNewRow&&r!=row&&string.Equals(Cell(r,0),dialog.Values[0],StringComparison.OrdinalIgnoreCase)))throw new Exception("Duplicate footing ID.");filling=true;try{if(row==null)row=footings.Rows[footings.Rows.Add()];for(int i=0;i<28;i++)row.Cells[i].Value=dialog.Values[i];}finally{filling=false;}Recalculate();}
- }
-}
+
 }

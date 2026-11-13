@@ -1,20 +1,4 @@
 using System;using System.Linq;using System.Drawing;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
-partial class ProgramOfWorksForm {
- DataGridView finishAssignments;
- void AddFinishingStart(){
-  var page=tabs.TabPages.Cast<TabPage>().Single(p=>p.Text=="Finish Schedule");page.Text="Finishing Start";page.Controls.Remove(finishSchedule);foreach(Control old in page.Controls.Cast<Control>().ToArray()){page.Controls.Remove(old);old.Dispose();}
-  var split=new SplitContainer{Dock=DockStyle.Fill,Size=new Size(1100,650),Orientation=Orientation.Horizontal,SplitterDistance=250,Panel1MinSize=140,Panel2MinSize=140};
-  var scheduleTitle=new Label{Text="FINISH SCHEDULE | Define Finish IDs, descriptions and material groups here",Dock=DockStyle.Top,Height=42,Padding=new Padding(10),Font=new Font("Segoe UI",11,FontStyle.Bold)};
-  var scheduleActions=new FlowLayoutPanel{Dock=DockStyle.Top,Height=44,Padding=new Padding(6)};Button(scheduleActions,"Add Finish ID",()=>finishSchedule.Rows.Add());Button(scheduleActions,"Remove Finish ID",()=>{foreach(var row in finishSchedule.SelectedCells.Cast<DataGridViewCell>().Select(c=>c.OwningRow).Distinct().Where(r=>!r.IsNewRow).ToList())finishSchedule.Rows.Remove(row);Recalculate();});
-  split.Panel1.Controls.Add(finishSchedule);split.Panel1.Controls.Add(scheduleActions);split.Panel1.Controls.Add(scheduleTitle);
-  finishAssignments=Grid(new[]{"Category","Entry ID","Description","Finish ID","Group / material"},0);finishAssignments.Name="FinishAssignments";finishAssignments.AllowUserToAddRows=false;finishAssignments.AllowUserToDeleteRows=false;finishAssignments.Columns[0].Width=110;finishAssignments.Columns[1].Width=130;finishAssignments.Columns[2].Width=260;finishAssignments.Columns[4].Width=350;
-  AddCombo(finishAssignments,3,"Finish ID",new[]{""});
-  finishAssignments.CurrentCellDirtyStateChanged+=(s,e)=>{if(finishAssignments.IsCurrentCellDirty&&finishAssignments.CurrentCell is DataGridViewComboBoxCell)finishAssignments.CommitEdit(DataGridViewDataErrorContexts.Commit);};
-  finishAssignments.CellValueChanged+=(s,e)=>{if(filling||e.RowIndex<0||e.ColumnIndex!=3)return;var selected=finishAssignments.Rows[e.RowIndex];var target=selected.Tag as DataGridViewRow;if(target==null||target.DataGridView==null)return;target.Cells[2].Value=Cell(selected,3);string group;selected.Cells[4].Value=finishGroups.TryGetValue(Cell(selected,3),out group)?group:"";};
-  split.Panel2.Controls.Add(finishAssignments);split.Panel2.Controls.Add(new Label{Text="ASSIGN FINISHES | Add measurement entries in Wall/Ceiling/Floor Finishes, then assign their Finish IDs here. Those working sheets contain measurements only.",Dock=DockStyle.Top,Height=65,Padding=new Padding(10),ForeColor=PowTheme.Muted});
-  page.Controls.Add(split);foreach(var grid in new[]{wallFinishes,ceilingFinishes,floorFinishes}){grid.Columns[2].Visible=false;grid.Columns[grid==wallFinishes?14:10].Visible=false;}
- }
- void RefreshFinishAssignments(){if(finishAssignments==null||!(finishAssignments.Columns[3] is DataGridViewComboBoxColumn))return;string selected=finishAssignments.CurrentRow==null?"":Cell(finishAssignments.CurrentRow,1);int scroll=finishAssignments.FirstDisplayedScrollingRowIndex;var combo=(DataGridViewComboBoxColumn)finishAssignments.Columns[3];combo.Items.Clear();combo.Items.Add("");combo.Items.AddRange(finishGroups.Keys.Concat(new[]{wallFinishes,ceilingFinishes,floorFinishes}.SelectMany(g=>g.Rows.Cast<DataGridViewRow>()).Where(r=>!r.IsNewRow).Select(r=>Cell(r,2))).Where(v=>v!="").Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(v=>v).Cast<object>().ToArray());finishAssignments.Rows.Clear();foreach(var grid in new[]{wallFinishes,ceilingFinishes,floorFinishes})foreach(DataGridViewRow row in grid.Rows){if(row.IsNewRow||Empty(row))continue;string group;int n=finishAssignments.Rows.Add(grid==wallFinishes?"Wall":grid==ceilingFinishes?"Ceiling":"Floor",Cell(row,0),Cell(row,1),Cell(row,2),finishGroups.TryGetValue(Cell(row,2),out group)?group:"");finishAssignments.Rows[n].Tag=row;if(Cell(row,0)==selected)finishAssignments.CurrentCell=finishAssignments.Rows[n].Cells[3];}if(scroll>=0&&scroll<finishAssignments.Rows.Count)finishAssignments.FirstDisplayedScrollingRowIndex=scroll;}
-}
+
 }

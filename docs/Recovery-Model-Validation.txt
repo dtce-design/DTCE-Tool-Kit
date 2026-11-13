@@ -1,0 +1,4 @@
+Shared v1.4.37 recovery builds: Admin and User compile with .NET Framework4.8/C#5.
+Executed: PieceTests263 checks, BeamQuantitiesTests, SlabQuantitiesTests, SlabCurtailmentTests PASS.
+Windows GUI/activation/Excel/CommercialBars UI-dependent entry point require Windows and were not validated on Linux.
+The older fixed-layout test was adjusted to verify the original22 addresses remain unchanged while the2 new RC wall metrics append at rows37/38; no original cells moved.
