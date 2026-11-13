@@ -1,0 +1,2658 @@
+using System.Collections.Generic;
+using System.Linq;
+
+namespace BeamScheduleFormatter
+{
+	internal static class SteelCatalog
+	{
+		public static readonly List<SteelProfile> Profiles = Build();
+
+		private static List<SteelProfile> Build()
+		{
+			List<SteelProfile> obj = new List<SteelProfile>
+			{
+				new SteelProfile
+				{
+					Name = "C3\"x1.5\"x0.5\"x0.65mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 0.65,
+					KgM = 0.83,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x1.5\"x0.5\"x0.7mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 0.7,
+					KgM = 0.9,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x1.5\"x0.5\"x0.8mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 0.8,
+					KgM = 1.01,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x1.5\"x0.5\"x0.9mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 0.9,
+					KgM = 1.13,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x1.5\"x0.5\"x1mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 1.0,
+					KgM = 1.26,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x1.5\"x0.5\"x1.05mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 1.05,
+					KgM = 1.32,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x1.5\"x0.5\"x1.1mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 1.1,
+					KgM = 1.38,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x1.5\"x0.5\"x1.2mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 1.2,
+					KgM = 1.51,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x1.5\"x0.5\"x1.35mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 1.35,
+					KgM = 1.7,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x1.5\"x0.5\"x1.5mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 1.5,
+					KgM = 1.88,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x1.5\"x0.5\"x1.8mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 1.8,
+					KgM = 2.26,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x1.5\"x0.5\"x2mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 2.0,
+					KgM = 2.51,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x1.5\"x0.5\"x0.65mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 0.65,
+					KgM = 0.83,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x1.5\"x0.5\"x0.7mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 0.7,
+					KgM = 0.9,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x1.5\"x0.5\"x0.8mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 0.8,
+					KgM = 1.01,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x1.5\"x0.5\"x0.9mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 0.9,
+					KgM = 1.13,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x1.5\"x0.5\"x1mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 1.0,
+					KgM = 1.26,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x1.5\"x0.5\"x1.05mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 1.05,
+					KgM = 1.32,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x1.5\"x0.5\"x1.1mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 1.1,
+					KgM = 1.38,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x1.5\"x0.5\"x1.2mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 1.2,
+					KgM = 1.51,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x1.5\"x0.5\"x1.35mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 1.35,
+					KgM = 1.7,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x1.5\"x0.5\"x1.5mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 1.5,
+					KgM = 1.88,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x1.5\"x0.5\"x1.8mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 1.8,
+					KgM = 2.26,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x1.5\"x0.5\"x2mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 38.1,
+					Lip = 12.7,
+					T = 2.0,
+					KgM = 2.51,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x2\"x0.5\"x0.65mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.65,
+					KgM = 0.96,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x2\"x0.5\"x0.7mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.7,
+					KgM = 1.04,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x2\"x0.5\"x0.8mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.8,
+					KgM = 1.15,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x2\"x0.5\"x0.9mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.9,
+					KgM = 1.29,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x2\"x0.5\"x1mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.0,
+					KgM = 1.44,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x2\"x0.5\"x1.05mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.05,
+					KgM = 1.51,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x2\"x0.5\"x1.1mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.1,
+					KgM = 1.58,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x2\"x0.5\"x1.2mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.2,
+					KgM = 1.69,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x2\"x0.5\"x1.3mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.3,
+					KgM = 1.83,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x2\"x0.5\"x1.35mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.35,
+					KgM = 1.94,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x2\"x0.5\"x1.5mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.5,
+					KgM = 2.16,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x2\"x0.5\"x1.8mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.8,
+					KgM = 2.59,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x2\"x0.5\"x1.9mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.9,
+					KgM = 2.65,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C3\"x2\"x0.5\"x2mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 2.0,
+					KgM = 2.87,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x2\"x0.5\"x0.65mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.65,
+					KgM = 0.96,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x2\"x0.5\"x0.7mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.7,
+					KgM = 1.04,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x2\"x0.5\"x0.8mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.8,
+					KgM = 1.15,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x2\"x0.5\"x0.9mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.9,
+					KgM = 1.29,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x2\"x0.5\"x1mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.0,
+					KgM = 1.44,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x2\"x0.5\"x1.05mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.05,
+					KgM = 1.51,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x2\"x0.5\"x1.1mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.1,
+					KgM = 1.58,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x2\"x0.5\"x1.2mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.2,
+					KgM = 1.69,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x2\"x0.5\"x1.3mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.3,
+					KgM = 1.83,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x2\"x0.5\"x1.35mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.35,
+					KgM = 1.94,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x2\"x0.5\"x1.5mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.5,
+					KgM = 2.16,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x2\"x0.5\"x1.8mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.8,
+					KgM = 2.59,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x2\"x0.5\"x1.9mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.9,
+					KgM = 2.65,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z3\"x2\"x0.5\"x2mm",
+					Kind = "Purlin",
+					H = 76.2,
+					B = 50.8,
+					Lip = 12.7,
+					T = 2.0,
+					KgM = 2.87,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C4\"x2\"x0.5\"x0.65mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.65,
+					KgM = 1.04,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C4\"x2\"x0.5\"x0.7mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.7,
+					KgM = 1.12,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C4\"x2\"x0.5\"x0.8mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.8,
+					KgM = 1.26,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C4\"x2\"x0.5\"x0.9mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.9,
+					KgM = 1.41,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C4\"x2\"x0.5\"x1mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.0,
+					KgM = 1.57,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C4\"x2\"x0.5\"x1.05mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.05,
+					KgM = 1.65,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C4\"x2\"x0.5\"x1.1mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.1,
+					KgM = 1.73,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C4\"x2\"x0.5\"x1.2mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.2,
+					KgM = 1.88,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C4\"x2\"x0.5\"x1.35mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.35,
+					KgM = 2.12,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C4\"x2\"x0.5\"x1.5mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.5,
+					KgM = 2.32,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C4\"x2\"x0.5\"x1.8mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.8,
+					KgM = 2.73,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C4\"x2\"x0.5\"x2mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 2.0,
+					KgM = 3.03,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z4\"x2\"x0.5\"x0.65mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.65,
+					KgM = 1.04,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z4\"x2\"x0.5\"x0.7mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.7,
+					KgM = 1.12,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z4\"x2\"x0.5\"x0.8mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.8,
+					KgM = 1.26,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z4\"x2\"x0.5\"x0.9mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.9,
+					KgM = 1.41,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z4\"x2\"x0.5\"x1mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.0,
+					KgM = 1.57,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z4\"x2\"x0.5\"x1.05mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.05,
+					KgM = 1.65,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z4\"x2\"x0.5\"x1.1mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.1,
+					KgM = 1.73,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z4\"x2\"x0.5\"x1.2mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.2,
+					KgM = 1.88,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z4\"x2\"x0.5\"x1.35mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.35,
+					KgM = 2.12,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z4\"x2\"x0.5\"x1.5mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.5,
+					KgM = 2.32,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z4\"x2\"x0.5\"x1.8mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.8,
+					KgM = 2.73,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "Z4\"x2\"x0.5\"x2mm",
+					Kind = "Purlin",
+					H = 101.6,
+					B = 50.8,
+					Lip = 12.7,
+					T = 2.0,
+					KgM = 3.03,
+					Source = "Regan 2026 handbook PDF p.43, printed p.31"
+				},
+				new SteelProfile
+				{
+					Name = "C6\"x2\"x0.5\"x0.65mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.65,
+					KgM = 1.3,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C6\"x2\"x0.5\"x0.7mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.7,
+					KgM = 1.45,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C6\"x2\"x0.5\"x0.8mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.8,
+					KgM = 1.58,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C6\"x2\"x0.5\"x0.9mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.9,
+					KgM = 1.8,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C6\"x2\"x0.5\"x1mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.0,
+					KgM = 1.99,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C6\"x2\"x0.5\"x1.05mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.05,
+					KgM = 2.09,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C6\"x2\"x0.5\"x1.1mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.1,
+					KgM = 2.19,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C6\"x2\"x0.5\"x1.15mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.15,
+					KgM = 2.19,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C6\"x2\"x0.5\"x1.2mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.2,
+					KgM = 2.39,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C6\"x2\"x0.5\"x1.35mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.35,
+					KgM = 2.64,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C6\"x2\"x0.5\"x1.5mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.5,
+					KgM = 2.93,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C6\"x2\"x0.5\"x1.7mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.7,
+					KgM = 3.39,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C6\"x2\"x0.5\"x1.8mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.8,
+					KgM = 3.72,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C6\"x2\"x0.5\"x1.9mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.9,
+					KgM = 3.96,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C6\"x2\"x0.5\"x2mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 2.0,
+					KgM = 4.15,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z6\"x2\"x0.5\"x0.65mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.65,
+					KgM = 1.3,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z6\"x2\"x0.5\"x0.7mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.7,
+					KgM = 1.45,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z6\"x2\"x0.5\"x0.8mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.8,
+					KgM = 1.58,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z6\"x2\"x0.5\"x0.9mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.9,
+					KgM = 1.8,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z6\"x2\"x0.5\"x1mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.0,
+					KgM = 1.99,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z6\"x2\"x0.5\"x1.05mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.05,
+					KgM = 2.09,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z6\"x2\"x0.5\"x1.1mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.1,
+					KgM = 2.19,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z6\"x2\"x0.5\"x1.15mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.15,
+					KgM = 2.19,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z6\"x2\"x0.5\"x1.2mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.2,
+					KgM = 2.39,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z6\"x2\"x0.5\"x1.35mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.35,
+					KgM = 2.64,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z6\"x2\"x0.5\"x1.5mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.5,
+					KgM = 2.93,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z6\"x2\"x0.5\"x1.7mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.7,
+					KgM = 3.39,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z6\"x2\"x0.5\"x1.8mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.8,
+					KgM = 3.72,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z6\"x2\"x0.5\"x1.9mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.9,
+					KgM = 3.96,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z6\"x2\"x0.5\"x2mm",
+					Kind = "Purlin",
+					H = 152.4,
+					B = 50.8,
+					Lip = 12.7,
+					T = 2.0,
+					KgM = 4.15,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C7\"x2\"x0.5\"x0.65mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.65,
+					KgM = 1.46,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C7\"x2\"x0.5\"x0.7mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.7,
+					KgM = 1.57,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C7\"x2\"x0.5\"x0.8mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.8,
+					KgM = 1.78,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C7\"x2\"x0.5\"x0.9mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.9,
+					KgM = 1.97,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C7\"x2\"x0.5\"x1mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.0,
+					KgM = 2.22,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C7\"x2\"x0.5\"x1.05mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.05,
+					KgM = 2.33,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C7\"x2\"x0.5\"x1.1mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.1,
+					KgM = 2.5,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C7\"x2\"x0.5\"x1.2mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.2,
+					KgM = 2.67,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C7\"x2\"x0.5\"x1.35mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.35,
+					KgM = 2.96,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C7\"x2\"x0.5\"x1.5mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.5,
+					KgM = 3.32,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C7\"x2\"x0.5\"x1.7mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.7,
+					KgM = 3.94,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C7\"x2\"x0.5\"x1.8mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.8,
+					KgM = 4.07,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C7\"x2\"x0.5\"x1.9mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.9,
+					KgM = 4.38,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "C7\"x2\"x0.5\"x2mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 2.0,
+					KgM = 4.53,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z7\"x2\"x0.5\"x0.65mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.65,
+					KgM = 1.46,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z7\"x2\"x0.5\"x0.7mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.7,
+					KgM = 1.57,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z7\"x2\"x0.5\"x0.8mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.8,
+					KgM = 1.78,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z7\"x2\"x0.5\"x0.9mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 0.9,
+					KgM = 1.97,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z7\"x2\"x0.5\"x1mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.0,
+					KgM = 2.22,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z7\"x2\"x0.5\"x1.05mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.05,
+					KgM = 2.33,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z7\"x2\"x0.5\"x1.1mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.1,
+					KgM = 2.5,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z7\"x2\"x0.5\"x1.2mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.2,
+					KgM = 2.67,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z7\"x2\"x0.5\"x1.35mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.35,
+					KgM = 2.96,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z7\"x2\"x0.5\"x1.5mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.5,
+					KgM = 3.32,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z7\"x2\"x0.5\"x1.7mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.7,
+					KgM = 3.94,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z7\"x2\"x0.5\"x1.8mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.8,
+					KgM = 4.07,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z7\"x2\"x0.5\"x1.9mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 1.9,
+					KgM = 4.38,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "Z7\"x2\"x0.5\"x2mm",
+					Kind = "Purlin",
+					H = 177.8,
+					B = 50.8,
+					Lip = 12.7,
+					T = 2.0,
+					KgM = 4.53,
+					Source = "Regan 2026 handbook PDF p.44, printed p.32"
+				},
+				new SteelProfile
+				{
+					Name = "L20x20x2mm (PNS)",
+					Kind = "Angle bar",
+					H = 20.0,
+					B = 20.0,
+					T = 2.0,
+					KgM = 0.61,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L20x20x3mm (PNS)",
+					Kind = "Angle bar",
+					H = 20.0,
+					B = 20.0,
+					T = 3.0,
+					KgM = 0.88,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L25x25x2mm (PNS)",
+					Kind = "Angle bar",
+					H = 25.0,
+					B = 25.0,
+					T = 2.0,
+					KgM = 0.76,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L25x25x2.5mm (PNS)",
+					Kind = "Angle bar",
+					H = 25.0,
+					B = 25.0,
+					T = 2.5,
+					KgM = 0.94,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L25x25x3mm (PNS)",
+					Kind = "Angle bar",
+					H = 25.0,
+					B = 25.0,
+					T = 3.0,
+					KgM = 1.12,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L25x25x3.5mm (PNS)",
+					Kind = "Angle bar",
+					H = 25.0,
+					B = 25.0,
+					T = 3.5,
+					KgM = 1.29,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L25x25x4mm (PNS)",
+					Kind = "Angle bar",
+					H = 25.0,
+					B = 25.0,
+					T = 4.0,
+					KgM = 1.45,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L25x25x5mm (PNS)",
+					Kind = "Angle bar",
+					H = 25.0,
+					B = 25.0,
+					T = 5.0,
+					KgM = 1.78,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L25x25x6mm (PNS)",
+					Kind = "Angle bar",
+					H = 25.0,
+					B = 25.0,
+					T = 6.0,
+					KgM = 2.08,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L30x30x2mm (PNS)",
+					Kind = "Angle bar",
+					H = 30.0,
+					B = 30.0,
+					T = 2.0,
+					KgM = 0.93,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L30x30x3mm (PNS)",
+					Kind = "Angle bar",
+					H = 30.0,
+					B = 30.0,
+					T = 3.0,
+					KgM = 1.36,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L30x30x3.5mm (PNS)",
+					Kind = "Angle bar",
+					H = 30.0,
+					B = 30.0,
+					T = 3.5,
+					KgM = 1.57,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L30x30x4mm (PNS)",
+					Kind = "Angle bar",
+					H = 30.0,
+					B = 30.0,
+					T = 4.0,
+					KgM = 1.78,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L30x30x5mm (PNS)",
+					Kind = "Angle bar",
+					H = 30.0,
+					B = 30.0,
+					T = 5.0,
+					KgM = 2.18,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L30x30x6mm (PNS)",
+					Kind = "Angle bar",
+					H = 30.0,
+					B = 30.0,
+					T = 6.0,
+					KgM = 2.56,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L35x35x4mm (PNS)",
+					Kind = "Angle bar",
+					H = 35.0,
+					B = 35.0,
+					T = 4.0,
+					KgM = 2.09,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L35x35x5mm (PNS)",
+					Kind = "Angle bar",
+					H = 35.0,
+					B = 35.0,
+					T = 5.0,
+					KgM = 2.57,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L38x38x2mm (PNS)",
+					Kind = "Angle bar",
+					H = 38.0,
+					B = 38.0,
+					T = 2.0,
+					KgM = 1.19,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L38x38x2.5mm (PNS)",
+					Kind = "Angle bar",
+					H = 38.0,
+					B = 38.0,
+					T = 2.5,
+					KgM = 1.47,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L38x38x3mm (PNS)",
+					Kind = "Angle bar",
+					H = 38.0,
+					B = 38.0,
+					T = 3.0,
+					KgM = 1.75,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L38x38x3.5mm (PNS)",
+					Kind = "Angle bar",
+					H = 38.0,
+					B = 38.0,
+					T = 3.5,
+					KgM = 2.02,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L38x38x4mm (PNS)",
+					Kind = "Angle bar",
+					H = 38.0,
+					B = 38.0,
+					T = 4.0,
+					KgM = 2.29,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L38x38x4.5mm (PNS)",
+					Kind = "Angle bar",
+					H = 38.0,
+					B = 38.0,
+					T = 4.5,
+					KgM = 2.56,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L38x38x5mm (PNS)",
+					Kind = "Angle bar",
+					H = 38.0,
+					B = 38.0,
+					T = 5.0,
+					KgM = 2.82,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L38x38x6mm (PNS)",
+					Kind = "Angle bar",
+					H = 38.0,
+					B = 38.0,
+					T = 6.0,
+					KgM = 3.33,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L50x50x2.5mm (PNS)",
+					Kind = "Angle bar",
+					H = 50.0,
+					B = 50.0,
+					T = 2.5,
+					KgM = 1.95,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L50x50x3mm (PNS)",
+					Kind = "Angle bar",
+					H = 50.0,
+					B = 50.0,
+					T = 3.0,
+					KgM = 2.33,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L50x50x3.5mm (PNS)",
+					Kind = "Angle bar",
+					H = 50.0,
+					B = 50.0,
+					T = 3.5,
+					KgM = 2.69,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L50x50x4mm (PNS)",
+					Kind = "Angle bar",
+					H = 50.0,
+					B = 50.0,
+					T = 4.0,
+					KgM = 3.06,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L50x50x4.5mm (PNS)",
+					Kind = "Angle bar",
+					H = 50.0,
+					B = 50.0,
+					T = 4.5,
+					KgM = 3.41,
+					Source = "Regan 2026 handbook PDF p.6, printed p.01"
+				},
+				new SteelProfile
+				{
+					Name = "L50x50x5mm (PNS)",
+					Kind = "Angle bar",
+					H = 50.0,
+					B = 50.0,
+					T = 5.0,
+					KgM = 3.77,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L50x50x6mm (PNS)",
+					Kind = "Angle bar",
+					H = 50.0,
+					B = 50.0,
+					T = 6.0,
+					KgM = 4.47,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L50x50x7mm (PNS)",
+					Kind = "Angle bar",
+					H = 50.0,
+					B = 50.0,
+					T = 7.0,
+					KgM = 5.15,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L50x50x8mm (PNS)",
+					Kind = "Angle bar",
+					H = 50.0,
+					B = 50.0,
+					T = 8.0,
+					KgM = 5.82,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L50x50x9mm (PNS)",
+					Kind = "Angle bar",
+					H = 50.0,
+					B = 50.0,
+					T = 9.0,
+					KgM = 6.47,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L63.5x63.5x4mm (PNS)",
+					Kind = "Angle bar",
+					H = 63.5,
+					B = 63.5,
+					T = 4.0,
+					KgM = 3.9,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L63.5x63.5x4.5mm (PNS)",
+					Kind = "Angle bar",
+					H = 63.5,
+					B = 63.5,
+					T = 4.5,
+					KgM = 4.37,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L63.5x63.5x5mm (PNS)",
+					Kind = "Angle bar",
+					H = 63.5,
+					B = 63.5,
+					T = 5.0,
+					KgM = 4.83,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L63.5x63.5x6mm (PNS)",
+					Kind = "Angle bar",
+					H = 63.5,
+					B = 63.5,
+					T = 6.0,
+					KgM = 5.74,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L63.5x63.5x7mm (PNS)",
+					Kind = "Angle bar",
+					H = 63.5,
+					B = 63.5,
+					T = 7.0,
+					KgM = 6.64,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L63.5x63.5x8mm (PNS)",
+					Kind = "Angle bar",
+					H = 63.5,
+					B = 63.5,
+					T = 8.0,
+					KgM = 7.51,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L63.5x63.5x9mm (PNS)",
+					Kind = "Angle bar",
+					H = 63.5,
+					B = 63.5,
+					T = 9.0,
+					KgM = 8.38,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L63.5x63.5x11mm (PNS)",
+					Kind = "Angle bar",
+					H = 63.5,
+					B = 63.5,
+					T = 11.0,
+					KgM = 10.06,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L75x75x3.5mm (PNS)",
+					Kind = "Angle bar",
+					H = 75.0,
+					B = 75.0,
+					T = 3.5,
+					KgM = 4.09,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L75x75x4mm (PNS)",
+					Kind = "Angle bar",
+					H = 75.0,
+					B = 75.0,
+					T = 4.0,
+					KgM = 4.65,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L75x75x4.5mm (PNS)",
+					Kind = "Angle bar",
+					H = 75.0,
+					B = 75.0,
+					T = 4.5,
+					KgM = 5.21,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L75x75x5mm (PNS)",
+					Kind = "Angle bar",
+					H = 75.0,
+					B = 75.0,
+					T = 5.0,
+					KgM = 5.76,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L75x75x6mm (PNS)",
+					Kind = "Angle bar",
+					H = 75.0,
+					B = 75.0,
+					T = 6.0,
+					KgM = 6.85,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L75x75x7mm (PNS)",
+					Kind = "Angle bar",
+					H = 75.0,
+					B = 75.0,
+					T = 7.0,
+					KgM = 7.93,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L75x75x8mm (PNS)",
+					Kind = "Angle bar",
+					H = 75.0,
+					B = 75.0,
+					T = 8.0,
+					KgM = 8.99,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L75x75x9mm (PNS)",
+					Kind = "Angle bar",
+					H = 75.0,
+					B = 75.0,
+					T = 9.0,
+					KgM = 10.03,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L75x75x11mm (PNS)",
+					Kind = "Angle bar",
+					H = 75.0,
+					B = 75.0,
+					T = 11.0,
+					KgM = 12.07,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L90x90x7mm (PNS)",
+					Kind = "Angle bar",
+					H = 90.0,
+					B = 90.0,
+					T = 7.0,
+					KgM = 9.61,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L90x90x8mm (PNS)",
+					Kind = "Angle bar",
+					H = 90.0,
+					B = 90.0,
+					T = 8.0,
+					KgM = 10.9,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L90x90x9mm (PNS)",
+					Kind = "Angle bar",
+					H = 90.0,
+					B = 90.0,
+					T = 9.0,
+					KgM = 12.18,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L90x90x10mm (PNS)",
+					Kind = "Angle bar",
+					H = 90.0,
+					B = 90.0,
+					T = 10.0,
+					KgM = 13.45,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L100x100x5.5mm (PNS)",
+					Kind = "Angle bar",
+					H = 100.0,
+					B = 100.0,
+					T = 5.5,
+					KgM = 8.52,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L100x100x6mm (PNS)",
+					Kind = "Angle bar",
+					H = 100.0,
+					B = 100.0,
+					T = 6.0,
+					KgM = 9.26,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L100x100x7mm (PNS)",
+					Kind = "Angle bar",
+					H = 100.0,
+					B = 100.0,
+					T = 7.0,
+					KgM = 10.73,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L100x100x7.5mm (PNS)",
+					Kind = "Angle bar",
+					H = 100.0,
+					B = 100.0,
+					T = 7.5,
+					KgM = 11.45,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "L100x100x8mm (PNS)",
+					Kind = "Angle bar",
+					H = 100.0,
+					B = 100.0,
+					T = 8.0,
+					KgM = 12.18,
+					Source = "Regan 2026 handbook PDF p.7, printed p.02"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 25x25x1.2mm",
+					Kind = "HSS rectangle",
+					H = 25.0,
+					B = 25.0,
+					T = 1.2,
+					KgM = 0.972,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 25x25x1.5mm",
+					Kind = "HSS rectangle",
+					H = 25.0,
+					B = 25.0,
+					T = 1.5,
+					KgM = 1.216,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 25x25x2mm",
+					Kind = "HSS rectangle",
+					H = 25.0,
+					B = 25.0,
+					T = 2.0,
+					KgM = 1.621,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 25x25x3mm",
+					Kind = "HSS rectangle",
+					H = 25.0,
+					B = 25.0,
+					T = 3.0,
+					KgM = 2.431,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 38x38x1.2mm",
+					Kind = "HSS rectangle",
+					H = 38.0,
+					B = 38.0,
+					T = 1.2,
+					KgM = 1.459,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 38x38x1.5mm",
+					Kind = "HSS rectangle",
+					H = 38.0,
+					B = 38.0,
+					T = 1.5,
+					KgM = 1.823,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 38x38x2mm",
+					Kind = "HSS rectangle",
+					H = 38.0,
+					B = 38.0,
+					T = 2.0,
+					KgM = 2.431,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 38x38x2.6mm",
+					Kind = "HSS rectangle",
+					H = 38.0,
+					B = 38.0,
+					T = 2.6,
+					KgM = 3.16,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 38x38x4mm",
+					Kind = "HSS rectangle",
+					H = 38.0,
+					B = 38.0,
+					T = 4.0,
+					KgM = 4.862,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 50x50x1.2mm",
+					Kind = "HSS rectangle",
+					H = 50.0,
+					B = 50.0,
+					T = 1.2,
+					KgM = 1.945,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 50x50x1.5mm",
+					Kind = "HSS rectangle",
+					H = 50.0,
+					B = 50.0,
+					T = 1.5,
+					KgM = 2.431,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 50x50x2mm",
+					Kind = "HSS rectangle",
+					H = 50.0,
+					B = 50.0,
+					T = 2.0,
+					KgM = 3.241,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 50x50x2.6mm",
+					Kind = "HSS rectangle",
+					H = 50.0,
+					B = 50.0,
+					T = 2.6,
+					KgM = 4.214,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 50x50x3mm",
+					Kind = "HSS rectangle",
+					H = 50.0,
+					B = 50.0,
+					T = 3.0,
+					KgM = 4.862,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 50x50x4mm",
+					Kind = "HSS rectangle",
+					H = 50.0,
+					B = 50.0,
+					T = 4.0,
+					KgM = 6.483,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "SHS 50x50x6mm",
+					Kind = "HSS rectangle",
+					H = 50.0,
+					B = 50.0,
+					T = 6.0,
+					KgM = 9.724,
+					Source = "Regan 2026 handbook PDF p.31"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 38x19x1.2mm",
+					Kind = "HSS rectangle",
+					H = 38.0,
+					B = 19.0,
+					T = 1.2,
+					KgM = 1.091,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 38x19x1.5mm",
+					Kind = "HSS rectangle",
+					H = 38.0,
+					B = 19.0,
+					T = 1.5,
+					KgM = 1.364,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 38x19x2mm",
+					Kind = "HSS rectangle",
+					H = 38.0,
+					B = 19.0,
+					T = 2.0,
+					KgM = 1.818,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 38x19x3mm",
+					Kind = "HSS rectangle",
+					H = 38.0,
+					B = 19.0,
+					T = 3.0,
+					KgM = 2.728,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 50x25x1.2mm",
+					Kind = "HSS rectangle",
+					H = 50.0,
+					B = 25.0,
+					T = 1.2,
+					KgM = 1.436,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 50x25x1.5mm",
+					Kind = "HSS rectangle",
+					H = 50.0,
+					B = 25.0,
+					T = 1.5,
+					KgM = 1.795,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 50x25x2mm",
+					Kind = "HSS rectangle",
+					H = 50.0,
+					B = 25.0,
+					T = 2.0,
+					KgM = 2.393,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 50x25x3mm",
+					Kind = "HSS rectangle",
+					H = 50.0,
+					B = 25.0,
+					T = 3.0,
+					KgM = 3.589,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 75x40x1.5mm",
+					Kind = "HSS rectangle",
+					H = 75.0,
+					B = 40.0,
+					T = 1.5,
+					KgM = 2.752,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 75x40x2mm",
+					Kind = "HSS rectangle",
+					H = 75.0,
+					B = 40.0,
+					T = 2.0,
+					KgM = 3.669,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 75x40x3mm",
+					Kind = "HSS rectangle",
+					H = 75.0,
+					B = 40.0,
+					T = 3.0,
+					KgM = 5.503,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 75x50x1.2mm",
+					Kind = "HSS rectangle",
+					H = 75.0,
+					B = 50.0,
+					T = 1.2,
+					KgM = 2.393,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 75x50x1.5mm",
+					Kind = "HSS rectangle",
+					H = 75.0,
+					B = 50.0,
+					T = 1.5,
+					KgM = 2.991,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 75x50x2mm",
+					Kind = "HSS rectangle",
+					H = 75.0,
+					B = 50.0,
+					T = 2.0,
+					KgM = 3.988,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 75x50x2.6mm",
+					Kind = "HSS rectangle",
+					H = 75.0,
+					B = 50.0,
+					T = 2.6,
+					KgM = 5.184,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 75x50x3mm",
+					Kind = "HSS rectangle",
+					H = 75.0,
+					B = 50.0,
+					T = 3.0,
+					KgM = 5.982,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 75x50x4mm",
+					Kind = "HSS rectangle",
+					H = 75.0,
+					B = 50.0,
+					T = 4.0,
+					KgM = 7.976,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 75x50x6mm",
+					Kind = "HSS rectangle",
+					H = 75.0,
+					B = 50.0,
+					T = 6.0,
+					KgM = 11.964,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 100x50x1.2mm",
+					Kind = "HSS rectangle",
+					H = 100.0,
+					B = 50.0,
+					T = 1.2,
+					KgM = 2.871,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 100x50x1.5mm",
+					Kind = "HSS rectangle",
+					H = 100.0,
+					B = 50.0,
+					T = 1.5,
+					KgM = 3.589,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 100x50x2mm",
+					Kind = "HSS rectangle",
+					H = 100.0,
+					B = 50.0,
+					T = 2.0,
+					KgM = 4.785,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 100x50x2.6mm",
+					Kind = "HSS rectangle",
+					H = 100.0,
+					B = 50.0,
+					T = 2.6,
+					KgM = 6.221,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 100x50x3mm",
+					Kind = "HSS rectangle",
+					H = 100.0,
+					B = 50.0,
+					T = 3.0,
+					KgM = 7.178,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 100x50x4mm",
+					Kind = "HSS rectangle",
+					H = 100.0,
+					B = 50.0,
+					T = 4.0,
+					KgM = 9.571,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "RHS 100x50x5mm",
+					Kind = "HSS rectangle",
+					H = 100.0,
+					B = 50.0,
+					T = 5.0,
+					KgM = 12.155,
+					Source = "Regan 2026 handbook PDF p.33"
+				},
+				new SteelProfile
+				{
+					Name = "Pipe OD21.3x2.8mm",
+					Kind = "HSS circle / pipe",
+					H = 21.3,
+					B = 21.3,
+					T = 2.8,
+					KgM = 1.277,
+					Source = "Regan 2026 handbook PDF p.24"
+				},
+				new SteelProfile
+				{
+					Name = "Pipe OD26.7x2.9mm",
+					Kind = "HSS circle / pipe",
+					H = 26.7,
+					B = 26.7,
+					T = 2.9,
+					KgM = 1.702,
+					Source = "Regan 2026 handbook PDF p.24"
+				},
+				new SteelProfile
+				{
+					Name = "Pipe OD33.4x3.4mm",
+					Kind = "HSS circle / pipe",
+					H = 33.4,
+					B = 33.4,
+					T = 3.4,
+					KgM = 2.515,
+					Source = "Regan 2026 handbook PDF p.24"
+				},
+				new SteelProfile
+				{
+					Name = "Pipe OD42.2x3.6mm",
+					Kind = "HSS circle / pipe",
+					H = 42.2,
+					B = 42.2,
+					T = 3.6,
+					KgM = 3.427,
+					Source = "Regan 2026 handbook PDF p.24"
+				},
+				new SteelProfile
+				{
+					Name = "Pipe OD48.3x3.7mm",
+					Kind = "HSS circle / pipe",
+					H = 48.3,
+					B = 48.3,
+					T = 3.7,
+					KgM = 4.069,
+					Source = "Regan 2026 handbook PDF p.24"
+				},
+				new SteelProfile
+				{
+					Name = "Pipe OD60.3x4mm",
+					Kind = "HSS circle / pipe",
+					H = 60.3,
+					B = 60.3,
+					T = 4.0,
+					KgM = 5.553,
+					Source = "Regan 2026 handbook PDF p.24"
+				},
+				new SteelProfile
+				{
+					Name = "Pipe OD73x5.2mm",
+					Kind = "HSS circle / pipe",
+					H = 73.0,
+					B = 73.0,
+					T = 5.2,
+					KgM = 8.694,
+					Source = "Regan 2026 handbook PDF p.24"
+				},
+				new SteelProfile
+				{
+					Name = "Pipe OD88.9x5.5mm",
+					Kind = "HSS circle / pipe",
+					H = 88.9,
+					B = 88.9,
+					T = 5.5,
+					KgM = 11.312,
+					Source = "Regan 2026 handbook PDF p.24"
+				},
+				new SteelProfile
+				{
+					Name = "Pipe OD114.3x6mm",
+					Kind = "HSS circle / pipe",
+					H = 114.3,
+					B = 114.3,
+					T = 6.0,
+					KgM = 16.024,
+					Source = "Regan 2026 handbook PDF p.24"
+				},
+				new SteelProfile
+				{
+					Name = "Pipe OD141.3x6.6mm",
+					Kind = "HSS circle / pipe",
+					H = 141.3,
+					B = 141.3,
+					T = 6.6,
+					KgM = 21.923,
+					Source = "Regan 2026 handbook PDF p.24"
+				},
+				new SteelProfile
+				{
+					Name = "Pipe OD168.3x7.1mm",
+					Kind = "HSS circle / pipe",
+					H = 168.3,
+					B = 168.3,
+					T = 7.1,
+					KgM = 28.224,
+					Source = "Regan 2026 handbook PDF p.24"
+				},
+				new SteelProfile
+				{
+					Name = "Pipe OD219.1x8.2mm",
+					Kind = "HSS circle / pipe",
+					H = 219.1,
+					B = 219.1,
+					T = 8.2,
+					KgM = 42.647,
+					Source = "Regan 2026 handbook PDF p.24"
+				},
+				new SteelProfile
+				{
+					Name = "Pipe OD273x9.3mm",
+					Kind = "HSS circle / pipe",
+					H = 273.0,
+					B = 273.0,
+					T = 9.3,
+					KgM = 60.476,
+					Source = "Regan 2026 handbook PDF p.24"
+				},
+				new SteelProfile
+				{
+					Name = "Pipe OD323.8x10.3mm",
+					Kind = "HSS circle / pipe",
+					H = 323.8,
+					B = 323.8,
+					T = 10.3,
+					KgM = 76.628,
+					Source = "Regan 2026 handbook PDF p.24"
+				}
+			};
+			FlatBarCatalog.AddTo(obj);
+			return obj;
+		}
+
+		public static SteelProfile Find(string name)
+		{
+			return Profiles.FirstOrDefault((SteelProfile p) => p.Name == name);
+		}
+	}
+}

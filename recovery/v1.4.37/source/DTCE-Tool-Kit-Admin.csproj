@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <AssemblyName>DTCE-Tool-Kit-Admin</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>True</UseWindowsForms>
+    <TargetFramework>net40</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>5</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RootNamespace />
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="SlabTemplate.dxf" />
+    <None Remove="StandardTemplate.dxf" />
+    <None Remove="AccessPublicKey.xml" />
+    <None Remove="DpwhLogo.png" />
+    <None Remove="DtceLogo.png" />
+    <None Remove="DtceIcon.ico" />
+    <None Remove="BeamSummaryTemplate.xlsx" />
+    <EmbeddedResource Include="SlabTemplate.dxf" LogicalName="SlabTemplate.dxf" />
+    <EmbeddedResource Include="StandardTemplate.dxf" LogicalName="StandardTemplate.dxf" />
+    <EmbeddedResource Include="AccessPublicKey.xml" LogicalName="AccessPublicKey.xml" />
+    <EmbeddedResource Include="DpwhLogo.png" LogicalName="DpwhLogo.png" />
+    <EmbeddedResource Include="DtceLogo.png" LogicalName="DtceLogo.png" />
+    <EmbeddedResource Include="DtceIcon.ico" LogicalName="DtceIcon.ico" />
+    <EmbeddedResource Include="BeamSummaryTemplate.xlsx" LogicalName="BeamSummaryTemplate.xlsx" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Xml">
+      <HintPath>../../shared/net48/build/.NETFramework/v4.8/System.Xml.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Core">
+      <HintPath>../../shared/net48/build/.NETFramework/v4.8/System.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Security">
+      <HintPath>../../shared/net48/build/.NETFramework/v4.8/System.Security.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CSharp">
+      <HintPath>../../shared/net48/build/.NETFramework/v4.8/Microsoft.CSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>
