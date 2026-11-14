@@ -1,0 +1,44 @@
+DTCE Tool Kit v1.4.43 / Microsoft 365 interface and engineering report files
+14 November 2026 (Asia/Manila)
+
+Owner visual choices
+- App: Microsoft 365 style, white/light gray surfaces and restrained blue accent.
+- Reports: professional engineering document, numbered sections and real tables.
+- Keep all full tab names at the top. Wrap; do not abbreviate or compress.
+
+Report file workflow
+Use Export report file in Program of Works, Design Sheets or an estimate print
+preview. Save the self-contained .html file. It opens in the system browser;
+Ctrl+P opens printing / Save as PDF. The HTML includes all styles and images,
+uses no JavaScript and requires no external web resources to read/print.
+The existing protected PDF exports remain available and retain their format.
+
+Wind report files
+- Design basis, traceable inputs and radius of saved terrain evidence.
+- Project-site map snapshot, or georeferenced roughness/sector diagram when
+  a basemap snapshot is not supplied.
+- Directional exposure, K1/K2/K3/Kzt, Kz and velocity pressure tables.
+- Vector terrain figures, colored by local roughness.
+- Building geometry, pressure signs, coefficient cases, surface-pressure
+  tables, windward height profiles and numerical substitution examples.
+- References and explicit preliminary-data / calculation-scope notes.
+- No generated report is treated as an engineer's signature or approval.
+
+Other report files
+Program of Works includes the BOQ as shown, source rows and detailed workings.
+Other design/estimate report text is organized into sections, contiguous data
+tables and equation blocks without discarding numerical lines.
+
+UI
+- Shared Fluent blue (#0F6CBD), light neutral command bars and table surfaces.
+- White dashboard masthead and smaller field groups with consistent spacing.
+- Top navigation retains complete captions, multiple rows as needed.
+
+Validation
+- Admin and User compiled against .NET Framework 4.8 / C#5.
+- Nine report checks passed: HTML escaping, numerical retention, real tables,
+  self-contained resources, wind pressure sections and vector figures.
+- The actual generated sample HTML was printed to PDF with Chromium and page
+  previews reviewed. The sample is a demonstration, not a project design.
+- Native Windows GUI, high DPI, Excel COM and Windows printing remain pending.
+- GitHub checkpoint only; no Microsoft Store, TestFlight or Pages upload.

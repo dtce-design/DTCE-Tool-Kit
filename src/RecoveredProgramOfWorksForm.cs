@@ -4586,6 +4586,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			base.Controls.Add(tabs);
 			base.Controls.Add(flowLayoutPanel);
 			Button(flowLayoutPanel, "Save Program of Works", Save);
+            Button(flowLayoutPanel, "Export report file", ExportEngineeringReport);
 			Button(flowLayoutPanel, "Open Program of Works", Open);
 			Button(flowLayoutPanel, "Print preview", delegate
 			{

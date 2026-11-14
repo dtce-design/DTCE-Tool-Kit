@@ -3,7 +3,7 @@ namespace BeamScheduleFormatter {
 partial class WindDesignForm {
  protected override CalculationDocument BuildDocument(){
   // Validate first so an export cannot silently omit an invalid enabled building sheet.
-  BuildReport();double lat=Number("Latitude"),lon=Number("Longitude"),z=Number("Height"),kd=Number("Kd");var wind=WindTin.At(lat,lon,Value("Category"));var doc=new CalculationDocument("Wind load / NSCP 2015");
+  BuildReport();double lat=Number("Latitude"),lon=Number("Longitude"),z=Number("Height"),kd=Number("Kd");var wind=WindTin.At(lat,lon,Value("Category"));var doc=new CalculationDocument("Wind load / NSCP 2015");doc.ReportFile=BuildEngineeringReport();
   try {
    Bitmap site=doc.Own(siteMap.Snapshot());string category=Value("Category");bool reviewed=((System.Windows.Forms.CheckBox)Inputs["Reviewed"]).Checked;
    doc.Sheets.Add(g=>{

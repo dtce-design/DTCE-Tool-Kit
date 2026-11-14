@@ -92,3 +92,9 @@ $exe=Join-Path $out 'WindBuildingLoadsTests.exe'
 if($LASTEXITCODE -ne 0){throw 'Wind pressure test compilation failed'}
 & $exe
 if($LASTEXITCODE -ne 0){throw 'Wind pressure checks failed'}
+
+$exe=Join-Path $out 'ProfessionalReportTests.exe'
+& $compiler "/resource:$source\WindSurfaces.txt,WindSurfaces.txt" "/resource:$source\DtceLogo.png,DtceLogo.png" /nologo /define:ADMIN_APP /target:exe /main:ProfessionalReportTests "/out:$exe" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Core.dll /reference:System.Security.dll /reference:Microsoft.CSharp.dll /reference:System.IO.Compression.dll @files (Join-Path $repo 'tests\ProfessionalReportTests.cs')
+if($LASTEXITCODE -ne 0){throw 'Professional report tests did not compile'}
+& $exe (Join-Path $repo 'tests\fixtures\Wind-Manila-Example.xml') (Join-Path $out 'sample-report')
+if($LASTEXITCODE -ne 0){throw 'Professional report checks failed'}

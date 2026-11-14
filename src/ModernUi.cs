@@ -12,8 +12,8 @@ static class ModernUi {
  internal static readonly Font Heading = new Font("Segoe UI", 20f, FontStyle.Bold);
  internal static readonly Color Surface = Color.White;
  internal static readonly Color Input = Color.FromArgb(247, 251, 255);
- internal static readonly Color Selection = Color.FromArgb(233, 237, 255);
- internal static readonly Color Soft = Color.FromArgb(245, 247, 251);
+ internal static readonly Color Selection = Color.FromArgb(235, 243, 252);
+ internal static readonly Color Soft = Color.FromArgb(245, 245, 245);
  static readonly ConditionalWeakTable<Form, object> windows = new ConditionalWeakTable<Form, object>();
  static bool installed, applying;
  internal static void Install() {

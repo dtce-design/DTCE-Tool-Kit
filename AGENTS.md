@@ -44,3 +44,11 @@ Never include signing keys in a recovery checkpoint or source archive.
 All navigation tabs belong at the top. Display complete tab captions without
 abbreviations, ellipses or compressed fixed widths; wrap into additional rows
 when needed. Keep this preference for Admin and User and for nested tabs.
+
+## Visual direction (14 November 2026)
+
+Use a Microsoft 365 style for the app: white/light gray workspace, restrained
+blue accents, compact command bars and full top-tab captions. Reports use a
+professional engineering-document layout with numbered sections, structured
+tables, equations, traceable inputs and clear figures. Do not infer an engineer
+approval or signature from a generated report.

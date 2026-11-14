@@ -12,19 +12,19 @@ class LauncherForm:Form {
   home.Padding=new Padding(24,20,24,0);
   var dashboard=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=4,Margin=Padding.Empty,Padding=Padding.Empty};
   dashboard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
-  dashboard.RowStyles.Add(new RowStyle(SizeType.Absolute,154));dashboard.RowStyles.Add(new RowStyle(SizeType.Absolute,58));
+  dashboard.RowStyles.Add(new RowStyle(SizeType.Absolute,124));dashboard.RowStyles.Add(new RowStyle(SizeType.Absolute,58));
   dashboard.RowStyles.Add(new RowStyle(SizeType.Percent,100));dashboard.RowStyles.Add(new RowStyle(SizeType.Absolute,38));home.Controls.Add(dashboard);
-  var hero=new Panel{Dock=DockStyle.Fill,BackColor=PowTheme.Ink,Margin=Padding.Empty};dashboard.Controls.Add(hero,0,0);
-  hero.Controls.Add(new PictureBox{Image=AppBrand.Logo,SizeMode=PictureBoxSizeMode.Zoom,Left=22,Top=24,Width=96,Height=96,AccessibleName="DTCE logo"});
-  hero.Controls.Add(new Label{Text="DTCE TOOL KIT",Left=140,Top=48,Width=570,Height=42,Font=ModernUi.Heading,ForeColor=Color.White,Anchor=AnchorStyles.Left|AnchorStyles.Top|AnchorStyles.Right});
-  hero.Controls.Add(new Label{Text="Plan. Quantify. Design.",Left=143,Top=96,Width=570,Height=28,ForeColor=Color.FromArgb(192,211,224),Anchor=AnchorStyles.Left|AnchorStyles.Top|AnchorStyles.Right});
+  var hero=new Panel{Dock=DockStyle.Fill,BackColor=Color.White,Margin=Padding.Empty};dashboard.Controls.Add(hero,0,0);
+  hero.Controls.Add(new PictureBox{Image=AppBrand.Logo,SizeMode=PictureBoxSizeMode.Zoom,Left=22,Top=24,Width=76,Height=76,AccessibleName="DTCE logo"});
+  hero.Controls.Add(new Label{Text="DTCE Tool Kit",Left=140,Top=38,Width=570,Height=42,Font=ModernUi.Heading,ForeColor=PowTheme.Ink,Anchor=AnchorStyles.Left|AnchorStyles.Top|AnchorStyles.Right});
+  hero.Controls.Add(new Label{Text="Engineering calculations and quantity take-offs",Left=143,Top=84,Width=570,Height=28,ForeColor=PowTheme.Muted,Anchor=AnchorStyles.Left|AnchorStyles.Top|AnchorStyles.Right});
   hero.Controls.Add(new Label{Text=
    #if ADMIN_APP
    "ADMIN EDITION"
    #else
    "USER EDITION"
    #endif
-   ,Left=143,Top=24,Width=260,Height=20,Font=new Font("Segoe UI",8.5f,FontStyle.Bold),ForeColor=Color.FromArgb(175,186,255)});
+   ,Left=143,Top=16,Width=260,Height=20,Font=new Font("Segoe UI",8.5f,FontStyle.Bold),ForeColor=PremiumControls.Accent});
   var intro=new Label{Text="Your workspaces",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",12,FontStyle.Bold),ForeColor=PowTheme.Ink,Margin=Padding.Empty};dashboard.Controls.Add(intro,0,1);
   var cards=new FlowLayoutPanel{Dock=DockStyle.Fill,AutoScroll=true,Margin=Padding.Empty,Padding=new Padding(0,0,0,12)};dashboard.Controls.Add(cards,0,2);
   AddCard(cards,"Formatters","Prepare beam and slab schedules from your DXF drawings.",()=>ShowGroup(formatterTabs,"Formatters"));

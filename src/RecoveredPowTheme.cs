@@ -7,11 +7,11 @@ using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 internal static class PowTheme {
  static readonly ConditionalWeakTable<Control,object> themed=new ConditionalWeakTable<Control,object>();
- public static readonly Color Ink=Color.FromArgb(24,43,62);
+ public static readonly Color Ink=Color.FromArgb(36,36,36);
  public static readonly Color Teal=PremiumControls.Accent;
- public static readonly Color Background=Color.FromArgb(246,248,251);
- public static readonly Color Line=Color.FromArgb(222,230,238);
- public static readonly Color Muted=Color.FromArgb(83,102,122);
+ public static readonly Color Background=Color.FromArgb(250,250,250);
+ public static readonly Color Line=Color.FromArgb(224,224,224);
+ public static readonly Color Muted=Color.FromArgb(97,97,97);
  public static void Apply(Control root) {
   if(root==null||root.IsDisposed)return;
   object seen;if(themed.TryGetValue(root,out seen))return;
@@ -50,7 +50,7 @@ internal static class PowTheme {
    if(e.Index<0||e.Index>=tab.TabCount)return;bool selected=e.Index==tab.SelectedIndex;Rectangle r=e.Bounds;
    using(var brush=new SolidBrush(Background))e.Graphics.FillRectangle(brush,r);
    var face=Rectangle.Inflate(r,-2,-3);
-   if(selected&&face.Width>0&&face.Height>0)using(var path=ModernUi.Rounded(face,6))using(var fill=new SolidBrush(PremiumControls.AccentSoft))e.Graphics.FillPath(fill,path);
+   if(selected&&face.Width>0&&face.Height>0)using(var fill=new SolidBrush(Color.White))e.Graphics.FillRectangle(fill,face);if(selected)using(var accent=new SolidBrush(Teal))e.Graphics.FillRectangle(accent,r.Left+12,r.Bottom-3,Math.Max(1,r.Width-24),3);
    TextRenderer.DrawText(e.Graphics,tab.TabPages[e.Index].Text,tab.Font,Rectangle.Inflate(r,-8,-3),selected?Teal:Muted,
     TextFormatFlags.NoPrefix|TextFormatFlags.VerticalCenter|TextFormatFlags.HorizontalCenter|TextFormatFlags.SingleLine);
    if(tab.Focused&&selected)ControlPaint.DrawFocusRectangle(e.Graphics,Rectangle.Inflate(r,-5,-5),Teal,Background);

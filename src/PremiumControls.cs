@@ -2,10 +2,10 @@ using System;using System.Drawing;using System.Drawing.Drawing2D;using System.Wi
 namespace BeamScheduleFormatter {
 // Common visual components. Native controls retain keyboard/accessibility/click behavior.
 static class PremiumControls {
- internal static readonly Color Accent=Color.FromArgb(68,78,222);
- internal static readonly Color AccentHover=Color.FromArgb(53,63,194);
- internal static readonly Color AccentSoft=Color.FromArgb(237,239,255);
- internal static readonly Color Header=Color.FromArgb(245,247,251);
+ internal static readonly Color Accent=Color.FromArgb(15,108,189);
+ internal static readonly Color AccentHover=Color.FromArgb(17,94,163);
+ internal static readonly Color AccentSoft=Color.FromArgb(235,243,252);
+ internal static readonly Color Header=Color.FromArgb(245,245,245);
  internal static readonly Font TitleFont=new Font("Segoe UI",17,FontStyle.Bold);
  internal static void StyleButton(Button button){
   bool primary=ModernUi.Primary(button.Text),pressed=false;
@@ -20,8 +20,8 @@ static class PremiumControls {
    if(button.Width<3||button.Height<3)return;var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;
    g.Clear(button.Parent==null?Color.White:button.Parent.BackColor);
    bool hover=button.ClientRectangle.Contains(button.PointToClient(Cursor.Position));
-   Color fill=!button.Enabled?ModernUi.Soft:primary?(pressed?Color.FromArgb(44,52,162):hover?AccentHover:Accent):pressed?Color.FromArgb(225,229,240):hover?Color.FromArgb(246,248,252):Color.White;
-   using(var path=ModernUi.Rounded(new RectangleF(.5f,.5f,button.Width-1,button.Height-1),6))using(var brush=new SolidBrush(fill))using(var border=new Pen(primary?fill:button.Focused?Accent:PowTheme.Line)){
+   Color fill=!button.Enabled?ModernUi.Soft:primary?(pressed?Color.FromArgb(12,78,137):hover?AccentHover:Accent):pressed?Color.FromArgb(224,232,239):hover?Color.FromArgb(245,245,245):Color.White;
+   using(var path=ModernUi.Rounded(new RectangleF(.5f,.5f,button.Width-1,button.Height-1),4))using(var brush=new SolidBrush(fill))using(var border=new Pen(primary?fill:button.Focused?Accent:PowTheme.Line)){
     g.FillPath(brush,path);g.DrawPath(border,path);
    }
    var text=Rectangle.Inflate(button.ClientRectangle,-9,-3);
