@@ -52,3 +52,10 @@ blue accents, compact command bars and full top-tab captions. Reports use a
 professional engineering-document layout with numbered sections, structured
 tables, equations, traceable inputs and clear figures. Do not infer an engineer
 approval or signature from a generated report.
+
+## Report printing requirements (14 November 2026)
+
+Use A4 paper and a minimum printed text size of 7pt, including metadata,
+footers, table headers and graph labels. Favor compact spacing and automatic
+page flow to reduce paper use. Preserve calculations and avoid splitting
+individual rows or figures. Verify the rendered PDF rather than CSS alone.

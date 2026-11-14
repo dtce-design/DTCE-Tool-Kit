@@ -1,0 +1,26 @@
+DTCE Tool Kit v1.4.44 / compact A4 report files
+14 November 2026 (Asia/Manila)
+
+Owner requirement: minimum report font 7pt, A4 paper, compact to reduce paper.
+
+Report file changes
+- A4 portrait; 12mm top/side and 14mm bottom margins.
+- 8.5pt body, 7.5pt tables, 7pt minimum labels, headers, notes and footers.
+- Compact project header, highlights, row padding, equations and captions.
+- Navigation/contents remains on screen; omitted from print to save paper.
+- Automatic page flow replaces forced new pages for individual sections.
+- Individual rows and figures remain together; table headers repeat.
+- Full-width vector graph labels enlarged before scaling to remain readable.
+- Roughness plan sized to use the remaining first-page area.
+- Existing image-based PDF renderer enforces 7pt for its text helper. Its
+  fixed-page composition remains available; use Export report file for the
+  new compact layout, then Ctrl+P with A4 / 100% scale to print or save PDF.
+
+Verification
+- Same demonstration report: v1.4.43 16 pages; v1.4.44 8 pages.
+- Inputs, directions, profiles, pressure cases and calculations retained.
+- Generated PDF checked as A4 on every page; nominal minimum font 7pt
+  (6.997pt in Chromium's rounded PDF font metrics); horizontal text bounds pass.
+- Ten report tests passed. Admin/User compile against .NET Framework 4.8.
+- Actual Windows GUI/Excel/printing verification remains pending.
+- GitHub source checkpoint only; no Microsoft Store/TestFlight/Pages upload.
