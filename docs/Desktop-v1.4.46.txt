@@ -1,0 +1,32 @@
+DTCE Tool Kit v1.4.46 — POW startup fix and desktop presentation
+14 November 2026 (Asia/Manila)
+
+POW startup
+Recalculation and selected-tab refresh can be requested by native control and
+saved-default events while the form is still being assembled. The additional
+purchase updater previously accessed extraGrids["WallFooting"] before that
+entry necessarily existed. A separate initializingWorks guard now keeps both
+recalculation and tab refresh inactive until all controls, dictionaries,
+defaults, navigation and theme setup have completed. The first calculation
+then runs normally. Extra purchase updates also wait for extraReady.
+This fixes an identified premature dictionary access; native Windows testing
+is still required to confirm the owner's reported startup on their machine.
+
+Presentation
+The owner no longer requires a Microsoft 365 copy. Shared controls now use a
+DTCE navy/teal identity: dark workspace header, restrained teal actions,
+neutral light worksheet surfaces, readable 10pt text, lighter full top tabs,
+consistent command icons and 36px minimum table rows. Estimate worksheets
+have their own title, short input guidance and balanced outer margins.
+Editable and computed columns use distinct neutral surfaces. Existing grids,
+input handlers, row order, full tab captions and calculation logic are kept.
+Report typography is unchanged: A4, minimum 7pt.
+
+Validation
+Admin and User compile against net48 / C#5. The 94 additional quantity,
+routing and stock-sharing checks pass. Native Windows integration tests now
+also simulate a re-entrant calculation/tab event while the Wall Footing
+registry entry is absent; these tests compile but cannot run in this Linux
+workspace. Actual Windows startup, GUI render and Excel COM remain pending.
+Versioned local preview ZIPs; GitHub recovery checkpoint. No Store upload,
+TestFlight publication, Pages deployment or private key included.

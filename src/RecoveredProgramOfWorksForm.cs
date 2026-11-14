@@ -227,6 +227,9 @@ namespace BeamScheduleFormatter
 
 		private bool filling;
 
+        // Control/default events can fire while tabs and their dictionaries are incomplete.
+        private bool initializingWorks = true;
+
 		private bool syncingExcel;
 
 		private bool childWorksDirty;
@@ -4702,6 +4705,7 @@ worksExcelTimer.Tick += async delegate
 			status.Height = 38;
 			status.BackColor = Color.FromArgb(229, 242, 242);
 			status.ForeColor = PowTheme.Ink;
+            initializingWorks = false;
 			Recalculate();
 			saved = DataXml();
 		}
@@ -4866,7 +4870,7 @@ worksExcelTimer.Tick += async delegate
 
 		private void WorksTabChanged()
 		{
-			if (!filling)
+			if (!initializingWorks && !filling)
 			{
 				if (childWorksDirty)
 				{
@@ -5344,7 +5348,7 @@ worksExcelTimer.Tick += async delegate
 
 		private void AddGrid(string title, DataGridView grid, string note)
 		{
-			TabPage tabPage = new TabPage(title);
+			TabPage tabPage = new TabPage(title) { Padding = new Padding(14, 10, 14, 14) };
 			Label value = new Label
 			{
 				Dock = DockStyle.Top,
@@ -5389,6 +5393,7 @@ worksExcelTimer.Tick += async delegate
 			tabPage.Controls.Add(grid);
 			tabPage.Controls.Add(flowLayoutPanel);
 			tabPage.Controls.Add(value);
+            tabPage.Controls.Add(new WorksheetHeading { Text=title, Subtitle=grid.ReadOnly?"Computed quantities and source breakdown":"Enter measurements below  ·  Calculated quantities update automatically" });
 			tabs.TabPages.Add(tabPage);
 		}
 
@@ -6855,7 +6860,7 @@ worksExcelTimer.Tick += async delegate
 
 		public void Recalculate()
 		{
-			if (filling || wood == null || walls == null || finishSchedule == null || wallFinishes == null)
+			if (initializingWorks || filling || wood == null || walls == null || finishSchedule == null || wallFinishes == null)
 			{
 				return;
 			}

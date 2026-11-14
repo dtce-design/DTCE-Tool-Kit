@@ -59,3 +59,11 @@ Use A4 paper and a minimum printed text size of 7pt, including metadata,
 footers, table headers and graph labels. Favor compact spacing and automatic
 page flow to reduce paper use. Preserve calculations and avoid splitting
 individual rows or figures. Verify the rendered PDF rather than CSS alone.
+
+## Updated visual preference (14 November 2026)
+
+The owner explicitly relaxed the Microsoft 365 requirement: prioritize an
+art-directed, polished DTCE interface rather than imitating Microsoft. Keep
+full top tab names, readable tables and compact professional reports. The
+current desktop direction uses a navy workspace header, restrained teal
+actions and neutral light worksheet surfaces.

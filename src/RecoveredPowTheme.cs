@@ -7,11 +7,11 @@ using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 internal static class PowTheme {
  static readonly ConditionalWeakTable<Control,object> themed=new ConditionalWeakTable<Control,object>();
- public static readonly Color Ink=Color.FromArgb(36,36,36);
+ public static readonly Color Ink=Color.FromArgb(28,43,61);
  public static readonly Color Teal=PremiumControls.Accent;
- public static readonly Color Background=Color.FromArgb(250,250,250);
- public static readonly Color Line=Color.FromArgb(224,224,224);
- public static readonly Color Muted=Color.FromArgb(97,97,97);
+ public static readonly Color Background=Color.FromArgb(245,247,250);
+ public static readonly Color Line=Color.FromArgb(224,230,237);
+ public static readonly Color Muted=Color.FromArgb(105,120,137);
  public static void Apply(Control root) {
   if(root==null||root.IsDisposed)return;
   object seen;if(themed.TryGetValue(root,out seen))return;
@@ -43,14 +43,14 @@ internal static class PowTheme {
   } finally {root.ResumeLayout(true);}
  }
  static void StyleTabs(TabControl tab) {
-  ModernUi.Navigation(tab);tab.Font=ModernUi.Strong;tab.DrawMode=TabDrawMode.OwnerDrawFixed;tab.ShowToolTips=true;ModernUi.Buffer(tab);
+  ModernUi.Navigation(tab);tab.Font=ModernUi.Body;tab.DrawMode=TabDrawMode.OwnerDrawFixed;tab.ShowToolTips=true;ModernUi.Buffer(tab);
   // Native variable-width tabs measure the complete caption and wrap onto more rows.
   // No fixed tab widths, abbreviated titles, or ellipsis drawing.
   tab.DrawItem+=delegate(object sender,DrawItemEventArgs e){
    if(e.Index<0||e.Index>=tab.TabCount)return;bool selected=e.Index==tab.SelectedIndex;Rectangle r=e.Bounds;
    using(var brush=new SolidBrush(Background))e.Graphics.FillRectangle(brush,r);
    var face=Rectangle.Inflate(r,-2,-3);
-   if(selected&&face.Width>0&&face.Height>0)using(var fill=new SolidBrush(Color.White))e.Graphics.FillRectangle(fill,face);if(selected)using(var accent=new SolidBrush(Teal))e.Graphics.FillRectangle(accent,r.Left+12,r.Bottom-3,Math.Max(1,r.Width-24),3);
+   if(selected&&face.Width>0&&face.Height>0)using(var path=ModernUi.Rounded(face,5))using(var fill=new SolidBrush(PremiumControls.AccentSoft))e.Graphics.FillPath(fill,path);if(selected)using(var accent=new SolidBrush(Teal))e.Graphics.FillRectangle(accent,r.Left+12,r.Bottom-3,Math.Max(1,r.Width-24),3);
    TextRenderer.DrawText(e.Graphics,tab.TabPages[e.Index].Text,tab.Font,Rectangle.Inflate(r,-8,-3),selected?Teal:Muted,
     TextFormatFlags.NoPrefix|TextFormatFlags.VerticalCenter|TextFormatFlags.HorizontalCenter|TextFormatFlags.SingleLine);
    if(tab.Focused&&selected)ControlPaint.DrawFocusRectangle(e.Graphics,Rectangle.Inflate(r,-5,-5),Teal,Background);
@@ -68,13 +68,13 @@ internal static class PowTheme {
   grid.DefaultCellStyle.Font=ModernUi.Body;grid.DefaultCellStyle.ForeColor=Ink;grid.DefaultCellStyle.Padding=new Padding(10,5,10,5);
   grid.DefaultCellStyle.SelectionBackColor=ModernUi.Selection;grid.DefaultCellStyle.SelectionForeColor=Ink;
   grid.RowHeadersDefaultCellStyle.BackColor=ModernUi.Soft;grid.RowHeadersDefaultCellStyle.SelectionBackColor=ModernUi.Selection;
-  grid.RowTemplate.MinimumHeight=32;grid.RowTemplate.Height=32;grid.AllowUserToResizeRows=false;grid.AllowUserToOrderColumns=false;
+  grid.RowTemplate.MinimumHeight=36;grid.RowTemplate.Height=36;grid.AllowUserToResizeRows=false;grid.AllowUserToOrderColumns=false;
   grid.AutoSizeRowsMode=DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;grid.DefaultCellStyle.WrapMode=DataGridViewTriState.True;
   grid.AlternatingRowsDefaultCellStyle.BackColor=Color.FromArgb(252,253,255);
   foreach(DataGridViewColumn col in grid.Columns)StyleColumn(col);
   grid.ColumnAdded+=delegate(object s,DataGridViewColumnEventArgs e){StyleColumn(e.Column);};
  }
- static void StyleColumn(DataGridViewColumn col){col.SortMode=DataGridViewColumnSortMode.NotSortable;}
+ static void StyleColumn(DataGridViewColumn col){col.SortMode=DataGridViewColumnSortMode.NotSortable;col.DefaultCellStyle.BackColor=col.ReadOnly?Color.White:Color.FromArgb(247,251,253);if(col.ReadOnly)col.DefaultCellStyle.ForeColor=Ink;}
  static void FitGuide(Label label) {
   bool fitting=false;
   Action fit=delegate {
