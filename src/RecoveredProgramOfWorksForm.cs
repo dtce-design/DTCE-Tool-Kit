@@ -5330,6 +5330,8 @@ worksExcelTimer.Tick += async delegate
 				Dock = DockStyle.Top,
 				Height = 54,
 				Text = note,
+                Visible = false,
+                ForeColor = PowTheme.Muted,
 				Padding = new Padding(8)
 			};
 			FlowLayoutPanel flowLayoutPanel = new FlowLayoutPanel
@@ -5363,6 +5365,7 @@ worksExcelTimer.Tick += async delegate
 					EditWallOpenings(grid);
 				});
 			}
+			Button(flowLayoutPanel, "Guide", delegate { value.Visible = !value.Visible; });
 			tabPage.Controls.Add(grid);
 			tabPage.Controls.Add(flowLayoutPanel);
 			tabPage.Controls.Add(value);
@@ -7900,35 +7903,13 @@ worksExcelTimer.Tick += async delegate
 		private void AddHome()
 		{
 			TabPage tabPage = new TabPage("Bill of Quantities");
-			Label value = new Label
-			{
-				Text = "BILL OF QUANTITIES AND DETAILED QUANTITY TAKE-OFF / CALCULATIONS",
-				Dock = DockStyle.Top,
-				Height = 62,
-				Padding = new Padding(16, 12, 0, 0),
-				Font = new Font("Segoe UI", 16f, FontStyle.Bold),
-				ForeColor = PowTheme.Ink
-			};
-			FlowLayoutPanel flowLayoutPanel = new FlowLayoutPanel
-			{
-				Dock = DockStyle.Top,
-				Height = 48,
-				Padding = new Padding(12, 6, 6, 6),
-				AutoScroll = true
-			};
-			Button(flowLayoutPanel, "Open / Link Excel", LinkWorksExcel);
-			Button(flowLayoutPanel, "Use open workbook", LinkActiveWorksExcel);
-			Button(flowLayoutPanel, "Map BACKUP items", EditBackupMapping);
-			Button(flowLayoutPanel, "Refresh BACKUP items", RefreshBackupBill);
-			Button(flowLayoutPanel, "Sync now", delegate
-			{
-				Guard();
-				SyncWorksExcel();
-			});
-			Button(flowLayoutPanel, "Review inputs", ShowWorksIssues);
-			Button(flowLayoutPanel, "Disconnect Excel", DisconnectWorksExcel);
+			var value = new PremiumSectionHeading { Text = "Bill of Quantities", Subtitle = "Project quantities and their measurement sources" };
+			var flowLayoutPanel = PremiumExcelToolbar();
 			excelStatus.Dock = DockStyle.Top;
-			excelStatus.Height = 55;
+			excelStatus.Height = 26;
+            excelStatus.Padding = new Padding(18, 3, 18, 3);
+            excelStatus.Font = ModernUi.Body;
+            excelStatus.ForeColor = PowTheme.Muted;
 			boqStatus = new Label
 			{
 				Dock = DockStyle.Top,
@@ -8113,8 +8094,8 @@ worksExcelTimer.Tick += async delegate
 					boqGrid.Rows[index].ReadOnly = true;
 					if (item.Section)
 					{
-						boqGrid.Rows[index].DefaultCellStyle.BackColor = Color.FromArgb(225, 233, 240);
-						boqGrid.Rows[index].DefaultCellStyle.Font = new Font(boqGrid.Font, FontStyle.Bold);
+						boqGrid.Rows[index].DefaultCellStyle.BackColor = PremiumControls.AccentSoft;
+						boqGrid.Rows[index].DefaultCellStyle.Font = ModernUi.Strong;
 					}
 					else if (item.Source)
 					{
@@ -8122,12 +8103,12 @@ worksExcelTimer.Tick += async delegate
 					}
 					else
 					{
-						boqGrid.Rows[index].DefaultCellStyle.Font = new Font(boqGrid.Font, FontStyle.Bold);
+						boqGrid.Rows[index].DefaultCellStyle.Font = item.Description.StartsWith("Total", StringComparison.OrdinalIgnoreCase) ? ModernUi.Strong : ModernUi.Body;
 					}
 				}
 				AddLegacyBoqRows();
 boqStatus.ForeColor = PowTheme.Teal;
-				boqStatus.Text = "Validated required quantities | Item numbers remain blank where project specifications are unconfirmed. | Source rows explain each material total; do not add them again. Insulation roll sources show net-area basis before whole-roll rounding. Save Program of Works keeps the full project.";
+				boqStatus.Text = "Quantities are up to date. Source rows show the breakdown; count each material total once.";
 			}
 			catch (Exception ex)
 			{

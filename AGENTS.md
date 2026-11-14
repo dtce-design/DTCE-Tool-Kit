@@ -38,3 +38,9 @@ Do not upload to Microsoft Store unless the owner separately requests it.
 A GitHub push is not authorization for Store, TestFlight or Pages publication.
 Publication workflows must default to off and require explicit manual inputs.
 Never include signing keys in a recovery checkpoint or source archive.
+
+## Desktop presentation preference (14 November 2026)
+
+All navigation tabs belong at the top. Display complete tab captions without
+abbreviations, ellipses or compressed fixed widths; wrap into additional rows
+when needed. Keep this preference for Admin and User and for nested tabs.

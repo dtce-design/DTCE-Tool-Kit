@@ -8,8 +8,8 @@ namespace BeamScheduleFormatter {
 internal static class PowTheme {
  static readonly ConditionalWeakTable<Control,object> themed=new ConditionalWeakTable<Control,object>();
  public static readonly Color Ink=Color.FromArgb(24,43,62);
- public static readonly Color Teal=Color.FromArgb(0,113,105);
- public static readonly Color Background=Color.FromArgb(243,246,250);
+ public static readonly Color Teal=PremiumControls.Accent;
+ public static readonly Color Background=Color.FromArgb(246,248,251);
  public static readonly Color Line=Color.FromArgb(222,230,238);
  public static readonly Color Muted=Color.FromArgb(83,102,122);
  public static void Apply(Control root) {
@@ -24,18 +24,10 @@ internal static class PowTheme {
    var flow=root as FlowLayoutPanel;
    if(flow!=null&&flow.Dock==DockStyle.Top&&flow.FlowDirection==FlowDirection.LeftToRight){
     flow.AutoSize=true;flow.AutoSizeMode=AutoSizeMode.GrowAndShrink;flow.WrapContents=true;
-    flow.MinimumSize=new Size(0,44);flow.BackColor=Color.White;
+    flow.MinimumSize=new Size(0,40);flow.Padding=new Padding(12,4,12,4);flow.BackColor=Color.White;
    }
    var tab=root as TabControl;if(tab!=null)StyleTabs(tab);
-   var button=root as Button;if(button!=null&&!(button is ToolModuleButton)) {
-    bool primary=ModernUi.Primary(button.Text);button.FlatStyle=FlatStyle.Flat;button.UseVisualStyleBackColor=false;
-    button.FlatAppearance.BorderSize=1;button.FlatAppearance.BorderColor=primary?Teal:Line;
-    button.BackColor=primary?Teal:Color.White;button.ForeColor=primary?Color.White:Ink;
-    button.Cursor=Cursors.Hand;button.FlatAppearance.MouseOverBackColor=primary?Color.FromArgb(0,92,86):ModernUi.Selection;
-    button.FlatAppearance.MouseDownBackColor=primary?Color.FromArgb(0,76,71):Color.FromArgb(204,229,225);
-    if(button.Parent is FlowLayoutPanel){button.AutoSize=true;button.AutoSizeMode=AutoSizeMode.GrowAndShrink;
-     button.MinimumSize=new Size(button.Width,32);button.Padding=new Padding(10,5,10,5);button.Margin=new Padding(3,3,7,3);}
-   }
+   var button=root as Button;if(button!=null&&!(button is ToolModuleButton))PremiumControls.StyleButton(button);
    var grid=root as DataGridView;if(grid!=null)StyleGrid(grid);
    var text=root as TextBox;if(text!=null){text.BorderStyle=BorderStyle.FixedSingle;
     // Report editors retain their fixed-width typography and custom foregrounds.
@@ -51,37 +43,34 @@ internal static class PowTheme {
   } finally {root.ResumeLayout(true);}
  }
  static void StyleTabs(TabControl tab) {
-  tab.Font=ModernUi.Body;tab.Padding=new Point(14,9);tab.DrawMode=TabDrawMode.OwnerDrawFixed;ModernUi.Buffer(tab);
+  ModernUi.Navigation(tab);tab.Font=ModernUi.Strong;tab.DrawMode=TabDrawMode.OwnerDrawFixed;tab.ShowToolTips=true;ModernUi.Buffer(tab);
+  // Native variable-width tabs measure the complete caption and wrap onto more rows.
+  // No fixed tab widths, abbreviated titles, or ellipsis drawing.
   tab.DrawItem+=delegate(object sender,DrawItemEventArgs e){
-   if(e.Index<0||e.Index>=tab.TabCount)return;bool selected=e.Index==tab.SelectedIndex;
-   Rectangle r=e.Bounds;bool sidebar=tab.Alignment==TabAlignment.Left;
-   using(var brush=new SolidBrush(selected?Color.White:Background))e.Graphics.FillRectangle(brush,r);
-   var text=r;text.Inflate(sidebar?-16:-10,-3);
-   TextRenderer.DrawText(e.Graphics,tab.TabPages[e.Index].Text,selected?ModernUi.Strong:ModernUi.Body,text,
-    selected?Teal:Muted,TextFormatFlags.NoPrefix|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|
-    (sidebar?TextFormatFlags.Left|TextFormatFlags.WordBreak:TextFormatFlags.HorizontalCenter));
-   if(selected)using(var accent=new SolidBrush(Teal)) {
-    if(sidebar)e.Graphics.FillRectangle(accent,r.Left+1,r.Top+8,3,Math.Max(1,r.Height-16));
-    else e.Graphics.FillRectangle(accent,r.Left+10,r.Bottom-3,Math.Max(1,r.Width-20),3);
-   }
-   if(tab.Focused&&selected)ControlPaint.DrawFocusRectangle(e.Graphics,Rectangle.Inflate(r,-5,-5),Teal,Color.White);
+   if(e.Index<0||e.Index>=tab.TabCount)return;bool selected=e.Index==tab.SelectedIndex;Rectangle r=e.Bounds;
+   using(var brush=new SolidBrush(Background))e.Graphics.FillRectangle(brush,r);
+   var face=Rectangle.Inflate(r,-2,-3);
+   if(selected&&face.Width>0&&face.Height>0)using(var path=ModernUi.Rounded(face,6))using(var fill=new SolidBrush(PremiumControls.AccentSoft))e.Graphics.FillPath(fill,path);
+   TextRenderer.DrawText(e.Graphics,tab.TabPages[e.Index].Text,tab.Font,Rectangle.Inflate(r,-8,-3),selected?Teal:Muted,
+    TextFormatFlags.NoPrefix|TextFormatFlags.VerticalCenter|TextFormatFlags.HorizontalCenter|TextFormatFlags.SingleLine);
+   if(tab.Focused&&selected)ControlPaint.DrawFocusRectangle(e.Graphics,Rectangle.Inflate(r,-5,-5),Teal,Background);
   };
  }
  static void StyleGrid(DataGridView grid) {
   GridAppearance.Apply(grid);ModernUi.Buffer(grid);
   grid.EnableHeadersVisualStyles=false;grid.BackgroundColor=Color.White;grid.BorderStyle=BorderStyle.None;grid.GridColor=Line;
   grid.CellBorderStyle=DataGridViewCellBorderStyle.SingleHorizontal;grid.ColumnHeadersBorderStyle=DataGridViewHeaderBorderStyle.None;
-  grid.ColumnHeadersDefaultCellStyle.BackColor=Ink;grid.ColumnHeadersDefaultCellStyle.ForeColor=Color.White;
-  grid.ColumnHeadersDefaultCellStyle.SelectionBackColor=Ink;grid.ColumnHeadersDefaultCellStyle.SelectionForeColor=Color.White;
-  grid.ColumnHeadersDefaultCellStyle.Font=ModernUi.Strong;grid.ColumnHeadersDefaultCellStyle.Padding=new Padding(8,10,8,10);
+  grid.ColumnHeadersDefaultCellStyle.BackColor=PremiumControls.Header;grid.ColumnHeadersDefaultCellStyle.ForeColor=Muted;
+  grid.ColumnHeadersDefaultCellStyle.SelectionBackColor=PremiumControls.Header;grid.ColumnHeadersDefaultCellStyle.SelectionForeColor=Ink;
+  grid.ColumnHeadersDefaultCellStyle.Font=ModernUi.Strong;grid.ColumnHeadersDefaultCellStyle.Padding=new Padding(10,9,10,9);
   grid.ColumnHeadersDefaultCellStyle.WrapMode=DataGridViewTriState.True;
   grid.ColumnHeadersHeightSizeMode=DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-  grid.DefaultCellStyle.Font=ModernUi.Body;grid.DefaultCellStyle.ForeColor=Ink;grid.DefaultCellStyle.Padding=new Padding(7,5,7,5);
+  grid.DefaultCellStyle.Font=ModernUi.Body;grid.DefaultCellStyle.ForeColor=Ink;grid.DefaultCellStyle.Padding=new Padding(10,5,10,5);
   grid.DefaultCellStyle.SelectionBackColor=ModernUi.Selection;grid.DefaultCellStyle.SelectionForeColor=Ink;
   grid.RowHeadersDefaultCellStyle.BackColor=ModernUi.Soft;grid.RowHeadersDefaultCellStyle.SelectionBackColor=ModernUi.Selection;
-  grid.RowTemplate.MinimumHeight=34;grid.RowTemplate.Height=34;grid.AllowUserToResizeRows=false;grid.AllowUserToOrderColumns=false;
+  grid.RowTemplate.MinimumHeight=32;grid.RowTemplate.Height=32;grid.AllowUserToResizeRows=false;grid.AllowUserToOrderColumns=false;
   grid.AutoSizeRowsMode=DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;grid.DefaultCellStyle.WrapMode=DataGridViewTriState.True;
-  grid.AlternatingRowsDefaultCellStyle.BackColor=Color.FromArgb(248,250,252);
+  grid.AlternatingRowsDefaultCellStyle.BackColor=Color.FromArgb(252,253,255);
   foreach(DataGridViewColumn col in grid.Columns)StyleColumn(col);
   grid.ColumnAdded+=delegate(object s,DataGridViewColumnEventArgs e){StyleColumn(e.Column);};
  }

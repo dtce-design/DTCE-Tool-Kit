@@ -1,0 +1,25 @@
+DTCE Tool Kit v1.4.42 / desktop presentation preview
+14 November 2026 (Asia/Manila)
+
+Owner requirement: all tabs at the top, with their FULL names. Do not compress
+or abbreviate captions. Multiline variable-width tabs wrap into more rows.
+
+Presentation changes
+- Replaces the left navigation used in v1.4.41 with top tabs in every workspace.
+- Shared indigo accent, neutral surfaces, rounded native action buttons,
+  coordinated hover/pressed/disabled/keyboard focus states.
+- Compact workspace header and toolbars; button sizes follow their captions.
+- BOQ title/subtitle replaces the long uppercase banner.
+- Link Excel, Use open workbook and Sync now remain directly accessible.
+  More contains mapping, refresh, review, disconnect and a quantities guide.
+- Tables use quiet header surfaces, lighter separators and regular body text.
+  Sections and explicit total rows retain emphasis; source rows remain distinct.
+- Worksheet guides are accessible via a Guide action above each working grid.
+- No changes to project XML, stored quantities, access keys or calculations.
+
+Verification
+- Both Windows editions and the native layout test suite must compile.
+- Native resize checks include complete tab-caption widths at 1100/1450px.
+- This Linux workspace cannot run the Windows UI/Excel COM tests. Actual Windows
+  layout, high DPI, mouse/keyboard action states and printing remain pending.
+- GitHub source checkpoint only. No Microsoft Store/TestFlight/Pages upload.

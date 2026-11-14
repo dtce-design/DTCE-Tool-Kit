@@ -12,8 +12,8 @@ static class ModernUi {
  internal static readonly Font Heading = new Font("Segoe UI", 20f, FontStyle.Bold);
  internal static readonly Color Surface = Color.White;
  internal static readonly Color Input = Color.FromArgb(247, 251, 255);
- internal static readonly Color Selection = Color.FromArgb(221, 242, 239);
- internal static readonly Color Soft = Color.FromArgb(239, 244, 248);
+ internal static readonly Color Selection = Color.FromArgb(233, 237, 255);
+ internal static readonly Color Soft = Color.FromArgb(245, 247, 251);
  static readonly ConditionalWeakTable<Form, object> windows = new ConditionalWeakTable<Form, object>();
  static bool installed, applying;
  internal static void Install() {
@@ -34,8 +34,8 @@ static class ModernUi {
   path.AddArc(bounds.Right-d,bounds.Bottom-d,d,d,0,90);path.AddArc(bounds.Left,bounds.Bottom-d,d,d,90,90);path.CloseFigure();return path;
  }
  internal static void Navigation(TabControl tabs) {
-  tabs.Alignment=TabAlignment.Left;tabs.Multiline=true;tabs.SizeMode=TabSizeMode.Fixed;
-  tabs.ItemSize=new Size(46,224); tabs.Padding=new Point(12,8);
+  tabs.Alignment=TabAlignment.Top;tabs.Multiline=true;tabs.SizeMode=TabSizeMode.Normal;
+  tabs.ItemSize=new Size(0,36);tabs.Padding=new Point(16,9);
   tabs.AccessibleName="Program of Works sections";
  }
  internal static bool Primary(string text) {

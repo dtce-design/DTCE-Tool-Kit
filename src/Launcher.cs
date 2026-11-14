@@ -24,7 +24,7 @@ class LauncherForm:Form {
    #else
    "USER EDITION"
    #endif
-   ,Left=143,Top=24,Width=260,Height=20,Font=new Font("Segoe UI",8.5f,FontStyle.Bold),ForeColor=Color.FromArgb(113,219,201)});
+   ,Left=143,Top=24,Width=260,Height=20,Font=new Font("Segoe UI",8.5f,FontStyle.Bold),ForeColor=Color.FromArgb(175,186,255)});
   var intro=new Label{Text="Your workspaces",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",12,FontStyle.Bold),ForeColor=PowTheme.Ink,Margin=Padding.Empty};dashboard.Controls.Add(intro,0,1);
   var cards=new FlowLayoutPanel{Dock=DockStyle.Fill,AutoScroll=true,Margin=Padding.Empty,Padding=new Padding(0,0,0,12)};dashboard.Controls.Add(cards,0,2);
   AddCard(cards,"Formatters","Prepare beam and slab schedules from your DXF drawings.",()=>ShowGroup(formatterTabs,"Formatters"));
@@ -37,7 +37,7 @@ class LauncherForm:Form {
   Action sizeCards=()=>{int width=Math.Max(270,(cards.ClientSize.Width-32)/2);foreach(Control item in cards.Controls)item.Width=width;};
   cards.Resize+=(sender,args)=>sizeCards();sizeCards();
   dashboard.Controls.Add(new Label{Text="v"+Engine.Version+"  /  Developed by Engr. Daryl O. Tomaneng",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,ForeColor=PowTheme.Muted,Font=new Font("Segoe UI",8.5f),Margin=Padding.Empty},0,3);
-  var header=new FlowLayoutPanel{Dock=DockStyle.Top,Height=58,Padding=new Padding(10),BackColor=Color.White};var back=new Button{Text="‹  Workspaces",Width=140,Height=34};back.Click+=(s,e)=>ShowStart();header.Controls.Add(back);header.Controls.Add(groupTitle);groupHost.Controls.Add(groupContent);groupHost.Controls.Add(header);
+  var header=PremiumControls.WorkspaceHeader(groupTitle,ShowStart);groupHost.Controls.Add(groupContent);groupHost.Controls.Add(header);
   AddEntry(formatterTabs,"Beam Formatter","Open Beam Formatter",()=>UseTool(ref formatter,CreateBeam,"Beam Formatter",formatterTabs,1));AddEntry(formatterTabs,"Slab Formatter","Open Slab Formatter",()=>UseTool(ref slabFormatter,()=>new SlabFormatterForm(),"Slab Formatter",formatterTabs,ProgramAccess.SlabFormatter));AddDesignEntry("Splice, Development & Hooks",()=>UseTool(ref lengths,()=>new RebarLengthForm(),"Splice, Development & Hooks",designTabs,4));AddDesignEntry("Purlin Design",()=>OpenDesign("Purlin Design",()=>new PurlinDesignForm()));AddDesignEntry("Truss Connections",()=>OpenDesign("Truss Connections",()=>new TrussConnectionForm()));AddDesignEntry("Wind Load (NSCP 2015)",()=>OpenDesign("Wind Load (NSCP 2015)",()=>new WindDesignForm()));
   designTabs.SelectedIndexChanged+=(s,e)=>{if(groupHost.Visible&&!loadingDesign)LoadSelectedDesign();};
   FormClosing+=(s,e)=>{var children=new[]{formatter,slabFormatter,lengths,project,works}.Concat(designModules.Values).Where(f=>f!=null&&!f.IsDisposed).Distinct().ToList();
@@ -74,7 +74,7 @@ class ToolModuleButton:Button {
   e.Graphics.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
   e.Graphics.Clear(Parent==null?PowTheme.Background:Parent.BackColor);
   var bounds=new RectangleF(1,1,Width-3,Height-3);
-  using(var path=ModernUi.Rounded(bounds,12))using(var fill=new SolidBrush(hover?Color.FromArgb(247,253,252):Color.White))using(var border=new Pen(hover||Focused?PowTheme.Teal:PowTheme.Line,Focused?2:1)){
+  using(var path=ModernUi.Rounded(bounds,12))using(var fill=new SolidBrush(hover?Color.FromArgb(248,249,255):Color.White))using(var border=new Pen(hover||Focused?PowTheme.Teal:PowTheme.Line,Focused?2:1)){
    e.Graphics.FillPath(fill,path);e.Graphics.DrawPath(border,path);
   }
   using(var path=ModernUi.Rounded(new RectangleF(20,19,38,38),9))using(var fill=new SolidBrush(ModernUi.Selection))e.Graphics.FillPath(fill,path);
