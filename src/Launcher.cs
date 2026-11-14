@@ -24,8 +24,8 @@ class LauncherForm:Form {
    #else
    "USER EDITION"
    #endif
-   ,Left=143,Top=16,Width=260,Height=20,Font=new Font("Segoe UI",8.5f,FontStyle.Bold),ForeColor=PremiumControls.Accent});
-  var intro=new Label{Text="Your workspaces",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",12,FontStyle.Bold),ForeColor=PowTheme.Ink,Margin=Padding.Empty};dashboard.Controls.Add(intro,0,1);
+   ,Left=143,Top=16,Width=260,Height=20,Font=new Font("Segoe UI",8.5f,FontStyle.Bold),ForeColor=PowTheme.Teal});
+  var intro=new Label{Text="Your workspaces",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",12,FontStyle.Bold),ForeColor=PowTheme.Ink,Margin=Padding.Empty};var workspaceActions=new Panel{Dock=DockStyle.Fill,Margin=Padding.Empty,Padding=new Padding(0,10,0,10)};var preferences=new Button{Text="Workspace settings",Dock=DockStyle.Right,Width=190,AccessibleName="Workspace appearance settings"};preferences.Click+=(sender,args)=>DesktopAppearance.ShowSettings(this);workspaceActions.Controls.Add(intro);workspaceActions.Controls.Add(preferences);dashboard.Controls.Add(workspaceActions,0,1);
   var cards=new FlowLayoutPanel{Dock=DockStyle.Fill,AutoScroll=true,Margin=Padding.Empty,Padding=new Padding(0,0,0,12)};dashboard.Controls.Add(cards,0,2);
   AddCard(cards,"Formatters","Prepare beam and slab schedules from your DXF drawings.",ShowFormatters);
   AddCard(cards,"Program of Works","Estimate quantities and keep your Bill of Quantities connected.",()=>UseTool(ref works,()=>new ProgramOfWorksForm(),"Program of Works",null,2));
@@ -46,7 +46,7 @@ class LauncherForm:Form {
    if(generator!=null&&!generator.IsDisposed)children.Add(generator);
    #endif
    foreach(var child in children){child.Close();if(!child.IsDisposed){e.Cancel=true;return;}}
-  };new StoreUpdateMonitor(this);ShowStart();
+  };DesktopAppearance.Attach(this);new StoreUpdateMonitor(this);ShowStart();
  }
  Form CreateBeam(){var form=new MainForm();
   #if !ADMIN_APP

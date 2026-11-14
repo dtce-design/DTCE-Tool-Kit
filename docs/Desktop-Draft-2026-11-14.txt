@@ -1,3 +1,5 @@
+HISTORICAL DRAFT — superseded by owner finalization authorization. See Desktop-v1.4.47.txt.
+
 DTCE desktop draft — 14 November 2026 (Asia/Manila)
 Status: owner is still adding requests. DO NOT finalize/package a new release.
 Existing downloadable v1.4.46 remains the last preview; current edits below

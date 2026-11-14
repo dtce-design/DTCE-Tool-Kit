@@ -10,14 +10,14 @@ static class ModernUi {
  internal static readonly Font Body = new Font("Segoe UI", 10f);
  internal static readonly Font Strong = new Font("Segoe UI", 10f, FontStyle.Bold);
  internal static readonly Font Heading = new Font("Segoe UI", 20f, FontStyle.Bold);
- internal static readonly Color Surface = Color.FromArgb(29, 36, 46);
- internal static readonly Color Input = Color.FromArgb(36, 45, 57);
- internal static readonly Color Selection = Color.FromArgb(48, 64, 82);
- internal static readonly Color Soft = Color.FromArgb(33, 41, 52);
+ internal static Color Surface {get{return DesktopAppearance.Palette.Surface;}}
+ internal static Color Input {get{return DesktopAppearance.Palette.Input;}}
+ internal static Color Selection {get{return DesktopAppearance.Palette.Selected;}}
+ internal static Color Soft {get{return DesktopAppearance.Palette.Soft;}}
  static readonly ConditionalWeakTable<Form, object> windows = new ConditionalWeakTable<Form, object>();
  static bool installed, applying;
  internal static void Install() {
-  if(installed)return; installed=true;
+  if(installed)return; installed=true;DesktopAppearance.Initialize();
   // Includes modal dialogs and embedded tools which do not call AppBrand.Apply.
   // Only new forms are traversed; do not walk every table on every idle event.
   Application.Idle += delegate {

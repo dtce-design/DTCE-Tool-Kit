@@ -1,0 +1,15 @@
+using System;using System.Drawing;using System.Windows.Forms;
+namespace BeamScheduleFormatter {
+internal static partial class PowTheme {
+ static void ApplyAppearanceRole(Control control){string role=control.Tag as string;if(role=="appearance-header")control.BackColor=DesktopAppearance.Palette.Chrome;if(role=="appearance-header-title")control.ForeColor=Ink;if(role=="appearance-brand")control.ForeColor=Teal;}
+ // Palette-only repaint: no input reset, grid rebuild, recalculation, event rebinding or edit commit.
+ internal static void Refresh(Control root,DesktopPalette previous){if(root==null||root.IsDisposed)return;var p=DesktopAppearance.Palette;root.SuspendLayout();try{root.BackColor=p.Translate(root.BackColor,previous);root.ForeColor=p.Translate(root.ForeColor,previous);if(root is Form){root.BackColor=Background;root.ForeColor=Ink;}if(root is TabPage)root.BackColor=Background;
+  var grid=root as DataGridView;if(grid!=null){var sizing=grid.AutoSizeRowsMode;grid.AutoSizeRowsMode=DataGridViewAutoSizeRowsMode.None;try{grid.BackgroundColor=ModernUi.Surface;grid.GridColor=Line;StylePalette(grid.DefaultCellStyle,previous);StylePalette(grid.ColumnHeadersDefaultCellStyle,previous);StylePalette(grid.RowHeadersDefaultCellStyle,previous);StylePalette(grid.AlternatingRowsDefaultCellStyle,previous);foreach(DataGridViewColumn column in grid.Columns)StylePalette(column.DefaultCellStyle,previous);foreach(DataGridViewRow row in grid.Rows){if(row.HasDefaultCellStyle)StylePalette(row.DefaultCellStyle,previous);foreach(DataGridViewCell cell in row.Cells)if(cell.HasStyle)StylePalette(cell.Style,previous);}}finally{grid.AutoSizeRowsMode=sizing;}}
+  var text=root as TextBox;if(text!=null){text.BackColor=text.ReadOnly?ModernUi.Soft:ModernUi.Input;text.ForeColor=Ink;}var number=root as NumericUpDown;if(number!=null){number.BackColor=ModernUi.Input;number.ForeColor=Ink;}var combo=root as ComboBox;if(combo!=null){combo.BackColor=ModernUi.Input;combo.ForeColor=Ink;}var list=root as ListBox;if(list!=null){list.BackColor=ModernUi.Input;list.ForeColor=Ink;}
+  var tree=root as TreeView;if(tree!=null){tree.BackColor=ModernUi.Surface;tree.ForeColor=Ink;tree.LineColor=Line;}
+  var button=root as Button;if(button!=null&&!(button is ToolModuleButton)){button.BackColor=ModernUi.Primary(button.Text)?PremiumControls.Accent:ModernUi.Surface;button.ForeColor=ModernUi.Primary(button.Text)?Color.White:Ink;button.Image=CommandIcons.For(button.Text);}
+  ApplyAppearanceRole(root);foreach(Control child in root.Controls)Refresh(child,previous);
+ }finally{root.ResumeLayout(false);root.Invalidate(true);}}
+ static void StylePalette(DataGridViewCellStyle style,DesktopPalette previous){var palette=DesktopAppearance.Palette;style.BackColor=palette.Translate(style.BackColor,previous);style.ForeColor=palette.Translate(style.ForeColor,previous);style.SelectionBackColor=palette.Translate(style.SelectionBackColor,previous);style.SelectionForeColor=palette.Translate(style.SelectionForeColor,previous);}
+}
+}

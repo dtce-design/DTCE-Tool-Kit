@@ -1,0 +1,55 @@
+DTCE Tool Kit v1.4.47 — desktop finalization / workspace appearance
+14 November 2026 (Asia/Manila)
+
+The owner authorized finalization of the accumulated desktop draft and asked
+for Light, Dark and Use system settings under Workspaces settings.
+
+Appearance
+- Workspaces > Workspace settings > Appearance.
+- Light: soft off-white/gray-green surfaces with muted accents.
+- Dark: charcoal surfaces, soft-gray text and muted blue-gray accents.
+- Use system settings (default): follows the Windows app theme, including
+  preference-change events while the app is open. Explicit Light/Dark choices
+  remain fixed when Windows changes. Older/unsupported sessions fall back
+  to Light for system mode.
+- Applies across existing and newly opened forms without rebuilding grids,
+  resetting inputs, ending edits or recalculating engineering quantities.
+- Stored per Windows account at
+  %LOCALAPPDATA%\DTCE\ToolKit\Appearance.xml
+  outside versioned installation folders. Both editions share this desktop
+  preference. Atomic save with a previous-file backup. No project, workbook,
+  activation key, password or report content goes into appearance settings.
+- Theme changes affect desktop presentation. Engineering reports retain the
+  compact white-paper A4 format and minimum7pt text.
+
+Accumulated desktop changes
+- Compact RC Start cards: Member Settings, Cover/Foundation Defaults and
+  Concrete Supply; lean thickness is a bounded numeric field.
+- Duplicate commercial-stock lists removed from RC Start. Commercial lengths
+  stay inside member settings, including footing/miscellaneous settings.
+- Full top captions and distinct main/sub/nested tab surfaces; dark native
+  tab-strip space is painted consistently.
+- Visible vertical column divisions and wrapped, more readable table headers.
+- Beam details / diameter / Grade40-Grade60 summaries occupy full-width tabs
+  instead of the narrow right pane.
+- Formatter tabs load their tools directly without intermediate Open buttons.
+- POW/tab layout and BOQ row insertion are batched; row autosizing pauses
+  during population, and an empty catalogue skips unused demand construction.
+  The initialization guard from v1.4.46 remains in place.
+
+Validation
+Admin and User compiled against .NET Framework4.8 / C#5.
+32 appearance persistence/system-policy/XML/contrast checks passed.
+94 additional quantity/routing/stock checks passed.
+Windows appearance/edit-preservation and existing desktop integration tests
+were added/updated and compiled. They could not be executed in the Linux
+workspace. Actual Windows rendering, first-open timing and Excel COM remain
+unverified here. No native screenshot or speed benchmark is claimed.
+The conversation previews are illustrative mockups, not Windows screenshots.
+
+Delivery
+Versioned Admin, User and source ZIPs, with key-free portable Windows builds.
+Source backed up to GitHub. No Microsoft Store, TestFlight or Pages upload.
+Existing calculation/pay-item behavior and version20 project schema retained.
+See Additional-Works-v1.4.45.txt for the added quantity sheets and workbook
+routing limits. No owner signing key or real activation package is included.

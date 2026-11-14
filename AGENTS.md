@@ -78,3 +78,12 @@ member settings. Formatter tabs should open their tools directly.
 The owner said not to finalize yet because more requests are coming. Keep
 source checkpoints in GitHub for recovery, but do not package/publish a new
 finished build until instructed to finish. See Desktop-Draft-2026-11-14.txt.
+
+## Finalization authorization (14 November 2026)
+
+The owner has now explicitly authorized finalization, superseding the earlier
+hold on packaging. Add Workspaces settings with Light, Dark and Use system
+settings; persist the selection outside the versioned installation directory.
+Finalize v1.4.47 Admin/User/source ZIPs and push the checked source to GitHub.
+No Microsoft Store, TestFlight or Pages upload is authorized. Windows native
+visual/performance/Excel verification limits must be reported honestly.
