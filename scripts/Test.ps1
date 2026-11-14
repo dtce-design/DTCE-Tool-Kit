@@ -79,3 +79,16 @@ $exe=Join-Path $out 'WindRecoveryTests.exe'
 if($LASTEXITCODE-ne 0){throw 'Wind recovery compilation failed'}
 & $exe
 if($LASTEXITCODE-ne 0){throw 'Wind recovery checks failed'}
+
+# Shared desktop layout: wrap actions on narrow windows and preserve estimate inputs.
+$exe=Join-Path $out 'ModernUiTests.exe'
+& $compiler /reference:System.IO.Compression.dll "/resource:$source\WindSurfaces.txt,WindSurfaces.txt" "/resource:$source\WindMap27.jpg,WindMap27.jpg" "/resource:$source\WindMap28.jpg,WindMap28.jpg" "/resource:$source\WindMap29.jpg,WindMap29.jpg" /nologo /define:ADMIN_APP /target:exe /main:ModernUiTests "/out:$exe" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Core.dll /reference:System.Security.dll /reference:Microsoft.CSharp.dll /reference:System.IO.Compression.dll "/resource:$source\AccessPublicKey.xml,AccessPublicKey.xml" "/resource:$source\app.ico,DtceIcon.ico" "/resource:$source\DtceLogo.png,DtceLogo.png" "/resource:$source\SlabTemplate.dxf,SlabTemplate.dxf" @files (Join-Path $repo 'tests\ModernUiTests.cs')
+if($LASTEXITCODE -ne 0){throw 'Modern UI test compilation failed'}
+& $exe
+if($LASTEXITCODE -ne 0){throw 'Modern UI layout checks failed'}
+
+$exe=Join-Path $out 'WindBuildingLoadsTests.exe'
+& $compiler /nologo /define:ADMIN_APP /target:exe /main:WindBuildingLoadsTests "/out:$exe" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Core.dll /reference:System.Security.dll /reference:Microsoft.CSharp.dll /reference:System.IO.Compression.dll @files (Join-Path $repo 'tests\WindBuildingLoadsTests.cs')
+if($LASTEXITCODE -ne 0){throw 'Wind pressure test compilation failed'}
+& $exe
+if($LASTEXITCODE -ne 0){throw 'Wind pressure checks failed'}

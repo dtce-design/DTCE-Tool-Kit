@@ -1112,7 +1112,7 @@ namespace BeamScheduleFormatter
 			plumbingLs = Grid(new string[5] { "Entry ID", "Location / scope", "Exact lump-sum pay-item description", "Manual quantity LS", "Status" }, 4);
 			plumbingLs.Columns[2].Width = 520;
 			ConfigureManualEntries(plumbingLs);
-			AddBoqManualPage(plumbingLs);
+			plumbingLs.Visible=false;Controls.Add(plumbingLs);
 			plumbingChambers = Grid(new string[35]
 			{
 				"Structure ID", "Description", "Type", "Outside length m", "Outside width m", "Clear wall height m", "Structure count", "Wall thickness m", "Base thickness m", "RC cover thickness m (0=open)",
@@ -2845,6 +2845,7 @@ namespace BeamScheduleFormatter
 			{
 				AutoSize = true,
 				AutoSizeMode = AutoSizeMode.GrowAndShrink,
+				Height = 1,
 				Width = 1100,
 				Padding = new Padding(4),
 				Margin = new Padding(0, 4, 0, 10)
@@ -4655,7 +4656,8 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			};
 			beam.WorksChanged += ChildWorksChanged;
 			slab.WorksChanged += ChildWorksChanged;
-			worksExcelTimer.Tick += delegate
+			SetupExcelBackground();
+worksExcelTimer.Tick += async delegate
 			{
 				worksExcelTimer.Stop();
 				if (HasPendingWorksEdit())
@@ -4665,20 +4667,17 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 				}
 				try
 				{
-					SyncWorksExcel();
+					await SyncExcelAsync();
 				}
 				catch (Exception ex)
 				{
-					excelStatus.Text = "Excel paused: " + ex.Message + "\nFix the entry and select Sync now.";
+					ExcelFailure(ex);
 				}
 			};
 			base.FormClosed += delegate
 			{
 				worksExcelTimer.Dispose();
-				if (worksExcel != null)
-				{
-					worksExcel.Dispose();
-				}
+				DisposeExcelWorker();
 			};
 			base.FormClosing += OnWorksClosing;
 			base.Shown += delegate
@@ -4697,6 +4696,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 
 		private void OrganizeSections()
 		{
+			ModernUi.Navigation(tabs);
 			Dictionary<string, TabPage> pages = tabs.TabPages.Cast<TabPage>().ToDictionary((TabPage p) => p.Text);
 			tabs.TabPages.Clear();
 			tabs.TabPages.Add(pages["Bill of Quantities"]);
@@ -4867,7 +4867,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			if (tabs.SelectedTab != null)
 			{
 				string text = tabs.SelectedTab.Text;
-				if (text == "Bill of Quantities" && dashboardDirty && (boqPages == null || boqPages.SelectedIndex == 0))
+				if (text == "Bill of Quantities" && dashboardDirty && true)
 				{
 					dashboardDirty = false;
 					UpdateDashboard();
@@ -4945,114 +4945,6 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			return false;
 		}
 
-		private void ScheduleWorksExcel()
-		{
-			if (worksExcel != null && !syncingExcel && !base.IsDisposed)
-			{
-				worksExcelTimer.Stop();
-				worksExcelTimer.Start();
-			}
-		}
-
-		private void LinkWorksExcel()
-		{
-			Guard();
-			Commit();
-			if (worksExcel != null)
-			{
-				MessageBox.Show(this, "Disconnect the current workbook before choosing another.");
-				return;
-			}
-			using (SaveFileDialog saveFileDialog = new SaveFileDialog
-			{
-				Filter = "Excel workbook|*.xlsx|Excel macro-enabled workbook|*.xlsm",
-				FileName = "Program-of-Works.xlsx",
-				OverwritePrompt = false
-			})
-			{
-				if (saveFileDialog.ShowDialog(this) != DialogResult.OK)
-				{
-					return;
-				}
-				ExcelLiveLink excelLiveLink = new ExcelLiveLink(saveFileDialog.FileName, true, false);
-				try
-				{
-					worksExcel = excelLiveLink;
-					lastExcelXml = "";
-					LoadBackupBill();
-					if (WorksValidationIssues().Count == 0)
-					{
-						try
-						{
-							SyncWorksExcel();
-							return;
-						}
-						catch (Exception ex)
-						{
-							excelStatus.Text = "Workbook connected; quantity sync paused: " + ex.Message;
-							return;
-						}
-					}
-					excelStatus.Text = "BACKUP linked; resolve input issues before writing quantities.";
-				}
-				catch
-				{
-					if (worksExcel == excelLiveLink)
-					{
-						worksExcel = null;
-						lastExcelXml = "";
-					}
-					excelLiveLink.Dispose();
-					throw;
-				}
-			}
-		}
-
-		private void SyncWorksExcel()
-		{
-			if (worksExcel == null)
-			{
-				return;
-			}
-			syncingExcel = true;
-			try
-			{
-				ProjectInformation projectInformation = ProjectInfoStore.Read();
-				string text = WorksProjectXml() + "|BOQHEADER|" + string.Join("|", projectInformation.Name, projectInformation.Location, projectInformation.Office, projectInformation.OfficeAddress);
-				if (text == lastExcelXml)
-				{
-					return;
-				}
-				List<string> list = WorksValidationIssues();
-				if (list.Count > 0)
-				{
-					throw new Exception("Final quantities cannot be exported yet. Save Program of Works to retain your inputs.\n\n" + string.Join("\n", list.Take(8)) + ((list.Count > 8) ? "\nMore issues: select Review inputs." : ""));
-				}
-				List<WorksExcelTable> tables = FinalQuantityTables();
-				if (worksExcel.HasBackup)
-				{
-					List<BackupDemand> list2 = BackupQuantities();
-					if (!list2.Any((BackupDemand d) => d.ManualOverride || d.Quantity > 1E-10 || d.Sources.Any((BillQuantity x) => x.Quantity > 1E-10)))
-					{
-						excelStatus.Text = "BACKUP items loaded. Enter manual BOQ quantities or add Tool Kit measurements.";
-						return;
-					}
-					worksExcel.KeepUnloadedBackupItems = !projectQuantitiesKnown;
-					worksExcel.UpdateBackupQuantities(list2, this);
-					ApplyBackupWrite();
-				}
-				else
-				{
-					worksExcel.UpdateWorksQuantities(tables, BillOfQuantities(), projectInformation);
-				}
-				lastExcelXml = text;
-				excelStatus.Text = "Excel connected: " + worksExcel.PathName + "\n" + (worksExcel.HasBackup ? "BACKUP final totals updated; print computation reports in Tool Kit. " : "Final quantities updated ") + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " | Save project data with Save Program of Works.";
-			}
-			finally
-			{
-				syncingExcel = false;
-			}
-		}
 
 		internal List<string> WorksValidationIssues()
 		{
@@ -5086,29 +4978,6 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			}
 		}
 
-		private void DisconnectWorksExcel()
-		{
-			if (worksExcel == null)
-			{
-				return;
-			}
-			worksExcelTimer.Stop();
-			try
-			{
-				SyncWorksExcel();
-			}
-			catch (Exception ex)
-			{
-				if (MessageBox.Show(this, "Latest edits could not be saved: " + ex.Message + "\nDisconnect anyway? Save a separate project to retain edits.", "Disconnect Excel", MessageBoxButtons.YesNo) != DialogResult.Yes)
-				{
-					return;
-				}
-			}
-			worksExcel.Dispose();
-			worksExcel = null;
-			lastExcelXml = "";
-			excelStatus.Text = "Excel disconnected. Workbook and saved quantities are retained.";
-		}
 
 		internal List<WorksExcelTable> WorksExcelTables()
 		{
@@ -7980,21 +7849,12 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			saved = DataXml();
 		}
 
+
 		private void OnWorksClosing(object sender, FormClosingEventArgs e)
 		{
 			Commit();
 			worksExcelTimer.Stop();
-			if (worksExcel != null)
-			{
-				try
-				{
-					SyncWorksExcel();
-				}
-				catch (Exception ex)
-				{
-					MessageBox.Show(this, "Final Excel quantities were not updated: " + ex.Message + "\nUse Save Program of Works to retain your full project. The workbook retains its last valid quantities.", "Program of Works");
-				}
-			}
+			if(worksExcel!=null&&!excelCloseFlushed){e.Cancel=true;if(!closingExcel){closingExcel=true;FinishExcelClose();}return;}
 			if (DataXml() != saved)
 			{
 				switch (MessageBox.Show(this, "Save Program of Works entries before closing?", "Program of Works", MessageBoxButtons.YesNoCancel))
@@ -8035,6 +7895,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 				}
 			}
 		}
+
 
 		private void AddHome()
 		{
@@ -8123,7 +7984,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			TabPage tabPage2 = new TabPage("BACKUP quantities");
 			tabPage2.Controls.Add(boqGrid);
 			boqPages.TabPages.Add(tabPage2);
-			tabPage.Controls.Add(boqPages);
+			tabPage.Controls.Add(boqGrid);
 			tabPage.Controls.Add(boqStatus);
 			tabPage.Controls.Add(excelStatus);
 			tabPage.Controls.Add(flowLayoutPanel);
@@ -8246,7 +8107,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			}
 			try
 			{
-				foreach (BillDisplayRow item in BillQuantityLayout.Rows(BillOfQuantities()))
+				foreach (BillDisplayRow item in BillQuantityLayout.Rows(BillOfQuantities().Where(q=>q.Section!="Bill of Quantities").ToList()))
 				{
 					int index = boqGrid.Rows.Add(item.Item, item.Description, item.Quantity.HasValue ? item.Quantity.Value.ToString((item.Unit == "pcs" || item.Unit == "sets") ? "N0" : "N2", CultureInfo.InvariantCulture) : "", item.Unit);
 					boqGrid.Rows[index].ReadOnly = true;
@@ -8264,7 +8125,8 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 						boqGrid.Rows[index].DefaultCellStyle.Font = new Font(boqGrid.Font, FontStyle.Bold);
 					}
 				}
-				boqStatus.ForeColor = PowTheme.Teal;
+				AddLegacyBoqRows();
+boqStatus.ForeColor = PowTheme.Teal;
 				boqStatus.Text = "Validated required quantities | Item numbers remain blank where project specifications are unconfirmed. | Source rows explain each material total; do not add them again. Insulation roll sources show net-area basis before whole-roll rounding. Save Program of Works keeps the full project.";
 			}
 			catch (Exception ex)
@@ -8388,7 +8250,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			gravelSummaryGrid.AllowUserToDeleteRows = false;
 			gravelSummaryGrid.Dock = DockStyle.None;
 			gravelSummaryGrid.Width = 1100;
-			gravelSummaryGrid.Height = 380;
+			gravelSummaryGrid.Height = 250;
 			gravelSummaryGrid.Columns[0].Width = 650;
 			gravelSummaryGrid.Columns[1].Width = 160;
 			gravelSummaryGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
@@ -8753,64 +8615,6 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			}
 		}
 
-		private void LinkActiveWorksExcel()
-		{
-			Guard();
-			Commit();
-			if (worksExcel != null)
-			{
-				throw new Exception("Disconnect the current workbook before selecting the active workbook.");
-			}
-			ExcelLiveLink excelLiveLink = ExcelLiveLink.AttachActiveWorkbook();
-			try
-			{
-				worksExcel = excelLiveLink;
-				lastExcelXml = "";
-				LoadBackupBill();
-				if (WorksValidationIssues().Count == 0)
-				{
-					try
-					{
-						SyncWorksExcel();
-						return;
-					}
-					catch (Exception ex)
-					{
-						excelStatus.Text = "Workbook connected; quantity sync paused: " + ex.Message;
-						return;
-					}
-				}
-				excelStatus.Text = "BACKUP linked; resolve input issues before writing quantities.";
-			}
-			catch
-			{
-				worksExcel = null;
-				lastExcelXml = "";
-				excelLiveLink.Dispose();
-				throw;
-			}
-		}
-
-		private void EditBackupMapping()
-		{
-			Guard();
-			Commit();
-			Recalculate();
-			if (worksExcel == null || !worksExcel.HasBackup)
-			{
-				throw new Exception("Link the workbook containing BACKUP first, using Open / Link Excel or Use open workbook.");
-			}
-			List<string> list = WorksValidationIssues();
-			if (list.Count > 0)
-			{
-				throw new Exception(string.Join("\n", list));
-			}
-			worksExcel.KeepUnloadedBackupItems = !projectQuantitiesKnown;
-			worksExcel.UpdateBackupQuantities(BackupQuantities(), this, true);
-			ApplyBackupWrite();
-			lastExcelXml = "";
-			excelStatus.Text = "Mapped BACKUP final totals. Detailed reports remain in Tool Kit: " + worksExcel.PathName;
-		}
 
 		private void PlumbingExcel(List<WorksExcelTable> tables)
 		{
@@ -9668,119 +9472,15 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			}
 		}
 
-		private void SetupBackupBillEditing()
-		{
-			boqGrid.ReadOnly = false;
-			foreach (DataGridViewColumn column in boqGrid.Columns)
-			{
-				column.ReadOnly = true;
-			}
-			boqGrid.Columns[2].ReadOnly = false;
-			boqGrid.CellValidating += delegate(object s, DataGridViewCellValidatingEventArgs e)
-			{
-				if (!paintingBackupBill && e.RowIndex >= 0 && e.ColumnIndex == 2 && boqGrid.Rows[e.RowIndex].Tag is BackupBillItem)
-				{
-					string text = Convert.ToString(e.FormattedValue).Trim();
-					if (text != "" && !BackupBill.ReadQuantity(text).HasValue)
-					{
-						e.Cancel = true;
-						boqGrid.Rows[e.RowIndex].ErrorText = "Enter a finite nonnegative quantity, or leave blank to remove a manual override.";
-					}
-				}
-			};
-			boqGrid.CellEndEdit += delegate(object s, DataGridViewCellEventArgs e)
-			{
-				if (!paintingBackupBill && e.RowIndex >= 0 && e.ColumnIndex == 2)
-				{
-					BackupBillItem backupBillItem = boqGrid.Rows[e.RowIndex].Tag as BackupBillItem;
-					if (backupBillItem != null)
-					{
-						backupBillItem.ManualQuantity = BackupBill.ReadQuantity(boqGrid.Rows[e.RowIndex].Cells[2].Value);
-						UpdateBoundManualRows(backupBillItem);
-						boqGrid.Rows[e.RowIndex].ErrorText = "";
-						dashboardDirty = (reportPreviewDirty = true);
-						ScheduleWorksExcel();
-					}
-				}
-			};
-		}
+void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn column in boqGrid.Columns)column.ReadOnly=true;boqGrid.Columns[2].ReadOnly=false;boqGrid.CellValidating+=(s,e)=>{if(paintingBackupBill||e.RowIndex<0||e.ColumnIndex!=2)return;object tag=boqGrid.Rows[e.RowIndex].Tag;if(!(tag is BackupBillItem)&&!(tag is DataGridViewRow))return;string text=Convert.ToString(e.FormattedValue).Trim();if(text!=""&&!BackupBill.ReadQuantity(text).HasValue){e.Cancel=true;boqGrid.Rows[e.RowIndex].ErrorText="Enter a finite nonnegative quantity.";}};boqGrid.CellEndEdit+=(s,e)=>{if(paintingBackupBill||e.RowIndex<0||e.ColumnIndex!=2)return;var row=boqGrid.Rows[e.RowIndex];var item=row.Tag as BackupBillItem;var legacy=row.Tag as DataGridViewRow;if(item!=null){item.ManualQuantity=BackupBill.ReadQuantity(row.Cells[2].Value);UpdateBoundManualRows(item);}else if(legacy!=null){bool before=filling;filling=true;try{legacy.Cells[3].Value=Convert.ToString(row.Cells[2].Value);}finally{filling=before;}CommitManualEntryEdit(legacy);Recalculate();}else return;row.ErrorText="";dashboardDirty=reportPreviewDirty=true;ScheduleWorksExcel();};}
 
-		private void AddBoqManualPage(DataGridView grid)
-		{
-			TabPage tabPage = new TabPage("Manual Entries");
-			Label value = new Label
-			{
-				Dock = DockStyle.Top,
-				Height = 48,
-				Padding = new Padding(8),
-				Text = "Select a BACKUP pay item or enter its description and unit, then type the quantity. Blank quantities are not sent. Enter 0 to clear a linked quantity; no default 1 LS is inferred."
-			};
-			FlowLayoutPanel flowLayoutPanel = new FlowLayoutPanel
-			{
-				Dock = DockStyle.Top,
-				Height = 42
-			};
-			Button(flowLayoutPanel, "Add manual item", delegate
-			{
-				grid.Rows.Add();
-			});
-			Button(flowLayoutPanel, "Select BACKUP pay item", ChooseManualBackupItem);
-			Button(flowLayoutPanel, "Remove manual item", delegate
-			{
-				foreach (DataGridViewRow item in (from r in (from DataGridViewCell c in grid.SelectedCells
-						select c.OwningRow).Distinct()
-					where !r.IsNewRow
-					select r).ToList())
-				{
-					ReleaseManualBinding(item);
-					grid.Rows.Remove(item);
-				}
-			});
-			tabPage.Controls.Add(grid);
-			tabPage.Controls.Add(flowLayoutPanel);
-			tabPage.Controls.Add(value);
-			boqPages.TabPages.Add(tabPage);
-		}
+
 
 		private List<BillQuantity> ManualBoqQuantities()
 		{
 			return ManualEntryQuantities.Group(manualPlumbingLs);
 		}
 
-		private void LoadBackupBill()
-		{
-			if (worksExcel == null || !worksExcel.HasBackup)
-			{
-				return;
-			}
-			List<BackupTarget> targets = worksExcel.RegisterBackupBillItems();
-			backupBill = BackupBill.Capture(targets, backupBill);
-			backupBillRoutes.Clear();
-			try
-			{
-				foreach (KeyValuePair<string, BackupTarget> item in worksExcel.BackupRoutes(BackupQuantities(false), targets))
-				{
-					backupBillRoutes[item.Key] = item.Value.SlotId;
-				}
-			}
-			catch (Exception ex)
-			{
-				excelStatus.Text = "BACKUP items loaded; mapping needs review: " + ex.Message;
-			}
-			dashboardDirty = true;
-			RefreshVisibleWorksViews();
-		}
-
-		private void RefreshBackupBill()
-		{
-			Guard();
-			Commit();
-			if (worksExcel == null || !worksExcel.HasBackup)
-			{
-				throw new Exception("Link the workbook containing BACKUP first.");
-			}
-			LoadBackupBill();
-		}
 
 		private void ApplyBackupWrite()
 		{
@@ -9838,83 +9538,6 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			}
 		}
 
-		private void UpdateBackupBillDashboard()
-		{
-			BackupBillItem backupBillItem = ((boqGrid.CurrentRow == null) ? null : (boqGrid.CurrentRow.Tag as BackupBillItem));
-			string selectedSlot = ((backupBillItem == null) ? null : backupBillItem.Slot);
-			int val = ((boqGrid.CurrentCell != null) ? boqGrid.CurrentCell.ColumnIndex : 0);
-			int firstDisplayedScrollingRowIndex = boqGrid.FirstDisplayedScrollingRowIndex;
-			paintingBackupBill = true;
-			boqGrid.SuspendLayout();
-			try
-			{
-				boqGrid.Rows.Clear();
-				List<BackupDemand> source = (from d in BackupQuantities(false)
-					where d.Quantity > 1E-10 || d.ManualOverride || d.Sources.Any((BillQuantity x) => x.Quantity > 1E-10) || backupBillRoutes.ContainsKey(d.Key)
-					select d).ToList();
-				List<BackupTarget> targets = backupBill.Select((BackupBillItem b) => b.Target).ToList();
-				foreach (BackupBillItem item in backupBill)
-				{
-					List<BackupDemand> list = source.Where(delegate(BackupDemand d)
-					{
-						string value;
-						if (backupBillRoutes.TryGetValue(d.Key, out value))
-						{
-							return value == item.Slot;
-						}
-						BackupTarget backupTarget = BackupMapping.Suggest(d, targets);
-						return backupTarget != null && backupTarget.SlotId == item.Slot;
-					}).ToList();
-					List<BackupDemand> list2 = list.Where((BackupDemand d) => BackupMapping.Unit(d.Unit) == BackupMapping.Unit(item.Unit)).ToList();
-					bool flag = list2.Count > 0 && BackupMapping.Unit(item.Unit) != "ls";
-					double? num = item.ManualQuantity ?? ((flag || list2.Any((BackupDemand d) => d.ManualPriority >= 1)) ? new double?(BackupMapping.FinalQuantity(list2, item.Unit)) : item.WorkbookQuantity);
-					int index = boqGrid.Rows.Add(item.Code, item.Description, num.HasValue ? num.Value.ToString("0.########", CultureInfo.InvariantCulture) : "", item.Unit);
-					DataGridViewRow dataGridViewRow = boqGrid.Rows[index];
-					dataGridViewRow.Tag = item;
-					foreach (DataGridViewCell cell in dataGridViewRow.Cells)
-					{
-						cell.ReadOnly = true;
-					}
-					dataGridViewRow.Cells[2].ReadOnly = flag && !item.ManualQuantity.HasValue;
-					dataGridViewRow.Cells[2].Style.BackColor = (dataGridViewRow.Cells[2].ReadOnly ? Color.FromArgb(229, 242, 242) : Color.FromArgb(255, 249, 222));
-					dataGridViewRow.Cells[2].ToolTipText = (item.ManualQuantity.HasValue ? "Manual quantity replaces this item's mapped total. Enter 0 to clear it, or leave blank to remove the manual override." : (flag ? "Computed from mapped Tool Kit measurements. Use Map BACKUP items to review its sources." : "Manual BOQ quantity. Enter 1 only when the required LS quantity is 1; no quantity is inferred."));
-					foreach (BackupDemand item2 in list)
-					{
-						foreach (BillQuantity source2 in item2.Sources)
-						{
-							int index2 = boqGrid.Rows.Add("", "    " + source2.Description, source2.Quantity.ToString("0.########", CultureInfo.InvariantCulture), source2.Unit);
-							boqGrid.Rows[index2].ReadOnly = true;
-							boqGrid.Rows[index2].DefaultCellStyle.ForeColor = PowTheme.Muted;
-						}
-					}
-				}
-				List<string> list3 = WorksValidationIssues();
-				boqStatus.ForeColor = ((list3.Count == 0) ? PowTheme.Teal : Color.Firebrick);
-				boqStatus.Text = backupBill.Count + " BACKUP pay items | Yellow quantities are manual inputs; computed quantities use mapped sources. " + ((list3.Count > 0) ? (list3.Count + " input issue(s); Excel writes are paused.") : "Existing workbook values remain until a manual quantity or mapped computation updates them.");
-			}
-			catch (Exception ex)
-			{
-				boqStatus.ForeColor = Color.Firebrick;
-				boqStatus.Text = "BACKUP bill needs review: " + ex.Message;
-			}
-			finally
-			{
-				boqGrid.ResumeLayout();
-				paintingBackupBill = false;
-				if (selectedSlot != null)
-				{
-					DataGridViewRow dataGridViewRow2 = boqGrid.Rows.Cast<DataGridViewRow>().FirstOrDefault((DataGridViewRow r) => r.Tag is BackupBillItem && ((BackupBillItem)r.Tag).Slot == selectedSlot);
-					if (dataGridViewRow2 != null)
-					{
-						boqGrid.CurrentCell = dataGridViewRow2.Cells[Math.Min(val, boqGrid.Columns.Count - 1)];
-					}
-				}
-				if (boqGrid.IsHandleCreated && firstDisplayedScrollingRowIndex >= 0 && boqGrid.Rows.Count > firstDisplayedScrollingRowIndex)
-				{
-					boqGrid.FirstDisplayedScrollingRowIndex = firstDisplayedScrollingRowIndex;
-				}
-			}
-		}
 
 		private void AddRCCoverDefaults(FlowLayoutPanel start)
 		{

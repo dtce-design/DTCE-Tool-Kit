@@ -8,7 +8,7 @@ using System.Windows.Forms;
 
 namespace BeamScheduleFormatter
 {
-	internal sealed class ExcelLiveLink : IDisposable
+	internal sealed partial class ExcelLiveLink : IDisposable
 	{
 		private dynamic app;
 
@@ -758,25 +758,8 @@ namespace BeamScheduleFormatter
 			val.Activate();
 		}
 
-		public List<BackupTarget> RegisterBackupBillItems()
-		{
-			List<BackupTarget> list = BackupTargets();
-			bool flag = Convert.ToBoolean(app.EnableEvents);
-			try
-			{
-				app.EnableEvents = false;
-				foreach (BackupTarget item in list)
-				{
-					SetBackupName("_DTCE_BACKUP_ITEM_" + item.SlotId, item.Row, BackupMapping.Identity(item));
-				}
-				book.Save();
-				return list;
-			}
-			finally
-			{
-				app.EnableEvents = flag;
-			}
-		}
+public List<BackupTarget> RegisterBackupBillItems(){var targets=BackupTargets();bool events=Convert.ToBoolean(app.EnableEvents);try{app.EnableEvents=false;foreach(var target in targets)SetBackupName(BackupMapping.ItemPrefix+target.SlotId,target.Row,BackupMapping.Identity(target));}finally{app.EnableEvents=events;}targetCache=targets;routeCache=null;return targets;}
+
 
 		public List<BackupTarget> BackupTargets()
 		{
@@ -948,93 +931,17 @@ namespace BeamScheduleFormatter
 			WriteMappedBackup(list, targets, routes);
 		}
 
-		internal void WriteMappedBackup(List<BackupDemand> demands, List<BackupTarget> targets, Dictionary<string, BackupTarget> routes)
-		{
-			Dictionary<string, int> dictionary = BackupNames("_DTCE_BACKUP_MAP_");
-			BackupMapping.Validate(demands, routes);
-			Dictionary<string, string> dictionary2 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-			Dictionary<string, int> dictionary3 = BackupNames("_DTCE_BACKUP_BLOCK_", dictionary2);
-			Dictionary<int, List<BackupDemand>> dictionary4 = (from d in demands
-				group d by routes[d.Key].Row).ToDictionary((IGrouping<int, BackupDemand> g) => g.Key, (IGrouping<int, BackupDemand> g) => g.ToList());
-			foreach (KeyValuePair<string, int> item in dictionary3)
-			{
-				int row = item.Value;
-				if (!KeepUnloadedBackupItems || dictionary4.ContainsKey(row))
-				{
-					BackupTarget backupTarget = targets.SingleOrDefault((BackupTarget t) => t.Row == row);
-					if (backupTarget == null || item.Key != "_DTCE_BACKUP_BLOCK_" + backupTarget.SlotId || dictionary2[item.Key] != BackupMapping.Identity(backupTarget))
-					{
-						throw new Exception("A previously mapped BACKUP item was deleted or its specification changed; review its named range before replacing quantities.");
-					}
-					if (!dictionary4.ContainsKey(row) && !KeepUnloadedBackupItems)
-					{
-						dictionary4[row] = new List<BackupDemand>();
-					}
-				}
-			}
-			if (dictionary4.Count == 0)
-			{
-				throw new Exception("Load the Tool Kit project or enter measured quantities before syncing BACKUP.");
-			}
-			Dictionary<int, double> dictionary5 = dictionary4.ToDictionary((KeyValuePair<int, List<BackupDemand>> pair) => pair.Key, (KeyValuePair<int, List<BackupDemand>> pair) => BackupMapping.FinalQuantity(pair.Value, targets.Single((BackupTarget t) => t.Row == pair.Key).Unit));
-			if (dictionary5.Values.Any((double q) => double.IsNaN(q) || double.IsInfinity(q) || q < 0.0))
-			{
-				throw new Exception("Invalid final BACKUP quantity.");
-			}
-			bool flag = Convert.ToBoolean(app.EnableEvents);
-			bool flag2 = Convert.ToBoolean(app.ScreenUpdating);
-			try
-			{
-				app.EnableEvents = false;
-				app.ScreenUpdating = false;
-				dynamic val = FindEstimateSheet("BACKUP");
-				foreach (int row2 in dictionary4.Keys.OrderBy((int r) => r))
-				{
-					BackupTarget backupTarget2 = targets.Single((BackupTarget t) => t.Row == row2);
-					string identity = BackupMapping.Identity(backupTarget2);
-					val.Cells[row2, 55].Value2 = dictionary5[row2];
-					SetBackupName("_DTCE_BACKUP_TOTAL_" + backupTarget2.SlotId, row2, identity);
-					SetBackupName("_DTCE_BACKUP_ITEM_" + backupTarget2.SlotId, row2, identity);
-					SetBackupName("_DTCE_BACKUP_BLOCK_" + backupTarget2.SlotId, row2, identity);
-					foreach (BackupDemand item2 in dictionary4[row2])
-					{
-						SetBackupName(BackupMapping.Name(item2.Key), row2, identity);
-					}
-				}
-				foreach (BackupTarget target in targets)
-				{
-					if (target.EndRow >= target.Row + 1)
-					{
-						val.Rows[target.Row + 1 + ":" + target.EndRow].Hidden = true;
-					}
-				}
-				HashSet<string> wanted = new HashSet<string>(demands.Select((BackupDemand d) => BackupMapping.Name(d.Key)), StringComparer.OrdinalIgnoreCase);
-				foreach (string item3 in dictionary.Keys.Where((string n) => !KeepUnloadedBackupItems && !wanted.Contains(n)))
-				{
-					book.Names.Item(item3).Delete();
-				}
-				val.Activate();
-				app.CalculateFull();
-				book.Save();
-				LastBackupRoutes = new Dictionary<string, BackupTarget>(routes);
-				LastBackupTotals.Clear();
-				foreach (KeyValuePair<int, double> total in dictionary5)
-				{
-					LastBackupTotals[targets.Single((BackupTarget t) => t.Row == total.Key).SlotId] = total.Value;
-				}
-			}
-			finally
-			{
-				app.EnableEvents = flag;
-				app.ScreenUpdating = flag2;
-			}
-		}
+internal void WriteMappedBackup(List<BackupDemand> demands,List<BackupTarget> targets,Dictionary<string,BackupTarget> routes){
+ var saved=BackupNames(BackupMapping.MapPrefix);BackupMapping.Validate(demands,routes);var identities=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);var owned=BackupNames(BackupMapping.BlockPrefix,identities);var groups=demands.GroupBy(d=>routes[d.Key].Row).ToDictionary(g=>g.Key,g=>g.ToList());foreach(var previous in owned){int row=previous.Value;if(KeepUnloadedBackupItems&&!groups.ContainsKey(row))continue;var target=targets.SingleOrDefault(t=>t.Row==row);if(target==null||previous.Key!=BackupMapping.BlockPrefix+target.SlotId||identities[previous.Key]!=BackupMapping.Identity(target))throw new Exception("Previously mapped BACKUP item was removed or changed; review its identity before writing.");if(!groups.ContainsKey(row)&&!KeepUnloadedBackupItems)groups[row]=new List<BackupDemand>();}
+ if(groups.Count==0)return;VerifyQuantityTargets(targets,groups.Keys);var totals=groups.ToDictionary(g=>g.Key,g=>BackupMapping.FinalQuantity(g.Value,targets.Single(t=>t.Row==g.Key).Unit));if(totals.Values.Any(v=>double.IsNaN(v)||double.IsInfinity(v)||v<0))throw new Exception("Invalid final BACKUP quantity.");bool events=Convert.ToBoolean(app.EnableEvents),screen=Convert.ToBoolean(app.ScreenUpdating),changed=false;int? calculation=null;
+ try{app.EnableEvents=false;app.ScreenUpdating=false;try{calculation=Convert.ToInt32(app.Calculation);app.Calculation=-4135;}catch{}dynamic sheet=FindEstimateSheet("BACKUP");foreach(int row in groups.Keys.OrderBy(x=>x)){var target=targets.Single(t=>t.Row==row);string identity=BackupMapping.Identity(target);double previous;bool unchanged=LastBackupTotals.TryGetValue(target.SlotId,out previous)&&previous==totals[row];if(!unchanged){double? current=BackupBill.ReadQuantity(sheet.Cells[row,55].Value2);if(!current.HasValue||current.Value!=totals[row]){sheet.Cells[row,55].Value2=totals[row];changed=true;}}SetBackupName(TotalPrefix+target.SlotId,row,identity);SetBackupName(BackupMapping.ItemPrefix+target.SlotId,row,identity);SetBackupName(BackupMapping.BlockPrefix+target.SlotId,row,identity);foreach(var demand in groups[row])SetBackupName(BackupMapping.Name(demand.Key),row,identity);}
+ if(!detailsHidden){foreach(var target in targets)if(target.EndRow>=target.Row+1)sheet.Rows[(target.Row+1)+":"+target.EndRow].Hidden=true;detailsHidden=true;QuantitySavePending=true;}var wanted=new HashSet<string>(demands.Select(d=>BackupMapping.Name(d.Key)),StringComparer.OrdinalIgnoreCase);foreach(string name in saved.Keys.Where(n=>!KeepUnloadedBackupItems&&!wanted.Contains(n))){book.Names.Item(name).Delete();if(nameIdentityCache!=null)nameIdentityCache.Remove(name);QuantitySavePending=true;}if(changed){app.Calculate();QuantitySavePending=true;}LastBackupRoutes=new Dictionary<string,BackupTarget>(routes);LastBackupTotals.Clear();foreach(var pair in totals)LastBackupTotals[targets.Single(t=>t.Row==pair.Key).SlotId]=pair.Value;if(!DeferQuantitySave)FlushQuantitySave();
+ }finally{if(calculation.HasValue)try{app.Calculation=calculation.Value;}catch{}app.EnableEvents=events;app.ScreenUpdating=screen;}
+}
 
-		private void SetBackupName(string name, int row, string identity)
-		{
-			dynamic val = book.Names.Add(Name: name, RefersTo: "='BACKUP'!$BC$" + row, Visible: false);
-			val.Comment = identity;
-		}
+
+void SetBackupName(string name,int row,string identity){if(nameIdentityCache==null)nameIdentityCache=new Dictionary<string,string>();string saved;if(nameIdentityCache.TryGetValue(name,out saved)&&saved==identity)return;try{dynamic old=book.Names.Item(name);if(Convert.ToString(old.Comment)==identity&&Convert.ToInt32(old.RefersToRange.Row)==row){nameIdentityCache[name]=identity;return;}}catch{}dynamic range=book.Names.Add(Name:name,RefersTo:"='BACKUP'!$BC$"+row,Visible:false);range.Comment=identity;nameIdentityCache[name]=identity;QuantitySavePending=true;}
+
 
 		private ExcelLiveLink()
 		{

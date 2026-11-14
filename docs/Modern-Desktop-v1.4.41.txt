@@ -1,0 +1,57 @@
+DTCE Tool Kit v1.4.41 - desktop preview / source checkpoint
+14 November 2026 (Asia/Manila)
+
+Modern desktop presentation
+- Shared light theme, navy table headers, teal actions and focus accents.
+- Dashboard with branded hero and rounded workspace cards; no new Start tabs.
+- Program of Works main sections use a sidebar; work sheets retain inner tabs.
+- Toolbars wrap on smaller windows; complete button captions remain visible.
+- Input focus, dynamic dialogs and grid styling share the same presentation.
+- Earthworks settings and gravel summary use less vertical space.
+
+Wind site, terrain and calculations
+- Street / satellite map centered on project coordinates, drag pan and zoom.
+- User-agent identified visible-tile fetch only, LocalAppData disk cache.
+- Optional roughness overlay from sampled WorldCover raster grid; B green,
+  C gold, D blue, unknown gray. 45-degree wind-from sector boundaries and
+  cardinal direction / suggested exposure labels; individual ray segments
+  retain their local roughness colors. Land cover is not a surveyed exposure.
+- Original embedded NSCP contour/TIN map remains a separate source tab.
+- Source-map image fits both width and height, removing horizontal clipping.
+- All seven wind pages are added using remove-report/add-page/add-report to
+  avoid the pre-handle TabPages.Insert behavior seen in the owner's screenshot.
+- Building dimensions, enclosure, ridge alignment, system and gust inputs.
+- Four principal axes matching the eight compass terrain sectors. Full-precision
+  qz/qh, rigid/flexible gust factor, wall Cp, interpolated roof Cp, both GCpi
+  signs, both roof Cp branches, and per-row p=q*G*Cp-qi*GCpi.
+- Covered building scope: enclosed/partially enclosed, rectangular gable/hip or
+  flat roof, 0-60 degrees. Gross pressures only; MWFRS minimum forces, required
+  load patterns/torsion/combinations, C&C, open roofs, parapets and overhangs
+  are separate. Do not describe this sheet as a complete wind design approval.
+- Roof high h/L row applies at >=1; the workbook's row-label 10 sentinel is
+  corrected rather than interpolating that high-ratio row over 0.5-10.
+- Positive internal-pressure height is configurable for partially enclosed
+  buildings. No unresolved exposure / terrain factor is silently defaulted.
+- Numerical terrain and roughness grid saved in design XML. v1.4.40 snapshots
+  without building inputs or a grid still restore; refresh terrain for zones.
+
+Reporting
+- Design sheets use paginated visual reports rather than a plain text box.
+- Wind report: site summary/map with roughness zones, directional coefficients,
+  NSCP source map and marker, two terrain profiles per page, surface-pressure
+  tables, numerical substitutions, sources and scope.
+- PDF, screen report and printing use the same page renderer, with existing
+  edition watermark rules and print-only PDF permissions. These visual PDFs
+  contain rendered page images (150dpi), not searchable report text. Numerical
+  report text remains available through Export report to Excel.
+- Existing estimate / Program of Works report generation is retained.
+
+Validation and distribution
+- Admin and User compile against .NET Framework 4.8, C#5.
+- 24 wind pressure checks include cached workbook values, sign cases, roof
+  interpolation, variable-height Kzt and unresolved exposure handling.
+- 40 wind-site checks and 263 piece-reconciliation checks passed before this
+  last roughness-grid update; rerun current wind suites before packaging.
+- Native Windows GUI, Excel COM, live map rendering, printing and PDF export
+  require Windows verification. No native screenshots claimed from Linux.
+- GitHub checkpoints permitted; Microsoft Store / TestFlight / Pages off.
