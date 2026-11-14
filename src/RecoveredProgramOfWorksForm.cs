@@ -57,9 +57,9 @@ namespace BeamScheduleFormatter
 
 		private ComboBox footingLarge;
 
-		private readonly List<CheckedListBox> stockChecks = new List<CheckedListBox>();
 
-		private bool refreshingStocks;
+
+
 
 		private DataGridView canopies;
 
@@ -153,7 +153,7 @@ namespace BeamScheduleFormatter
 
 		private readonly SlabEstimatorForm slab;
 
-		private readonly TabControl tabs = new TabControl
+		private readonly TabControl tabs = new NavigationTabs
 		{
 			Dock = DockStyle.Fill
 		};
@@ -910,9 +910,9 @@ namespace BeamScheduleFormatter
 				HeaderText = "Moulding profile / size (mm)",
 				Width = 230
 			});
-			grid.Columns[24].DefaultCellStyle.BackColor = Color.FromArgb(255, 249, 222);
+			grid.Columns[24].DefaultCellStyle.BackColor = ModernUi.Input;
 			grid.Columns[24].ToolTipText = "Same profile and size combines with Finishing Works > Moulding. Enter size in mm, e.g. Concrete 150 x 50 mm.";
-			grid.Columns[22].DefaultCellStyle.BackColor = Color.FromArgb(255, 249, 222);
+			grid.Columns[22].DefaultCellStyle.BackColor = ModernUi.Input;
 			grid.Columns[22].ToolTipText = "Check exterior openings only. Window: all four sides. Door: top and two sides, excluding the bottom. One exterior face only.";
 			grid.CurrentCellDirtyStateChanged += delegate
 			{
@@ -1579,6 +1579,7 @@ namespace BeamScheduleFormatter
 			footingFc = SettingChoice(footingSettings, "Concrete strength MPa", new string[3] { "21", "28", "35" });
 			footingSmall = SettingChoice(footingSettings, "Rebar <=12 mm grade", new string[2] { "40", "60" });
 			footingLarge = SettingChoice(footingSettings, "Rebar >=16 mm grade", new string[2] { "60", "40" });
+			Button(footingSettings, "Commercial lengths", delegate { var selected=StockLengthPicker.Choose(this,footingStock);if(selected!=null){footingStock=selected;Recalculate();} });
 			Button(footingSettings, "Apply to all footings", delegate
 			{
 				Commit();
@@ -1658,7 +1659,7 @@ namespace BeamScheduleFormatter
 			PowCard card = new PowCard
 			{
 				Width = 1120,
-				Height = 360
+				Height = 112
 			};
 			Label value = new Label
 			{
@@ -1694,135 +1695,7 @@ namespace BeamScheduleFormatter
 			FlowLayoutPanel actions = tabs.TabPages.Cast<TabPage>().Single((TabPage p) => p.Text == "Wooden Doors & Windows").Controls.OfType<FlowLayoutPanel>().Single();
 			AddDoorSettings(actions);
 			card.Controls.Add(flowLayoutPanel);
-			string[] array3 = new string[3] { "Beam", "Slab", "Foundation / Footing" };
-			for (int num3 = 0; num3 < 3; num3++)
-			{
-				int index = num3;
-				Label value2 = new Label
-				{
-					Text = array3[num3] + " stock lengths (m)",
-					Left = 18 + num3 * 350,
-					Top = 124,
-					Width = 320,
-					Height = 24
-				};
-				CheckedListBox list = new CheckedListBox
-				{
-					Left = 18 + num3 * 350,
-					Top = 150,
-					Width = 320,
-					Height = 155,
-					CheckOnClick = true,
-					MultiColumn = true,
-					ColumnWidth = 100
-				};
-				card.Controls.Add(value2);
-				card.Controls.Add(list);
-				stockChecks.Add(list);
-				list.ItemCheck += delegate(object s, ItemCheckEventArgs e)
-				{
-					if (!refreshingStocks)
-					{
-						List<double> list2 = (from index2 in Enumerable.Range(0, list.Items.Count)
-							where (index2 != e.Index) ? list.GetItemChecked(index2) : (e.NewValue == CheckState.Checked)
-							select (double)list.Items[index2]).ToList();
-						if (list2.Count == 0)
-						{
-							e.NewValue = e.CurrentValue;
-						}
-						else
-						{
-							if (index == 0)
-							{
-								beam.SetWorksStockLengths(list2);
-							}
-							else if (index == 1)
-							{
-								slab.SetWorksStockLengths(list2);
-							}
-							else
-							{
-								footingStock = list2;
-							}
-							Recalculate();
-						}
-					}
-				};
-			}
-			card.Controls.Add(new Label
-			{
-				Text = "Only checked lengths are used for cutting, purchase quantities and backup computation. Keep at least one length checked in each group.",
-				Left = 18,
-				Top = 312,
-				Width = 1060,
-				Height = 32,
-				ForeColor = PowTheme.Muted
-			});
 			start.Controls.Add(card);
-			Action resizeStart = delegate
-			{
-				int width = start.ClientSize.Width - start.Padding.Horizontal - 22;
-				if (width >= 500)
-				{
-					foreach (Control control3 in start.Controls)
-					{
-						control3.Width = width;
-						if (control3 != card)
-						{
-							Panel panel = control3 as Panel;
-							if (panel != null)
-							{
-								foreach (Control control4 in panel.Controls)
-								{
-									if (control4.Width > width - 40)
-									{
-										control4.Width = width - 40;
-									}
-								}
-							}
-						}
-					}
-					int num4 = (width - 48) / 3;
-					int n;
-					for (n = 0; n < stockChecks.Count; n++)
-					{
-						stockChecks[n].Left = 18 + n * (num4 + 8);
-						stockChecks[n].Width = num4;
-						Label label = card.Controls.OfType<Label>().First((Label l) => l.Text == (new string[3] { "Beam", "Slab", "Foundation / Footing" })[n] + " stock lengths (m)");
-						label.Left = stockChecks[n].Left;
-						label.Width = num4;
-					}
-					foreach (Label item3 in from l in card.Controls.OfType<Label>()
-						where l.Width > width - 36
-						select l)
-					{
-						item3.Width = width - 36;
-					}
-					card.Controls.OfType<FlowLayoutPanel>().First().Width = width - 30;
-					FlowLayoutPanel flowLayoutPanel2 = start.Controls.OfType<FlowLayoutPanel>().FirstOrDefault((FlowLayoutPanel p) => p.Controls.OfType<PowCard>().Count() == 6);
-					if (flowLayoutPanel2 != null)
-					{
-						flowLayoutPanel2.Width = width;
-						foreach (PowCard item4 in flowLayoutPanel2.Controls.OfType<PowCard>())
-						{
-							item4.Width = num4;
-							foreach (Control control5 in item4.Controls)
-							{
-								control5.Width = num4 - 30;
-							}
-						}
-					}
-				}
-			};
-			start.Resize += delegate
-			{
-				resizeStart();
-			};
-			base.Shown += delegate
-			{
-				resizeStart();
-			};
-			resizeStart();
 			AddRCCoverDefaults(start);
 			RefreshStockChecks();
 			start.VisibleChanged += delegate
@@ -1885,33 +1758,8 @@ namespace BeamScheduleFormatter
 			RefreshStockChecks();
 		}
 
-		private void RefreshStockChecks()
-		{
-			if (stockChecks.Count != 3)
-			{
-				return;
-			}
-			refreshingStocks = true;
-			try
-			{
-				List<double>[] array = new List<double>[3] { beam.WorksStockLengths, slab.WorksStockLengths, footingStock };
-				for (int i = 0; i < 3; i++)
-				{
-					CheckedListBox checkedListBox = stockChecks[i];
-					checkedListBox.Items.Clear();
-					foreach (double item in from x in CommercialBars.Lengths.Concat(array[i]).Distinct()
-						orderby x
-						select x)
-					{
-						checkedListBox.Items.Add(item, array[i].Contains(item));
-					}
-				}
-			}
-			finally
-			{
-				refreshingStocks = false;
-			}
-		}
+        private void RefreshStockChecks() { /* Stock selection belongs to member settings. */ }
+
 
 		private void WriteMaterialDefaults(XmlElement root)
 		{
@@ -2623,7 +2471,7 @@ namespace BeamScheduleFormatter
 			{
 				Controls = { (Control)insulationRolls }
 			};
-			TabControl tabControl = new TabControl
+			TabControl tabControl = new NavigationTabs
 			{
 				Dock = DockStyle.Fill
 			};
@@ -4580,6 +4428,7 @@ namespace BeamScheduleFormatter
 			{
 				throw new Exception("Estimator access required.");
 			}
+			SuspendLayout();tabs.SuspendLayout();
 			AppBrand.Apply(this);
 			Text = "Program of Works | DTCE Tool Kit";
 			base.Width = 1500;
@@ -4652,6 +4501,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			AddMouldingFinishes();
 			AddPlumbingWorks();
             InitializeExtraWorks();
+            RefineRCStart();
 			TabPage value = new TabPage("Backup computation")
 			{
 				Controls = { (Control)preview }
@@ -4703,8 +4553,9 @@ worksExcelTimer.Tick += async delegate
 			tabs.Multiline = true;
 			PowTheme.Apply(this);
 			status.Height = 38;
-			status.BackColor = Color.FromArgb(229, 242, 242);
+			status.BackColor = ModernUi.Soft;
 			status.ForeColor = PowTheme.Ink;
+            tabs.ResumeLayout(false);ResumeLayout(false);
             initializingWorks = false;
 			Recalculate();
 			saved = DataXml();
@@ -4814,7 +4665,7 @@ worksExcelTimer.Tick += async delegate
 		private void AddSection(string name, TabPage[] pages)
 		{
 			TabPage tabPage = new TabPage(name);
-			TabControl tabControl = new TabControl
+			TabControl tabControl = new NavigationTabs
 			{
 				Dock = DockStyle.Fill
 			};
@@ -5443,7 +5294,7 @@ worksExcelTimer.Tick += async delegate
 				g.Columns[j].ReadOnly = j >= inputCount;
 				if (j < inputCount)
 				{
-					g.Columns[j].DefaultCellStyle.BackColor = Color.FromArgb(255, 249, 222);
+					g.Columns[j].DefaultCellStyle.BackColor = ModernUi.Input;
 				}
 			}
 			g.Columns[g.Columns.Count - 1].Width = 270;
@@ -5530,7 +5381,7 @@ worksExcelTimer.Tick += async delegate
 			g.Columns.Add(dataGridViewComboBoxColumn2);
 			AddMouldingColumns(g);
 			DataGridViewCellStyle defaultCellStyle = g.Columns[20].DefaultCellStyle;
-			Color backColor = (g.Columns[21].DefaultCellStyle.BackColor = Color.FromArgb(255, 249, 222));
+			Color backColor = (g.Columns[21].DefaultCellStyle.BackColor = ModernUi.Input);
 			defaultCellStyle.BackColor = backColor;
 			g.DefaultValuesNeeded += delegate(object s, DataGridViewRowEventArgs e)
 			{
@@ -5645,7 +5496,7 @@ worksExcelTimer.Tick += async delegate
 				};
 				wallFinishes.Columns.RemoveAt(3);
 				wallFinishes.Columns.Insert(3, dataGridViewComboBoxColumn);
-				dataGridViewComboBoxColumn.DefaultCellStyle.BackColor = Color.FromArgb(255, 249, 222);
+				dataGridViewComboBoxColumn.DefaultCellStyle.BackColor = ModernUi.Input;
 			}
 			string[] source = (from id in (from r in MasonryGrids().SelectMany((DataGridView g) => g.Rows.Cast<DataGridViewRow>())
 					where !r.IsNewRow
@@ -5701,7 +5552,7 @@ worksExcelTimer.Tick += async delegate
 			};
 			dataGridViewComboBoxColumn.Items.AddRange("1 side (A)", "1 side (B)", "2 sides");
 			g.Columns.Add(dataGridViewComboBoxColumn);
-			g.Columns[12].DefaultCellStyle.BackColor = Color.FromArgb(255, 249, 222);
+			g.Columns[12].DefaultCellStyle.BackColor = ModernUi.Input;
 			string[] array = new string[3] { "Plaster base m2", "Tiles deducted m2", "Net plaster m2" };
 			foreach (string text in array)
 			{
@@ -5749,7 +5600,7 @@ worksExcelTimer.Tick += async delegate
 			};
 			dataGridViewComboBoxColumn2.Items.AddRange("Same as plaster", "None", "1 side (A)", "1 side (B)", "2 sides");
 			g.Columns.Add(dataGridViewComboBoxColumn2);
-			dataGridViewComboBoxColumn2.DefaultCellStyle.BackColor = Color.FromArgb(255, 249, 222);
+			dataGridViewComboBoxColumn2.DefaultCellStyle.BackColor = ModernUi.Input;
 			g.Columns.Add(new DataGridViewTextBoxColumn
 			{
 				Name = "Masonry paint m2",
@@ -5784,7 +5635,7 @@ worksExcelTimer.Tick += async delegate
 			dataGridViewComboBoxColumn2.ToolTipText = "Automatic masonry painting area, excluding openings and tiles. Defaults to plaster sides. Choose None for unpainted walls.";
 			g.Columns.Add("CHB thickness mm", "CHB thickness mm");
 			AddCombo(g, 18, "CHB thickness mm", new string[2] { "100", "150" });
-			g.Columns[18].DefaultCellStyle.BackColor = Color.FromArgb(255, 249, 222);
+			g.Columns[18].DefaultCellStyle.BackColor = ModernUi.Input;
 			g.DefaultValuesNeeded += delegate(object s, DataGridViewRowEventArgs e)
 			{
 				e.Row.Cells[18].Value = "150";
@@ -5803,7 +5654,7 @@ worksExcelTimer.Tick += async delegate
 				}
 			};
 			g.Columns.Add("GrossAreaInput", "Gross area m2");
-			g.Columns[19].DefaultCellStyle.BackColor = Color.FromArgb(255, 249, 222);
+			g.Columns[19].DefaultCellStyle.BackColor = ModernUi.Input;
 			g.Columns[19].ToolTipText = "Total area of this wall group BEFORE door/window deductions. Enter once; no quantity multiplier.";
 			int[] array2 = new int[6] { 5, 6, 7, 10, 13, 14 };
 			foreach (int index2 in array2)
@@ -6002,7 +5853,7 @@ worksExcelTimer.Tick += async delegate
 					};
 					dataGridView.Columns.RemoveAt(2);
 					dataGridView.Columns.Insert(2, dataGridViewComboBoxColumn);
-					dataGridViewComboBoxColumn.DefaultCellStyle.BackColor = Color.FromArgb(255, 249, 222);
+					dataGridViewComboBoxColumn.DefaultCellStyle.BackColor = ModernUi.Input;
 				}
 				string[] source = (from v in (from v in finishGroups.Keys.Concat(from DataGridViewRow r in dataGridView.Rows
 							where !r.IsNewRow
@@ -6582,7 +6433,7 @@ worksExcelTimer.Tick += async delegate
 			dataGridViewComboBoxColumn.Items.AddRange(values.Cast<object>().ToArray());
 			g.Columns.RemoveAt(index);
 			g.Columns.Insert(index, dataGridViewComboBoxColumn);
-			dataGridViewComboBoxColumn.DefaultCellStyle.BackColor = Color.FromArgb(255, 249, 222);
+			dataGridViewComboBoxColumn.DefaultCellStyle.BackColor = ModernUi.Input;
 		}
 
 		private WallItem FindWall(string id)
@@ -6625,7 +6476,7 @@ worksExcelTimer.Tick += async delegate
 						for (int k = 7; k <= 10; k++)
 						{
 							item.Cells[k].ReadOnly = flag2;
-							item.Cells[k].Style.BackColor = (flag2 ? Color.FromArgb(235, 237, 240) : Color.FromArgb(255, 249, 222));
+							item.Cells[k].Style.BackColor = (flag2 ? Color.FromArgb(235, 237, 240) : ModernUi.Input);
 						}
 					}
 					if (Empty(item))
@@ -6935,7 +6786,7 @@ worksExcelTimer.Tick += async delegate
 							foreach (int index in array2)
 							{
 								item.Cells[index].ReadOnly = flag;
-								item.Cells[index].Style.BackColor = (flag ? Color.FromArgb(235, 237, 240) : Color.FromArgb(255, 249, 222));
+								item.Cells[index].Style.BackColor = (flag ? Color.FromArgb(235, 237, 240) : ModernUi.Input);
 							}
 							if (flag)
 							{
@@ -7982,7 +7833,7 @@ worksExcelTimer.Tick += async delegate
 			boqGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 			boqGrid.Columns[2].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
 			SetupBackupBillEditing();
-			boqPages = new TabControl
+			boqPages = new NavigationTabs
 			{
 				Dock = DockStyle.Fill
 			};
@@ -9034,7 +8885,7 @@ boqStatus.ForeColor = PowTheme.Teal;
 					Padding = new Padding(8),
 					Text = "Add a structure, enter its dimensions, then select a material computation below."
 				};
-				view.MaterialTabs = new TabControl
+				view.MaterialTabs = new NavigationTabs
 				{
 					Dock = DockStyle.Fill,
 					Multiline = true
@@ -9832,7 +9683,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 		{
 			TabPage tabPage = tabs.TabPages.Cast<TabPage>().Single((TabPage p) => p.Text == "Pipe Takeoff");
 			tabPage.Controls.Remove(plumbingPipes);
-			pipeGroupTabs = new TabControl
+			pipeGroupTabs = new NavigationTabs
 			{
 				Dock = DockStyle.Fill
 			};
@@ -9936,7 +9787,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 			grid.Columns[3].Width = 130;
 			grid.Columns[5].Width = 100;
 			grid.Columns[4].Width = 360;
-			grid.Columns[5].DefaultCellStyle.BackColor = Color.FromArgb(255, 249, 222);
+			grid.Columns[5].DefaultCellStyle.BackColor = ModernUi.Input;
 			grid.Columns[3].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
 			grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 			grid.Columns[2].FillWeight = 65f;

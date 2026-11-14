@@ -1,0 +1,39 @@
+DTCE desktop draft — 14 November 2026 (Asia/Manila)
+Status: owner is still adding requests. DO NOT finalize/package a new release.
+Existing downloadable v1.4.46 remains the last preview; current edits below
+are source checkpoint work, not a new downloadable app or Store submission.
+
+Owner-selected palette: option3 — dark charcoal and soft gray. Shared surfaces,
+inputs, text, command buttons, selected states and worksheet cards use this
+palette. Reports remain white-paper A4 / minimum7pt.
+
+Changes in this draft
+- RC Start: remove redundant stock-length checklists. Beam/slab selectors stay
+  in their existing member settings; add commercial-length picker to footing
+  settings. Misc/slope/wall-footing stock picker is inside member settings.
+- RC Start rebuilt into compact Member Settings, Cover/Foundation Defaults,
+  and Concrete Supply cards. Lean numeric input stays128px; field rows wrap.
+  Remove the old resize handler that stretched every child to screen width.
+- Main/sub/nested tab levels have distinct dark strip shades, with full
+  caption measurement and native wrapping/hit-testing. A NavigationTabs
+  subclass paints unused strip background to avoid bright native tab space.
+- Beam summary no longer occupies a narrow right pane: Selected Beam Details,
+  By Diameter and Grade40/Grade60 use full-width bottom tabs. Summary columns
+  have minimum widths; beam entry headers have more room.
+- Clear vertical and horizontal table dividers; measured minimum header-word
+  widths, wrapped headers and a subdued input/calculated surface distinction.
+- Formatter tabs open their tool directly. Remove Open Beam Formatter/Open
+  Slab Formatter intermediate buttons. Existing per-program checks retained.
+- POW construction batches form/tab layout. BOQ rows are prepared and added
+  in one batch; auto row sizing pauses until population completes. A fresh,
+  empty catalogue skips building unused calculation demands. Stored workbook
+  and manual quantities bypass that empty-catalogue path.
+
+Validation
+Both editions compile (net48/C#5). 94 calculation/routing/stock checks pass.
+Native AdditionalWorksUiTests, ModernUiTests and EarthworkFootingTests compile.
+They have not run on Windows in this Linux workspace. No actual first-open
+benchmark, GUI screenshot, native tab paint/resize or Excel-COM verification
+is claimed. More owner additions and Windows visual/performance checks remain.
+GitHub source checkpoint only. Do not create a new ZIP/release or upload to
+Microsoft Store, TestFlight or Pages while the owner is collecting changes.

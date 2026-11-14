@@ -2,15 +2,15 @@ using System;using System.Drawing;using System.Drawing.Drawing2D;using System.Wi
 namespace BeamScheduleFormatter {
 // Common visual components. Native controls retain keyboard/accessibility/click behavior.
 static class PremiumControls {
- internal static readonly Color Accent=Color.FromArgb(9,119,132);
- internal static readonly Color AccentHover=Color.FromArgb(7,94,105);
- internal static readonly Color AccentSoft=Color.FromArgb(231,244,244);
- internal static readonly Color Header=Color.FromArgb(244,247,250);
+ internal static readonly Color Accent=Color.FromArgb(61,86,110);
+ internal static readonly Color AccentHover=Color.FromArgb(75,103,130);
+ internal static readonly Color AccentSoft=Color.FromArgb(42,57,73);
+ internal static readonly Color Header=Color.FromArgb(37,46,59);
  internal static readonly Font TitleFont=new Font("Segoe UI Semibold",17,FontStyle.Regular);
  internal static void StyleButton(Button button){
   bool primary=ModernUi.Primary(button.Text),pressed=false;bool chrome=object.Equals(button.Tag,"workspace-back");
   button.Font=ModernUi.Body;button.Image=CommandIcons.For(button.Text);button.TextImageRelation=TextImageRelation.ImageBeforeText;button.FlatStyle=FlatStyle.Flat;button.FlatAppearance.BorderSize=0;
-  button.UseVisualStyleBackColor=false;button.BackColor=chrome?Color.FromArgb(28,48,67):primary?Accent:Color.White;button.ForeColor=chrome||primary?Color.White:PowTheme.Ink;button.Cursor=Cursors.Hand;
+  button.UseVisualStyleBackColor=false;button.BackColor=chrome?Color.FromArgb(28,48,67):primary?Accent:ModernUi.Surface;button.ForeColor=chrome||primary?Color.White:PowTheme.Ink;button.Cursor=Cursors.Hand;
   button.MinimumSize=new Size(0,34);button.Padding=new Padding(12,5,12,5);button.Margin=new Padding(0,2,7,2);
   if(button.Parent is FlowLayoutPanel){button.AutoSize=true;button.AutoSizeMode=AutoSizeMode.GrowAndShrink;}
   button.MouseDown+=(s,e)=>{pressed=true;button.Invalidate();};button.MouseUp+=(s,e)=>{pressed=false;button.Invalidate();};
@@ -18,9 +18,9 @@ static class PremiumControls {
   button.MouseEnter+=(s,e)=>button.Invalidate();button.MouseLeave+=(s,e)=>{pressed=false;button.Invalidate();};button.GotFocus+=(s,e)=>button.Invalidate();button.LostFocus+=(s,e)=>button.Invalidate();
   button.Paint+=delegate(object sender,PaintEventArgs e){
    if(button.Width<3||button.Height<3)return;var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;
-   g.Clear(button.Parent==null?Color.White:button.Parent.BackColor);
+   g.Clear(button.Parent==null?ModernUi.Surface:button.Parent.BackColor);
    bool hover=button.ClientRectangle.Contains(button.PointToClient(Cursor.Position));
-   Color fill=chrome?(hover?Color.FromArgb(42,65,85):Color.FromArgb(28,48,67)):!button.Enabled?ModernUi.Soft:primary?(pressed?Color.FromArgb(12,78,137):hover?AccentHover:Accent):pressed?Color.FromArgb(224,232,239):hover?Color.FromArgb(244,247,250):Color.White;
+   Color fill=chrome?(hover?Color.FromArgb(42,65,85):Color.FromArgb(28,48,67)):!button.Enabled?ModernUi.Soft:primary?(pressed?Color.FromArgb(12,78,137):hover?AccentHover:Accent):pressed?Color.FromArgb(51,64,80):hover?Color.FromArgb(42,53,67):ModernUi.Surface;
    using(var path=ModernUi.Rounded(new RectangleF(.5f,.5f,button.Width-1,button.Height-1),4))using(var brush=new SolidBrush(fill))using(var border=new Pen(chrome?Color.FromArgb(59,80,100):primary?fill:button.Focused?Accent:PowTheme.Line)){
     g.FillPath(brush,path);g.DrawPath(border,path);
    }
@@ -40,7 +40,7 @@ static class PremiumControls {
 }
 class PremiumSectionHeading:Control {
  public string Subtitle;
- public PremiumSectionHeading(){DoubleBuffered=true;Height=74;Dock=DockStyle.Top;BackColor=Color.White;Padding=new Padding(18,12,18,8);}
+ public PremiumSectionHeading(){DoubleBuffered=true;Height=74;Dock=DockStyle.Top;BackColor=ModernUi.Surface;Padding=new Padding(18,12,18,8);}
  protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);TextRenderer.DrawText(e.Graphics,Text,PremiumControls.TitleFont,new Rectangle(18,10,Math.Max(1,Width-36),30),PowTheme.Ink,TextFormatFlags.SingleLine|TextFormatFlags.NoPrefix);TextRenderer.DrawText(e.Graphics,Subtitle??"",ModernUi.Body,new Rectangle(19,43,Math.Max(1,Width-38),22),PowTheme.Muted,TextFormatFlags.NoPrefix|TextFormatFlags.SingleLine);}
 }
 }

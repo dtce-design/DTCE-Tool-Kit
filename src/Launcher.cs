@@ -7,7 +7,7 @@ class LauncherForm:Form {
  #endif
  readonly Panel home=new Panel{Dock=DockStyle.Fill},groupHost=new Panel{Dock=DockStyle.Fill,Visible=false},groupContent=new Panel{Dock=DockStyle.Fill};
  readonly Label groupTitle=new Label{AutoSize=true,Padding=new Padding(18,8,0,0),Font=new Font("Segoe UI",13,FontStyle.Bold)};
- readonly TabControl formatterTabs=new TabControl{Dock=DockStyle.Fill},designTabs=new TabControl{Dock=DockStyle.Fill};readonly Dictionary<string,Form> designModules=new Dictionary<string,Form>();readonly Dictionary<string,Action> designLoaders=new Dictionary<string,Action>();bool loadingDesign;
+ readonly TabControl formatterTabs=new NavigationTabs{Dock=DockStyle.Fill},designTabs=new NavigationTabs{Dock=DockStyle.Fill};readonly Dictionary<string,Form> designModules=new Dictionary<string,Form>();readonly Dictionary<string,Action> designLoaders=new Dictionary<string,Action>();bool loadingDesign,loadingFormatter;readonly Dictionary<string,Action> formatterLoaders=new Dictionary<string,Action>();
  public LauncherForm(){AppBrand.Apply(this);Text="DTCE Tool Kit v"+Engine.Version;ClientSize=new Size(1100,800);MinimumSize=new Size(900,650);Font=new Font("Segoe UI",10);StartPosition=FormStartPosition.CenterScreen;Controls.Add(home);Controls.Add(groupHost);
   home.Padding=new Padding(24,20,24,0);
   var dashboard=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=4,Margin=Padding.Empty,Padding=Padding.Empty};
@@ -27,7 +27,7 @@ class LauncherForm:Form {
    ,Left=143,Top=16,Width=260,Height=20,Font=new Font("Segoe UI",8.5f,FontStyle.Bold),ForeColor=PremiumControls.Accent});
   var intro=new Label{Text="Your workspaces",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",12,FontStyle.Bold),ForeColor=PowTheme.Ink,Margin=Padding.Empty};dashboard.Controls.Add(intro,0,1);
   var cards=new FlowLayoutPanel{Dock=DockStyle.Fill,AutoScroll=true,Margin=Padding.Empty,Padding=new Padding(0,0,0,12)};dashboard.Controls.Add(cards,0,2);
-  AddCard(cards,"Formatters","Prepare beam and slab schedules from your DXF drawings.",()=>ShowGroup(formatterTabs,"Formatters"));
+  AddCard(cards,"Formatters","Prepare beam and slab schedules from your DXF drawings.",ShowFormatters);
   AddCard(cards,"Program of Works","Estimate quantities and keep your Bill of Quantities connected.",()=>UseTool(ref works,()=>new ProgramOfWorksForm(),"Program of Works",null,2));
   AddCard(cards,"Design Sheets","Reinforcement, purlins, truss connections and wind load calculations.",ShowDesignSheets);
   AddCard(cards,"Project Information","Set the project details used in your calculations and reports.",()=>UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8));
@@ -38,7 +38,8 @@ class LauncherForm:Form {
   cards.Resize+=(sender,args)=>sizeCards();sizeCards();
   dashboard.Controls.Add(new Label{Text="v"+Engine.Version+"  /  Developed by Engr. Daryl O. Tomaneng",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,ForeColor=PowTheme.Muted,Font=new Font("Segoe UI",8.5f),Margin=Padding.Empty},0,3);
   var header=PremiumControls.WorkspaceHeader(groupTitle,ShowStart);groupHost.Controls.Add(groupContent);groupHost.Controls.Add(header);
-  AddEntry(formatterTabs,"Beam Formatter","Open Beam Formatter",()=>UseTool(ref formatter,CreateBeam,"Beam Formatter",formatterTabs,1));AddEntry(formatterTabs,"Slab Formatter","Open Slab Formatter",()=>UseTool(ref slabFormatter,()=>new SlabFormatterForm(),"Slab Formatter",formatterTabs,ProgramAccess.SlabFormatter));AddDesignEntry("Splice, Development & Hooks",()=>UseTool(ref lengths,()=>new RebarLengthForm(),"Splice, Development & Hooks",designTabs,4));AddDesignEntry("Purlin Design",()=>OpenDesign("Purlin Design",()=>new PurlinDesignForm()));AddDesignEntry("Truss Connections",()=>OpenDesign("Truss Connections",()=>new TrussConnectionForm()));AddDesignEntry("Wind Load (NSCP 2015)",()=>OpenDesign("Wind Load (NSCP 2015)",()=>new WindDesignForm()));
+  AddFormatterEntry("Beam Formatter",()=>UseTool(ref formatter,CreateBeam,"Beam Formatter",formatterTabs,1));AddFormatterEntry("Slab Formatter",()=>UseTool(ref slabFormatter,()=>new SlabFormatterForm(),"Slab Formatter",formatterTabs,ProgramAccess.SlabFormatter));AddDesignEntry("Splice, Development & Hooks",()=>UseTool(ref lengths,()=>new RebarLengthForm(),"Splice, Development & Hooks",designTabs,4));AddDesignEntry("Purlin Design",()=>OpenDesign("Purlin Design",()=>new PurlinDesignForm()));AddDesignEntry("Truss Connections",()=>OpenDesign("Truss Connections",()=>new TrussConnectionForm()));AddDesignEntry("Wind Load (NSCP 2015)",()=>OpenDesign("Wind Load (NSCP 2015)",()=>new WindDesignForm()));
+  formatterTabs.SelectedIndexChanged+=(s,e)=>{if(groupHost.Visible&&!loadingFormatter&&groupContent.Controls.Contains(formatterTabs))LoadSelectedFormatter();};
   designTabs.SelectedIndexChanged+=(s,e)=>{if(groupHost.Visible&&!loadingDesign)LoadSelectedDesign();};
   FormClosing+=(s,e)=>{var children=new[]{formatter,slabFormatter,lengths,project,works}.Concat(designModules.Values).Where(f=>f!=null&&!f.IsDisposed).Distinct().ToList();
    #if ADMIN_APP
@@ -62,6 +63,9 @@ class LauncherForm:Form {
  internal void ShowDesignSheets(){if(!AccessCodes.CanUseFormatter){using(var login=new LoginForm())if(login.ShowDialog(this)!=DialogResult.OK)return;}var allowed=designTabs.TabPages.Cast<TabPage>().Where(p=>AccessCodes.CanUseApp(DesignProgram(p.Text))).ToList();if(allowed.Count==0){MessageBox.Show(this,"No Design Sheet is included in your approved access.","App access");return;}loadingDesign=true;try{if(!allowed.Contains(designTabs.SelectedTab))designTabs.SelectedTab=allowed[0];ShowGroup(designTabs,"Design Sheets");}finally{loadingDesign=false;}LoadSelectedDesign();}
  static int DesignProgram(string title){return title=="Wind Load (NSCP 2015)"?ProgramAccess.WindDesign:title=="Purlin Design"?ProgramAccess.PurlinDesign:title=="Truss Connections"?ProgramAccess.TrussConnections:ProgramAccess.SpliceDevelopmentHooks;}
  void LoadSelectedDesign(){if(loadingDesign||designTabs.SelectedTab==null)return;foreach(var child in designTabs.SelectedTab.Controls.OfType<Form>())child.Hide();Action open;if(!designLoaders.TryGetValue(designTabs.SelectedTab.Text,out open))return;loadingDesign=true;try{open();}finally{loadingDesign=false;}}
+ internal void ShowFormatters(){loadingFormatter=true;try{ShowGroup(formatterTabs,"Formatters");}finally{loadingFormatter=false;}LoadSelectedFormatter();}
+ void LoadSelectedFormatter(){if(loadingFormatter||formatterTabs.SelectedTab==null)return;Action open;if(!formatterLoaders.TryGetValue(formatterTabs.SelectedTab.Text,out open))return;loadingFormatter=true;try{open();}finally{loadingFormatter=false;}}
+ void AddFormatterEntry(string title,Action open){formatterLoaders.Add(title,open);formatterTabs.TabPages.Add(new TabPage(title));}
  void AddDesignEntry(string title,Action open){designLoaders.Add(title,open);var page=new TabPage(title);page.Controls.Add(new Label{Text="This design sheet requires its own program access.",Dock=DockStyle.Top,Height=60,Padding=new Padding(20)});designTabs.TabPages.Add(page);}
  void AddCard(FlowLayoutPanel panel,string title,string description,Action action){var card=new ToolModuleButton{ModuleIndex=panel.Controls.Count,Text=title,Description=description,Height=160,Width=470,Margin=new Padding(0,0,14,14)};card.Click+=(s,e)=>action();panel.Controls.Add(card);}
  void AddEntry(TabControl tabs,string title,string buttonText,Action action){var page=new TabPage(title);var open=new Button{Text=buttonText,Left=24,Top=28,Width=300,Height=42};open.Click+=(s,e)=>action();page.Controls.Add(open);tabs.TabPages.Add(page);}
@@ -74,7 +78,7 @@ class ToolModuleButton:Button {
   e.Graphics.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
   e.Graphics.Clear(Parent==null?PowTheme.Background:Parent.BackColor);
   var bounds=new RectangleF(1,1,Width-3,Height-3);
-  using(var path=ModernUi.Rounded(bounds,12))using(var fill=new SolidBrush(hover?Color.FromArgb(248,249,255):Color.White))using(var border=new Pen(hover||Focused?PowTheme.Teal:PowTheme.Line,Focused?2:1)){
+  using(var path=ModernUi.Rounded(bounds,12))using(var fill=new SolidBrush(hover?ModernUi.Soft:ModernUi.Surface))using(var border=new Pen(hover||Focused?PowTheme.Teal:PowTheme.Line,Focused?2:1)){
    e.Graphics.FillPath(fill,path);e.Graphics.DrawPath(border,path);
   }
   using(var path=ModernUi.Rounded(new RectangleF(20,19,38,38),9))using(var fill=new SolidBrush(ModernUi.Selection))e.Graphics.FillPath(fill,path);
@@ -82,7 +86,7 @@ class ToolModuleButton:Button {
   using(var title=new Font("Segoe UI",12,FontStyle.Bold))TextRenderer.DrawText(e.Graphics,Text,title,new Rectangle(72,20,Width-113,35),PowTheme.Ink,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.NoPrefix);
   TextRenderer.DrawText(e.Graphics,"›",ModernUi.Heading,new Rectangle(Width-40,20,25,35),PowTheme.Teal,TextFormatFlags.VerticalCenter);
   TextRenderer.DrawText(e.Graphics,Description??descriptions[Math.Min(5,ModuleIndex)],ModernUi.Body,new Rectangle(22,76,Width-50,65),PowTheme.Muted,TextFormatFlags.Left|TextFormatFlags.WordBreak|TextFormatFlags.NoPrefix);
-  if(Focused)ControlPaint.DrawFocusRectangle(e.Graphics,new Rectangle(7,7,Width-14,Height-14),PowTheme.Teal,Color.White);
+  if(Focused)ControlPaint.DrawFocusRectangle(e.Graphics,new Rectangle(7,7,Width-14,Height-14),PowTheme.Teal,ModernUi.Surface);
  }
  void DrawGlyph(Graphics g,Rectangle r){
   using(var pen=new Pen(PowTheme.Teal,1.7f)){

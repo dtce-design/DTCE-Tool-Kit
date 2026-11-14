@@ -29,7 +29,7 @@ class ModernUiTests {
   using(var launcher=new LauncherForm()){
    launcher.Show();Application.DoEvents();var home=Field<Panel>(launcher,"home");
    Check(home.Controls.Count==1,"Start must remain a dashboard with no extra tabs");
-   foreach(int width in new[]{900,1100,1500}){launcher.Width=width;Application.DoEvents();Check(home.ClientSize.Width>0,"Dashboard lost its layout");}
+   launcher.ShowFormatters();var formatterPages=Field<TabControl>(launcher,"formatterTabs");Check(!formatterPages.TabPages.Cast<TabPage>().SelectMany(p=>p.Controls.OfType<Button>()).Any(),"Formatter tabs must open their tool without an extra Open button");Check(formatterPages.SelectedTab.Controls.OfType<Form>().Any(),"Selecting a Formatter tab loads its form");launcher.ShowStart();foreach(int width in new[]{900,1100,1500}){launcher.Width=width;Application.DoEvents();Check(home.ClientSize.Width>0,"Dashboard lost its layout");}
    launcher.Close();
   }
   using(var works=new ProgramOfWorksForm()){

@@ -67,3 +67,14 @@ art-directed, polished DTCE interface rather than imitating Microsoft. Keep
 full top tab names, readable tables and compact professional reports. The
 current desktop direction uses a navy workspace header, restrained teal
 actions and neutral light worksheet surfaces.
+
+## Active draft instructions (14 November 2026)
+
+Owner selected palette option3: dark charcoal and soft gray, with muted
+accents and clearer column dividers. Navigation should clearly distinguish
+main tab, subtab and nested subtab, all with full captions at the top.
+Remove duplicate commercial-stock selectors from RC Start; keep them in
+member settings. Formatter tabs should open their tools directly.
+The owner said not to finalize yet because more requests are coming. Keep
+source checkpoints in GitHub for recovery, but do not package/publish a new
+finished build until instructed to finish. See Desktop-Draft-2026-11-14.txt.
