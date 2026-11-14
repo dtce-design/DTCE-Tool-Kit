@@ -4438,24 +4438,8 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			Button(flowLayoutPanel, "Save Program of Works", Save);
             Button(flowLayoutPanel, "Export report file", ExportEngineeringReport);
 			Button(flowLayoutPanel, "Open Program of Works", Open);
-			Button(flowLayoutPanel, "Print preview", delegate
-			{
-				CalculationPreview.Show(this, Report());
-			});
-			Button(flowLayoutPanel, "Save PDF", delegate
-			{
-				using (SaveFileDialog saveFileDialog = new SaveFileDialog
-				{
-					Filter = "PDF|*.pdf",
-					FileName = "Program-of-Works.pdf"
-				})
-				{
-					if (saveFileDialog.ShowDialog(this) == DialogResult.OK)
-					{
-						EstimatePdf.Write(saveFileDialog.FileName, Report());
-					}
-				}
-			});
+			Button(flowLayoutPanel, "Print preview", PreviewQuantityEngineeringReport);
+            Button(flowLayoutPanel, "Save PDF", SaveQuantityEngineeringPdf);
 			beam = new EstimatorForm(null);
 			slab = new SlabEstimatorForm();
 			AddHome();
@@ -5253,7 +5237,7 @@ worksExcelTimer.Tick += async delegate
 				RowHeadersVisible = false,
 				BackgroundColor = Color.White,
 				ColumnHeadersHeight = 55,
-				AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells,
+				AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None,
 				SelectionMode = DataGridViewSelectionMode.CellSelect
 			};
 			foreach (string text in headers)
@@ -5273,6 +5257,8 @@ worksExcelTimer.Tick += async delegate
 			}
 			g.Columns[g.Columns.Count - 1].Width = 270;
 			GridAppearance.Apply(g);
+            // Hidden worksheets are measured only when their tab is first prepared.
+            g.ColumnHeadersHeightSizeMode=DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
 			object originalCellValue = null;
 			g.CellBeginEdit += delegate(object s, DataGridViewCellCancelEventArgs e)
 			{

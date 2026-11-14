@@ -1,0 +1,47 @@
+DTCE Tool Kit v1.4.49 — Windows desktop TEST BUILD
+14 November 2026 (Asia/Manila)
+
+Changes since v1.4.48:
+- Distinct blue main tabs, green subtabs and warm-brown nested tabs. Active tabs
+  have solid fills with white text, verified for at least 4.5:1 contrast in both
+  appearance modes. Keyboard focus cues remain available for keyboard use.
+- Dropdown fields have explicit borders, a contrasting arrow button and a visible
+  focus border. Editable dropdown cells in tables use the same affordance.
+- Admin password dialog action buttons enlarged; long command labels no longer
+  wrap onto a clipped second line. Existing password/signing checks unchanged.
+- POW Print preview and Save PDF now use a structured A4 vector PDF instead of
+  the legacy monospaced text dump. Export report file uses the same structured
+  data. Sections, actual tables, repeated table headers and source computations
+  use readable proportional type, typically 9pt body and 8pt table headers.
+  Metadata/footer is at least 7pt. Edition-specific DTCE/DPWH watermark is faint
+  and appears once per page. PDF print-only permissions remain enabled.
+- Report scopes and Summary/Detailed selection are retained. Empty measured
+  sections are omitted; manual BOQ zero entries are retained. Measurement inputs
+  include the extra works sheets and embedded beam/slab estimating inputs.
+- Hidden POW grid header/row sizing deferred until the sheet is styled on visit.
+  Builds use compiler optimization. Actual first-open speed is NOT measured here.
+
+Verification:
+Admin and User compile against .NET Framework 4.8 reference assemblies.
+210 automated checks pass: quantities/routing95, appearance44, wind loads24,
+wind/terrain40, structured PDF/security/wrapping/pagination7. Rendered sample
+and seven-page pagination fixture checked: A4, minimum font7pt, text within page,
+all110 pagination records retained, repeated column headers, print enabled and
+modification disabled. Sample report quantities are illustrative test fixtures.
+
+Native Windows GUI, DPI behavior, Excel COM, first-open/disconnect timing and
+PDF default-viewer launch have not been exercised in this Linux workspace.
+Cold-start improvement needs testing on the user's Windows computer; do not
+interpret these changes as a measured removal of all startup delay.
+
+Extract the complete versioned folder. Requires Windows and .NET Framework4.8.
+Keep the EXE and matching config together. Read v1.4.48 notes for project schema21,
+roofing mapping and existing BACKUP unit corrections. Keep a copy of project files
+before saving with schema21; older apps cannot reopen that format.
+
+Still pending: AutoCAD automatic pipe measurement/ID labels, interactive steel
+section previews and final terrain scale controls. Existing wind land-cover
+suggestions remain preliminary and require site evidence review.
+
+No private key, real activation key or certificate included. No key rotation,
+Microsoft Store, TestFlight or Pages publication is performed by this test ZIP.

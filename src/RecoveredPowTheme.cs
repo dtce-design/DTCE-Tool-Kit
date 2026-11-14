@@ -35,7 +35,7 @@ internal static partial class PowTheme {
     // Report editors retain their fixed-width typography and custom foregrounds.
     text.BackColor=text.ReadOnly?ModernUi.Soft:ModernUi.Input;text.ForeColor=Ink;}
    var numeric=root as NumericUpDown;if(numeric!=null){numeric.BorderStyle=BorderStyle.FixedSingle;numeric.BackColor=ModernUi.Input;numeric.ForeColor=Ink;}
-   var combo=root as ComboBox;if(combo!=null){combo.FlatStyle=FlatStyle.Flat;combo.BackColor=ModernUi.Input;combo.ForeColor=Ink;}
+   var combo=root as ComboBox;if(combo!=null){combo.FlatStyle=FlatStyle.Standard;DropdownChrome.Attach(combo);combo.BackColor=ModernUi.Input;combo.ForeColor=Ink;}
    var list=root as ListBox;if(list!=null){list.BackColor=ModernUi.Input;list.ForeColor=Ink;}
    var tree=root as TreeView;if(tree!=null){tree.BackColor=ModernUi.Surface;tree.ForeColor=Ink;tree.LineColor=Line;}
    var group=root as GroupBox;if(group!=null)group.ForeColor=Ink;
@@ -63,14 +63,14 @@ internal static partial class PowTheme {
    using(var path=new GraphicsPath()){
     int shoulder=Math.Min(9,face.Width/4);
     path.AddLines(new[]{new Point(face.Left,face.Bottom),new Point(face.Left,face.Top+6),new Point(face.Left+shoulder,face.Top),new Point(face.Right-shoulder,face.Top),new Point(face.Right,face.Top+6),new Point(face.Right,face.Bottom)});
-    using(var fill=new SolidBrush(selected?Background:ModernUi.Soft))e.Graphics.FillPath(fill,path);
-    using(var edge=new Pen(selected?Teal:Line))e.Graphics.DrawPath(edge,path);
+    using(var fill=new SolidBrush(selected?DesktopAppearance.Palette.ActiveTab(depth):level))e.Graphics.FillPath(fill,path);
+    using(var edge=new Pen(selected?DesktopAppearance.Palette.ActiveTab(depth):Line))e.Graphics.DrawPath(edge,path);
     if(!selected)using(var edge=new Pen(Line))e.Graphics.DrawLine(edge,face.Left,face.Bottom-1,face.Right,face.Bottom-1);
-    else using(var join=new Pen(Background,3))e.Graphics.DrawLine(join,face.Left+2,face.Bottom-1,face.Right-2,face.Bottom-1);
+    else using(var join=new Pen(DesktopAppearance.Palette.ActiveTab(depth),3))e.Graphics.DrawLine(join,face.Left+2,face.Bottom-1,face.Right-2,face.Bottom-1);
    }
-   TextRenderer.DrawText(e.Graphics,tab.TabPages[e.Index].Text,tab.Font,Rectangle.Inflate(r,-8,-3),selected?Teal:(DesktopAppearance.Palette.Dark?Muted:Ink),
+   TextRenderer.DrawText(e.Graphics,tab.TabPages[e.Index].Text,tab.Font,Rectangle.Inflate(r,-8,-3),selected?DesktopAppearance.Palette.ActiveTabText:Ink,
     TextFormatFlags.NoPrefix|TextFormatFlags.VerticalCenter|TextFormatFlags.HorizontalCenter|TextFormatFlags.SingleLine);
-   if(tab.Focused&&selected)ControlPaint.DrawFocusRectangle(e.Graphics,Rectangle.Inflate(r,-5,-5),Teal,Background);
+   if(tab.Focused&&selected&&NavigationTabs.KeyboardFocusVisible(tab))ControlPaint.DrawFocusRectangle(e.Graphics,Rectangle.Inflate(r,-5,-5),Teal,Background);
   };
  }
  static void StyleGrid(DataGridView grid) {

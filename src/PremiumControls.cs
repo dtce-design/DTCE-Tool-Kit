@@ -11,7 +11,7 @@ static class PremiumControls {
   bool primary=ModernUi.Primary(button.Text),pressed=false;bool chrome=object.Equals(button.Tag,"workspace-back");
   button.Font=ModernUi.Body;button.Image=CommandIcons.For(button.Text);button.TextImageRelation=TextImageRelation.ImageBeforeText;button.FlatStyle=FlatStyle.Flat;button.FlatAppearance.BorderSize=0;
   button.UseVisualStyleBackColor=false;button.BackColor=chrome?DesktopAppearance.Palette.ChromeButton:primary?Accent:ModernUi.Surface;button.ForeColor=primary?Color.White:PowTheme.Ink;button.Cursor=Cursors.Hand;
-  button.MinimumSize=new Size(0,34);button.Padding=new Padding(12,5,12,5);button.Margin=new Padding(0,2,7,2);
+  int labelWidth=TextRenderer.MeasureText(button.Text??"",button.Font).Width+28+(button.Image==null?0:22);button.MinimumSize=new Size(labelWidth,38);button.Padding=new Padding(12,5,12,5);button.Margin=new Padding(0,2,7,2);
   if(button.Parent is FlowLayoutPanel){button.AutoSize=true;button.AutoSizeMode=AutoSizeMode.GrowAndShrink;}
   button.MouseDown+=(s,e)=>{pressed=true;button.Invalidate();};button.MouseUp+=(s,e)=>{pressed=false;button.Invalidate();};
   button.KeyDown+=(s,e)=>{if(e.KeyCode==Keys.Space){pressed=true;button.Invalidate();}};button.KeyUp+=(s,e)=>{pressed=false;button.Invalidate();};
@@ -26,7 +26,7 @@ static class PremiumControls {
    }
    var text=Rectangle.Inflate(button.ClientRectangle,-9,-3);
    if(button.Image!=null){g.DrawImage(button.Image,9,(button.Height-16)/2,16,16);text.X+=22;text.Width-=22;}
-   TextRenderer.DrawText(g,button.Text,button.Font,text,!button.Enabled?PowTheme.Muted:primary?Color.White:PowTheme.Ink,TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter|TextFormatFlags.WordBreak);
+   TextRenderer.DrawText(g,button.Text,button.Font,text,!button.Enabled?PowTheme.Muted:primary?Color.White:PowTheme.Ink,TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter|TextFormatFlags.SingleLine|TextFormatFlags.NoPrefix);
    if(button.Focused)ControlPaint.DrawFocusRectangle(g,Rectangle.Inflate(button.ClientRectangle,-4,-4),primary?Color.White:Accent,fill);
   };
  }

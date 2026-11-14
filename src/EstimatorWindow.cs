@@ -1,6 +1,6 @@
 using System;using System.IO;using System.Linq;using System.Text;using System.Globalization;using System.Collections.Generic;using System.Drawing;using System.Windows.Forms;using System.Xml;
 namespace BeamScheduleFormatter {
-class EstimatorForm:Form { ExcelLiveLink excelLink;Timer excelTimer=new Timer{Interval=1000};Label excelStatus;
+class EstimatorForm:Form { internal DataGridView WorksInputGrid{get{return beams;}} ExcelLiveLink excelLink;Timer excelTimer=new Timer{Interval=1000};Label excelStatus;
  List<ScheduleSource> sources=new List<ScheduleSource>();LengthConfiguration lengthProfile;Analysis catalog;string sourceText="",sourceName="";bool filling;bool profileSnapshot;string savedState="";
  double? projectSwell,projectShrink;
  List<double> stockLengths=new List<double>(CommercialBars.Lengths);
