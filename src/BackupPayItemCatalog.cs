@@ -26,7 +26,7 @@ new BackupTarget{Row=92,Code="B.19(1)",Description="Geotechnical Investigation (
 new BackupTarget{Row=99,Code="B.20(1)",Description="Temporary Fence",Unit="ls"},
 new BackupTarget{Row=102,Code="B.25(1)",Description="Detailed Engineering and Architectural Design",Unit="ls"},
 new BackupTarget{Row=105,Code="102(2)",Description="Roadway Excavation (Surplus Common)",Unit="cu.m."},
-new BackupTarget{Row=108,Code="105(1)a",Description="Subgrade Preparation (Common Material)",Unit="cu.m."},
+new BackupTarget{Row=108,Code="105(1)a",Description="Subgrade Preparation (Common Material)",Unit="sq.m."},
 new BackupTarget{Row=111,Code="200(1)",Description="Aggregate Subbase Course",Unit="cu.m."},
 new BackupTarget{Row=114,Code="311(1)a",Description="0.15m thk. Portland Cement Concrete Pavement (Unreinforced)",Unit="sq.m."},
 new BackupTarget{Row=117,Code="311(1)c1",Description="0.23m thk. Portland Cement Concrete Pavement (Unreinforced)",Unit="sq.m."},

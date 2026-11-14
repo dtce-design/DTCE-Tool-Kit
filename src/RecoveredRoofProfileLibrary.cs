@@ -73,6 +73,7 @@ namespace BeamScheduleFormatter
 			foreach (RoofProfile profile in profiles)
 			{
 				SteelWeight.Positive(profile.Width, profile.Cover);
+                RoofingPaySpecification.ValidateMaterial(profile.MaterialType);
 				if (string.IsNullOrWhiteSpace(profile.Name) || string.IsNullOrWhiteSpace(profile.SideLap) || profile.Cover > profile.Width || !new string[2] { "Longspan Rib", "Longspan Corrugated" }.Contains(profile.Family) || !hashSet.Add(profile.Name + "|" + profile.SideLap))
 				{
 					throw new Exception("Invalid or duplicate roof profile option.");
@@ -80,7 +81,7 @@ namespace BeamScheduleFormatter
 			}
 			foreach (IGrouping<string, RoofProfile> group in profiles.GroupBy((RoofProfile p) => p.Name, StringComparer.OrdinalIgnoreCase))
 			{
-				if (group.Any((RoofProfile p) => p.Family != group.First().Family || Math.Abs(p.Width - group.First().Width) > 1E-08))
+				if (group.Any((RoofProfile p) => p.MaterialType != group.First().MaterialType || p.Family != group.First().Family || Math.Abs(p.Width - group.First().Width) > 1E-08))
 				{
 					throw new Exception("Profile options must share a family and full width.");
 				}
@@ -93,12 +94,13 @@ namespace BeamScheduleFormatter
 			Validate(list);
 			XmlDocument xmlDocument = new XmlDocument();
 			XmlElement xmlElement = xmlDocument.CreateElement("RoofProfileLibrary");
-			xmlElement.SetAttribute("version", "1");
+			xmlElement.SetAttribute("version", "2");
 			xmlDocument.AppendChild(xmlElement);
 			foreach (RoofProfile item in list)
 			{
 				XmlElement xmlElement2 = xmlDocument.CreateElement("Profile");
 				xmlElement2.SetAttribute("name", item.Name);
+                xmlElement2.SetAttribute("material", item.MaterialType);
 				xmlElement2.SetAttribute("family", item.Family);
 				xmlElement2.SetAttribute("lap", item.SideLap);
 				xmlElement2.SetAttribute("width", item.Width.ToString("R", CultureInfo.InvariantCulture));
@@ -144,15 +146,17 @@ namespace BeamScheduleFormatter
 			{
 				xmlDocument.Load(reader);
 			}
-			if (xmlDocument.DocumentElement.Name != "RoofProfileLibrary" || xmlDocument.DocumentElement.GetAttribute("version") != "1")
+			if (xmlDocument.DocumentElement.Name != "RoofProfileLibrary" || !new[]{"1","2"}.Contains(xmlDocument.DocumentElement.GetAttribute("version")))
 			{
 				throw new Exception("Unsupported app profile library.");
 			}
 			List<RoofProfile> list = new List<RoofProfile>();
 			foreach (XmlElement item in xmlDocument.DocumentElement.SelectNodes("Profile"))
 			{
-				list.Add(new RoofProfile
+				if(xmlDocument.DocumentElement.GetAttribute("version")=="2"&&!item.HasAttribute("material"))throw new Exception("Missing roof-profile material.");
+                list.Add(new RoofProfile
 				{
+                    Material=item.HasAttribute("material")?item.GetAttribute("material"):RoofingPaySpecification.LegacyMaterial(item.GetAttribute("name")),
 					Name = item.GetAttribute("name"),
 					Family = item.GetAttribute("family"),
 					SideLap = item.GetAttribute("lap"),

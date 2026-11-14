@@ -66,7 +66,7 @@ class AdminForm:MainForm {
  }
  public void OpenGenerator(){if(generator==null||generator.IsDisposed){generator=new CodeGeneratorForm();generator.Show(this);}else{generator.Show();generator.BringToFront();}}
 }
-class CodeGeneratorForm:Form {
+partial class CodeGeneratorForm:Form {
  internal static int SelectedPrograms(CheckedListBox apps){int selected=0;for(int n=0;n<ProgramAccess.Ids.Length;n++)if(apps.GetItemChecked(n))selected|=ProgramAccess.Ids[n];return selected;}
  TextBox request,output;Label message;string privateKey;
  public CodeGeneratorForm(){AppBrand.Apply(this);
@@ -105,6 +105,7 @@ class CodeGeneratorForm:Form {
     }
    }catch(Exception){MessageBox.Show(this,"Cannot export the mobile key. Import the matching existing Admin key first and choose a writable file location.","Export failed");}
   };
+  ConfigureResponsiveLayout(apps,generate,import,copy,clear,certification,certVersion,exportMobile);
   generate.Click+=(o,e)=>{output.Clear();try{output.Text=certification.Checked?AccessCodes.GenerateCertification(privateKey,certVersion.Text.Trim()):AccessCodes.Generate(request.Text,privateKey,SelectedPrograms(apps));message.Text="Key ID: "+AccessCodes.KeyId(AccessCodes.PublicKey())+(certification.Checked?"\nCertification: all apps, 30 days. User v"+certVersion.Text.Trim()+" only. Expires "+DateTime.UtcNow.AddDays(30).ToLocalTime().ToString("yyyy-MM-dd HH:mm") :"\nApproved for 8 hours from now, including after reopening the user app.");}catch(Exception ex){MessageBox.Show(this,ex.Message,"Cannot generate code");}};
  }
 }

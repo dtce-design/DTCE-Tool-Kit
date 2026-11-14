@@ -250,7 +250,7 @@ namespace BeamScheduleFormatter
 
 		private readonly Timer worksExcelTimer = new Timer
 		{
-			Interval = 150
+			Interval = 75
 		};
 
 		private readonly Label excelStatus = new Label
@@ -498,12 +498,14 @@ namespace BeamScheduleFormatter
 					RoofProfile profile = new RoofProfile
 					{
 						Name = Cell(item, 0),
+                        Material = Cell(item,6)==""?RoofingPaySpecification.LegacyMaterial(Cell(item,0)):Cell(item,6),
 						Family = Cell(item, 1),
 						Width = Number(item, 2) / 1000.0,
 						SideLap = Cell(item, 3),
 						Cover = Number(item, 4) / 1000.0
 					};
 					RoofMath.Positive(profile.Width, profile.Cover);
+                    RoofingPaySpecification.ValidateMaterial(profile.MaterialType);item.Cells[6].Value=profile.MaterialType;
 					if (profile.Name == "" || profile.SideLap == "" || !new string[2] { "Longspan Rib", "Longspan Corrugated" }.Contains(profile.Family) || profile.Cover > profile.Width)
 					{
 						throw new Exception("Enter profile, family, side lap and cover <= full width.");
@@ -512,7 +514,7 @@ namespace BeamScheduleFormatter
 					{
 						throw new Exception("Duplicate profile / side lap option.");
 					}
-					if (savedRoofProfiles.Any((RoofProfile p) => string.Equals(p.Name, profile.Name, StringComparison.OrdinalIgnoreCase) && (p.Family != profile.Family || Math.Abs(p.Width - profile.Width) > 1E-08)))
+					if (savedRoofProfiles.Any((RoofProfile p) => string.Equals(p.Name, profile.Name, StringComparison.OrdinalIgnoreCase) && (p.MaterialType!=profile.MaterialType || p.Family != profile.Family || Math.Abs(p.Width - profile.Width) > 1E-08)))
 					{
 						throw new Exception("A profile name must have the same family and full width for all lap options.");
 					}
@@ -525,10 +527,7 @@ namespace BeamScheduleFormatter
 					errors.Add("Roof profile: " + ex.Message);
 				}
 			}
-			DataGridViewComboBoxColumn obj = (DataGridViewComboBoxColumn)roofSheets.Columns[2];
-			obj.Items.Clear();
-			obj.Items.AddRange(savedRoofProfiles.Select((RoofProfile p) => p.Name).Distinct(StringComparer.OrdinalIgnoreCase).Cast<object>()
-				.ToArray());
+            RefreshRoofProfileChoices(savedRoofProfiles.Select(p=>p.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
 		}
 
 		private void ApplyRoofProfile(DataGridViewRow row)
@@ -538,7 +537,8 @@ namespace BeamScheduleFormatter
 			List<RoofProfile> list = savedRoofProfiles.Where((RoofProfile p) => string.Equals(p.Name, Cell(row, 2), StringComparison.OrdinalIgnoreCase)).ToList();
 			if (list.Count == 0)
 			{
-				throw new Exception("Choose a saved profile from Roofing Start.");
+				row.Cells[2].ErrorText="Choose a saved profile from Roofing Start.";
+                throw new Exception("Choose a saved profile from Roofing Start.");
 			}
 			string lap = Cell(row, 17);
 			if (!list.Any((RoofProfile p) => p.SideLap == lap))
@@ -546,10 +546,7 @@ namespace BeamScheduleFormatter
 				string legacy = Cell(row, 18);
 				lap = (list.Any((RoofProfile p) => p.SideLap == legacy) ? legacy : list[0].SideLap);
 			}
-			DataGridViewComboBoxCell obj = (DataGridViewComboBoxCell)row.Cells[17];
-			obj.Items.Clear();
-			obj.Items.AddRange(list.Select((RoofProfile p) => p.SideLap).Cast<object>().ToArray());
-			row.Cells[17].Value = lap;
+            RefreshRoofLapChoices(row,list,lap);
 			RoofProfile roofProfile = list.First((RoofProfile p) => p.SideLap == lap);
 			row.Cells[6].Value = roofProfile.Width.ToString("0.###", CultureInfo.InvariantCulture);
 			row.Cells[7].Value = roofProfile.Cover.ToString("0.###", CultureInfo.InvariantCulture);
@@ -2110,6 +2107,7 @@ namespace BeamScheduleFormatter
 
 		private List<BillQuantity> RoofingQuantitySources(string name)
 		{
+            var specification=RoofSheetPayQuantities().FirstOrDefault(q=>q.Description==name);if(specification!=null)return specification.Sources;
 			List<BillQuantity> list = new List<BillQuantity>();
 			foreach (DataGridViewRow item in (IEnumerable)roofSheets.Rows)
 			{
@@ -2831,7 +2829,7 @@ namespace BeamScheduleFormatter
 			};
 			start.Controls.Add(new Label
 			{
-				Text = "EARTHWORKS & GRAVEL | DEFAULTS",
+				Text = "Earthworks | Defaults and quantities",
 				Width = 1100,
 				Height = 38,
 				Font = new Font("Segoe UI", 16f, FontStyle.Bold),
@@ -2848,7 +2846,7 @@ namespace BeamScheduleFormatter
 			{
 				foreach (Control control in start.Controls)
 				{
-					control.Width = Math.Max(400, start.ClientSize.Width - 60);
+					control.Width = Math.Max(400, Math.Min(1240, start.ClientSize.Width - 60));
 				}
 			};
 			tabPage2.Controls.Add(start);
@@ -2858,6 +2856,7 @@ namespace BeamScheduleFormatter
 				cutFill.Columns[num2].Visible = false;
 			}
 			AddGravelEstimate();
+            MoveEarthworksSummaryToStart();
 		}
 
 		private void SetDefaults(DataGridView grid, Dictionary<int, string> values)
@@ -3315,7 +3314,7 @@ namespace BeamScheduleFormatter
 						roofProfiles.Rows.Clear();
 						foreach (RoofProfile item in list)
 						{
-							roofProfiles.Rows.Add(item.Name, item.Family, (item.Width * 1000.0).ToString("R", CultureInfo.InvariantCulture), item.SideLap, (item.Cover * 1000.0).ToString("R", CultureInfo.InvariantCulture));
+							AddRoofProfileRow(item);
 						}
 					}
 					finally
@@ -3389,7 +3388,7 @@ namespace BeamScheduleFormatter
 					roofProfiles.Rows.Clear();
 					foreach (RoofProfile item in list)
 					{
-						roofProfiles.Rows.Add(item.Name, item.Family, (item.Width * 1000.0).ToString("R", CultureInfo.InvariantCulture), item.SideLap, (item.Cover * 1000.0).ToString("R", CultureInfo.InvariantCulture));
+						AddRoofProfileRow(item);
 					}
 				}
 				finally
@@ -4177,6 +4176,7 @@ namespace BeamScheduleFormatter
 				}
 			};
 			AddRoofProfiles();
+            AddRoofingProjectSpecification();
 			AddInsulationSettings();
 			SetupRoofProfileLibrary();
 			AddGrid("Flashing & Gutters", roofAccessories, "GUIDE: Enter total installation/run length. Commercial piece length is fixed at 2.44m. Lap follows Roofing Start > Flashing & gutter settings (gutter 150mm, ridge roll 300mm, flashing 100mm); end closures use zero lap. Developed width is optional, only for supplementary sheet area. End Flashing Gutter uses the actual blank length/width per closure and number of closures (lap=0). Offcuts are reused only for matching type, fabrication description and developed width. New-stock orders are charged to the longest cut using each stock; rows using shared offcuts may need zero new pieces. No percentage waste or steel kg.");
@@ -4285,20 +4285,8 @@ namespace BeamScheduleFormatter
 		private List<object[]> RoofingSummary()
 		{
 			List<object[]> list = new List<object[]>();
-			string[] array = new string[2] { "Longspan Rib", "Longspan Corrugated" };
-			foreach (string type in array)
-			{
-				IEnumerable<DataGridViewRow> source = from DataGridViewRow r in roofSheets.Rows
-					where r.Tag is RoofSheetQuantity && RoofFamily(r) == type
-					select r;
-				list.Add(new object[3]
-				{
-					type + " to buy",
-					source.Sum((DataGridViewRow r) => ((RoofSheetQuantity)r.Tag).BuyArea),
-					"m2"
-				});
-			}
-			array = new string[4] { "Flashing", "Gutter", "Ridge Roll", "End Flashing Gutter" };
+            list.AddRange(RoofSheetPayQuantities().Select(q=>new object[]{q.Description,q.Quantity,q.Unit}));
+			string[] array = new string[4] { "Flashing", "Gutter", "Ridge Roll", "End Flashing Gutter" };
 			foreach (string type2 in array)
 			{
 				IEnumerable<DataGridViewRow> source2 = from DataGridViewRow r in roofAccessories.Rows
@@ -4580,13 +4568,12 @@ worksExcelTimer.Tick += async delegate
                 pages["Miscellaneous Structures"]
 			});
 			pages["Earthworks Start"].Text = "Start";
-			AddSection("Earthworks & Gravel", new TabPage[6]
+			AddSection("Earthworks", new TabPage[5]
 			{
 				pages["Earthworks Start"],
 				pages["Cut & Fill"],
                 pages["Clearing and Grubbing"],
                 pages["Cutting of Trees"],
-				pages["Earthworks Summary"],
 				pages["Gravel Estimate"]
 			});
 			AddSection("Masonry Works", new TabPage[1] { pages["CHB Estimate"] }.Concat(MasonryNames.Select((string name) => pages[name])).ToArray());
@@ -4631,7 +4618,7 @@ worksExcelTimer.Tick += async delegate
 				Height = 52,
 				Padding = new Padding(8)
 			};
-			reportScope.Items.AddRange(new object[] { "Program of Works Summary", "Reinforced Concrete Works", "Masonry Works", "Doors & Windows", "Finishing Works", "Roofing Works", "Earthworks & Gravel", "Structural Steel Works", "Plumbing Works", "Carpentry and Joinery Works", "Pavement Construction", "Slope Protection Works" });
+			reportScope.Items.AddRange(new object[] { "Program of Works Summary", "Reinforced Concrete Works", "Masonry Works", "Doors & Windows", "Finishing Works", "Roofing Works", "Earthworks", "Structural Steel Works", "Plumbing Works", "Carpentry and Joinery Works", "Pavement Construction", "Slope Protection Works" });
 			reportDetail.Items.AddRange(new object[3] { "Summary", "Detailed", "Extensive" });
 			reportScope.SelectedIndex = 0;
 			reportDetail.SelectedIndex = 1;
@@ -4728,6 +4715,7 @@ worksExcelTimer.Tick += async delegate
 					Recalculate();
 				}
 				TabPage tabPage = ActiveLeaf(tabs);
+                if(tabPage!=null){PowTheme.Apply(tabPage);foreach(Form embedded in tabPage.Controls.OfType<Form>())if(!embedded.Visible)embedded.Show();}
 				if (tabPage != null && tabPage.Parent == pipeGroupTabs)
 				{
 					ShowPipeGroup();
@@ -5178,7 +5166,7 @@ worksExcelTimer.Tick += async delegate
 			form.Dock = DockStyle.Fill;
 			tabPage.Controls.Add(form);
 			tabs.TabPages.Add(tabPage);
-			form.Show();
+			// Native estimator windows are shown only when their worksheet is selected.
 		}
 
 		private static void HideEmbeddedExcelControls(Control owner)
@@ -5215,24 +5203,8 @@ worksExcelTimer.Tick += async delegate
 				Height = 46,
 				Padding = new Padding(5, 2, 5, 2)
 			};
-			if (!grid.ReadOnly)
-			{
-				Button(flowLayoutPanel, "Add entry", delegate
-				{
-					grid.Rows.Add();
-				});
-				Button(flowLayoutPanel, "Remove entry", delegate
-				{
-					foreach (DataGridViewRow item in (from r in (from DataGridViewCell c in grid.SelectedCells
-							select c.OwningRow).Distinct()
-						where !r.IsNewRow
-						select r).ToList())
-					{
-						grid.Rows.Remove(item);
-					}
-					Recalculate();
-				});
-			}
+            if (!grid.ReadOnly && grid.AllowUserToAddRows)
+                RowDeleteAffordance.Attach(grid);
 			if (grid == walls || masonryGrids.Values.Contains(grid))
 			{
 				Button(flowLayoutPanel, "Add / edit openings", delegate
@@ -5240,11 +5212,13 @@ worksExcelTimer.Tick += async delegate
 					EditWallOpenings(grid);
 				});
 			}
-			Button(flowLayoutPanel, "Guide", delegate { value.Visible = !value.Visible; });
+			flowLayoutPanel.Visible = flowLayoutPanel.Controls.Count > 0;
 			tabPage.Controls.Add(grid);
 			tabPage.Controls.Add(flowLayoutPanel);
 			tabPage.Controls.Add(value);
-            tabPage.Controls.Add(new WorksheetHeading { Text=title, Subtitle=grid.ReadOnly?"Computed quantities and source breakdown":"Enter measurements below  ·  Calculated quantities update automatically" });
+            var heading = new WorksheetHeading { Text=title, Subtitle=grid.ReadOnly?"Computed quantities and source breakdown":"Enter measurements below  ·  Calculated quantities update automatically" };
+            heading.SetGuide(note);
+            tabPage.Controls.Add(heading);
 			tabs.TabPages.Add(tabPage);
 		}
 
@@ -5325,6 +5299,7 @@ worksExcelTimer.Tick += async delegate
 			g.DataError += delegate(object s, DataGridViewDataErrorEventArgs e)
 			{
 				e.ThrowException = false;
+                if(g==roofSheets&&updatingRoofChoices&&(e.ColumnIndex==2||e.ColumnIndex==17))return;
 				if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
 				{
 					g.Rows[e.RowIndex].Cells[e.ColumnIndex].ErrorText = "Check the selected type or numeric value.";
@@ -7074,7 +7049,7 @@ worksExcelTimer.Tick += async delegate
 				AppendRCWallReport(stringBuilder, detailed);
                 AppendExtraWorksReport(stringBuilder,detailed,scope);
 			}
-			if (flag || scope == "Earthworks & Gravel")
+			if (flag || scope == "Earthworks")
 			{
 				AppendEarthworkReport(stringBuilder, detailed);
 			}
@@ -7163,7 +7138,7 @@ worksExcelTimer.Tick += async delegate
 				AppendRoofingReport(stringBuilder, detailed);
 			}
 			stringBuilder.AppendLine();
-			if(new[]{"Earthworks & Gravel","Pavement Construction","Slope Protection Works","Carpentry and Joinery Works"}.Contains(scope))AppendExtraWorksReport(stringBuilder,detailed,scope);
+			if(new[]{"Earthworks","Pavement Construction","Slope Protection Works","Carpentry and Joinery Works"}.Contains(scope))AppendExtraWorksReport(stringBuilder,detailed,scope);
             stringBuilder.AppendLine("COMMON BASIS");
 			stringBuilder.AppendLine("Quantities use full precision; detail traces may show extra decimals. Purchasing follows the saved stock, lap and allowance settings.");
 			if (flag || scope == "Roofing Works")
@@ -7384,7 +7359,7 @@ worksExcelTimer.Tick += async delegate
 		{
 			XmlDocument xmlDocument = new XmlDocument();
 			XmlElement xmlElement = xmlDocument.CreateElement("ProgramOfWorks");
-			xmlElement.SetAttribute("version", "20");
+			xmlElement.SetAttribute("version", "21");
 			xmlElement.SetAttribute("computedInputsKnown", projectQuantitiesKnown.ToString());
 			WriteEarthSettings(xmlElement);
 			WriteSteelProfiles(xmlElement);
@@ -7413,7 +7388,7 @@ worksExcelTimer.Tick += async delegate
 			BackupBill.Write(xmlElement, backupBill);
 			WriteBackupBillRoutes(xmlElement);
 			WriteStructureConfigurations(xmlElement);
-            WriteExtraProject(xmlElement);
+            WriteExtraProject(xmlElement);WriteRoofingSpecification(xmlElement);
 			return xmlDocument.OuterXml;
 		}
 
@@ -7530,7 +7505,9 @@ worksExcelTimer.Tick += async delegate
 					xmlDocument.Load(reader);
 				}
 			}
-            bool extraSchema=xmlDocument.DocumentElement.Name=="ProgramOfWorks"&&xmlDocument.DocumentElement.GetAttribute("version")=="20";
+            bool roofSchema=xmlDocument.DocumentElement.Name=="ProgramOfWorks"&&xmlDocument.DocumentElement.GetAttribute("version")=="21";
+            ValidateRoofingSpecification(xmlDocument.DocumentElement,roofSchema);
+            bool extraSchema=xmlDocument.DocumentElement.Name=="ProgramOfWorks"&&(roofSchema||xmlDocument.DocumentElement.GetAttribute("version")=="20");
             ValidateExtraProject(xmlDocument.DocumentElement,extraSchema);
             if(extraSchema)xmlDocument.DocumentElement.SetAttribute("version","19");
 			if (xmlDocument.DocumentElement.Name != "ProgramOfWorks" || !new string[19]
@@ -7732,7 +7709,7 @@ worksExcelTimer.Tick += async delegate
 					}
 				}
 			}
-            ReadExtraProject(xmlDocument.DocumentElement);
+            ReadExtraProject(xmlDocument.DocumentElement);ReadRoofingSpecification(xmlDocument.DocumentElement);
 			Recalculate();
 			ShowPipeGroup();
 			saved = DataXml();
@@ -8102,7 +8079,7 @@ boqStatus.ForeColor = PowTheme.Teal;
 				{ 4, "100" },
 				{ 5, "1" }
 			});
-			AddGrid("Gravel Estimate", gravelEntries, "Beam and footing gravel is included automatically in the Start summary. Add manual rows only for OTHER areas to avoid double-counting. Installed volume=L*W*thickness/1000*qty. Purchase allowance comes from Earthworks & Gravel > Start; soil swell/shrink is not added to gravel. Manual gravel does not create excavation or backfill deductions.");
+			AddGrid("Gravel Estimate", gravelEntries, "Beam and footing gravel is included automatically in the Start summary. Add manual rows only for OTHER areas to avoid double-counting. Installed volume=L*W*thickness/1000*qty. Purchase allowance comes from Earthworks > Start; soil swell/shrink is not added to gravel. Manual gravel does not create excavation or backfill deductions.");
 			FlowLayoutPanel flowLayoutPanel = tabs.TabPages.Cast<TabPage>().Single((TabPage p) => p.Text == "Earthworks Start").Controls.OfType<FlowLayoutPanel>().Single();
 			flowLayoutPanel.Controls.Add(new Label
 			{

@@ -250,7 +250,7 @@ class Preview {
  }
 }
 
-class MainForm:Form {
+partial class MainForm:Form {
  protected FlowLayoutPanel ActionPanel;
  Color Navy=Color.FromArgb(20,33,51),Accent=Color.FromArgb(0,139,139),Muted=Color.FromArgb(91,107,125);
  TextBox sourceBox,prefixBox,floorBox,detail;Button browse,process,export;CheckBox merge;DataGridView grid;Label summary,status;PictureBox picture;TabControl tabs;Panel previewHost;Analysis analysis;Result result;bool busy;
@@ -292,6 +292,7 @@ class MainForm:Form {
   Controls.Add(content);Controls.Add(side);Controls.Add(status);Controls.Add(header);
   DragEnter+=(o,e)=>{if(e.Data.GetDataPresent(DataFormats.FileDrop))e.Effect=DragDropEffects.Copy;};DragDrop+=async(o,e)=>{var paths=(string[])e.Data.GetData(DataFormats.FileDrop);if(paths.Length>0&&!busy)await LoadFile(paths[0]);};
   prefixBox.TextChanged+=(o,e)=>InvalidatePreview();floorBox.TextChanged+=(o,e)=>InvalidatePreview();merge.CheckedChanged+=(o,e)=>InvalidatePreview();
+  UseSlabFormatterLayout();
  }
  void AddLabel(FlowLayoutPanel f,string t,bool strong=false,int height=0){var l=new Label{Text=t.TrimStart('\n'),Width=194,AutoSize=false,Height=height>0?height:strong?26:23,ForeColor=strong?Navy:Muted,Font=new Font("Segoe UI",strong?9.2f:9,strong?FontStyle.Bold:FontStyle.Regular),Margin=new Padding(0,strong?9:2,0,strong?4:2)};f.Controls.Add(l);}
  void PaintReinforcement(object sender,DataGridViewCellPaintingEventArgs e){

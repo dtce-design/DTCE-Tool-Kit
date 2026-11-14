@@ -758,7 +758,7 @@ namespace BeamScheduleFormatter
 			val.Activate();
 		}
 
-public List<BackupTarget> RegisterBackupBillItems(){var targets=BackupTargets();bool events=Convert.ToBoolean(app.EnableEvents);try{app.EnableEvents=false;foreach(var target in targets)SetBackupName(BackupMapping.ItemPrefix+target.SlotId,target.Row,BackupMapping.Identity(target));}finally{app.EnableEvents=events;}targetCache=targets;routeCache=null;return targets;}
+public List<BackupTarget> RegisterBackupBillItems(){backupNameRows=null;backupNameSignatures=null;nameIdentityCache=null;var targets=BackupTargets();registeredItemSlots=new HashSet<string>(CachedBackupNames(BackupMapping.ItemPrefix,null).Keys.Select(n=>n.Substring(BackupMapping.ItemPrefix.Length)),StringComparer.OrdinalIgnoreCase);targetCache=targets;routeCache=null;return targets;}
 
 
 		public List<BackupTarget> BackupTargets()
@@ -820,7 +820,7 @@ public List<BackupTarget> RegisterBackupBillItems(){var targets=BackupTargets();
 						Description = text2.Trim(),
 						Unit = text3.Trim(),
 						SlotId = slotId,
-						Quantity = BackupBill.ReadQuantity(val3.Value2)
+						Quantity = BackupBill.ReadQuantity(array[lowerBound+row-1,lowerBound2+53])
 					});
 				}
 			}
@@ -835,40 +835,8 @@ public List<BackupTarget> RegisterBackupBillItems(){var targets=BackupTargets();
 			return list;
 		}
 
-		private Dictionary<string, int> BackupNames(string prefix, Dictionary<string, string> identities = null)
-		{
-			Dictionary<string, int> dictionary = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-			foreach (dynamic item in book.Names)
-			{
-				string text = Convert.ToString(item.Name);
-				if (text.Contains("!"))
-				{
-					text = text.Substring(text.LastIndexOf('!') + 1);
-				}
-				if (text.StartsWith(prefix, StringComparison.Ordinal))
-				{
-					dynamic val;
-					try
-					{
-						val = item.RefersToRange;
-					}
-					catch
-					{
-						throw new Exception("A saved BACKUP mapping is broken: " + text + ". Repair the named range in Excel.");
-					}
-					if (Convert.ToString(val.Worksheet.Name) != "BACKUP" || Convert.ToInt32(val.Column) != 55)
-					{
-						throw new Exception("A BACKUP mapping points outside its total column: " + text);
-					}
-					dictionary[text] = Convert.ToInt32(val.Row);
-					if (identities != null)
-					{
-						identities[text] = Convert.ToString(item.Comment);
-					}
-				}
-			}
-			return dictionary;
-		}
+        private Dictionary<string,int> BackupNames(string prefix,Dictionary<string,string> identities=null){return CachedBackupNames(prefix,identities);}
+
 
 		public Dictionary<string, BackupTarget> BackupRoutes(List<BackupDemand> demands, List<BackupTarget> targets)
 		{
@@ -936,12 +904,12 @@ internal void WriteMappedBackup(List<BackupDemand> demands,List<BackupTarget> ta
  var saved=BackupNames(BackupMapping.MapPrefix);BackupMapping.Validate(demands,routes);var identities=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);var owned=BackupNames(BackupMapping.BlockPrefix,identities);var groups=demands.GroupBy(d=>routes[d.Key].Row).ToDictionary(g=>g.Key,g=>g.ToList());foreach(var previous in owned){int row=previous.Value;if(KeepUnloadedBackupItems&&!groups.ContainsKey(row))continue;var target=targets.SingleOrDefault(t=>t.Row==row);if(target==null||previous.Key!=BackupMapping.BlockPrefix+target.SlotId||identities[previous.Key]!=BackupMapping.Identity(target))throw new Exception("Previously mapped BACKUP item was removed or changed; review its identity before writing.");if(!groups.ContainsKey(row)&&!KeepUnloadedBackupItems)groups[row]=new List<BackupDemand>();}
  if(groups.Count==0)return;VerifyQuantityTargets(targets,groups.Keys);var totals=groups.ToDictionary(g=>g.Key,g=>BackupMapping.FinalQuantity(g.Value,targets.Single(t=>t.Row==g.Key).Unit));if(totals.Values.Any(v=>double.IsNaN(v)||double.IsInfinity(v)||v<0))throw new Exception("Invalid final BACKUP quantity.");bool events=Convert.ToBoolean(app.EnableEvents),screen=Convert.ToBoolean(app.ScreenUpdating),changed=false;int? calculation=null;
  try{app.EnableEvents=false;app.ScreenUpdating=false;try{calculation=Convert.ToInt32(app.Calculation);app.Calculation=-4135;}catch{}dynamic sheet=FindEstimateSheet("BACKUP");foreach(int row in groups.Keys.OrderBy(x=>x)){var target=targets.Single(t=>t.Row==row);string identity=BackupMapping.Identity(target);double previous;bool unchanged=LastBackupTotals.TryGetValue(target.SlotId,out previous)&&previous==totals[row];if(!unchanged){double? current=BackupBill.ReadQuantity(sheet.Cells[row,55].Value2);if(!current.HasValue||current.Value!=totals[row]){sheet.Cells[row,55].Value2=totals[row];changed=true;}}SetBackupName(TotalPrefix+target.SlotId,row,identity);SetBackupName(BackupMapping.ItemPrefix+target.SlotId,row,identity);SetBackupName(BackupMapping.BlockPrefix+target.SlotId,row,identity);foreach(var demand in groups[row])SetBackupName(BackupMapping.Name(demand.Key),row,identity);}
- if(!detailsHidden){foreach(var target in targets)if(target.EndRow>=target.Row+1)sheet.Rows[(target.Row+1)+":"+target.EndRow].Hidden=true;detailsHidden=true;QuantitySavePending=true;}var wanted=new HashSet<string>(demands.Select(d=>BackupMapping.Name(d.Key)),StringComparer.OrdinalIgnoreCase);foreach(string name in saved.Keys.Where(n=>!KeepUnloadedBackupItems&&!wanted.Contains(n))){book.Names.Item(name).Delete();if(nameIdentityCache!=null)nameIdentityCache.Remove(name);QuantitySavePending=true;}if(changed){app.Calculate();QuantitySavePending=true;}LastBackupRoutes=new Dictionary<string,BackupTarget>(routes);LastBackupTotals.Clear();foreach(var pair in totals)LastBackupTotals[targets.Single(t=>t.Row==pair.Key).SlotId]=pair.Value;if(!DeferQuantitySave)FlushQuantitySave();
+ if(!detailsHidden){var hidden=targets.Where(t=>t.EndRow>=t.Row+1).Select(t=>"BC"+(t.Row+1)+":BC"+t.EndRow).ToList();for(int offset=0;offset<hidden.Count;offset+=32)sheet.Range[string.Join(",",hidden.Skip(offset).Take(32))].EntireRow.Hidden=true;detailsHidden=true;QuantitySavePending=true;}var wanted=new HashSet<string>(demands.Select(d=>BackupMapping.Name(d.Key)),StringComparer.OrdinalIgnoreCase);foreach(string name in saved.Keys.Where(n=>!KeepUnloadedBackupItems&&!wanted.Contains(n))){book.Names.Item(name).Delete();if(nameIdentityCache!=null)nameIdentityCache.Remove(name);ForgetBackupName(name);QuantitySavePending=true;}if(changed){app.Calculate();QuantitySavePending=true;}LastBackupRoutes=new Dictionary<string,BackupTarget>(routes);LastBackupTotals.Clear();foreach(var pair in totals)LastBackupTotals[targets.Single(t=>t.Row==pair.Key).SlotId]=pair.Value;if(!DeferQuantitySave)FlushQuantitySave();
  }finally{if(calculation.HasValue)try{app.Calculation=calculation.Value;}catch{}app.EnableEvents=events;app.ScreenUpdating=screen;}
 }
 
 
-void SetBackupName(string name,int row,string identity){if(nameIdentityCache==null)nameIdentityCache=new Dictionary<string,string>();string saved;if(nameIdentityCache.TryGetValue(name,out saved)&&saved==identity)return;try{dynamic old=book.Names.Item(name);if(Convert.ToString(old.Comment)==identity&&Convert.ToInt32(old.RefersToRange.Row)==row){nameIdentityCache[name]=identity;return;}}catch{}dynamic range=book.Names.Add(Name:name,RefersTo:"='BACKUP'!$BC$"+row,Visible:false);range.Comment=identity;nameIdentityCache[name]=identity;QuantitySavePending=true;}
+void SetBackupName(string name,int row,string identity){if(nameIdentityCache==null)nameIdentityCache=new Dictionary<string,string>();string saved;if(nameIdentityCache.TryGetValue(name,out saved)&&saved==identity)return;try{dynamic old=book.Names.Item(name);if(Convert.ToString(old.Comment)==identity&&Convert.ToInt32(old.RefersToRange.Row)==row){nameIdentityCache[name]=identity;return;}}catch{}dynamic range=book.Names.Add(Name:name,RefersTo:"='BACKUP'!$BC$"+row,Visible:false);range.Comment=identity;nameIdentityCache[name]=identity;RememberBackupName(name,row,identity);QuantitySavePending=true;}
 
 
 		private ExcelLiveLink()

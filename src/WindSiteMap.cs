@@ -6,7 +6,7 @@ static class WindColors {
  public const string Legend="B  Trees / built-up (green)    C  Open terrain (gold)    D  Water (blue)    ?  No data (gray)";
 }
 // Interactive slippy map, fetching only the tiles visible in the current viewport.
-class WindSiteMap:Control {
+partial class WindSiteMap:Control {
  readonly Dictionary<string,Bitmap> tiles=new Dictionary<string,Bitmap>();readonly HashSet<string> loading=new HashSet<string>();
  readonly SemaphoreSlim connections=new SemaphoreSlim(3);readonly CancellationTokenSource lifetime=new CancellationTokenSource();
  readonly System.Windows.Forms.Timer refresh=new System.Windows.Forms.Timer{Interval=220};
@@ -57,15 +57,10 @@ class WindSiteMap:Control {
  public Bitmap Snapshot(){var image=new Bitmap(Math.Max(1,Width),Math.Max(1,Height));using(var g=Graphics.FromImage(image)){g.Clear(BackColor);DrawMap(g,new Rectangle(0,0,Width,Height),false);}return image;}
  void DrawMap(Graphics g,Rectangle bounds,bool controls){g.SmoothingMode=SmoothingMode.AntiAlias;double left=X(longitude,zoom)-Width/2.0,top=Y(latitude,zoom)-Height/2.0;int max=1<<zoom,drawn=0;
   for(int row=(int)Math.Floor(top/256);row<=Math.Floor((top+Height)/256);row++)for(int col=(int)Math.Floor(left/256);col<=Math.Floor((left+Width)/256);col++){Bitmap tile;int x=((col%max)+max)%max;if(tiles.TryGetValue(Key(zoom,x,row),out tile)){g.DrawImage(tile,(float)(col*256-left),(float)(row*256-top),256,256);drawn++;}}
-  if(terrain!=null&&ShowRoughness&&roughness!=null){var grid=terrain.CoverGrid;var nw=Pixel(grid.North,grid.West);var se=Pixel(grid.South,grid.East);var interpolation=g.InterpolationMode;g.InterpolationMode=InterpolationMode.NearestNeighbor;g.DrawImage(roughness,new RectangleF(nw.X,nw.Y,se.X-nw.X,se.Y-nw.Y));g.InterpolationMode=interpolation;}
-  if(terrain!=null&&ShowDirections)for(int i=0;i<8;i++){
-   var exposure=WindAssessment.Exposure(terrain.Rays.Skip(i*3).Take(3),referenceHeight);Color sector=WindColors.Roughness(exposure);var a=WindAssessment.Destination(terrain.Lat,terrain.Lon,i*45-22.5,terrain.Radius);var b=WindAssessment.Destination(terrain.Lat,terrain.Lon,i*45+22.5,terrain.Radius);var center=Pixel(terrain.Lat,terrain.Lon);
-   using(var pen=new Pen(Color.FromArgb(160,sector),1){DashStyle=DashStyle.Dash}){g.DrawLine(pen,center,Pixel(a[0],a[1]));g.DrawLine(pen,center,Pixel(b[0],b[1]));}
-  }
-  if(terrain!=null&&ShowDirections)for(int i=0;i<8;i++){var ray=terrain.Rays[i*3+1];for(int j=1;j<ray.Count;j++)using(var pen=new Pen(WindColors.Cover(ray[j-1].Cover),5))g.DrawLine(pen,Pixel(ray[j-1].Lat,ray[j-1].Lon),Pixel(ray[j].Lat,ray[j].Lon));if(ray.Count>0){var p=Pixel(ray[ray.Count-1].Lat,ray[ray.Count-1].Lon);string exposure=WindAssessment.Exposure(terrain.Rays.Skip(i*3).Take(3),referenceHeight);TextRenderer.DrawText(g,WindAssessment.Directions[i]+" / "+exposure,ModernUi.Strong,Point.Round(p),WindColors.Roughness(exposure),Color.White);}}
-  if(!double.IsNaN(siteLat)){var p=Pixel(siteLat,siteLon);using(var pen=new Pen(Color.White,5))g.DrawEllipse(pen,p.X-7,p.Y-7,14,14);using(var brush=new SolidBrush(PowTheme.Teal))g.FillEllipse(brush,p.X-6,p.Y-6,12,12);TextRenderer.DrawText(g,"PROJECT SITE",ModernUi.Strong,new Point((int)p.X+12,(int)p.Y-12),PowTheme.Ink,Color.White);}
-  if(drawn==0||message!="")TextRenderer.DrawText(g,message,ModernUi.Body,new Rectangle(60,18,Math.Max(100,Width-80),70),PowTheme.Ink,Color.White,TextFormatFlags.WordBreak);
-  if(controls){using(var b=new SolidBrush(Color.White))g.FillRectangle(b,10,10,32,72);TextRenderer.DrawText(g,"+",ModernUi.Heading,new Rectangle(12,10,30,35),PowTheme.Ink);TextRenderer.DrawText(g,"−",ModernUi.Heading,new Rectangle(12,46,30,35),PowTheme.Ink);TextRenderer.DrawText(g,"Street / Satellite  ·  zoom "+zoom,ModernUi.Body,new Rectangle(8,Height-36,220,26),PowTheme.Ink,Color.White);}
+  DrawWindOverlay(g);
+  if(!double.IsNaN(siteLat)){var p=Pixel(siteLat,siteLon);using(var pen=new Pen(Color.White,5))g.DrawEllipse(pen,p.X-7,p.Y-7,14,14);using(var brush=new SolidBrush(PowTheme.Teal))g.FillEllipse(brush,p.X-6,p.Y-6,12,12);TextRenderer.DrawText(g,"PROJECT SITE",ModernUi.Strong,new Point((int)p.X+12,(int)p.Y-12),Color.FromArgb(32,43,53),Color.White);}
+  if(drawn==0||message!="")TextRenderer.DrawText(g,message,ModernUi.Body,new Rectangle(60,18,Math.Max(100,Width-80),70),Color.FromArgb(32,43,53),Color.White,TextFormatFlags.WordBreak);
+  if(controls){using(var b=new SolidBrush(Color.White))g.FillRectangle(b,10,10,32,72);TextRenderer.DrawText(g,"+",ModernUi.Heading,new Rectangle(12,10,30,35),Color.FromArgb(32,43,53));TextRenderer.DrawText(g,"−",ModernUi.Heading,new Rectangle(12,46,30,35),Color.FromArgb(32,43,53));TextRenderer.DrawText(g,"Street / Satellite  ·  zoom "+zoom,ModernUi.Body,new Rectangle(8,Height-36,220,26),Color.FromArgb(32,43,53),Color.White);}
   TextRenderer.DrawText(g,imagery?"Imagery © Esri, Maxar, Earthstar Geographics":"© OpenStreetMap contributors",ModernUi.Body,new Rectangle(6,Height-19,Math.Max(150,Width-12),18),Color.Black,Color.White,TextFormatFlags.Right|TextFormatFlags.EndEllipsis);
  }
  protected override void Dispose(bool disposing){if(disposing){lifetime.Cancel();refresh.Dispose();foreach(var tile in tiles.Values)tile.Dispose();tiles.Clear();if(roughness!=null)roughness.Dispose();}base.Dispose(disposing);}

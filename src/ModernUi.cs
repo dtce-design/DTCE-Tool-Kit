@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Collections.Generic;
 using System.Drawing.Drawing2D;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
@@ -15,13 +16,13 @@ static class ModernUi {
  internal static Color Selection {get{return DesktopAppearance.Palette.Selected;}}
  internal static Color Soft {get{return DesktopAppearance.Palette.Soft;}}
  static readonly ConditionalWeakTable<Form, object> windows = new ConditionalWeakTable<Form, object>();
- static bool installed, applying;
+ static bool installed, applying;static int ownerThread;
  internal static void Install() {
-  if(installed)return; installed=true;DesktopAppearance.Initialize();
+  if(installed)return; installed=true;ownerThread=System.Threading.Thread.CurrentThread.ManagedThreadId;DesktopAppearance.Initialize();
   // Includes modal dialogs and embedded tools which do not call AppBrand.Apply.
   // Only new forms are traversed; do not walk every table on every idle event.
   Application.Idle += delegate {
-   if(applying)return; applying=true;
+   if(System.Threading.Thread.CurrentThread.ManagedThreadId!=ownerThread||applying)return; applying=true;
    try { foreach(Form form in Application.OpenForms) {
     object seen; if(windows.TryGetValue(form,out seen))continue;
     windows.Add(form,new object()); PowTheme.Apply(form);
@@ -43,6 +44,8 @@ static class ModernUi {
    text=="Save project information" || text=="Save footing" || text=="Open / Link Excel" ||
    text=="Save Program of Works" || text=="Calculate";
  }
+ static readonly Dictionary<string,int> headerWords=new Dictionary<string,int>(StringComparer.Ordinal);
+ internal static int HeaderMinimum(string header){int width=60;foreach(string word in (header??"").Split(new[]{' ','\r','\n'},StringSplitOptions.RemoveEmptyEntries)){int measured;if(!headerWords.TryGetValue(word,out measured)){measured=TextRenderer.MeasureText(word,Strong).Width;headerWords.Add(word,measured);}width=Math.Max(width,measured);}return Math.Min(180,width+24);}
  internal static void Buffer(Control control) {
   if(SystemInformation.TerminalServerSession)return;
   var property=typeof(Control).GetProperty("DoubleBuffered",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);

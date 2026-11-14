@@ -2,9 +2,12 @@ using System;using System.Drawing;using System.Drawing.Drawing2D;using System.Co
 namespace BeamScheduleFormatter {
 // Presentation only; grid instances, row order, field values and event handlers stay intact.
 class WorksheetHeading:Control {
- public string Subtitle;static readonly Font Heading=new Font("Segoe UI Semibold",15,FontStyle.Regular);
+ public string Subtitle; public bool WrapTitle;
+ Button guide;
+ public void SetGuide(string text){if(string.IsNullOrWhiteSpace(text))return;guide=new Button{Text="ⓘ",AccessibleName="Sheet guide",Width=34,Height=28,Anchor=AnchorStyles.Top|AnchorStyles.Right,FlatStyle=FlatStyle.Flat,TabStop=true};guide.FlatAppearance.BorderSize=0;guide.Click+=(s,e)=>MessageBox.Show(FindForm(),text,Text+" — Guide",MessageBoxButtons.OK,MessageBoxIcon.Information);Controls.Add(guide);guide.Left=Math.Max(0,Width-38);guide.Top=2;Resize+=(s,e)=>guide.Left=Math.Max(0,Width-38);}
+static readonly Font Heading=new Font("Segoe UI Semibold",15,FontStyle.Regular);
  public WorksheetHeading(){SetStyle(ControlStyles.UserPaint|ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer,true);Dock=DockStyle.Top;Height=62;BackColor=PowTheme.Background;AccessibleRole=AccessibleRole.StaticText;}
- protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);var bounds=new Rectangle(2,2,Math.Max(1,Width-4),28);TextRenderer.DrawText(e.Graphics,Text,Heading,bounds,PowTheme.Ink,TextFormatFlags.NoPrefix|TextFormatFlags.SingleLine|TextFormatFlags.VerticalCenter);TextRenderer.DrawText(e.Graphics,Subtitle??"",ModernUi.Body,new Rectangle(3,34,Math.Max(1,Width-6),22),PowTheme.Muted,TextFormatFlags.NoPrefix|TextFormatFlags.SingleLine);}
+ protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);var bounds=new Rectangle(2,2,Math.Max(1,Width-(guide==null?4:44)),WrapTitle?56:28);TextRenderer.DrawText(e.Graphics,Text,Heading,bounds,PowTheme.Ink,TextFormatFlags.NoPrefix|TextFormatFlags.VerticalCenter|(WrapTitle?TextFormatFlags.WordBreak:TextFormatFlags.SingleLine));TextRenderer.DrawText(e.Graphics,Subtitle??"",ModernUi.Body,new Rectangle(3,WrapTitle?62:34,Math.Max(1,Width-6),22),PowTheme.Muted,TextFormatFlags.NoPrefix|TextFormatFlags.SingleLine);}
 }
 static class CommandIcons {
  static readonly Dictionary<string,Bitmap> cache=new Dictionary<string,Bitmap>();

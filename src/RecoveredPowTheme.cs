@@ -43,20 +43,32 @@ internal static partial class PowTheme {
    if(label!=null){if(label.ForeColor==Color.Black||label.ForeColor==SystemColors.ControlText||label.ForeColor==Color.FromArgb(28,43,61)||label.ForeColor==Color.FromArgb(36,36,36))label.ForeColor=Ink;if(label.BackColor==Color.White)label.BackColor=ModernUi.Surface;if(label.Dock==DockStyle.Top&&label.Image==null)FitGuide(label);}
    var strip=root as ToolStrip;if(strip!=null){strip.RenderMode=ToolStripRenderMode.Professional;strip.GripStyle=ToolStripGripStyle.Hidden;strip.BackColor=ModernUi.Surface;strip.ForeColor=Ink;}
    ApplyAppearanceRole(root);
-   foreach(Control child in root.Controls)Apply(child);
-   root.ControlAdded+=delegate(object s,ControlEventArgs e){Apply(e.Control);};
+   // Do not measure/style entire unvisited worksheets during workspace startup.
+   if(tab!=null){PrepareSelectedTab(tab);tab.SelectedIndexChanged+=(s,e)=>PrepareSelectedTab(tab);}
+   else foreach(Control child in root.Controls)Apply(child);
+   root.ControlAdded+=delegate(object s,ControlEventArgs e){if(tab==null||e.Control==tab.SelectedTab)Apply(e.Control);};
   } finally {root.ResumeLayout(true);}
  }
+ internal static bool IsPrepared(Control control){object marker;return themed.TryGetValue(control,out marker);}
+ static int NavigationDepth(TabControl tab){int depth=0;for(Control parent=tab.Parent;parent!=null;parent=parent.Parent)if(parent is TabControl)depth++;return depth;}
+ static void PrepareSelectedTab(TabControl tab){if(tab.SelectedTab==null)return;Apply(tab.SelectedTab);InputFocus.Apply(tab.SelectedTab);}
  static void StyleTabs(TabControl tab) {
-  ModernUi.Navigation(tab);tab.Font=ModernUi.Body;tab.DrawMode=TabDrawMode.OwnerDrawFixed;tab.ShowToolTips=true;ModernUi.Buffer(tab);
+  ModernUi.Navigation(tab);tab.Font=NavigationDepth(tab)==0?ModernUi.Strong:ModernUi.Body;tab.DrawMode=TabDrawMode.OwnerDrawFixed;tab.ShowToolTips=true;ModernUi.Buffer(tab);
   // Native variable-width tabs measure the complete caption and wrap onto more rows.
   // No fixed tab widths, abbreviated titles, or ellipsis drawing.
   tab.DrawItem+=delegate(object sender,DrawItemEventArgs e){
-   if(e.Index<0||e.Index>=tab.TabCount)return;bool selected=e.Index==tab.SelectedIndex;Rectangle r=e.Bounds;int depth=0;for(Control parent=tab.Parent;parent!=null;parent=parent.Parent)if(parent is TabControl)depth++;Color level=DesktopAppearance.Palette.Tab(depth);
+   if(e.Index<0||e.Index>=tab.TabCount)return;bool selected=e.Index==tab.SelectedIndex;Rectangle r=e.Bounds;int depth=NavigationDepth(tab);Color level=DesktopAppearance.Palette.Tab(depth);
    using(var brush=new SolidBrush(level))e.Graphics.FillRectangle(brush,r);
-   var face=Rectangle.Inflate(r,-2,-3);
-   if(selected&&face.Width>0&&face.Height>0)using(var path=ModernUi.Rounded(face,5))using(var fill=new SolidBrush(PremiumControls.AccentSoft))e.Graphics.FillPath(fill,path);if(selected)using(var accent=new SolidBrush(Teal))e.Graphics.FillRectangle(accent,r.Left+12,r.Bottom-3,Math.Max(1,r.Width-24),3);
-   TextRenderer.DrawText(e.Graphics,tab.TabPages[e.Index].Text,tab.Font,Rectangle.Inflate(r,-8,-3),selected?Teal:Muted,
+   var face=new Rectangle(r.Left+1,r.Top+3,Math.Max(1,r.Width-2),Math.Max(1,r.Height-3));
+   using(var path=new GraphicsPath()){
+    int shoulder=Math.Min(9,face.Width/4);
+    path.AddLines(new[]{new Point(face.Left,face.Bottom),new Point(face.Left,face.Top+6),new Point(face.Left+shoulder,face.Top),new Point(face.Right-shoulder,face.Top),new Point(face.Right,face.Top+6),new Point(face.Right,face.Bottom)});
+    using(var fill=new SolidBrush(selected?Background:ModernUi.Soft))e.Graphics.FillPath(fill,path);
+    using(var edge=new Pen(selected?Teal:Line))e.Graphics.DrawPath(edge,path);
+    if(!selected)using(var edge=new Pen(Line))e.Graphics.DrawLine(edge,face.Left,face.Bottom-1,face.Right,face.Bottom-1);
+    else using(var join=new Pen(Background,3))e.Graphics.DrawLine(join,face.Left+2,face.Bottom-1,face.Right-2,face.Bottom-1);
+   }
+   TextRenderer.DrawText(e.Graphics,tab.TabPages[e.Index].Text,tab.Font,Rectangle.Inflate(r,-8,-3),selected?Teal:(DesktopAppearance.Palette.Dark?Muted:Ink),
     TextFormatFlags.NoPrefix|TextFormatFlags.VerticalCenter|TextFormatFlags.HorizontalCenter|TextFormatFlags.SingleLine);
    if(tab.Focused&&selected)ControlPaint.DrawFocusRectangle(e.Graphics,Rectangle.Inflate(r,-5,-5),Teal,Background);
   };
@@ -80,7 +92,8 @@ internal static partial class PowTheme {
   grid.CellFormatting+=delegate(object sender,DataGridViewCellFormattingEventArgs e){if(e.RowIndex<0)return;var style=e.CellStyle;if(DesktopAppearance.Palette.Dark&&style.BackColor.GetBrightness()>.65f)style.BackColor=grid.Rows[e.RowIndex].Cells[e.ColumnIndex].ReadOnly?ModernUi.Surface:ModernUi.Input;if(DesktopAppearance.Palette.Dark&&style.ForeColor.GetBrightness()<.35f)style.ForeColor=Ink;if(!DesktopAppearance.Palette.Dark&&style.BackColor.GetBrightness()<.28f&&style.BackColor.GetSaturation()<.25f){style.BackColor=grid.Rows[e.RowIndex].Cells[e.ColumnIndex].ReadOnly?ModernUi.Surface:ModernUi.Input;style.ForeColor=Ink;}if(!DesktopAppearance.Palette.Dark&&style.BackColor.GetBrightness()>.65f&&style.ForeColor.GetBrightness()>.7f)style.ForeColor=Ink;};
   grid.ColumnAdded+=delegate(object s,DataGridViewColumnEventArgs e){StyleColumn(e.Column);};
  }
- static void StyleColumn(DataGridViewColumn col){var words=(col.HeaderText??"").Split(new[]{' ','\n','\r'},StringSplitOptions.RemoveEmptyEntries);int wordWidth=words.Length==0?60:words.Max(w=>TextRenderer.MeasureText(w,ModernUi.Strong).Width);col.MinimumWidth=Math.Max(col.MinimumWidth,Math.Min(180,wordWidth+24));col.SortMode=DataGridViewColumnSortMode.NotSortable;col.DefaultCellStyle.BackColor=col.ReadOnly?ModernUi.Surface:ModernUi.Input;if(col.ReadOnly)col.DefaultCellStyle.ForeColor=Ink;}
+ static void StyleColumn(DataGridViewColumn col){col.MinimumWidth=Math.Max(col.MinimumWidth,ModernUi.HeaderMinimum(col.HeaderText));col.SortMode=DataGridViewColumnSortMode.NotSortable;col.DefaultCellStyle.BackColor=col.ReadOnly?ModernUi.Surface:ModernUi.Input;if(col.ReadOnly)col.DefaultCellStyle.ForeColor=Ink;}
+
  static void FitGuide(Label label) {
   bool fitting=false;
   Action fit=delegate {

@@ -21,8 +21,9 @@ partial class WindDesignForm {
   input.Resize+=(s,e)=>fit();layout.Controls.Add(input,0,0);
   var mapHost=new Panel{Dock=DockStyle.Fill,Margin=Padding.Empty};var tools=new FlowLayoutPanel{Dock=DockStyle.Top,Padding=new Padding(4),Height=40};
   var center=new Button{Text="Center on project",AutoSize=true};center.Click+=(s,e)=>siteMap.Recenter();tools.Controls.Add(center);var zones=new CheckBox{Text="Roughness zones",Checked=true,AutoSize=true,Padding=new Padding(8,6,0,0)};zones.CheckedChanged+=(s,e)=>{siteMap.ShowRoughness=zones.Checked;siteMap.Invalidate();};tools.Controls.Add(zones);var directions=new CheckBox{Text="8 directions",Checked=true,AutoSize=true,Padding=new Padding(8,6,0,0)};directions.CheckedChanged+=(s,e)=>{siteMap.ShowDirections=directions.Checked;siteMap.Invalidate();};tools.Controls.Add(directions);
+  var contours=new CheckBox{Text="Wind contours",Checked=true,AutoSize=true,Padding=new Padding(8,6,0,0)};contours.CheckedChanged+=(s,e)=>{siteMap.ShowContours=contours.Checked;siteMap.Invalidate();};tools.Controls.Add(contours);var region=new Button{Text="View wind region",AutoSize=true};region.Click+=(s,e)=>siteMap.ViewWindRegion();tools.Controls.Add(region);
   tools.Controls.Add(new Label{Text="Drag to pan · scroll to zoom",AutoSize=true,Padding=new Padding(10,7,0,0),ForeColor=PowTheme.Muted});
-  mapHost.Controls.Add(siteMap);mapHost.Controls.Add(new Label{Dock=DockStyle.Bottom,Height=56,Padding=new Padding(8),Text=WindColors.Legend+"\r\nColor zones: sampled WorldCover grid. Dashed lines: 45° wind-from sectors. Verify exposure height / fetch.",ForeColor=PowTheme.Muted});mapHost.Controls.Add(tools);
+  mapHost.Controls.Add(siteMap);mapHost.Controls.Add(new Label{Dock=DockStyle.Bottom,Height=56,Padding=new Padding(8),Text=WindColors.Legend+"\r\nLight pie sectors: suggested exposure. Rings show height-dependent fetch and assessment radius. Wind contours are interpolated from the supplied source map.",ForeColor=PowTheme.Muted});mapHost.Controls.Add(tools);
   layout.Controls.Add(mapHost,1,0);page.Controls.Add(layout);fit();
  }
 }

@@ -14,6 +14,7 @@ partial class WindDesignForm {
    buildingKeys.Add(key);var check=Inputs[key] as CheckBox;var combo=Inputs[key] as ComboBox;
    if(check!=null)check.CheckedChanged+=(s,e)=>{if(!Restoring)UpdatePressureResults();};else if(combo!=null)combo.SelectedIndexChanged+=(s,e)=>{if(!Restoring)UpdatePressureResults();};else Inputs[key].TextChanged+=(s,e)=>{if(!Restoring)UpdatePressureResults();};
   }
+  AddBuildingModel(panel);
   var page=new TabPage("Wind-load calculations");foreach(string column in new[]{"Wind from / axis","Surface","Load case","Exposure","z (m)","Kz","Kzt","q (kPa)","qh (kPa)","qi (kPa)","G","Cp","GCpi","p (kPa)"})pressureGrid.Columns.Add(column,column);
   pressureGrid.Columns[0].MinimumWidth=150;pressureGrid.Columns[1].MinimumWidth=150;pressureGrid.Columns[2].MinimumWidth=260;
   page.Controls.Add(pressureGrid);page.Controls.Add(pressureStatus);AddResultPage(page);pressureStatus.Text="Enter building geometry and enable building wind pressures. p = q G Cp − qi (GCpi).";

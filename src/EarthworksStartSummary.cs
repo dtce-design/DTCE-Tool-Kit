@@ -1,0 +1,6 @@
+using System;using System.Drawing;using System.Linq;using System.Windows.Forms;
+namespace BeamScheduleFormatter {
+partial class ProgramOfWorksForm {
+ void MoveEarthworksSummaryToStart(){var page=tabs.TabPages.Cast<TabPage>().Single(p=>p.Text=="Earthworks Start");var start=page.Controls.OfType<FlowLayoutPanel>().Single();var old=tabs.TabPages.Cast<TabPage>().Single(p=>p.Text=="Earthworks Summary");var heading=new Label{Text="Earthworks summary",AutoSize=true,Font=PremiumControls.TitleFont,Margin=new Padding(0,16,0,8)};earthBalanceGrid.Dock=DockStyle.None;earthBalanceGrid.Width=1100;earthBalanceGrid.Height=290;earthBalanceGrid.AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill;earthBalanceGrid.Columns[0].FillWeight=70;earthBalanceGrid.Columns[1].FillWeight=20;earthBalanceGrid.Columns[2].FillWeight=10;earthBalanceGrid.Columns[1].DefaultCellStyle.Alignment=DataGridViewContentAlignment.MiddleRight;earthStatus.Dock=DockStyle.None;earthStatus.AutoSize=true;earthStatus.MaximumSize=new Size(1200,0);earthStatus.ForeColor=PowTheme.Muted;earthStatus.Margin=new Padding(0,8,0,14);start.Controls.Add(heading);start.Controls.Add(earthBalanceGrid);start.Controls.Add(earthStatus);start.Controls.SetChildIndex(heading,3);start.Controls.SetChildIndex(earthBalanceGrid,4);start.Controls.SetChildIndex(earthStatus,5);tabs.TabPages.Remove(old);old.Dispose();}
+}
+}
