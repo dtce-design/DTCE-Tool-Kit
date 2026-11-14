@@ -369,6 +369,7 @@ namespace BeamScheduleFormatter
 			list2.AddRange(ExteriorMouldingTotals());
 			list2.AddRange(CanopySummary());
 			list2.AddRange(GravelSummary());
+            list2.AddRange(ExtraBillQuantities().Select(q=>new object[]{q.Description,q.Quantity,q.Unit}));
 			list.Add(new WorksExcelTable("DTCE Tool Kit - POW", new string[3] { "FINAL QUANTITY", "Quantity", "Unit" }, list2, 1, 8));
 			return list;
 		}
@@ -993,7 +994,12 @@ namespace BeamScheduleFormatter
 				{
 					flag2 = new string[5] { "Purlins PURCHASE weight", "Angle bars PURCHASE weight", "Metal fascia PURCHASE weight", "Steel plates PURCHASE weight", "Crossbracing rods" }.Contains(item.Description) || item.Description.StartsWith("Turnbuckles dia ");
 				}
-				if (flag2)
+				if(item.Section=="Reinforced Concrete Works"&&item.Description.ToLowerInvariant().Contains("concrete"))flag2=false;
+                if(item.Section=="Canopy / Ledge"&&item.Unit=="m3")flag2=false;
+                if((item.Section=="Miscellaneous Structures"||item.Section=="Wall Footing"))flag2=item.Unit=="m2";
+                if(new[]{"Pavement Construction","Slope Protection Works","Carpentry and Joinery Works"}.Contains(item.Section))flag2=true;
+                if(item.Section=="Earthworks"&&!string.IsNullOrEmpty(item.PayCode))flag2=true;
+                if (flag2)
 				{
 					BackupDemand backupDemand = BackupDemand.From(item);
 					if (item.Section == "Bill of Quantities")
@@ -1093,7 +1099,9 @@ namespace BeamScheduleFormatter
 					where d != null
 					select d);
 			}
-			return list;
+			if(flag)list.AddRange(ConcretePayQuantities().Select(BackupDemand.From));
+            RouteRequiredQuantities(list);
+            return list;
 		}
 
 		private void AddPlumbingWorks()
@@ -1905,6 +1913,7 @@ namespace BeamScheduleFormatter
 		private void WriteMaterialDefaults(XmlElement root)
 		{
 			WriteDoorSettings(root);
+            WriteExtraSettings(root);
 			WriteCanopySettings(root);
 			WriteRCWallSettings(root);
 			WriteRCCovers(root);
@@ -1916,6 +1925,7 @@ namespace BeamScheduleFormatter
 		private void ReadMaterialDefaults(XmlElement root)
 		{
 			ReadDoorSettings(root);
+            ReadExtraSettings(root);
 			ReadCanopySettings(root);
 			ReadRCWallSettings(root);
 			ReadRCCovers(root);
@@ -2077,7 +2087,7 @@ namespace BeamScheduleFormatter
 			{
 				bool concrete = key == "ConcreteTotal";
 				return MergeSources(FixedQuantitySources(concrete ? "BeamConcrete" : "BeamForms").Concat(FixedQuantitySources(concrete ? "SlabConcrete" : "SlabForms")).Concat(FixedQuantitySources(concrete ? "FootingConcrete" : "FootingForms")).Concat(FixedQuantitySources(concrete ? "RCWallConcrete" : "RCWallForms"))
-					.Concat(canopyResults.Select((CanopyTakeoff q) => SourceQuantity("Canopy / ledge " + q.Id + " | " + q.Description, concrete ? q.Concrete : q.Forms, concrete ? "m3" : "m2"))));
+					.Concat(canopyResults.Select((CanopyTakeoff q) => SourceQuantity("Canopy / ledge " + q.Id + " | " + q.Description, concrete ? q.Concrete : q.Forms, concrete ? "m3" : "m2"))).Concat(miscQuantities.Select(q=>SourceQuantity(q.Kind+" "+q.Id+" | "+q.Description,concrete?q.Concrete:q.Forms,concrete?"m3":"m2"))).Concat(wallFootingResults.Select(q=>SourceQuantity("Wall footing "+q.Id+" | "+q.Description,concrete?q.Concrete:q.Forms,concrete?"m3":"m2"))));
 			}
 			if (key == "Grade40" || key == "Grade60")
 			{
@@ -2116,7 +2126,7 @@ namespace BeamScheduleFormatter
 		private List<BillQuantity> GravelQuantitySources(int index)
 		{
 			List<BillQuantity> list = TableSources(beam.EarthworkExcelRows(), 10, "m3", "Beam ");
-			IEnumerable<BillQuantity> enumerable = footingResults.Select((FootingTakeoff q) => SourceQuantity("Footing " + q.Id + " | " + q.Description, q.Gravel, "m3"));
+			IEnumerable<BillQuantity> enumerable = footingResults.Select((FootingTakeoff q) => SourceQuantity("Footing " + q.Id + " | " + q.Description, q.Gravel, "m3")).Concat(wallFootingResults.Select(q=>SourceQuantity("Wall footing "+q.Id+" | "+q.Description,q.Gravel,"m3")));
 			IEnumerable<BillQuantity> enumerable2 = ((gravelEntries == null) ? Enumerable.Empty<BillQuantity>() : (from DataGridViewRow r in gravelEntries.Rows
 				where r.Tag is double
 				select SourceQuantity(Cell(r, 0) + " | " + Cell(r, 1), (double)r.Tag, "m3")));
@@ -3241,7 +3251,7 @@ namespace BeamScheduleFormatter
 			list.Add(new object[3]
 			{
 				"Footing gravel installed volume",
-				footingResults.Sum((FootingTakeoff x) => x.Gravel),
+				footingResults.Sum((FootingTakeoff x) => x.Gravel) + wallFootingResults.Sum(q=>q.Gravel),
 				"m3"
 			});
 			list.Add(new object[3]
@@ -3326,7 +3336,7 @@ namespace BeamScheduleFormatter
 			}
 			projectRebarPlan = beam.WorksPlan().Concat(slab.WorksPlan()).Concat(footingPlan)
 				.Concat(canopyPlan)
-				.Concat(rcWallPlan)
+				.Concat(rcWallPlan).Concat(miscPlan).Concat(wallFootingPlan).Concat(slopePlan)
 				.ToList();
 			RebarOffcuts.Allocate(projectRebarPlan);
 			foreach (DataGridViewRow item in (IEnumerable)footings.Rows)
@@ -4638,6 +4648,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			AddFinishingStart();
 			AddMouldingFinishes();
 			AddPlumbingWorks();
+            InitializeExtraWorks();
 			TabPage value = new TabPage("Backup computation")
 			{
 				Controls = { (Control)preview }
@@ -4702,20 +4713,24 @@ worksExcelTimer.Tick += async delegate
 			tabs.TabPages.Clear();
 			tabs.TabPages.Add(pages["Bill of Quantities"]);
 			pages["Reinforced Concrete Start"].Text = "Start";
-			AddSection("Reinforced Concrete Works", new TabPage[6]
+			AddSection("Reinforced Concrete Works", new TabPage[8]
 			{
 				pages["Reinforced Concrete Start"],
 				pages["Beam Estimate"],
 				pages["Slab Estimate"],
 				pages["Footing Estimate"],
+                pages["Wall Footing Estimate"],
 				pages["Canopy / Ledge Estimate"],
-				pages["RC Wall Estimate"]
+				pages["RC Wall Estimate"],
+                pages["Miscellaneous Structures"]
 			});
 			pages["Earthworks Start"].Text = "Start";
-			AddSection("Earthworks & Gravel", new TabPage[4]
+			AddSection("Earthworks & Gravel", new TabPage[6]
 			{
 				pages["Earthworks Start"],
 				pages["Cut & Fill"],
+                pages["Clearing and Grubbing"],
+                pages["Cutting of Trees"],
 				pages["Earthworks Summary"],
 				pages["Gravel Estimate"]
 			});
@@ -4750,6 +4765,9 @@ worksExcelTimer.Tick += async delegate
 				pages["Roofing Sheets & Insulation"],
 				pages["Flashing & Gutters"]
 			});
+            AddSection("Carpentry and Joinery Works", CarpentryNames.Select(n=>pages[n]).ToArray());
+            AddSection("Pavement Construction", Enumerable.Range(0,6).Select(i=>pages[extraGrids["Pavement"+i].Kind]).ToArray());
+            AddSection("Slope Protection Works", new[]{pages["Foundation Fill"],pages["Slope RC Wall"],pages["Slope Slab"],pages["Stone Masonry"]});
 			TabPage tabPage = pages["Backup computation"];
 			tabPage.Text = "Reports";
 			FlowLayoutPanel flowLayoutPanel = new FlowLayoutPanel
@@ -4758,7 +4776,7 @@ worksExcelTimer.Tick += async delegate
 				Height = 52,
 				Padding = new Padding(8)
 			};
-			reportScope.Items.AddRange(new object[9] { "Program of Works Summary", "Reinforced Concrete Works", "Masonry Works", "Doors & Windows", "Finishing Works", "Roofing Works", "Earthworks & Gravel", "Structural Steel Works", "Plumbing Works" });
+			reportScope.Items.AddRange(new object[] { "Program of Works Summary", "Reinforced Concrete Works", "Masonry Works", "Doors & Windows", "Finishing Works", "Roofing Works", "Earthworks & Gravel", "Structural Steel Works", "Plumbing Works", "Carpentry and Joinery Works", "Pavement Construction", "Slope Protection Works" });
 			reportDetail.Items.AddRange(new object[3] { "Summary", "Detailed", "Extensive" });
 			reportScope.SelectedIndex = 0;
 			reportDetail.SelectedIndex = 1;
@@ -5193,7 +5211,8 @@ worksExcelTimer.Tick += async delegate
 					int.Parse(item4.Entry.Quantity)
 				});
 			}
-			MasonryExcel(list);
+			AddExtraExcelRows(list2,list);
+            MasonryExcel(list);
 			StructuralSteelExcel(list);
 			Dictionary<string, double> dictionary = new Dictionary<string, double>();
 			array6 = new int[2] { 40, 60 };
@@ -5208,11 +5227,11 @@ worksExcelTimer.Tick += async delegate
 			dictionary["BeamConcrete"] = func(array3, 4);
 			dictionary["SlabConcrete"] = func(array4, 4);
 			dictionary["FootingConcrete"] = footingResults.Sum((FootingTakeoff x) => x.Concrete);
-			dictionary["ConcreteTotal"] = dictionary["BeamConcrete"] + dictionary["SlabConcrete"] + dictionary["FootingConcrete"] + canopyResults.Sum((CanopyTakeoff q) => q.Concrete) + dictionary["RCWallConcrete"];
+			dictionary["ConcreteTotal"] = dictionary["BeamConcrete"] + dictionary["SlabConcrete"] + dictionary["FootingConcrete"] + canopyResults.Sum((CanopyTakeoff q) => q.Concrete) + dictionary["RCWallConcrete"] + miscQuantities.Sum(q=>q.Concrete) + wallFootingResults.Sum(q=>q.Concrete);
 			dictionary["BeamForms"] = func(array3, 7);
 			dictionary["SlabForms"] = func(array4, 7);
 			dictionary["FootingForms"] = footingResults.Sum((FootingTakeoff x) => x.Forms);
-			dictionary["FormsTotal"] = dictionary["BeamForms"] + dictionary["SlabForms"] + dictionary["FootingForms"] + canopyResults.Sum((CanopyTakeoff q) => q.Forms) + dictionary["RCWallForms"];
+			dictionary["FormsTotal"] = dictionary["BeamForms"] + dictionary["SlabForms"] + dictionary["FootingForms"] + canopyResults.Sum((CanopyTakeoff q) => q.Forms) + dictionary["RCWallForms"] + miscQuantities.Sum(q=>q.Forms) + wallFootingResults.Sum(q=>q.Forms);
 			dictionary["CHBArea"] = RegularWalls.Sum((WallItem w) => w.Net(wallOpenings));
 			dictionary["CHBCount"] = wallItems.Sum((WallItem w) => w.Blocks(wallOpenings));
 			dictionary["CHB100Area"] = RegularWalls.Where((WallItem w) => w.ThicknessMm == 100.0).Sum((WallItem w) => w.Net(wallOpenings));
@@ -6824,7 +6843,8 @@ worksExcelTimer.Tick += async delegate
 			{
 				finishAssignments.EndEdit();
 			}
-			foreach (DataGridView value in Tables().Values)
+			CommitExtraInputs();
+            foreach (DataGridView value in Tables().Values)
 			{
 				if (!value.EndEdit())
 				{
@@ -7023,12 +7043,14 @@ worksExcelTimer.Tick += async delegate
 				UpdateGravelSummary();
 				RecalculateCanopies();
 				RecalculateRCWalls();
+                RecalculateExtraWorks();
 				RecalculateStructuralSteel();
 				RecalculateMouldings();
 				RecalculatePlumbing();
 				RefreshProjectRebarPlan();
 				UpdateCanopyPurchases();
 				UpdateRCWallPurchases();
+                UpdateExtraPurchases();
 				UpdateMasonryTotals();
 				if (!projectQuantitiesKnown && plumbingRebar != null && HasMeasuredInputs() && BillOfQuantities().Any((BillQuantity q) => q.Section != "Bill of Quantities" && (q.Quantity > 1E-10 || q.Sources.Any((BillQuantity source) => source.Quantity > 1E-10))))
 				{
@@ -7194,6 +7216,7 @@ worksExcelTimer.Tick += async delegate
 			if (flag || scope == "Reinforced Concrete Works")
 			{
 				AppendRCWallReport(stringBuilder, detailed);
+                AppendExtraWorksReport(stringBuilder,detailed,scope);
 			}
 			if (flag || scope == "Earthworks & Gravel")
 			{
@@ -7284,7 +7307,8 @@ worksExcelTimer.Tick += async delegate
 				AppendRoofingReport(stringBuilder, detailed);
 			}
 			stringBuilder.AppendLine();
-			stringBuilder.AppendLine("COMMON BASIS");
+			if(new[]{"Earthworks & Gravel","Pavement Construction","Slope Protection Works","Carpentry and Joinery Works"}.Contains(scope))AppendExtraWorksReport(stringBuilder,detailed,scope);
+            stringBuilder.AppendLine("COMMON BASIS");
 			stringBuilder.AppendLine("Quantities use full precision; detail traces may show extra decimals. Purchasing follows the saved stock, lap and allowance settings.");
 			if (flag || scope == "Roofing Works")
 			{
@@ -7504,7 +7528,7 @@ worksExcelTimer.Tick += async delegate
 		{
 			XmlDocument xmlDocument = new XmlDocument();
 			XmlElement xmlElement = xmlDocument.CreateElement("ProgramOfWorks");
-			xmlElement.SetAttribute("version", "19");
+			xmlElement.SetAttribute("version", "20");
 			xmlElement.SetAttribute("computedInputsKnown", projectQuantitiesKnown.ToString());
 			WriteEarthSettings(xmlElement);
 			WriteSteelProfiles(xmlElement);
@@ -7533,6 +7557,7 @@ worksExcelTimer.Tick += async delegate
 			BackupBill.Write(xmlElement, backupBill);
 			WriteBackupBillRoutes(xmlElement);
 			WriteStructureConfigurations(xmlElement);
+            WriteExtraProject(xmlElement);
 			return xmlDocument.OuterXml;
 		}
 
@@ -7649,6 +7674,9 @@ worksExcelTimer.Tick += async delegate
 					xmlDocument.Load(reader);
 				}
 			}
+            bool extraSchema=xmlDocument.DocumentElement.Name=="ProgramOfWorks"&&xmlDocument.DocumentElement.GetAttribute("version")=="20";
+            ValidateExtraProject(xmlDocument.DocumentElement,extraSchema);
+            if(extraSchema)xmlDocument.DocumentElement.SetAttribute("version","19");
 			if (xmlDocument.DocumentElement.Name != "ProgramOfWorks" || !new string[19]
 			{
 				"1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
@@ -7848,6 +7876,7 @@ worksExcelTimer.Tick += async delegate
 					}
 				}
 			}
+            ReadExtraProject(xmlDocument.DocumentElement);
 			Recalculate();
 			ShowPipeGroup();
 			saved = DataXml();
@@ -8009,7 +8038,7 @@ worksExcelTimer.Tick += async delegate
 			{
 				add("Canopy / Ledge", Convert.ToString(list[num][0]), Convert.ToDouble(list[num][1]), Convert.ToString(list[num][2])).Sources.AddRange(CanopyQuantitySources(num));
 			}
-			foreach (var item2 in from a in projectRebarPlan
+			foreach (var item2 in from a in projectRebarPlan.Where(a=>!slopePlan.Contains(a))
 				where a.Choice != null
 				group a by new
 				{
@@ -8065,7 +8094,8 @@ worksExcelTimer.Tick += async delegate
 			}
 			rows.AddRange(PlumbingQuantities());
 			rows.AddRange(ManualBoqQuantities());
-			return rows;
+			rows.AddRange(ExtraBillQuantities());
+            return rows;
 		}
 
 		private void UpdateDashboard()
@@ -8131,7 +8161,7 @@ boqStatus.ForeColor = PowTheme.Teal;
 
 		private void WriteSteelProfiles(XmlElement root)
 		{
-			root.SetAttribute("appVersion", "1.4.37");
+			root.SetAttribute("appVersion", typeof(ProgramOfWorksForm).Assembly.GetName().Version.ToString(3));
 			XmlElement xmlElement = root.OwnerDocument.CreateElement("SteelProfileSnapshot");
 			root.AppendChild(xmlElement);
 			foreach (string item in steelDemands.Select((SteelCutDemand d) => d.Specification.Split(new string[1] { " | " }, StringSplitOptions.None)[0]).Distinct())
@@ -8297,7 +8327,7 @@ boqStatus.ForeColor = PowTheme.Teal;
 
 		private double TotalGravelInstalled()
 		{
-			return beam.WorksGravel() + footingResults.Sum((FootingTakeoff q) => q.Gravel) + ManualGravelVolume();
+			return beam.WorksGravel() + footingResults.Sum((FootingTakeoff q) => q.Gravel) + wallFootingResults.Sum(q=>q.Gravel) + ManualGravelVolume();
 		}
 
 		private List<object[]> GravelSummary()
@@ -8313,7 +8343,7 @@ boqStatus.ForeColor = PowTheme.Teal;
 			list.Add(new object[3]
 			{
 				"Footing gravel (automatic)",
-				footingResults.Sum((FootingTakeoff q) => q.Gravel),
+				footingResults.Sum((FootingTakeoff q) => q.Gravel) + wallFootingResults.Sum(q=>q.Gravel),
 				"m3"
 			});
 			list.Add(new object[3]
@@ -9407,6 +9437,7 @@ boqStatus.ForeColor = PowTheme.Teal;
 
 		private bool HasMeasuredInputs()
 		{
+            if(HasExtraInputs())return true;
 			if (!(from p in Tables()
 				where !new string[4] { "RoofProfiles", "InsulationRolls", "FinishSchedule", "PlumbingLS" }.Contains(p.Key)
 				select p).Any((KeyValuePair<string, DataGridView> p) => p.Value != null && p.Value.Rows.Cast<DataGridViewRow>().Any((DataGridViewRow r) => !r.IsNewRow && !Empty(r))) && !beam.WorksHasEntries)
@@ -9723,7 +9754,8 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 			XmlElement xmlElement = xmlDocument.CreateElement("ReinforcedConcreteDefaults");
 			xmlDocument.AppendChild(xmlElement);
 			xmlElement.SetAttribute("version", "1");
-			WriteRCCovers(xmlElement);
+			WriteExtraSettings(xmlElement);
+            WriteRCCovers(xmlElement);
 			WriteCanopySettings(xmlElement);
 			WriteRCWallSettings(xmlElement);
 			xmlElement.SetAttribute("footingFcDefault", footingFc.Text);

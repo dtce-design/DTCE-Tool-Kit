@@ -1,0 +1,37 @@
+using System;using System.Linq;using System.Globalization;
+namespace BeamScheduleFormatter {
+class MiscStructureQuantity {
+ public string Kind,Id,Description;public double Concrete,Forms,Fc;public int Quantity;public EstimateInput Steel;
+}
+static class MiscStructureTakeoff {
+ public static readonly string[] Names={"Stiffener Column","Coping Beam","Lintel Beam","Countertop","Parapet Wall"};
+ static double Up(double value){return Math.Ceiling(value/.025-1e-10)*.025;}
+ static void Add(EstimateInput entry,string part,int diameter,int count,double raw,LengthConfiguration cfg){if(count==0)return;SteelWeight.Count(count);double cut=Up(raw),metres=cut*count*int.Parse(entry.Quantity,CultureInfo.InvariantCulture);entry.Result.Lines.Add(new EstimateLine{Beam=entry.Beam,Part=part,Diameter=diameter,Grade=diameter<=12?cfg.GradeSmall:cfg.GradeLarge,PiecesPerBeam=count,CutLength=cut,Metres=metres,Kg=metres*EstimatorEngine.UnitMass(diameter),Formula="Entered "+count+" bars/member; raw run minus two covers plus approved total end allowance = "+raw.ToString("0.########",CultureInfo.InvariantCulture)+"m; cut rounded up to 25mm"});}
+ public static MiscStructureQuantity Member(string kind,string id,string description,double length,double widthMm,double depthMm,int quantity,double coverMm,int diaA,int barsA,int diaB,int barsB,int tieDia,string tieMode,double tieValue,double tieOffsetMm,double endAllowanceMm,bool soffit,int endFaces,LengthConfiguration cfg){
+  if(!new[]{"Stiffener Column","Coping Beam","Lintel Beam"}.Contains(kind)||string.IsNullOrWhiteSpace(id)||string.IsNullOrWhiteSpace(description)||cfg==null)throw new Exception("Enter a member ID, description and valid member type.");
+  cfg.Validate();SteelWeight.Positive(length,widthMm,depthMm);SteelWeight.Count(quantity);SteelWeight.Count(barsA);QuantityMath.Finite(coverMm,tieValue,tieOffsetMm,endAllowanceMm);if(coverMm<0||tieOffsetMm<0||endAllowanceMm<0||barsB<0||endFaces<0||endFaces>2||length*1000<=2*coverMm||length*1000<2*tieOffsetMm)throw new Exception("Check cover, tie offsets, bar counts, formed ends and allowances.");
+  EstimatorEngine.UnitMass(diaA);EstimatorEngine.UnitMass(tieDia);if(barsB>0)EstimatorEngine.UnitMass(diaB);
+  if(Math.Min(widthMm,depthMm)<=2*coverMm+2*tieDia+2*Math.Max(diaA,barsB>0?diaB:0))throw new Exception("Member section must fit cover, closed ties and longitudinal bars.");
+  int ties;if(tieMode=="Spacing (mm)"){if(tieValue<=0)throw new Exception("Tie spacing must be positive.");ties=checked((int)Math.Ceiling((length*1000-2*tieOffsetMm)/tieValue-1e-10)+1);}else if(tieMode=="Number of ties"){if(tieValue<2||tieValue!=Math.Floor(tieValue)||tieValue>1000000)throw new Exception("Enter a whole tie count of at least 2.");ties=(int)tieValue;}else throw new Exception("Select tie spacing or number of ties.");
+  var steel=new EstimateInput{Beam=kind+" "+id,Description=description,Quantity=quantity.ToString(CultureInfo.InvariantCulture),Length=length.ToString("R",CultureInfo.InvariantCulture),Result=new BeamEstimate()};
+  double raw=length-2*coverMm/1000+endAllowanceMm/1000;Add(steel,kind=="Stiffener Column"?"Column longitudinal":"Top longitudinal",diaA,barsA,raw,cfg);if(barsB>0)Add(steel,"Bottom longitudinal",diaB,barsB,raw,cfg);
+  var options=new EstimateOptions{Cover=coverMm,LengthConfig=cfg,Fc=cfg.Input.Fc,GradeSmall=cfg.GradeSmall,Grade=cfg.GradeLarge};double hoop=Up(HookGeometry.TieParts(widthMm,depthMm,tieDia,2,options).MainHoop),metres=hoop*ties*quantity;
+  steel.Result.Lines.Add(new EstimateLine{Beam=steel.Beam,Part="Stirrups",Diameter=tieDia,Grade=tieDia<=12?cfg.GradeSmall:cfg.GradeLarge,PiecesPerBeam=ties,TieSetsPerBeam=ties,MainHoopCut=hoop,CutLength=hoop,Metres=metres,Kg=metres*EstimatorEngine.UnitMass(tieDia),Formula="Closed rectangular hoop: center-line straight lengths + configured bend arcs + two 135° tails; cut rounded up to 25mm. "+ties+" sets/member; end offset "+tieOffsetMm+"mm; "+tieMode+" = "+tieValue});
+  double width=widthMm/1000,depth=depthMm/1000;return new MiscStructureQuantity{Kind=kind,Id=id,Description=description,Fc=cfg.Input.Fc,Quantity=quantity,Concrete=length*width*depth*quantity,Forms=(kind=="Stiffener Column"?2*(width+depth)*length:2*depth*length+(soffit?width*length:0)+endFaces*width*depth)*quantity,Steel=steel};
+ }
+ public static FootingBarSpec Bars(int dia,string mode,double value){EstimatorEngine.UnitMass(dia);if(!WindTin.Finite(value)||value<=0)throw new Exception("Enter a positive spacing or bar count for each direction.");if(mode=="Spacing (mm)")return new FootingBarSpec{Diameter=dia,Spacing=value};if(mode=="Number of bars"&&value==Math.Floor(value)&&value<=1000000)return new FootingBarSpec{Diameter=dia,Count=(int)value};throw new Exception("Choose spacing (mm) or enter a whole number of bars.");}
+ public static MiscStructureQuantity Panel(string kind,string id,string description,double length,double across,double thicknessMm,int quantity,double coverMm,int layers,FootingBarSpec first,FootingBarSpec second,double firstEnds,double secondEnds,int faces,int ends,bool baseForm,LengthConfiguration cfg){
+  bool horizontal=kind=="Countertop"||kind=="Slope Slab";var wall=RCWallTakeoff.Calculate(id,description,length,across,thicknessMm,quantity,coverMm,layers,horizontal?second:first,horizontal?first:second,horizontal?secondEnds:firstEnds,horizontal?firstEnds:secondEnds,horizontal?0:faces,horizontal?0:ends,!horizontal&&baseForm,cfg);
+  double forms=horizontal?((baseForm?length*across:0)+thicknessMm/1000*(faces*length+ends*across))*quantity:wall.Forms;
+  foreach(var line in wall.Steel.Result.Lines){line.Beam=kind+" "+id;if(horizontal)line.Part=line.Part.Replace("VERTICAL","Y / width").Replace("HORIZONTAL","X / length");}
+  wall.Steel.Beam=kind+" "+id;return new MiscStructureQuantity{Kind=kind,Id=id,Description=description,Concrete=wall.Concrete,Forms=forms,Fc=wall.Fc,Quantity=quantity,Steel=wall.Steel};
+ }
+}
+static class SiteWorkTakeoff {
+ public static double Rectangular(double length,double width,double depthMm,int quantity){SteelWeight.Positive(length,width,depthMm);SteelWeight.Count(quantity);double value=length*width*depthMm/1000*quantity;QuantityMath.Finite(value);return value;}
+ public static double Area(double length,double width,int quantity){SteelWeight.Positive(length,width);SteelWeight.Count(quantity);double value=length*width*quantity;QuantityMath.Finite(value);return value;}
+ public static string TreeItem(double diameterMm){if(!WindTin.Finite(diameterMm)||diameterMm<150)throw new Exception("The supplied tree items start at 150mm diameter. Review this tree or uncheck Include.");return diameterMm<=300?"800(3)a1":diameterMm<=500?"800(3)a2":diameterMm<=750?"800(3)a3":diameterMm<=900?"800(3)a4":"800(4)";}
+ public static double Stone(double length,double height,double topWidth,double bottomWidth,int quantity){SteelWeight.Positive(length,height,topWidth,bottomWidth);SteelWeight.Count(quantity);double value=length*height*(topWidth+bottomWidth)/2*quantity;QuantityMath.Finite(value);return value;}
+ public static string Grade60Item(System.Collections.Generic.IEnumerable<int> diameters){var list=diameters.ToList();if(list.Any(d=>d>42))throw new Exception("Grade 60 bars above 42mm need a separate approved pay item.");return list.Any(d=>d>25)?"Reinforcing Steel (Deformed), Grade 60, max 42mm dia.":"Reinforcing Steel (Deformed), Grade 60, max 25mm dia.";}
+}
+}

@@ -1,3 +1,6 @@
+CURRENT STATUS — 14 November 2026: workspace/source recovered. See Additional-Works-v1.4.45.txt for implemented sheets and validation limits. The older reset note and no-push instruction below are historical; the owner subsequently authorized GitHub recovery checkpoints (AGENTS.md). Remaining work includes drywall/ceiling painting checkboxes and native Windows/Excel verification.
+
+HISTORICAL SNAPSHOT:
 DTCE TOOL KIT - PENDING UPDATE
 
 BLOCKED: execution workspace reset during edits; /workspace/DTCE-Tool-Kit and local v1.4.37-39 source/build files are absent in the current executor. No new tested build delivered.

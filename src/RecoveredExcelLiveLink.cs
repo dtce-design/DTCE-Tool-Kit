@@ -883,7 +883,8 @@ public List<BackupTarget> RegisterBackupBillItems(){var targets=BackupTargets();
 					backupTarget = targets.SingleOrDefault((BackupTarget x) => x.SlotId == d.TargetSlotId && BackupMapping.Identity(x) == d.TargetIdentity);
 					if (backupTarget == null)
 					{
-						throw new Exception("The manual BOQ item was removed or changed: " + d.Description);
+						if(d.ManualOverride)throw new Exception("The manual BOQ item was removed or changed: " + d.Description);
+                        continue;
 					}
 					dictionary3.Add(d.Key, backupTarget);
 					continue;

@@ -4,6 +4,7 @@ namespace BeamScheduleFormatter
 {
 	internal class BillQuantity
 	{
+		public string PayCode, PayDescription;
 		public string Section;
 
 		public string Description;

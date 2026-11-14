@@ -98,3 +98,12 @@ $exe=Join-Path $out 'ProfessionalReportTests.exe'
 if($LASTEXITCODE -ne 0){throw 'Professional report tests did not compile'}
 & $exe (Join-Path $repo 'tests\fixtures\Wind-Manila-Example.xml') (Join-Path $out 'sample-report')
 if($LASTEXITCODE -ne 0){throw 'Professional report checks failed'}
+
+# Additional quantity sheets: pure calculations plus native BOQ/save-open integration.
+foreach($name in @('AdditionalWorksTests','AdditionalWorksUiTests')){
+ $exe=Join-Path $out "$name.exe"
+ & $compiler /nologo /define:ADMIN_APP /target:exe "/main:$name" "/out:$exe" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Core.dll /reference:System.Security.dll /reference:Microsoft.CSharp.dll /reference:System.IO.Compression.dll "/resource:$source\AccessPublicKey.xml,AccessPublicKey.xml" "/resource:$source\app.ico,DtceIcon.ico" "/resource:$source\DtceLogo.png,DtceLogo.png" "/resource:$source\DpwhLogo.png,DpwhLogo.png" "/resource:$source\WindSurfaces.txt,WindSurfaces.txt" "/resource:$source\SlabTemplate.dxf,SlabTemplate.dxf" @files (Join-Path $repo "tests\$name.cs")
+ if($LASTEXITCODE -ne 0){throw "$name compilation failed"}
+ & $exe
+ if($LASTEXITCODE -ne 0){throw "$name checks failed"}
+}

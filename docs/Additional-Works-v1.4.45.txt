@@ -1,0 +1,59 @@
+DTCE Tool Kit v1.4.45 — additional quantity sheets
+14 November 2026 (Asia/Manila)
+
+Carpentry and Joinery Works (seven separate top tabs)
+1003(3) Modular Base Cabinets — sq.m.
+1003(3) Modular Wall Cabinets — sq.m.
+1003(4) Aluminum Cabinets — ea
+1003(5) Roof Frame — bd.ft.
+1003(6) Floor Frame — bd.ft.
+1003(11)a1 Fascia Board (12mm thk Fiber Cement Board) — m
+1003(14) Laminated Phenolic Board (Toilet and Urinal Partition) — sq.m.
+Cabinet/partition pay area = measured face L x H x quantity - total deductions.
+Aluminum cabinets use count; fascia uses run length x quantity. Timber inputs
+use cut length in metres and section in inches. Net bd.ft. = T x W x L(ft)/12.
+Purchased bd.ft. includes stock allowance; compatible roof/floor cuts reuse
+stock across rows (same section, species/grade/treatment and stock length).
+Cabinet pay measurement does not generate panel/hardware fabrication lists.
+
+Also included from the owner's preceding requests
+- RC Miscellaneous Structures: Stiffener Column, Coping Beam, Lintel Beam,
+  Countertop, Parapet Wall. Explicit spacing/count selection, one/two panel
+  layers, cover/material settings and common commercial rebar allocation.
+- Separate Wall Footing tab. Pad/wall footing lean checkbox, shared thickness
+  on RC Start (default 50mm), separate lean volume and layer-aware excavation.
+- Clearing/grubbing and individual tree IDs, diameter bands and include flag.
+  Owner-confirmed tree 800(3)a2 label is 301–500mm in the built-in catalogue.
+- Earthworks excavation-material selection: common soil / soft / hard rock.
+- Pavement: roadway excavation, subgrade, aggregate base/subbase, 150/230mm
+  PCCP and sidewalk. PCCP/sidewalk pay area, reference concrete kept separate.
+- Slope foundation fill to 103(3), RC concrete to 510(2), Grade40 rebar to
+  404(1)a, stone masonry to 506(1). Slope quantities remain separate from
+  ordinary building-concrete and 902 rebar pay groups.
+- Ready Mix checkbox for each concrete pay group. Routing uses code, complete
+  description and unit, preserving separate duplicated codes. If ANY ordinary
+  Grade60 purchase is >25mm, ALL Grade60 sizes use the max42mm item. Both
+  Grade60 items are 902(1)a2 in the supplied BACKUP. >42mm requires review.
+- BOQ starts with all 266 pay items from the supplied BACKUP, in its order.
+  No old project quantities copied. Manual LS is entered in the BOQ quantity
+  cell and retained on save/open; source details remain in Tool Kit reports.
+- Project schema20 stores new inputs/settings and pad-lean selections.
+  Versions1–19 remain readable; old apps reject20 rather than drop new sheets.
+
+Workbook-specific limits
+The supplied BACKUP contains aggregate SUBBASE 200(1), not BASE 201(1). Base
+quantities remain visible as unassigned until a matching pay item is provided.
+Its subgrade unit is cu.m.; select sq.m. only for an appropriate target item.
+There is no ready-mix miscellaneous, wall-footing or seal-concrete item in
+that template. Missing variants remain unassigned rather than use ordinary.
+A linked workbook retains its own descriptions; the original duplicate tree
+label must be corrected there if it has not already been corrected.
+
+Validation and delivery
+Admin and User compiled against .NET Framework4.8 / C#5, with existing public
+resources and original app icon. 94 calculation/routing/stock checks passed.
+Native Windows BOQ/save-open integration tests added and compiled; not run
+in this Linux workspace. Actual GUI, Excel COM sync and printing on Windows
+remain to be verified. These portable ZIPs are local preview builds.
+Source is checkpointed on GitHub. No Microsoft Store, TestFlight or Pages
+upload. No private keys, activation files or signing material included.

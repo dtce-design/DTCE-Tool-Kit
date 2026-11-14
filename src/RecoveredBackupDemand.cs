@@ -6,6 +6,7 @@ namespace BeamScheduleFormatter
 {
 	internal class BackupDemand
 	{
+		public string PayCode, PayDescription;
 		public string Key;
 
 		public string Description;
@@ -29,6 +30,7 @@ namespace BeamScheduleFormatter
 			BackupDemand backupDemand = new BackupDemand();
 			backupDemand.Key = q.Section + "|" + q.Description + "|" + BackupMapping.Unit(q.Unit);
 			backupDemand.Description = q.Description;
+            backupDemand.PayCode=q.PayCode;backupDemand.PayDescription=q.PayDescription;
 			backupDemand.Unit = q.Unit;
 			backupDemand.Quantity = q.Quantity;
 			backupDemand.Sources.AddRange(q.Sources);
