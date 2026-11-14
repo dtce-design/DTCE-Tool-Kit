@@ -1,0 +1,52 @@
+DTCE Tool Kit v1.4.48 — Windows desktop TEST BUILD
+14 November 2026 (Asia/Manila)
+
+Extract the complete versioned folder, then run its EXE. Requires Windows and
+.NET Framework 4.8. Keep the EXE and matching config together. No installation
+or Microsoft Store submission is performed by this ZIP.
+
+Included for testing:
+- Folder-shaped full top tabs and distinct colors at three navigation levels.
+- Delete cross at the left of editable auto-growing input rows. Computed results
+  and the new blank row have no delete cross. Redundant Add/Remove Entry removed.
+- Worksheet guides moved to the information icon beside the worksheet heading.
+- Earthworks summary on Earthworks Start, together with defaults/gravel quantities.
+- Pavement output headings show Total area (sq.m.) / Total volume (cu.m.);
+  hidden Pay Unit output; full PCCP descriptions inside the computation sheet.
+- Subgrade preparation uses area only. Roadway excavation uses bank volume;
+  neither BOQ quantity is multiplied by swell/shrink factors.
+- Less duplicate Excel work on disconnect, background pending-save completion,
+  metadata caching, lazy quantity anchors and shorter sync debounce.
+- Deferred inactive POW tab styling and embedded estimator display.
+- Roofing profile/side-lap validation fix; explicit material in saved/shared
+  profiles; mixed pre-painted 0.60 mm and project uPVC 2/2.5/3 mm quantities.
+- Responsive Project Information / Access Admin and revised beam formatter layout.
+- Automatic Tree IDs; every entered tree included; pay classification hidden.
+- Draft wind circular roughness sectors, site-map contours and building model.
+
+NOT INCLUDED YET:
+- AutoCAD automatic pipe measuring, Pipe ID generation and persistent pipe labels.
+  The current Pipe Takeoff still needs manual ID/length input.
+- Interactive purlin/angle section previews and final terrain X/Y scale controls.
+
+Verification:
+Admin/User compile successfully against .NET Framework 4.8 reference assemblies.
+191 automated checks passed: 95 additional works/quantity/routing, 32 appearance,
+24 wind building-load and 40 wind interpolation/terrain/exposure/state checks.
+Windows native UI, AutoCAD, Excel COM, first-open and disconnect speed have NOT
+been run or timed in this Linux workspace. No claim of instant Excel operations.
+Native UI test expectations are still being brought up to the draft schema.
+
+Project format is now version 21 for explicit roofing specifications. Keep a
+copy of existing project files before saving them in this test build: older apps
+cannot read the new format. Existing app settings/profile storage remains outside
+this versioned download folder.
+
+BACKUP mapping preserves code/description/unit identity. If an existing workbook
+labels subgrade as cu.m., review/correct that unit to sq.m. before mapping area.
+Missing exact uPVC thickness items stay unassigned rather than mapping to 3 mm.
+Land-cover-based exposure suggestions require site evidence review; raster data
+alone does not establish full NSCP compliance.
+
+No owner private key, certificate or mobile activation key is included. No key
+rotation, Store, TestFlight or Pages publication is performed.
