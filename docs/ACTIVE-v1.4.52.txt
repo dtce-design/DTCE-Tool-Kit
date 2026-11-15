@@ -1,0 +1,66 @@
+UNRELEASED WORK — recovery branch only; start here for v1.4.52
+
+Checked v1.4.51 test build source: main commit f127db9752b315f930e09fb66a5b856ec59123b0.
+Admin/User/source ZIPs are in /workspace/downloads with v1.4.51 names. Do not overwrite them with this draft.
+This branch additionally saves the unfinished wind/source-contour/exposure/Kzt audit, STAAD wind tables, beam-deflection import, saved-config deletion, User-only capture policy and extra tab changes. Compilation does not validate these engineering changes. They require the numerical/parser/standard checks noted below and native Windows testing before release. No installer or Store publication is authorized by this recovery snapshot itself.
+
+The interactive steel sections, weld reference, masonry row icons, focus/tab fixes, professional purlin/truss reports, triangular watermark and flattened AES-256 PDF exports are already in the checked v1.4.51 snapshot. PDF restrictions are not tamper-proof.
+
+Earlier work notes follow (historical completion notes may predate the release above):
+
+Active owner requests — 15 November 2026 (Asia/Manila)
+Source recovery checkpoint v1.4.50 main: 1ba50e0458b4b7726a0a077c0f31de930abe5f50.
+No Microsoft Store, TestFlight or Pages publication.
+
+Continue until the following are implemented and checked:
+1. Wind contour source strokes on site map; verify georegistration and stop
+   displaying synthetic TIN contour segments as if they were traced source lines.
+2. Correct apex height dimension ground datum and ridge-orientation model.
+3. Center report site map independently of panning; do not export partial tiles
+   as a complete basemap. Keep project site/circle centered and fully in frame.
+4. Double-check surface roughness / exposure. Separate actual mapped roughness
+   from calculated exposure. Explain each direction's mapped classes, fetch,
+   mean-roof-height criteria and why B/C/D/unresolved was suggested. Examine the
+   two 45-degree upwind sectors (±45°), not just a narrow ±22.5° wedge.
+5. Explain Kzt, including why Hill may still give1.00; list threshold/slope/
+   upper-half criteria and full K1/K2/K3 substitution per direction.
+6. New Beam Deflection Check in Design Sheets. User explicitly requested BOTH
+   pasted/Excel/CSV node displacement data AND STAAD .ANL output. Import geometry/
+   connectivity too. Group a physical beam across member segments and intermediate
+   nodes; endpoints/supports explicit. Relative chord deflection, per load case,
+   consistent units, configurable serviceability limits. Nodal samples alone
+   cannot establish an unsampled between-node maximum or an unqualified PASS.
+7. Audit tab hierarchy in the whole app, including command bars interrupting
+   Design Sheets navigation and lower beam/slab detail tabs. All navigation at top.
+8. Wind Load: add STAAD Wind Input subtab showing height vs pressure, per direction
+   and case. Distinguish wind-definition velocity pressure qz from final net
+   wall/roof pressures to prevent double application of coefficients.
+9. Allow deletion of user-saved splice/development/hook configurations with
+   confirmation and atomic persistence; existing project snapshots remain intact.
+10. User edition only: Windows display-affinity exclusion from capture, including
+    Snipping Tool/Print Screen and compatible recording APIs. Admin exempt.
+    Owner was told this is best-effort; no guarantee against all capture software,
+    privileged bypasses, external viewers or a physical camera. Do not claim an
+    absolute prohibition or kill/scan unrelated applications.
+
+Current uncommitted draft files include UserCapturePolicy.cs (edition-specific
+capture request), WindBuildingGeometry.cs / apex datum fix, and WindSourceContours.cs
+(source-map red strokes). These still need integration/verification. Do not lose
+previous v1.4.50 edit-history, styling, report watermark changes.
+11. Truss Connections: interactive reference drawing indicating the actual weld
+    size and transverse/longitudinal weld lengths used by the implementation.
+    Highlight the corresponding weld when an input receives focus. Match formulas
+    and member families; do not imply fabrication approval from the schematic.
+12. Saved-config deletion screenshot selects the built-in sample27.6/414, so
+    support persistent removal/hiding of generated presets too, with Restore
+    built-ins. Removing library entries must not invalidate saved project snapshots.
+13. Beam Deflection input clarification answered: BOTH1 and2 (tables and .ANL).
+14. User reiterated Snipping Tool and Print Screen exclusion in User edition only.
+
+Truss weld reference implemented in TrussWeldDrawing.cs: live LT/LL1/LL2/w values, focus highlight, click to edit, absent segments dashed, bolted mode noted. Both editions compile; Windows visual interaction pending. Isolated source backup on GitHub: 2dc95f2dcaa9140d82f2eb7b1015b6c8a7c2dad0 (does not include other v51 drafts). No installer packaged for this change.
+
+Completed section previews (C/Z purlin, angle/double-angle, rectangular/circular HSS) with catalog dimensions, zoom/pan/fit. Design command bar below contiguous module/nested navigation, including Wind Load. 2,462 pure geometry checks and both edition compilations passed. Isolated GitHub checkpoint 867f22c5eb06958b4b103511f60eb378be375c4c verified; does not include other v51 drafts. Native Windows interaction pending. No new ZIP release.
+
+Masonry opening action now per row beside Description, frozen with wall identifiers. Shared toolbar button removed; blanket double-click removed. Row callback selects the intended wall before existing editor. Append-only readonly UI column preserves numeric input indexes and explicit saved InputColumns. Both local draft and isolated checkpoint editions compile. GitHub checkpoint 32682e5b87fcb6832b802700c1a44556f915f3ea verified. Native Windows UI testing pending; no new installer packaged.
+
+Presentation checkpoint 225f7f565fd93144bb84b28309d343d7301afa60 verified on GitHub: compact vector masonry openings icon (42px), tooltip; app-drawn dotted focus rectangles replaced with solid focus outline; native tab header layout reinstated to address missing wrapped rows/stale gaps. Active and isolated Admin/User compilations passed. Windows visual/resize/DPI checks unverified. No new ZIP release.

@@ -30,7 +30,7 @@ class SlabEstimatorForm:Form { internal DataGridView WorksInputGrid{get{return g
   #if !ADMIN_APP
   var renewal=new AccessRenewal(this);FormClosed+=(s,e)=>renewal.Dispose();
   #endif
-  WorksSettings=settings;settings.Visible=false;Button(tools,"Settings",()=>SettingsWorkspace.Show(this,"Slab",new[]{"Materials & calculation"},new Control[]{settings}));SettingsWorkspace.MoveButtons(tools,settings,"Commercial lengths","Curtailment settings","Splice / development / hooks","Special cases (optional)");ConfigureHelp(tools);Shown+=(s,e)=>InputFocus.Apply(this);Resolve();saved=State();
+  WorksSettings=settings;settings.Visible=false;Button(tools,"Settings",()=>SettingsWorkspace.Show(this,"Slab",new[]{"Materials & calculation"},new Control[]{settings}));SettingsWorkspace.MoveButtons(tools,settings,"Commercial lengths","Curtailment settings","Splice / development / hooks","Special cases (optional)");ConfigureHelp(tools);TopTabLayout.Promote(this,tabs,grid,tabs,tools,"Measurements",note);Shown+=(s,e)=>InputFocus.Apply(this);Resolve();saved=State();
  }
  public Control WorksSettings {get;private set;}
  internal List<double> WorksStockLengths {get{return new List<double>(stockLengths);}}

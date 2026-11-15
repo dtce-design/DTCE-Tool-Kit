@@ -17,7 +17,7 @@ partial class WindDesignForm {
     CalculationDocument.Text(g,WindColors.Legend,36,716,523,28,7);
     CalculationDocument.Text(g,(wind.Coastal?"Nearest-contour continuation outside TIN hull. ":"Delaunay TIN interpolation. ")+"Source raster digitization is approximate; terrain/exposure are preliminary candidates requiring site review.",36,751,523,40,8,false,PowTheme.Muted);
    });
-   var directions=terrain==null?new List<WindDirection>():WindAssessment.Calculate(terrain,z,wind.V,kd);
+   var directions=terrain==null?new List<WindDirection>():WindAssessment.Calculate(terrain,z,wind.V,kd,ExposureHeight());
    doc.Sheets.Add(g=>{
     CalculationDocument.Section(g,"02 / EIGHT-DIRECTION VELOCITY-PRESSURE CALCULATIONS",130);
     var rows=directions.Select(d=>new[]{d.Name,d.Exposure,F(d.H),F(d.Lh),F(d.Kzt),F(d.Kz),F(d.Qz),d.Shape}).ToList();
@@ -26,15 +26,7 @@ partial class WindDesignForm {
     CalculationDocument.Section(g,"EQUATIONS & UNITS",602);
     CalculationDocument.Text(g,"Kzt = (1 + K1 K2 K3)²\r\nKz = 2.01 [max(z, 4.57) / zg]^(2/α)\r\nqz = 0.613 Kz Kzt Kd (V / 3.6)² / 1000   [kPa]\r\n\r\nqz is velocity pressure. Building pressures also require G, Cp and GCpi. A missing terrain/exposure value remains unresolved.",46,642,503,138,10);
    });
-   var stream=typeof(WindTin).Assembly.GetManifestResourceStream("WindMap"+wind.Map+".jpg");using(stream)using(var original=Image.FromStream(stream)){
-    var source=doc.Own(new Bitmap(original));doc.Sheets.Add(g=>{
-     CalculationDocument.Section(g,"03 / NSCP WIND-SPEED SOURCE MAP & PROJECT LOCATION",130);
-     float h=610,w=h*source.Width/source.Height,x=(595.28f-w)/2,y=171;g.DrawImage(source,x,y,w,h);
-     float px=x+(float)wind.X*w/3179,py=y+(float)wind.Y*h/4801;
-     using(var pen=new Pen(Color.Magenta,1.5f)){g.DrawEllipse(pen,px-4,py-4,8,8);g.DrawLine(pen,px-10,py,px+10,py);g.DrawLine(pen,px,py-10,px,py+10);}
-     CalculationDocument.Text(g,"Category "+category+" · source image "+wind.Map+" · magenta marker = project",36,784,523,15,7);
-    });
-   }
+   for(int n=0;n<directions.Count;n+=2){var pair=directions.Skip(n).Take(2).ToArray();doc.Sheets.Add(g=>{CalculationDocument.Section(g,"EXPOSURE & KZT DECISIONS / "+string.Join(" / ",pair.Select(d=>d.Name)),130);for(int j=0;j<pair.Length;j++){var d=pair[j];float y=174+j*292;CalculationDocument.Text(g,d.Name+" · Exposure "+d.Exposure+" · "+d.Shape+" · Kzt="+F(d.Kzt),36,y,523,24,10,true);CalculationDocument.Text(g,d.ExposureAudit==null?"Exposure unresolved":d.ExposureAudit.Mix+"\r\n"+d.ExposureAudit.Reason,36,y+29,523,85,8);CalculationDocument.Text(g,"H="+F(d.H)+" m; Lh="+F(d.Lh)+" m; H/Lh="+F(d.H/d.Lh)+"; x="+F(d.X)+" m\r\n"+d.TopographicReason,36,y+120,523,90,8);CalculationDocument.Text(g,WindTin.Finite(d.Kzt)?"Kzt = (1 + "+F(d.K1)+" × "+F(d.K2)+" × "+F(d.K3)+")² = "+F(d.Kzt):"Kzt unresolved — obtain sufficient terrain and exposure evidence.",36,y+218,523,45,9,true);}});}
    for(int i=0;i<directions.Count;i+=2){var pair=directions.Skip(i).Take(2).ToArray();doc.Sheets.Add(g=>{
     CalculationDocument.Section(g,"TERRAIN PROFILES / "+string.Join(" & ",pair.Select(d=>d.Name)),130);
     for(int n=0;n<pair.Length;n++)WindProfileDrawing.Draw(g,new RectangleF(36,172+n*305,523,295),pair[n]);

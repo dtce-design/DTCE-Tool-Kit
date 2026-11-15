@@ -5,7 +5,7 @@ static class ProfessionalReportExport {
  public static EngineeringReport FromText(string text){var p=ProjectInfoStore.Read();return ProfessionalReport.FromText(text,EstimatePdf.Heading(text),p.Name,p.Location,p.Office);}
 }
 partial class WindDesignForm {
- protected override EngineeringReport BuildEngineeringReport(){BuildReport();var p=ProjectInfoStore.Read();string image;using(var snapshot=siteMap.Snapshot())using(var output=new MemoryStream()){snapshot.Save(output,ImageFormat.Png);image=Convert.ToBase64String(output.ToArray());}return WindReportFile.Create(Number("Latitude"),Number("Longitude"),Value("Category"),Number("Height"),Number("Kd"),terrain,((CheckBox)Inputs["Reviewed"]).Checked,BuildingEnabled?Building():null,p.Name,p.Location,p.Office,image);}
+ protected override EngineeringReport BuildEngineeringReport(){BuildReport();var p=ProjectInfoStore.Read();string image;using(var snapshot=siteMap.Snapshot())using(var output=new MemoryStream()){snapshot.Save(output,ImageFormat.Png);image=Convert.ToBase64String(output.ToArray());}return WindReportFile.Create(Number("Latitude"),Number("Longitude"),Value("Category"),Number("Height"),Number("Kd"),terrain,((CheckBox)Inputs["Reviewed"]).Checked,BuildingEnabled?Building():null,p.Name,p.Location,p.Office,image,ExposureHeight());}
 }
 partial class ProgramOfWorksForm {
  void ExportEngineeringReport(){ProfessionalReportExport.Show(this,BuildQuantityEngineeringReport());}

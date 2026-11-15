@@ -18,13 +18,13 @@ static class ModernUi {
  static readonly ConditionalWeakTable<Form, object> windows = new ConditionalWeakTable<Form, object>();
  static bool installed, applying;static int ownerThread;
  internal static void Install() {
-  if(installed)return; installed=true;ownerThread=System.Threading.Thread.CurrentThread.ManagedThreadId;DesktopAppearance.Initialize();
+  if(installed)return; installed=true;UserCapturePolicy.Install();ownerThread=System.Threading.Thread.CurrentThread.ManagedThreadId;DesktopAppearance.Initialize();
   // Includes modal dialogs and embedded tools which do not call AppBrand.Apply.
   // Only new forms are traversed; do not walk every table on every idle event.
   Application.Idle += delegate {
    if(System.Threading.Thread.CurrentThread.ManagedThreadId!=ownerThread||applying)return; applying=true;
    try { foreach(Form form in Application.OpenForms) {
-    object seen; if(windows.TryGetValue(form,out seen))continue;
+    UserCapturePolicy.Attach(form);object seen; if(windows.TryGetValue(form,out seen))continue;
     windows.Add(form,new object()); PowTheme.Apply(form);
    }} finally { applying=false; }
   };

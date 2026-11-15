@@ -3,7 +3,7 @@ namespace BeamScheduleFormatter {
 class WindContourSegment {public double Lat1,Lon1,Lat2,Lon2,Speed;}
 static partial class WindTin {
  static readonly Dictionary<string,List<WindContourSegment>> contourCache=new Dictionary<string,List<WindContourSegment>>();
- public static List<WindContourSegment> Contours(string category){Load();lock(gate){List<WindContourSegment> lines;if(!contourCache.TryGetValue(category,out lines)){lines=WindContourGeometry.Build(surfaces.Single(s=>s.Category==category),transform);contourCache[category]=lines;}return lines;}}
+ public static List<WindContourSegment> Contours(string category){Load();lock(gate){List<WindContourSegment> lines;if(!contourCache.TryGetValue(category,out lines)){if(!surfaces.Any(s=>s.Category==category))throw new ArgumentException("Unknown wind category.");lines=WindSourceContours.Load(category,transform);contourCache[category]=lines;}return lines;}}
 }
 static class WindCircleGeometry {
  public static List<double[]> Sector(double lat,double lon,double radius,int direction){if(!WindTin.Finite(radius)||radius<=0||direction<0||direction>7)throw new ArgumentException("Invalid sector.");var points=new List<double[]>{new[]{lat,lon}};for(int n=0;n<=18;n++)points.Add(WindAssessment.Destination(lat,lon,direction*45-22.5+n*2.5,radius));return points;}
