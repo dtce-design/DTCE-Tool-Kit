@@ -1,0 +1,9 @@
+Navigation and row-action presentation checkpoint
+
+Masonry openings use a compact 42px icon-only row action. The vector icon avoids symbol-font dependencies. Native button semantics and the accessible Add/edit openings value remain; header/row tooltips identify the action and wall. Styling retains compact width after applying the global theme. Existing model, quantity and project input indexes remain unchanged.
+
+Replace application-drawn dotted focus rectangles on shared buttons, folder tabs and workspace cards with a solid rounded focus highlight. Keyboard activation remains enabled.
+
+NavigationTabs now lets the native TabControl measure wrapped header rows and lay out pages, while shared owner drawing retains the folder-tab faces. Removes whole-control UserPaint rendering associated with missing header rows and stale strip gaps during resize. Full captions, top alignment and multiline wrapping remain.
+
+Validation: Admin/User source compilation passed for both the active draft and isolated checked checkpoint. Native Windows resizing, maximize/restore, DPI, focus and mouse interaction still require visual verification. No new downloadable package or Store upload is included in this checkpoint.

@@ -86,7 +86,7 @@ class ToolModuleButton:Button {
   using(var title=new Font("Segoe UI",12,FontStyle.Bold))TextRenderer.DrawText(e.Graphics,Text,title,new Rectangle(72,20,Width-113,35),PowTheme.Ink,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.NoPrefix);
   TextRenderer.DrawText(e.Graphics,"›",ModernUi.Heading,new Rectangle(Width-40,20,25,35),PowTheme.Teal,TextFormatFlags.VerticalCenter);
   TextRenderer.DrawText(e.Graphics,Description??descriptions[Math.Min(5,ModuleIndex)],ModernUi.Body,new Rectangle(22,76,Width-50,65),PowTheme.Muted,TextFormatFlags.Left|TextFormatFlags.WordBreak|TextFormatFlags.NoPrefix);
-  if(Focused)ControlPaint.DrawFocusRectangle(e.Graphics,new Rectangle(7,7,Width-14,Height-14),PowTheme.Teal,ModernUi.Surface);
+  if(Focused)FocusHighlight.Draw(e.Graphics,new Rectangle(7,7,Width-14,Height-14),WorksheetColors.Focus);
  }
  void DrawGlyph(Graphics g,Rectangle r){
   using(var pen=new Pen(PowTheme.Teal,1.7f)){

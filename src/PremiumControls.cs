@@ -27,7 +27,7 @@ static class PremiumControls {
    var text=Rectangle.Inflate(button.ClientRectangle,-9,-3);
    if(button.Image!=null){g.DrawImage(button.Image,9,(button.Height-16)/2,16,16);text.X+=22;text.Width-=22;}
    TextRenderer.DrawText(g,button.Text,button.Font,text,!button.Enabled?PowTheme.Muted:primary?Color.White:PowTheme.Ink,TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter|TextFormatFlags.SingleLine|TextFormatFlags.NoPrefix);
-   if(button.Focused)ControlPaint.DrawFocusRectangle(g,Rectangle.Inflate(button.ClientRectangle,-4,-4),primary?Color.White:Accent,fill);
+   if(button.Focused)FocusHighlight.Draw(g,Rectangle.Inflate(button.ClientRectangle,-3,-3),primary?Color.White:WorksheetColors.Focus);
   };
  }
  internal static Panel WorkspaceHeader(Label title,Action back){

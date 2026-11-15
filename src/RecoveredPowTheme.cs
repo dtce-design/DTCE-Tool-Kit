@@ -70,7 +70,7 @@ internal static partial class PowTheme {
    }
    TextRenderer.DrawText(e.Graphics,tab.TabPages[e.Index].Text,tab.Font,Rectangle.Inflate(r,-8,-3),selected?DesktopAppearance.Palette.ActiveTabText:Ink,
     TextFormatFlags.NoPrefix|TextFormatFlags.VerticalCenter|TextFormatFlags.HorizontalCenter|TextFormatFlags.SingleLine);
-   if(tab.Focused&&selected&&NavigationTabs.KeyboardFocusVisible(tab))ControlPaint.DrawFocusRectangle(e.Graphics,Rectangle.Inflate(r,-5,-5),Teal,Background);
+   if(tab.Focused&&selected&&NavigationTabs.KeyboardFocusVisible(tab))FocusHighlight.Draw(e.Graphics,Rectangle.Inflate(r,-5,-5),Teal);
   };
  }
  static void StyleGrid(DataGridView grid) {
@@ -92,7 +92,7 @@ internal static partial class PowTheme {
   grid.CellFormatting+=delegate(object sender,DataGridViewCellFormattingEventArgs e){if(e.RowIndex<0)return;var style=e.CellStyle;if(DesktopAppearance.Palette.Dark&&style.BackColor.GetBrightness()>.65f)style.BackColor=grid.Rows[e.RowIndex].Cells[e.ColumnIndex].ReadOnly?ModernUi.Surface:ModernUi.Input;if(DesktopAppearance.Palette.Dark&&style.ForeColor.GetBrightness()<.35f)style.ForeColor=Ink;if(!DesktopAppearance.Palette.Dark&&style.BackColor.GetBrightness()<.28f&&style.BackColor.GetSaturation()<.25f){style.BackColor=grid.Rows[e.RowIndex].Cells[e.ColumnIndex].ReadOnly?ModernUi.Surface:ModernUi.Input;style.ForeColor=Ink;}if(!DesktopAppearance.Palette.Dark&&style.BackColor.GetBrightness()>.65f&&style.ForeColor.GetBrightness()>.7f)style.ForeColor=Ink;};
   grid.ColumnAdded+=delegate(object s,DataGridViewColumnEventArgs e){StyleColumn(e.Column);};
  }
- static void StyleColumn(DataGridViewColumn col){col.HeaderCell.Style=new DataGridViewCellStyle{Font=ModernUi.Strong,ForeColor=Ink,BackColor=PremiumControls.Header,Alignment=DataGridViewContentAlignment.MiddleLeft,Padding=new Padding(10,8,10,8),WrapMode=DataGridViewTriState.True};col.MinimumWidth=Math.Max(col.MinimumWidth,ModernUi.HeaderMinimum(col.HeaderText));col.SortMode=DataGridViewColumnSortMode.NotSortable;col.DefaultCellStyle.BackColor=col.ReadOnly?ModernUi.Surface:ModernUi.Input;if(col.ReadOnly)col.DefaultCellStyle.ForeColor=Ink;}
+ static void StyleColumn(DataGridViewColumn col){col.HeaderCell.Style=new DataGridViewCellStyle{Font=ModernUi.Strong,ForeColor=Ink,BackColor=PremiumControls.Header,Alignment=DataGridViewContentAlignment.MiddleLeft,Padding=new Padding(10,8,10,8),WrapMode=DataGridViewTriState.True};col.MinimumWidth=Math.Max(col.MinimumWidth,ModernUi.HeaderMinimum(col.HeaderText));col.SortMode=DataGridViewColumnSortMode.NotSortable;col.DefaultCellStyle.BackColor=col.ReadOnly?ModernUi.Surface:ModernUi.Input;if(col.ReadOnly)col.DefaultCellStyle.ForeColor=Ink;if(col.Name=="EditWallOpeningsAction"){col.MinimumWidth=38;col.Width=42;col.AutoSizeMode=DataGridViewAutoSizeColumnMode.None;col.HeaderCell.Style.Padding=new Padding(0);}}
 
  static void FitGuide(Label label) {
   bool fitting=false;
