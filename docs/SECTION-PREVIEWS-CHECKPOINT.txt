@@ -1,0 +1,7 @@
+Interactive steel-section previews and Design Sheets navigation
+
+Purlin Design: C/Z section drawing follows the selected catalog profile, showing depth, flange, lip, thickness and mass. Truss Connections: angle/double angle and rectangular/circular HSS sections follow the selected profile. Wheel zoom, drag pan, Home/double-click fit. Sharp corners idealise bend radii; double-angle gap is illustrative, not a fabrication dimension. View manipulation does not change design inputs.
+
+Navigation: main design tabs remain above the module tabs. Shared commands move below the active module/nested tabs, including Wind Load terrain direction tabs. Commands wrap at narrow widths instead of clipping a second row. Full tab captions remain enabled.
+
+Validation: both editions compiled with C#5/.NET Framework 4.8 references. 2,462 catalog geometry checks passed on .NET 8, including nonoverlap, dimensions, C/Z shape, purlin plate area and mirrored angle area. Native Windows appearance, mouse interaction and DPI behaviour remain unverified in this Linux workspace. No Store upload or new installer is included in this source checkpoint.
