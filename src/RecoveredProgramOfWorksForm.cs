@@ -5192,13 +5192,7 @@ worksExcelTimer.Tick += async delegate
 			};
             if (!grid.ReadOnly && grid.AllowUserToAddRows)
                 RowDeleteAffordance.Attach(grid);
-			if (grid == walls || masonryGrids.Values.Contains(grid))
-			{
-				Button(flowLayoutPanel, "Add / edit openings", delegate
-				{
-					EditWallOpenings(grid);
-				});
-			}
+
 			flowLayoutPanel.Visible = flowLayoutPanel.Controls.Count > 0;
 			tabPage.Controls.Add(grid);
 			tabPage.Controls.Add(flowLayoutPanel);
@@ -5663,13 +5657,10 @@ worksExcelTimer.Tick += async delegate
 			{
 				g.Columns[array3[num3]].Width = array4[num3];
 			}
-			g.CellDoubleClick += delegate(object sender, DataGridViewCellEventArgs args)
-			{
-				if (args.RowIndex >= 0 && !g.Rows[args.RowIndex].IsNewRow)
-				{
-					EditWallOpenings(g);
-				}
-			};
+            WallOpeningRowAction.Attach(g, row => {
+                g.CurrentCell = row.Cells[1];
+                EditWallOpenings(g);
+            });
 			return g;
 		}
 
@@ -5955,7 +5946,7 @@ worksExcelTimer.Tick += async delegate
 			DataGridViewRow currentRow = sourceGrid.CurrentRow;
 			if (currentRow == null || currentRow.IsNewRow || Cell(currentRow, 0) == "")
 			{
-				throw new Exception("Select a CHB row with a Wall ID first.");
+				throw new Exception("Enter a wall row with a Wall ID first.");
 			}
 			string wallId = Cell(currentRow, 0);
 			Dictionary<string, OpeningItem> available = openings.Where((OpeningItem o) => o.Material != "Manual").ToDictionary((OpeningItem o) => o.Id, StringComparer.OrdinalIgnoreCase);
@@ -5966,7 +5957,7 @@ worksExcelTimer.Tick += async delegate
 			}
 			Form dialog = new Form
 			{
-				Text = "Choose CHB door / window schedules | " + wallId,
+				Text = "Wall opening deductions | " + wallId,
 				Width = 1280,
 				Height = 560,
 				MinimumSize = new Size(1020, 480),
