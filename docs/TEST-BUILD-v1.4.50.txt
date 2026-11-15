@@ -1,0 +1,61 @@
+DTCE Tool Kit v1.4.50 — Windows desktop TEST BUILD
+15 November 2026 (Asia/Manila)
+
+Changes since v1.4.49:
+- Confirmation before row deletion; No is the default. The prompt displays the
+  number of affected rows. Computed cells/rows and the new blank row are protected.
+- Ctrl/Shift-select row headers or cells, then use Delete selected rows,
+  Ctrl+Delete, or the table context menu for one confirmed bulk delete.
+  An unmodified click on a row's cross deletes only that row after confirmation.
+  Hidden rows in other pipe groups are excluded from selected-row deletion.
+- Undo/Redo for committed input-cell edits and row deletions in the active table:
+  Ctrl+Z, Ctrl+Y / Ctrl+Shift+Z, command bar buttons or the table context menu.
+  A bulk delete is one action. Row order, input values and structure calculation
+  configuration are restored together. Quantities are recalculated and normal
+  Excel sync is scheduled. Redo of a deletion asks for confirmation again.
+- History is temporary and bounded for memory; loading/replacing table data
+  clears stale history. Settings dialogs/import operations are not a global undo
+  stack. Navigate to the applicable input table before using its Undo/Redo.
+- BOQ manual undo restores the previous visible quantity using an explicit
+  override so a subsequent Excel sync can reverse an already-synced change.
+  A previous blank BOQ quantity becomes explicit zero when reversed.
+- Rebar diameter values display as Ø16 mm, while input/storage remains numeric.
+  Pipe, tree and bolt diameter classification is retained. Display formatting
+  does not change pay-item identities or numeric calculation inputs.
+- Neutral tab-bar background, individually tinted folder tabs and solid active
+  tabs. Pipe-type navigation is above the Pipe Takeoff heading, consistently
+  following main tab > subtab > nested tab > heading > table.
+- Uniform worksheet rows without alternating green bands. Only editable cells
+  have a pale-blue fill. Computed/read-only cells are neutral. Active/multi-cell
+  selection has a separate blue fill and a clear active-cell outline.
+- Consistent table header font, padding, alignment and wrapping. Data-grid editing
+  dropdowns use their native single frame rather than a second painted frame.
+- Actual edition logo watermark restored: one large, faint logo per report page,
+  rotated at the lower right, partly crossing the page edge/border. Applies to
+  structured POW PDF/HTML and legacy PDF/print rendering. Admin DTCE / User DPWH
+  branding and PDF permissions are retained.
+
+Verification:
+Admin and User compile against .NET Framework4.8 reference assemblies.
+232 automated checks pass (21 history/diameter, 8 PDF, 44 appearance, 95 additional
+works, 24 wind loads, 40 wind/terrain). Rendered PDF checked for A4, minimum7pt,
+text bounds, one watermark image per page, 110 pagination records, print allowed
+and modification disabled. The sample report uses illustrative fixture data.
+Native row-edit/bulk-delete/confirmation/undo tests compile, but cannot run here.
+CommercialBarsTests also compiles but requires System.Windows.Forms at runtime.
+Actual Windows UI, DPI, Undo/Redo interaction, first-open timing, Excel COM and
+AutoCAD were NOT run in this Linux environment. Please test with copied project
+files before relying on the new editing workflow for ongoing work.
+
+Extract the complete versioned folder. Requires Windows and .NET Framework4.8.
+Keep EXE/config together. Project schema remains21; older apps cannot reopen
+projects saved in this format. Existing settings/profile paths are unchanged.
+Read previous build notes for roofing mapping, BOQ identities and the BACKUP
+subgrade unit correction. First-open POW lag remains to be measured on Windows.
+
+Still pending: AutoCAD automatic pipe measurement and Pipe ID labels; interactive
+steel section previews; final terrain scale controls. Wind land-cover exposure
+suggestions remain preliminary and require site evidence review.
+
+No private signing key, real activation key or certificate is included. No key
+rotation, Microsoft Store, TestFlight or Pages publication is performed.

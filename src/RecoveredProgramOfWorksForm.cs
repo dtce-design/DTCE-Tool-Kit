@@ -4435,7 +4435,8 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			};
 			base.Controls.Add(tabs);
 			base.Controls.Add(flowLayoutPanel);
-			Button(flowLayoutPanel, "Save Program of Works", Save);
+			GridEditHistory.AddCommands(this,flowLayoutPanel);
+            Button(flowLayoutPanel, "Save Program of Works", Save);
             Button(flowLayoutPanel, "Export report file", ExportEngineeringReport);
 			Button(flowLayoutPanel, "Open Program of Works", Open);
 			Button(flowLayoutPanel, "Print preview", PreviewQuantityEngineeringReport);
@@ -4472,6 +4473,8 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			AddFinishingStart();
 			AddMouldingFinishes();
 			AddPlumbingWorks();
+            GridEditHistory.ConfigureExtra(plumbingChambers,()=>structureConfigurations.ToDictionary(pair=>pair.Key,pair=>CalculationStore.Clone(pair.Value),StringComparer.OrdinalIgnoreCase),snapshot=>{structureConfigurations.Clear();if(snapshot!=null)foreach(var pair in (Dictionary<string,LengthConfiguration>)snapshot)structureConfigurations[pair.Key]=CalculationStore.Clone(pair.Value);});
+            ConfigureBoqUndo();
             InitializeExtraWorks();
             RefineRCStart();
 			TabPage value = new TabPage("Backup computation")
@@ -5257,6 +5260,7 @@ worksExcelTimer.Tick += async delegate
 			}
 			g.Columns[g.Columns.Count - 1].Width = 270;
 			GridAppearance.Apply(g);
+            GridEditHistory.Configure(g,()=>filling||initializingWorks,value=>filling=value,Recalculate);
             // Hidden worksheets are measured only when their tab is first prepared.
             g.ColumnHeadersHeightSizeMode=DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
 			object originalCellValue = null;
@@ -8342,17 +8346,8 @@ boqStatus.ForeColor = PowTheme.Teal;
 			{
 				finishSchedule.Rows.Add();
 			});
-			Button(flowLayoutPanel, "Remove Finish ID", delegate
-			{
-				foreach (DataGridViewRow item in (from r in (from DataGridViewCell c in finishSchedule.SelectedCells
-						select c.OwningRow).Distinct()
-					where !r.IsNewRow
-					select r).ToList())
-				{
-					finishSchedule.Rows.Remove(item);
-				}
-				Recalculate();
-			});
+			Button(flowLayoutPanel, "Remove Finish ID", delegate { GridEditHistory.Attach(finishSchedule).DeleteSelected(); });
+
 			splitContainer.Panel1.Controls.Add(finishSchedule);
 			splitContainer.Panel1.Controls.Add(flowLayoutPanel);
 			splitContainer.Panel1.Controls.Add(value);
@@ -8827,6 +8822,7 @@ boqStatus.ForeColor = PowTheme.Teal;
 				view.Entries = Grid(new string[6] { "Structure ID", "Description", "Count", "Concrete m3", "RSB purchase kg", "Status" }, 0);
 				view.Entries.ReadOnly = true;
 				view.Entries.AllowUserToAddRows = false;
+                GridEditHistory.LinkProxy(view.Entries,plumbingChambers);
 				view.Entries.AllowUserToDeleteRows = false;
 				view.Entries.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 				view.Entries.MultiSelect = false;
@@ -8904,16 +8900,8 @@ boqStatus.ForeColor = PowTheme.Teal;
 						{
 							EditStructureMember(view, false);
 						});
-						Button(flowLayoutPanel2, "Remove member", delegate
-						{
-							foreach (DataGridViewRow item in (from r in (from DataGridViewCell c in plumbingMembers.SelectedCells
-									select c.OwningRow).Distinct()
-								where r.Visible && Cell(r, 1) == activeStructureMemberId
-								select r).ToList())
-							{
-								plumbingMembers.Rows.Remove(item);
-							}
-						});
+						Button(flowLayoutPanel2, "Remove member", delegate {GridEditHistory.Attach(plumbingMembers).DeleteRows(plumbingMembers.SelectedCells.Cast<DataGridViewCell>().Select(c=>c.OwningRow).Where(r=>r.Visible&&Cell(r,1)==activeStructureMemberId));});
+
 						CheckBox advanced = new CheckBox
 						{
 							Text = "Show reinforcement inputs",
@@ -8948,16 +8936,8 @@ boqStatus.ForeColor = PowTheme.Teal;
 						}
 						plumbingRebar.Rows.Add();
 					});
-					Button(flowLayoutPanel3, "Remove rebar cut", delegate
-					{
-						foreach (DataGridViewRow item2 in (from r in (from DataGridViewCell c in plumbingRebar.SelectedCells
-								select c.OwningRow).Distinct()
-							where !r.IsNewRow && r.Visible && Cell(r, 1).Equals(activeChamberRebarId, StringComparison.OrdinalIgnoreCase)
-							select r).ToList())
-						{
-							plumbingRebar.Rows.Remove(item2);
-						}
-					});
+					Button(flowLayoutPanel3, "Remove rebar cut", delegate {GridEditHistory.Attach(plumbingRebar).DeleteRows(plumbingRebar.SelectedCells.Cast<DataGridViewCell>().Select(c=>c.OwningRow).Where(r=>!r.IsNewRow&&r.Visible&&Cell(r,1).Equals(activeChamberRebarId,StringComparison.OrdinalIgnoreCase)));});
+
 					tabPage2.Controls.Add(flowLayoutPanel3);
 				}
 				view.MaterialTabs.Deselecting += delegate(object s, TabControlCancelEventArgs e)
@@ -9249,8 +9229,7 @@ boqStatus.ForeColor = PowTheme.Teal;
 				{
 					throw new Exception("Remove or reassign this structure's rebar rows before removing its dimensions.");
 				}
-				structureConfigurations.Remove(id);
-				plumbingChambers.Rows.Remove(dataGridViewRow);
+				GridEditHistory.Attach(plumbingChambers).DeleteRows(new[]{dataGridViewRow},()=>structureConfigurations.Remove(id));
 			}
 		}
 
@@ -9657,6 +9636,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 			}
 			tabPage.Controls.Add(pipeGroupTabs);
 			tabPage.Controls.SetChildIndex(pipeGroupTabs, 0);
+            var pipeHeading=tabPage.Controls.OfType<WorksheetHeading>().Single();tabPage.Controls.Remove(pipeHeading);foreach(TabPage child in pipeGroupTabs.TabPages){var heading=new WorksheetHeading{Text="Pipe Takeoff",Subtitle=pipeHeading.Subtitle};heading.SetGuide(pipeHeading.GuideText);child.Controls.Add(heading);}pipeHeading.Dispose();
 			plumbingPipes.ColumnHeadersVisible = true;
 			pipeGroupTabs.Deselecting += delegate(object s, TabControlCancelEventArgs e)
 			{
@@ -9709,6 +9689,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 				plumbingPipes.CurrentCell = null;
 				plumbingPipes.ClearSelection();
 				pipeGroupTabs.SelectedTab.Controls.Add(plumbingPipes);
+                pipeGroupTabs.SelectedTab.Controls.SetChildIndex(plumbingPipes,0);
 				foreach (DataGridViewRow item in (IEnumerable)plumbingPipes.Rows)
 				{
 					if (!item.IsNewRow)
