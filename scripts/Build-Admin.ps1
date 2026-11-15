@@ -16,10 +16,11 @@ $exe=Join-Path $stage 'DTCE-Tool-Kit-Admin.exe'
 & $compiler /reference:System.IO.Compression.dll "/resource:$source\WindSurfaces.txt,WindSurfaces.txt" "/resource:$source\WindMap27.jpg,WindMap27.jpg" "/resource:$source\WindMap28.jpg,WindMap28.jpg" "/resource:$source\WindMap29.jpg,WindMap29.jpg" /define:ADMIN_APP @refs @resources "/win32manifest:$source\app.manifest" "/win32icon:$source\app.ico" "/out:$exe" @files
 if($LASTEXITCODE -ne 0){throw 'Admin compilation failed'}
 Copy-Item (Join-Path $source 'DTCE-Tool-Kit.exe.config') "$exe.config" -Force
-[IO.File]::WriteAllText((Join-Path $stage 'README.txt'),"DTCE Tool Kit - Admin. Requires .NET Framework 4.8 and first-use Admin password. Import your existing AdminPrivateKey.dat through Access Code Generator. No private key included. The key must be used under its original Windows account.")
+[IO.File]::WriteAllText((Join-Path $stage 'README.txt'),"DTCE Tool Kit - Admin. Requires Windows x64 and .NET Framework 4.8 and first-use Admin password. Import your existing AdminPrivateKey.dat through Access Code Generator. No private key included. The key must be used under its original Windows account.")
+& (Join-Path $PSScriptRoot 'Install-PdfTools.ps1') -OutputDirectory (Join-Path $stage 'tools/qpdf')
 $zip=Join-Path $OutputDirectory 'DTCE-Tool-Kit-Admin.zip'
-Compress-Archive -LiteralPath $exe,"$exe.config",(Join-Path $stage 'README.txt') -DestinationPath $zip -Force
+Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -Force
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $archive=[IO.Compression.ZipFile]::OpenRead($zip)
-try{if($archive.Entries.Count-ne 3-or @($archive.Entries | Where-Object FullName -match '(?i)(AdminPrivateKey|\.dat$|\.pfx$|\.cs$)').Count){throw 'Unexpected/private files in Admin release'}}finally{$archive.Dispose()}
+try{if(@($archive.Entries | Where-Object FullName -match '(?i)(AdminPrivateKey|\.dat$|\.pfx$|\.cs$)').Count){throw 'Unexpected/private files in Admin release'}}finally{$archive.Dispose()}
 Write-Output "Built key-free Admin release: $zip"

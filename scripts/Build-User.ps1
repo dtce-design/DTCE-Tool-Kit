@@ -16,10 +16,11 @@ $exe=Join-Path $stage 'DTCE-Tool-Kit.exe'
 & $compiler /reference:System.IO.Compression.dll "/resource:$source\WindSurfaces.txt,WindSurfaces.txt" "/resource:$source\WindMap27.jpg,WindMap27.jpg" "/resource:$source\WindMap28.jpg,WindMap28.jpg" "/resource:$source\WindMap29.jpg,WindMap29.jpg" @refs @resources "/win32manifest:$source\app.manifest" "/win32icon:$source\app.ico" "/out:$exe" @files
 if($LASTEXITCODE -ne 0){throw 'User compilation failed'}
 Copy-Item (Join-Path $source 'DTCE-Tool-Kit.exe.config') "$exe.config" -Force
-[IO.File]::WriteAllText((Join-Path $stage 'README.txt'),"DTCE Tool Kit - User build. Keep EXE/config together. Requires .NET Framework4.8. Access approval from owner required. No Admin/private signing key included.")
+[IO.File]::WriteAllText((Join-Path $stage 'README.txt'),"DTCE Tool Kit - User build. Keep EXE/config and tools/qpdf together. Requires Windows x64 and .NET Framework4.8. Access approval from owner required. No Admin/private signing key included.")
+& (Join-Path $PSScriptRoot 'Install-PdfTools.ps1') -OutputDirectory (Join-Path $stage 'tools/qpdf')
 $zip=Join-Path $OutputDirectory 'DTCE-Tool-Kit-User.zip'
-Compress-Archive -LiteralPath $exe,"$exe.config",(Join-Path $stage 'README.txt') -DestinationPath $zip -Force
+Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -Force
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $archive=[IO.Compression.ZipFile]::OpenRead($zip)
-try{if($archive.Entries.Count-ne 3-or @($archive.Entries | Where-Object FullName -match 'Admin|\.dat$').Count){throw 'Unexpected/private files in User release'}}finally{$archive.Dispose()}
+try{if(@($archive.Entries | Where-Object FullName -match 'Admin|\.dat$').Count){throw 'Unexpected/private files in User release'}}finally{$archive.Dispose()}
 Write-Output "Built User-only release: $zip"

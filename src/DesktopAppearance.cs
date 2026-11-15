@@ -3,7 +3,7 @@ namespace BeamScheduleFormatter {
 static class DesktopAppearance {
  internal static string StoragePath=AppearancePreferences.PathName;internal static Func<bool> ReadSystemLight=SystemUsesLight;
  static bool initialized;static Form dispatcher;static AppearanceMode mode=AppearanceMode.System;static DesktopPalette palette=new DesktopPalette(false);
- public static DesktopPalette Palette{get{return palette;}}public static AppearanceMode Mode{get{return mode;}}public static string Warning{get;private set;}
+ public static DesktopPalette Palette{get{return ReportPaperScope.Active?ReportPaperScope.Palette:palette;}}public static AppearanceMode Mode{get{return mode;}}public static string Warning{get;private set;}
  public static event Action Changed;
  public static void Initialize(){if(initialized)return;initialized=true;try{mode=AppearancePreferences.Read(StoragePath);}catch(Exception ex){Warning=ex.Message;mode=AppearanceMode.System;}palette=new DesktopPalette(AppearancePreferences.ResolveDark(mode,ReadSystemLight()));try{SystemEvents.UserPreferenceChanged+=SystemChanged;Application.ApplicationExit+=(s,e)=>{SystemEvents.UserPreferenceChanged-=SystemChanged;dispatcher=null;};}catch{/* Older/offline Windows sessions can still use explicit Light/Dark. */}}
  public static void Attach(Form form){Initialize();dispatcher=form;}

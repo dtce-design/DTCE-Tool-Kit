@@ -1,0 +1,58 @@
+DTCE Tool Kit v1.4.51 — Windows x64 desktop TEST BUILD
+15 November 2026 (Asia/Manila)
+
+Included since v1.4.50:
+- Purlin Design > Geometry & loads: live C/Z section preview follows the selected
+  catalog profile, with depth, flange, thickness, lip and mass. Scroll to zoom,
+  drag to pan, double-click / Home to fit. View changes do not change design inputs.
+- Truss Connections > Member & demand: selected angle/double-angle and HSS
+  cross-sections. Double-angle spacing is illustrative, not a fabricated joint detail.
+- Truss Connections > Weld detail: LT/LL1/LL2 and fillet-leg reference drawing;
+  focus highlights the matching weld. Click a segment/label to focus its input.
+  Zero-length segments are dashed. Total length is LT + LL1 + LL2 per member.
+- Design Sheets: module/nested navigation precedes shared commands. Commands wrap.
+  Native tab-header row sizing restored to address missing wrapped tabs / stale gaps
+  when resizing. Full captions remain enabled, including Wind Load pages.
+- Masonry: compact icon-only Add/Edit Openings action on each wall row beside its
+  Description. Tooltip identifies the wall. Shared toolbar button and blanket
+  double-click handler removed. Existing data-column indexes/saved inputs retained.
+- Shared buttons, folder tabs and workspace cards use solid focus highlights in
+  place of app-drawn dotted rectangles. Keyboard operation remains enabled.
+- Purlin/truss report preview and export use structured A4 sections/tables with
+  formula substitutions and numerical checks. Minimum font size 7pt. Existing
+  calculation methods/limits are retained; reports do not certify design adequacy.
+- Larger 180pt edition logos in the staggered triangular watermark pattern,
+  at 14% opacity (previously one corner logo at 5.5%). Admin DTCE / User DPWH.
+- App PDF commands flatten the page content and watermark together at 300dpi.
+  AES-256 revision 6 encryption is applied by pinned qpdf 12.4.2 and verified
+  before replacing the destination. Printing allowed; editing, copy/extraction,
+  annotation, form changes and page assembly restricted. No weaker fallback.
+  A missing/damaged security component stops export and preserves the destination.
+
+SECURITY LIMITS
+PDF permissions depend on the reader. An open/printable PDF cannot be guaranteed
+immune to alteration: tools can ignore restrictions, printed output can be captured
+or reprinted, and images can be reconstructed/OCR'd. Modern PDF encryption permits
+accessibility extraction by specification; flattened app pages contain no selectable
+text layer. This build does not add a certificate signature or claim tamper-proofing.
+HTML/Excel source/report exports remain separate formats, not protected PDF files.
+
+INSTALLATION / TESTING
+Extract the complete DTCE-Tool-Kit-Admin-v1.4.51 folder before running the EXE.
+Keep tools/qpdf and its DLLs/licenses with the application. Windows x64 and .NET
+Framework 4.8 are required. Use existing authorized activation/owner keys; no private
+key is bundled. Settings/profile storage remains under the Windows user account.
+
+Validation: Admin and User sources compile with C#5/.NET Framework 4.8 references.
+2,462 catalog section geometry checks passed. Structured-report layout/watermark
+and actual qpdf AES-256 integration checks passed (14 per edition, plus 8 quantity
+report regression checks), including permission inspection,
+failed-export destination preservation and temporary-file cleanup. Rendered sample
+PDFs were inspected for A4, minimum 7pt text and page bounds. The crypto backend
+integration ran on Linux; native Windows qpdf launch, GDI page rendering, tab wrapping,
+DPI, focus, mouse interaction and Excel COM require testing on Windows. The earlier
+v1.4.50 report/quantity validations remain recorded in its test-build notes.
+
+This build contains the checked changes listed above. Other unreleased wind/site
+assessment and beam-deflection drafts are not included. No Microsoft Store,
+TestFlight or Pages publication was performed.
