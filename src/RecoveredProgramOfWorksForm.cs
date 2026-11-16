@@ -5804,6 +5804,8 @@ worksExcelTimer.Tick += async delegate
 						Width = 125,
 						DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton
 					};
+					// Keep the replaced column's visibility: Finish IDs are assigned at Finishing Start, not on measurement sheets.
+					dataGridViewComboBoxColumn.Visible = dataGridView.Columns[2].Visible;
 					dataGridView.Columns.RemoveAt(2);
 					dataGridView.Columns.Insert(2, dataGridViewComboBoxColumn);
 					dataGridViewComboBoxColumn.DefaultCellStyle.BackColor = ModernUi.Input;
