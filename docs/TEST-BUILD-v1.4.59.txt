@@ -1,0 +1,22 @@
+DTCE Tool Kit v1.4.59 — Excel status placement (16 November 2026)
+
+Moved Excel connection/sync status from the top of Bill of Quantities to a dedicated
+status bar at the bottom of the entire POW window. It stays visible across calculation
+tabs. Long status/error messages have a full-text hover tooltip and accessible label.
+The BOQ toolbar and grid gain the space previously occupied by the top status row.
+
+Both Admin/User C#5/net48 builds compile. This is a presentation-only change; no
+calculation or Excel sync logic changed. Actual Windows layout/hover behavior cannot
+run on this Linux host and still requires native confirmation.
+
+All v1.4.58 fixes retained: no fixed attachment size/total/count caps; disk-backed
+original copies; streamed POW save/open; background selected-workbook capture;
+attachment IO errors do not themselves stop Excel linking. Map BACKUP items still
+requires a live Excel workbook with BACKUP sheet. Available disk/system resources
+remain the practical limit. Prior 67 targeted core checks passed in v1.4.58.
+
+Separate Schedule Formatter logic unchanged except version. Extract the ENTIRE
+folder including tools/qpdf. Existing branding/report/PDF protection unchanged;
+PDF permissions do not guarantee tamper-proof files. No private keys bundled or
+rotated. No Microsoft Store, TestFlight or Pages publication. Unfinished engineering
+and capture drafts are not part of this checked package.

@@ -4525,6 +4525,7 @@ worksExcelTimer.Tick += async delegate
 			OrganizeSections();
 			tabs.Multiline = true;
 			PowTheme.Apply(this);
+            InstallExcelStatusBar();
 			status.Height = 38;
 			status.BackColor = ModernUi.Soft;
 			status.ForeColor = PowTheme.Ink;
@@ -7717,11 +7718,6 @@ worksExcelTimer.Tick += async delegate
 			TabPage tabPage = new TabPage("Bill of Quantities");
 			var value = new PremiumSectionHeading { Text = "Bill of Quantities", Subtitle = "Project quantities and their measurement sources" };
 			var flowLayoutPanel = PremiumExcelToolbar();
-			excelStatus.Dock = DockStyle.Top;
-			excelStatus.Height = 26;
-            excelStatus.Padding = new Padding(18, 3, 18, 3);
-            excelStatus.Font = ModernUi.Body;
-            excelStatus.ForeColor = PowTheme.Muted;
 			boqStatus = new Label
 			{
 				Dock = DockStyle.Top,
@@ -7780,7 +7776,6 @@ worksExcelTimer.Tick += async delegate
 			boqPages.TabPages.Add(tabPage2);
 			tabPage.Controls.Add(boqGrid);
 			tabPage.Controls.Add(boqStatus);
-			tabPage.Controls.Add(excelStatus);
 			tabPage.Controls.Add(flowLayoutPanel);
 			tabPage.Controls.Add(value);
 			tabs.TabPages.Add(tabPage);
