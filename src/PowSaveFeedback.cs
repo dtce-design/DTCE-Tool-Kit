@@ -1,9 +1,5 @@
 using System;using System.IO;using System.Xml;using System.Text;using System.Drawing;using System.Reflection;using System.Threading.Tasks;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
-static class PowProjectFileWriter {
- internal static void AtomicWrite(string path,string xml){string full=Path.GetFullPath(path),temp=full+"."+Guid.NewGuid().ToString("N")+".tmp";try{using(var output=new FileStream(temp,FileMode.CreateNew,FileAccess.Write,FileShare.None)){byte[] bytes=new UTF8Encoding(false).GetBytes(xml);output.Write(bytes,0,bytes.Length);output.Flush(true);}if(File.Exists(full))File.Replace(temp,full,null);else File.Move(temp,full);}finally{if(File.Exists(temp))File.Delete(temp);}}
- internal static void WriteWithSources(string path,string snapshot,PowSourceFiles sources){var doc=new XmlDocument{XmlResolver=null};doc.LoadXml(snapshot);sources.Write(doc.DocumentElement);AtomicWrite(path,doc.OuterXml);}
-}
 sealed class PowSaveFeedback:Form {
  readonly Label state;readonly ProgressBar progress;
  internal PowSaveFeedback(){Text="Save Program of Works";ClientSize=new Size(490,142);FormBorderStyle=FormBorderStyle.FixedDialog;ControlBox=false;ShowInTaskbar=false;StartPosition=FormStartPosition.CenterParent;BackColor=Color.White;Font=new Font("Segoe UI",10);var logo=new PictureBox{Location=new Point(18,26),Size=new Size(74,74),SizeMode=PictureBoxSizeMode.Zoom};string name=

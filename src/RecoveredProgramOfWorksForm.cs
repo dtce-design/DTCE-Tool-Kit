@@ -7408,8 +7408,8 @@ worksExcelTimer.Tick += async delegate
 		internal void SaveTo(string path)
 		{
 			Guard();
-			string contents = WorksProjectXml();
-            PowProjectFileWriter.AtomicWrite(path,contents);
+			string contents = BuildWorksProjectXml(false);
+            PowProjectFileWriter.WriteWithSources(path,contents,ProjectSources());
 			beam.WorksSaved();
 			slab.WorksSaved();
             currentPowPath=Path.GetFullPath(path);
@@ -7433,7 +7433,9 @@ worksExcelTimer.Tick += async delegate
 
 		internal void OpenFrom(string path)
 		{
-			OpenProjectXml(File.ReadAllText(path));
+			Guard();
+            var snapshot=PowProjectFileWriter.Read(path);
+            OpenProjectDocument(snapshot.Document,snapshot.Sources);
             currentPowPath=Path.GetFullPath(path);
 		}
 
@@ -7450,14 +7452,18 @@ worksExcelTimer.Tick += async delegate
 				{
 					DtdProcessing = DtdProcessing.Prohibit,
 					XmlResolver = null,
-					MaxCharactersInDocument = 536870912L
+					MaxCharactersInDocument = 0
 				}))
 				{
 					xmlDocument.Load(reader);
 				}
 			}
+            OpenProjectDocument(xmlDocument,PowSourceFiles.Read(xmlDocument.DocumentElement));
+        }
+        private void OpenProjectDocument(XmlDocument xmlDocument,PowSourceFiles savedSourceFiles)
+        {
+            Guard();
             var savedProjectInformation=PowProjectInformation.Read(xmlDocument.DocumentElement);
-            var savedSourceFiles=PowSourceFiles.Read(xmlDocument.DocumentElement);
             bool roofSchema=xmlDocument.DocumentElement.Name=="ProgramOfWorks"&&xmlDocument.DocumentElement.GetAttribute("version")=="21";
             ValidateRoofingSpecification(xmlDocument.DocumentElement,roofSchema);
             bool extraSchema=xmlDocument.DocumentElement.Name=="ProgramOfWorks"&&(roofSchema||xmlDocument.DocumentElement.GetAttribute("version")=="20");

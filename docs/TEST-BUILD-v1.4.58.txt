@@ -1,0 +1,33 @@
+DTCE Tool Kit v1.4.58 — large workbook attachment fix (16 November 2026)
+
+Removed fixed attachment size, total-size and file-count limits. Original Excel,
+DXF and reference files are copied into a disk-backed cache with a bounded 64 KiB
+buffer and SHA-256 verification. Full POW saves stream compression/base64 directly
+to the atomic output file. Opening POW streams original attachments back to disk
+instead of loading their payloads into the calculation XML document. Saving and
+opening retain the existing .pow.xml format and legacy source-archive compatibility.
+There is no app-imposed attachment size/count ceiling; available disk space and
+system resources are the practical limit. Temporary original copies remain local
+and are cleaned up on normal process exit. Preserve the saved POW, not this cache.
+
+Selected Excel workbook capture runs in the background. An original-copy IO/access
+failure produces a separate attachment notice and does not itself pause or prevent
+Excel linking/sync. Actual Excel connection failures remain errors. Original copies
+are snapshots from link time; the live workbook remains a separate file.
+Map BACKUP items currently requires a live linked Excel workbook with a BACKUP
+sheet. A saved list of 266 pay items does not indicate a live connection.
+
+67 targeted checks passed: 13 large-file/streaming/link-isolation/atomic-write
+checks, 26 source archive/recovery checks, 28 prior routing/column/default/save
+checks. The large-file test preserves a 129 MiB-plus workbook after deleting the
+original, verifies its full SHA-256, streams export, accepts 301 attachments, and
+checks interrupted-write preservation. Both Admin/User C#5/net48 editions compile;
+source-recovery and save-shortcut native UI suites compile. Actual Windows UI and
+Excel COM cannot run on this Linux host and still need native confirmation.
+
+Retains all v1.4.57 fixes. No change to separate Schedule Formatter logic except
+version. Existing Admin DTCE/User DPWH branding, professional A4 reports, approved
+18% triangular watermark and flattened AES-256/R6 PDF export remain. Extract the
+ENTIRE folder, including tools/qpdf. PDF permissions do not guarantee tamper-proof
+files. No private key bundled or rotated. No Store/TestFlight/Pages publication.
+Unfinished engineering/capture drafts are not included in this checked package.
