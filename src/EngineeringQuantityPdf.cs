@@ -7,8 +7,11 @@ static partial class EngineeringQuantityPdf {
  static readonly Encoding Encoding1252=Encoding.GetEncoding(1252);
  static string N(double value){return value.ToString("0.###",CultureInfo.InvariantCulture);}
  static string Clean(string text){return (text??"").Replace("\r","").Replace("Σ","Sum ").Replace("≥",">=").Replace("≤","<=").Replace("→"," to ").Replace("⁴","^4").Replace("³","3").Replace("²","2").Replace("−","-");}
- static string Escape(string text){return Clean(text).Replace("\\","\\\\").Replace("(","\\(").Replace(")","\\)");}
- static double Measure(string text,double size,bool bold){var widths=bold?BoldWidths:RegularWidths;double width=0;foreach(byte c in Encoding1252.GetBytes(Clean(text)))width+=widths[c];return width*size;}
+ // The vector PDF uses WinAnsi (Windows-1252) fonts, which have no Greek letters; spell them out instead of printing "?".
+ static readonly string[][] Greek={new[]{"δ","d"},new[]{"Δ","Delta"},new[]{"λ","lambda"},new[]{"ξ","xi"},new[]{"ρ","rho"},new[]{"γ","gamma"},new[]{"μ","mu"},new[]{"α","alpha"},new[]{"β","beta"},new[]{"ψ","psi"},new[]{"θ","theta"},new[]{"φ","phi"},new[]{"π","pi"},new[]{"σ","sigma"},new[]{"ε","eps"},new[]{"ω","omega"},new[]{"√","sqrt"},new[]{"∞","inf"},new[]{"′","'"},new[]{"⁴","^4"}};
+ internal static string WinAnsi(string text){var b=new System.Text.StringBuilder(Clean(text));foreach(var g in Greek)b.Replace(g[0],g[1]);return b.ToString();}
+ static string Escape(string text){return WinAnsi(text).Replace("\\","\\\\").Replace("(","\\(").Replace(")","\\)");}
+ static double Measure(string text,double size,bool bold){var widths=bold?BoldWidths:RegularWidths;double width=0;foreach(byte c in Encoding1252.GetBytes(WinAnsi(text)))width+=widths[c];return width*size;}
  internal static List<string> Wrap(string text,double width,double size,bool bold=false){var lines=new List<string>();foreach(string paragraph in Clean(text).Split('\n')){string current="";foreach(string word in paragraph.Split(new[]{' '},StringSplitOptions.RemoveEmptyEntries)){if(current!=""&&Measure(current+" "+word,size,bold)>width){lines.Add(current);current="";}string remaining=word;while(Measure(remaining,size,bold)>width){int take=1;while(take<remaining.Length&&Measure(remaining.Substring(0,take+1),size,bold)<=width)take++;if(current!=""){lines.Add(current);current="";}lines.Add(remaining.Substring(0,take));remaining=remaining.Substring(take);}if(remaining!="")current=current==""?remaining:current+" "+remaining;}lines.Add(current);}return lines.Count==0?new List<string>{""}:lines;}
  internal sealed class Layout {
   internal const double BodySize=Body;

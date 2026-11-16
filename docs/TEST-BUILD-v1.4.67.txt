@@ -1,0 +1,10 @@
+DTCE Tool Kit v1.4.67 (16 November 2026)
+- Vector PDF writer spells out Greek letters (δ→d, λ→lambda, ξ→xi, ρ→rho, √→sqrt) because its WinAnsi
+  fonts cannot show them; previously they printed as "?". The main flattened Export PDF (GDI) already
+  showed Greek correctly and is unchanged. Verified with pdftotext.
+- Removed unused local variables (purlin report theta, concrete routing templates, footing input index).
+- Reviewed: canopy concrete/soffit/edge forms correct; beam estimator tie count/cut overrides are
+  intentionally disabled (ties come from the schedule) - not an ignored input.
+- Steel/other deflection limits remain cited as "NSCP 2015 Chapter 1 deflection limits"; exact table number
+  awaits owner confirmation from the NSCP text.
+- Windows CI still blocked by GitHub billing. No release.

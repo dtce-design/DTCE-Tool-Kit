@@ -7,7 +7,7 @@ static class DetailedDesignReports {
  static string Status(bool pass){return pass?"PASS (listed check)":"REVIEW / EXCEEDED";}
  static void Heading(StringBuilder b,string title){b.AppendLine();b.AppendLine("## "+title);b.AppendLine(new string('-',Math.Min(96,title.Length)));}
  public static string Purlin(PurlinDesignInput i,PurlinDesignResult r){
-  var b=new StringBuilder();var p=i.Properties;double theta=i.Angle*Math.PI/180,self=i.Profile.KgM*9.81/1000,dead=i.Dead*i.Spacing+self,l=i.Span*1000,det=p.Ix*p.Iy-p.Ixy*p.Ixy;
+  var b=new StringBuilder();var p=i.Properties;double self=i.Profile.KgM*9.81/1000,dead=i.Dead*i.Spacing+self,l=i.Span*1000,det=p.Ix*p.Iy-p.Ixy*p.Ixy;
   b.AppendLine("DTCE | DETAILED PURLIN CALCULATION REPORT");b.AppendLine(i.Name+" | "+i.Profile.Name+" | ASD | "+i.Support);
   b.AppendLine("Units: dimensions mm; spans m; area loads kPa = kN/m2; line loads kN/m = N/mm.");
   b.AppendLine("Moments kN.m are multiplied by 1,000,000 for stress calculations in N.mm and MPa.");
