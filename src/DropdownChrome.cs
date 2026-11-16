@@ -7,7 +7,7 @@ namespace BeamScheduleFormatter {
 static class DropdownChrome {
  static readonly ConditionalWeakTable<ComboBox,ChromeWindow> controls=new ConditionalWeakTable<ComboBox,ChromeWindow>();
  static readonly ConditionalWeakTable<DataGridView,object> grids=new ConditionalWeakTable<DataGridView,object>();
- internal static void Attach(ComboBox combo){ChromeWindow found;if(controls.TryGetValue(combo,out found))return;controls.Add(combo,new ChromeWindow(combo));}
+ internal static void Attach(ComboBox combo){ChromeWindow found;if(controls.TryGetValue(combo,out found))return;controls.Add(combo,new ChromeWindow(combo));DropdownCopy.Attach(combo);}
  static void Draw(Graphics graphics,Rectangle bounds,bool focused,bool enabled,float scale){if(bounds.Width<26||bounds.Height<14)return;var p=DesktopAppearance.Palette;int arrow=Math.Max(20,(int)(22*scale));var button=new Rectangle(bounds.Right-arrow,bounds.Top+1,arrow-1,bounds.Height-2);using(var fill=new SolidBrush(p.TabSub))graphics.FillRectangle(fill,button);using(var border=new Pen(enabled?(focused?p.Link:p.Muted):p.Line,focused?2:1)){graphics.DrawRectangle(border,bounds.Left,bounds.Top,bounds.Width-1,bounds.Height-1);graphics.DrawLine(border,button.Left,button.Top+2,button.Left,button.Bottom-2);}int cx=button.Left+button.Width/2,cy=button.Top+button.Height/2;int half=Math.Max(3,(int)(4*scale));using(var fill=new SolidBrush(enabled?p.Ink:p.Muted))graphics.FillPolygon(fill,new[]{new Point(cx-half,cy-2),new Point(cx+half,cy-2),new Point(cx,cy+half-1)});}
  sealed class ChromeWindow:NativeWindow {
   readonly ComboBox owner;

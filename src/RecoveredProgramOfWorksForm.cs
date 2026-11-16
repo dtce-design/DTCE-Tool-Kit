@@ -3505,7 +3505,7 @@ namespace BeamScheduleFormatter
 			steelPurlins = SteelMemberGrid("Purlin");
 			steelAngles = SteelMemberGrid("Angle bar");
 			AddGrid(SteelPageNames[0], steelPurlins, "Select a handbook profile, enter cut length and quantity. Stock is fixed at 6m. Matching profile/specification offcuts are shared across compatible members automatically. Cuts over 6m require an approved splice detail.");
-			AddGrid(SteelPageNames[1], steelAngles, "Angle-bar stock is fixed at 6m. Cutting plan reuses remaining lengths across compatible angle and fascia entries. Specify the same grade/finish only when the stock is interchangeable.");
+			AddGrid(SteelPageNames[1], steelAngles, "Angle-bar stock is 6m. Longer members are segmented for the purchase plan; enter the approved extra cut length per joint if required. No reinforcing-bar lap formula is applied. Cutting plan shares offcuts only across compatible profile/material stock. Connection design and location follow the approved detail.");
 			machineBolts = SteelBoltGrid();
 			anchorBolts = SteelBoltGrid();
 			AddGrid(SteelPageNames[2], machineBolts, "A307 or A325. Overall developed length in mm. Weight = pi x diameter^2 / 4 x overall length x 7850 kg/m3 x quantity. Shaft-only estimate: heads, nuts and washers are excluded. Grade selection identifies material; this is not a connection design check.");
@@ -3811,7 +3811,7 @@ namespace BeamScheduleFormatter
 							Measure(item2, 9, kgM, "0.000");
 							Measure(item2, 10, kgM * steelCutDemand2.Length * (double)steelCutDemand2.Quantity);
 						}
-						item2.Cells[num2].Value = "Estimated";
+						item2.Cells[num2].Value = item2.Tag is SteelCutDemand&&((SteelCutDemand)item2.Tag).Joints>0?"Segmented purchase | "+((SteelCutDemand)item2.Tag).Joints+" joint(s)/member; "+((SteelCutDemand)item2.Tag).SpliceExtra.ToString("0.###",CultureInfo.InvariantCulture)+" m extra/joint":"Estimated";
 					}
 					catch (Exception ex)
 					{
@@ -3957,7 +3957,7 @@ namespace BeamScheduleFormatter
 			}
 			SteelWeight.Positive(length, mass);
 			SteelWeight.Count(qty);
-			if (length > 6.000000001)
+			if (length > 6.000000001 && row.DataGridView!=steelAngles)
 			{
 				throw new Exception("Cut length exceeds 6m; enter an approved segmented detail separately.");
 			}
@@ -3969,7 +3969,7 @@ namespace BeamScheduleFormatter
 				Quantity = qty,
 				KgM = mass
 			};
-			steelDemands.Add(steelCutDemand);
+			if(row.DataGridView==steelAngles)steelDemands.AddRange(AngleSegments.Expand(steelCutDemand,AngleSpliceExtra()));else steelDemands.Add(steelCutDemand);
 			row.Tag = steelCutDemand;
 			return steelCutDemand;
 		}
@@ -4523,6 +4523,8 @@ worksExcelTimer.Tick += async delegate
 				InputFocus.Apply(this);
 			};
 			OrganizeSections();
+            ConfigureRcWorkspaces();
+            ConfigureAngleSegments();
 			tabs.Multiline = true;
 			PowTheme.Apply(this);
             InstallExcelStatusBar();
@@ -7335,6 +7337,7 @@ worksExcelTimer.Tick += async delegate
 			xmlElement.SetAttribute("version", "21");
 			xmlElement.SetAttribute("computedInputsKnown", projectQuantitiesKnown.ToString());
 			WriteEarthSettings(xmlElement);
+            xmlElement.SetAttribute("angleSpliceExtra",angleSpliceExtra==null?"":angleSpliceExtra.Text);
 			WriteSteelProfiles(xmlElement);
 			xmlDocument.AppendChild(xmlElement);
 			foreach (KeyValuePair<string, DataGridView> item in Tables())
@@ -7559,6 +7562,7 @@ worksExcelTimer.Tick += async delegate
 			try
 			{
 				ReadEarthSettings(xmlDocument.DocumentElement);
+                if(angleSpliceExtra!=null)angleSpliceExtra.Text=xmlDocument.DocumentElement.GetAttribute("angleSpliceExtra");
 				ReadSteelProfiles(xmlDocument.DocumentElement);
 				projectQuantitiesKnown = xmlDocument.DocumentElement.HasAttribute("computedInputsKnown") && bool.Parse(xmlDocument.DocumentElement.GetAttribute("computedInputsKnown"));
 				backupBill = list;
@@ -7730,7 +7734,7 @@ worksExcelTimer.Tick += async delegate
 			boqGrid.ReadOnly = true;
 			boqGrid.AllowUserToAddRows = false;
 			boqGrid.AllowUserToDeleteRows = false;
-            boqDisclosure=new BoqDisclosure(boqGrid);
+            boqDisclosure=new BoqDisclosure(boqGrid);ConfigureBoqQuantityDisplay();
 			boqGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 			boqGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
 			float[] array = new float[4] { 16f, 66f, 14f, 9f };

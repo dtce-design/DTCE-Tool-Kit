@@ -1,0 +1,53 @@
+DTCE Tool Kit v1.4.61 — RC workspace, manual slab and stock takeoff (16 November 2026)
+
+RC workspaces: Beam/Slab Measurements and existing summaries/details are now top
+pages with a full-height table viewport; the former bottom summary split is removed.
+RC grids use the same margins, wrapping and native horizontal/vertical scrolling
+policy. Scrollbars appear when content overflows. Existing grid instances, input
+columns, settings and calculations remain authoritative. Native flat tab chrome
+removes the raised rectangular frame behind the painted folder tabs. Actual Windows
+appearance still needs confirmation.
+
+Slab Estimate: Manual reinforcement opens a schedule editor with slab mark, thickness,
+and the nine existing bottom/top/support/distribution groups. Each group accepts a
+diameter and either spacing or an explicit whole bar count. Unused groups start blank.
+Counts are per panel or per support strip, then multiplied by actual support/panel
+counts once. Existing slab curtailment, 2Ld cut allowances and stock purchase planning
+remain. Manual sources work without DXF and are embedded in the whole POW save/open.
+Select a manual mark to edit it; changes affect all rows using that mark. When copying
+an imported schedule, use a new unique manual mark; original DXF data stays intact.
+Panel dimensions/quantity are entered in the worksheet, never automatically supplied.
+
+Profile dropdowns: Ctrl+C or right-click > Copy selected value copies the full profile
+name without changing the selection. Editable text selections retain selected-text
+copy behavior. Grid editors keep their existing row context menus.
+
+Angle bars: use 6m stock as requested. Long angle members are expanded into stock-sized
+cut demands and compatible profile/material leftovers are shared with the existing
+cutting plan. Example 10.322m x2, no extra splice length: two 6m cuts plus two 4.322m
+cuts, four 6m stocks before compatible reuse. Purchase weight includes every segment
+once. Optional Splice extra length m / joint is an explicitly approved cut-length
+addition; blank adds none. No reinforcing-bar lap formula or structural connection
+approval is inferred. Connection design/locations remain per approved details. Other
+steel-member categories retain their existing unsplit-cut checks.
+
+Excel status: the bottom bar permanently shows Excel linked: [workbook filename],
+separate from changing sync messages; full path is available on hover. Initial quantity
+validation/sync failure retains an otherwise valid workbook connection and reports
+sync paused. Actual connection/catalogue failures still disconnect. Opened POW files
+do not falsely claim a live connection. BOQ quantities and its report summary display
+2 decimal places, with calculation values and sync precision unchanged.
+
+Validation: 17 manual-slab and 16 angle-segmentation core checks passed; existing slab
+estimator, support-options, quantities, curtailment and 13 formatter regressions pass.
+Both Admin/User C#5/net48 builds compile. Native workspace/manual-POW persistence,
+profile copy, angle row/BOQ precision, source recovery and tab/button regression
+sources compile. Native Windows UI/clipboard/Excel COM tests could NOT run on this
+Linux host, so final runtime/visual confirmation remains required.
+
+All v1.4.60 tab-lifecycle/button fixes, bottom status bar and unlimited streaming
+attachments are retained. Independent Beam/Slab Formatter logic unchanged except the
+app version; shared slab model additions preserve existing formatter behavior.
+Extract the ENTIRE folder including tools/qpdf. Existing report/PDF protection stays;
+PDF permissions do not guarantee tamper-proof files. No private keys bundled/rotated.
+No Store/TestFlight/Pages publication; unfinished engineering/capture drafts excluded.

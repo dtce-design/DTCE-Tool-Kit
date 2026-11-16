@@ -5,7 +5,7 @@ class NavigationTabs:TabControl {
  [DllImport("user32.dll")]static extern IntPtr SendMessage(IntPtr handle,int message,IntPtr wparam,IntPtr lparam);
  protected override bool ShowFocusCues{get{return false;}}
  internal static bool KeyboardFocusVisible(TabControl tabs){return false;}
- public NavigationTabs(){SetStyle(ControlStyles.UserPaint|ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer,false);SetStyle(ControlStyles.ResizeRedraw,true);Alignment=TabAlignment.Top;Multiline=true;SizeMode=TabSizeMode.Normal;}
+ public NavigationTabs(){SetStyle(ControlStyles.UserPaint|ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer,false);SetStyle(ControlStyles.ResizeRedraw,true);Appearance=TabAppearance.FlatButtons;Alignment=TabAlignment.Top;Multiline=true;SizeMode=TabSizeMode.Normal;}
  void HideNativeFocus(){if(IsHandleCreated)SendMessage(Handle,0x128,new IntPtr(0x10001),IntPtr.Zero);}
  protected override void OnHandleCreated(EventArgs e){base.OnHandleCreated(e);HideNativeFocus();ScheduleCaptionMeasure();}
  protected override void OnGotFocus(EventArgs e){base.OnGotFocus(e);HideNativeFocus();}
