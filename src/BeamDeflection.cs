@@ -11,14 +11,19 @@ class BeamDeflectionData {
  public readonly List<BeamDisplacement> Displacements=new List<BeamDisplacement>();
  public IEnumerable<string> Cases(){return Displacements.Select(d=>d.Case).Distinct(StringComparer.OrdinalIgnoreCase);}
 }
-class PhysicalBeamInput {public string Name,Members,Cases,SpanType="Between supports";public int Start,End;public double LimitRatio=360;public double AbsoluteLimitMm;public string Vertical="Y";public bool ServiceBasis,SupportsVerified;}
-class BeamDeflectionStation {public int Node;public double Station,Absolute,Chord,Relative;}
+class PhysicalBeamInput {public string Name,Members,DeadCases,LiveCases,Criterion,IeBasis="",SpanType="Between supports";public int Start,End;public double RhoPrime,StiffnessFactor=1,Xi=2,CustomRatio;public string Vertical="Y";public bool ServiceBasis,SupportsVerified;}
+class BeamDeflectionStation {public int Node;public double Station,Dead,Live,Relative;}
+// One NSCP 2015 serviceability check of one physical beam.
 class BeamDeflectionResult {
- public string Beam,Case,Status,SpanType,Members,Vertical;public bool Exceeds,Qualified;public double Span,LimitRatio,LimitMm,AbsoluteLimitMm,MaximumMm,SignedMaximumMm,At,LargestSegment;public int GoverningNode,StartNode,EndNode;
+ public string Beam,Members,Criterion,Check,Formula,Clause,Status,SpanType,Vertical,DeadCases,LiveCases,IeBasis="";public bool Exceeds,Qualified;
+ public double Span,LimitSpan,LimitRatio,LimitMm,MaximumMm,SignedMaximumMm,At,LargestSegment,DeadFactor,LiveFactor,Lambda,Xi,RhoPrime,StiffnessFactor;public int GoverningNode,StartNode,EndNode;
  public readonly List<BeamDeflectionStation> Stations=new List<BeamDeflectionStation>();
  public double Utilization{get{return LimitMm>0?MaximumMm/LimitMm:0;}}
- public string Ratio{get{return MaximumMm<=1e-9?"L/∞":"L/"+Math.Floor(Span*1000/MaximumMm).ToString("0",CultureInfo.InvariantCulture);}}
+ public string Ratio{get{return MaximumMm<=1e-9?"L/∞":"L/"+Math.Floor(LimitSpan*1000/MaximumMm).ToString("0",CultureInfo.InvariantCulture);}}
 }
+// Deflection criteria. Reinforced concrete: NSCP 2015 Table 424.2.2 with time-dependent deflection per Section 424.2.4.
+// Steel and other members: NSCP 2015 Chapter 1 roof/floor member limits (live load and dead + live load).
+class DeflectionCriterion {public string Name,Material,Clause,Row;public string[] Kinds;public double[] Ratios;}
 static class BeamDeflection {
  internal const string Cantilever="Cantilever (fixed at Support A)";
  internal static readonly string[] SpanTypes={"Between supports",Cantilever};
@@ -43,34 +48,66 @@ static class BeamDeflection {
  internal static string CaseId(string name){return (name??"").Trim().Split(new[]{':',' ','\t'},StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()??"";}
  static double Component(BeamDisplacement d,string axis){return axis=="X"?d.X:axis=="Y"?d.Y:d.Z;}
  static double Along(BeamNode a,BeamNode b,string axis){return axis=="X"?b.X-a.X:axis=="Y"?b.Y-a.Y:b.Z-a.Z;}
+ internal const string Custom="Custom limit L/n - sum of the listed dead and live cases";
+ internal static readonly DeflectionCriterion[] Criteria={
+  new DeflectionCriterion{Name="RC flat roof not supporting or attached to nonstructural elements likely to be damaged",Material="RC",Clause="NSCP 2015 Table 424.2.2",Row="Row 1: immediate deflection due to roof live load Lr (and rain/snow if any)",Kinds=new[]{"Live"},Ratios=new[]{180.0}},
+  new DeflectionCriterion{Name="RC floor not supporting or attached to nonstructural elements likely to be damaged",Material="RC",Clause="NSCP 2015 Table 424.2.2",Row="Row 2: immediate deflection due to live load L",Kinds=new[]{"Live"},Ratios=new[]{360.0}},
+  new DeflectionCriterion{Name="RC roof or floor supporting or attached to nonstructural elements likely to be damaged",Material="RC",Clause="NSCP 2015 Table 424.2.2",Row="Row 3: part of the total deflection after attachment of nonstructural elements",Kinds=new[]{"After"},Ratios=new[]{480.0}},
+  new DeflectionCriterion{Name="RC roof or floor supporting or attached to nonstructural elements not likely to be damaged",Material="RC",Clause="NSCP 2015 Table 424.2.2",Row="Row 4: part of the total deflection after attachment of nonstructural elements",Kinds=new[]{"After"},Ratios=new[]{240.0}},
+  new DeflectionCriterion{Name="Steel or other floor member",Material="Steel",Clause="NSCP 2015 Chapter 1 deflection limits",Row="Floor members: L/360 for live load, L/240 for dead + live load",Kinds=new[]{"Live","Total"},Ratios=new[]{360.0,240}},
+  new DeflectionCriterion{Name="Steel or other roof member supporting plaster or stucco ceiling",Material="Steel",Clause="NSCP 2015 Chapter 1 deflection limits",Row="Roof members supporting plaster ceiling: L/360 live, L/240 dead + live",Kinds=new[]{"Live","Total"},Ratios=new[]{360.0,240}},
+  new DeflectionCriterion{Name="Steel or other roof member supporting nonplaster ceiling",Material="Steel",Clause="NSCP 2015 Chapter 1 deflection limits",Row="Roof members supporting nonplaster ceiling: L/240 live, L/180 dead + live",Kinds=new[]{"Live","Total"},Ratios=new[]{240.0,180}},
+  new DeflectionCriterion{Name="Steel or other roof member not supporting ceiling",Material="Steel",Clause="NSCP 2015 Chapter 1 deflection limits",Row="Roof members not supporting ceiling: L/180 live, L/120 dead + live",Kinds=new[]{"Live","Total"},Ratios=new[]{180.0,120}},
+  new DeflectionCriterion{Name=Custom,Material="Custom",Clause="Project specification",Row="User-entered limit",Kinds=new[]{"Combined"},Ratios=new[]{0.0}}};
+ internal static readonly string[] CriterionNames=Criteria.Select(c=>c.Name).ToArray();
+ internal static DeflectionCriterion Find(string name){var c=Criteria.FirstOrDefault(x=>x.Name==name);if(c==null)throw new Exception("Select a deflection criterion.");return c;}
+ // Time-dependent factor ξ (NSCP 2015 Table 424.2.4.1.3).
+ internal static readonly string[] Durations={"5 years or more (ξ = 2.0)","12 months (ξ = 1.4)","6 months (ξ = 1.2)","3 months (ξ = 1.0)"};
+ internal static double XiFor(string duration){int i=Array.IndexOf(Durations,duration);if(i<0)throw new Exception("Select the sustained load duration.");return new[]{2.0,1.4,1.2,1.0}[i];}
+ internal static double Lambda(double xi,double rhoPrime){return xi/(1+50*rhoPrime);}
+ static List<string> CaseList(string text){return (text??"").Split(new[]{',',';',' ','+'},StringSplitOptions.RemoveEmptyEntries).Select(t=>t.Trim()).Where(t=>t!="").ToList();}
+ static string Match(List<string> all,string request){var found=all.FirstOrDefault(c=>c.Equals(request,StringComparison.OrdinalIgnoreCase))??all.FirstOrDefault(c=>CaseId(c).Equals(request,StringComparison.OrdinalIgnoreCase));if(found==null)throw new Exception("Load case "+request+" is not in the displacement results.");return found;}
+ // Support-chord relative displacement (m) at each path node, summed over the listed cases (linear superposition).
+ static double[] Relative(BeamDeflectionData data,List<BeamNode> path,IEnumerable<string> cases,string axis,bool cantilever){double span=Distance(path[0],path.Last());var sum=new double[path.Count];
+  foreach(string name in cases){var byNode=new Dictionary<int,BeamDisplacement>();foreach(var row in data.Displacements.Where(d=>d.Case.Equals(name,StringComparison.OrdinalIgnoreCase))){if(byNode.ContainsKey(row.Node))throw new Exception("Node "+row.Node+" appears twice in load case "+name+".");byNode.Add(row.Node,row);}
+   var missing=path.Where(n=>!byNode.ContainsKey(n.Id)).Select(n=>n.Id.ToString(CultureInfo.InvariantCulture)).ToList();if(missing.Count>0)throw new Exception("Load case "+name+" has no displacement for node(s) "+string.Join(", ",missing)+". Export all nodes of the beam, including supports and intermediate nodes.");
+   double first=Component(byNode[path[0].Id],axis),last=Component(byNode[path.Last().Id],axis);
+   for(int i=0;i<path.Count;i++){double x=Distance(path[0],path[i]),chord=cantilever?first:first+(last-first)*x/span,value=Component(byNode[path[i].Id],axis)-chord;if(!Finite(value))throw new Exception("Non-finite displacement at node "+path[i].Id+".");sum[i]+=value;}}
+  return sum;}
  internal static List<BeamDeflectionResult> Calculate(BeamDeflectionData data,PhysicalBeamInput input){
-  bool cantilever=input.SpanType==Cantilever;if(!SpanTypes.Contains(input.SpanType))throw new Exception("Select the span type.");
-  if(!Finite(input.LimitRatio)||input.LimitRatio<=0)throw new Exception("Enter a positive deflection limit ratio n for L/n.");if(!Finite(input.AbsoluteLimitMm)||input.AbsoluteLimitMm<0)throw new Exception("Absolute limit must be zero (not used) or positive mm.");
+  var criterion=Find(input.Criterion);bool cantilever=input.SpanType==Cantilever;if(!SpanTypes.Contains(input.SpanType))throw new Exception("Select the span type.");
   if(!new[]{"X","Y","Z"}.Contains(input.Vertical))throw new Exception("Select the global displacement direction.");
+  bool rc=criterion.Material=="RC";
+  if(rc){if(!Finite(input.RhoPrime)||input.RhoPrime<0||input.RhoPrime>.08)throw new Exception("ρ' (compression steel ratio As'/bd) must be between 0 and 0.08.");if(!Finite(input.StiffnessFactor)||input.StiffnessFactor<1||input.StiffnessFactor>20)throw new Exception("Ig/Ie must be at least 1.0 (1.0 = STAAD stiffness already effective/cracked).");if(!new[]{2.0,1.4,1.2,1.0}.Contains(input.Xi))throw new Exception("Select the sustained load duration ξ.");}
+  if(criterion.Material=="Custom"&&(!Finite(input.CustomRatio)||input.CustomRatio<=0))throw new Exception("Enter n for the custom L/n limit.");
   var path=Chain(data,input);double span=Distance(path[0],path.Last());
   if(Math.Abs(Along(path[0],path.Last(),input.Vertical))/span>.999)throw new Exception("Global "+input.Vertical+" is along the beam axis; select a transverse (normally vertical) direction.");
-  var requested=new List<string>((input.Cases??"").Split(new[]{',',';',' '},StringSplitOptions.RemoveEmptyEntries));var all=data.Cases().ToList();
-  if(all.Count==0)throw new Exception("No node displacement results are loaded.");
-  foreach(string r in requested)if(!all.Any(c=>CaseId(c).Equals(r,StringComparison.OrdinalIgnoreCase)||c.Equals(r,StringComparison.OrdinalIgnoreCase)))throw new Exception("Load case "+r+" is not in the displacement results.");
-  var cases=all.Where(c=>requested.Count==0||requested.Any(r=>CaseId(c).Equals(r,StringComparison.OrdinalIgnoreCase)||c.Equals(r,StringComparison.OrdinalIgnoreCase))).ToList();
-  double largest=Enumerable.Range(1,path.Count-1).Max(i=>Distance(path[i-1],path[i]));
+  var all=data.Cases().ToList();if(all.Count==0)throw new Exception("No node displacement results are loaded.");
+  var dead=CaseList(input.DeadCases).Select(c=>Match(all,c)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();var live=CaseList(input.LiveCases).Select(c=>Match(all,c)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+  if(dead.Intersect(live,StringComparer.OrdinalIgnoreCase).Any())throw new Exception("A load case is listed as both dead and live.");
+  if(criterion.Kinds.Any(kd=>kd!="Combined")&&live.Count==0)throw new Exception("Enter the live load case(s) (service, unfactored).");
+  if(criterion.Kinds.Any(kd=>kd=="After"||kd=="Total")&&dead.Count==0)throw new Exception("Enter the dead / sustained load case(s) (service, unfactored).");
+  if(criterion.Material=="Custom"&&dead.Count+live.Count==0)throw new Exception("Enter at least one load case.");
+  var relD=Relative(data,path,dead,input.Vertical,cantilever);var relL=Relative(data,path,live,input.Vertical,cantilever);
+  double largest=Enumerable.Range(1,path.Count-1).Max(i=>Distance(path[i-1],path[i]));double k=rc?input.StiffnessFactor:1,lambda=rc?Lambda(input.Xi,input.RhoPrime):0;
+  // Steel/other cantilevers: L is taken as twice the cantilever length.
+  double limitSpan=cantilever&&criterion.Material=="Steel"?2*span:span;
   var results=new List<BeamDeflectionResult>();
-  foreach(string name in cases){
-   var rows=data.Displacements.Where(d=>d.Case.Equals(name,StringComparison.OrdinalIgnoreCase)).ToList();var byNode=new Dictionary<int,BeamDisplacement>();foreach(var row in rows){if(byNode.ContainsKey(row.Node))throw new Exception("Node "+row.Node+" appears twice in load case "+name+".");byNode.Add(row.Node,row);}
-   var missing=path.Where(n=>!byNode.ContainsKey(n.Id)).Select(n=>n.Id.ToString(CultureInfo.InvariantCulture)).ToList();if(missing.Count>0)throw new Exception("Load case "+name+" has no displacement for node(s) "+string.Join(", ",missing)+". Export all nodes of the beam, including supports and intermediate nodes.");
-   double first=Component(byNode[path[0].Id],input.Vertical),last=Component(byNode[path.Last().Id],input.Vertical);
-   double limit=span*1000/input.LimitRatio;if(input.AbsoluteLimitMm>0)limit=Math.Min(limit,input.AbsoluteLimitMm);
-   var result=new BeamDeflectionResult{Beam=input.Name,Case=name,Members=input.Members,SpanType=input.SpanType,Vertical=input.Vertical,StartNode=path[0].Id,EndNode=path.Last().Id,Span=span,LimitRatio=input.LimitRatio,AbsoluteLimitMm=input.AbsoluteLimitMm,LimitMm=limit,LargestSegment=largest};
-   foreach(var node in path){double station=Distance(path[0],node),absolute=Component(byNode[node.Id],input.Vertical),chord=cantilever?first:first+(last-first)*station/span,relative=(absolute-chord)*1000;if(!Finite(relative))throw new Exception("Non-finite displacement at node "+node.Id+".");
-    result.Stations.Add(new BeamDeflectionStation{Node=node.Id,Station=station,Absolute=absolute*1000,Chord=chord*1000,Relative=relative});if(Math.Abs(relative)>result.MaximumMm){result.MaximumMm=Math.Abs(relative);result.SignedMaximumMm=relative;result.At=station;result.GoverningNode=node.Id;}}
-   result.Exceeds=result.MaximumMm>result.LimitMm+1e-9;int interior=path.Count-2;
-   if(!cantilever&&interior<1){result.Status="NOT CHECKED - no intermediate node between the supports. Add analysis nodes in STAAD (for example at quarter points) and re-export.";}
-   else if(result.Exceeds)result.Status="EXCEEDS LIMIT - "+N(result.MaximumMm,2)+" mm > "+N(limit,2)+" mm";
-   else if(!input.ServiceBasis)result.Status="WITHIN LIMIT AT NODES - confirm the selected cases are service (unfactored) loads";
-   else if(!input.SupportsVerified)result.Status="WITHIN LIMIT AT NODES - confirm Support A/B are the real supports";
-   else{result.Qualified=true;result.Status="OK - "+N(result.MaximumMm,2)+" mm ≤ "+N(limit,2)+" mm at analysis nodes";}
-   results.Add(result);
-  }
+  for(int c=0;c<criterion.Kinds.Length;c++){string kind=criterion.Kinds[c];double n=criterion.Material=="Custom"?input.CustomRatio:criterion.Ratios[c];double fd,fl;string check,formula;
+   if(kind=="Live"){fd=0;fl=k;check=rc?"Immediate live-load deflection":"Live-load deflection";formula=rc?"δ = (Ig/Ie)·δL = "+N(k,2)+"·δL":"δ = δL";}
+   else if(kind=="After"){fd=k*lambda;fl=k;check="Deflection after attachment of nonstructural elements";formula="δ = λΔ·δD,i + δL,i = "+N(lambda,3)+"·("+N(k,2)+"·δD) + "+N(k,2)+"·δL";}
+   else if(kind=="Total"){fd=1;fl=1;check="Dead + live load deflection";formula="δ = δD + δL";}
+   else{fd=1;fl=1;check="Listed cases combined";formula="δ = Σ δ(listed cases)";}
+   var r=new BeamDeflectionResult{Beam=input.Name,Members=input.Members,Criterion=criterion.Name,Clause=criterion.Clause+" - "+criterion.Row,Check=check,Formula=formula,SpanType=input.SpanType,Vertical=input.Vertical,DeadCases=string.Join(", ",dead),LiveCases=string.Join(", ",live),StartNode=path[0].Id,EndNode=path.Last().Id,Span=span,LimitSpan=limitSpan,LimitRatio=n,LimitMm=limitSpan*1000/n,LargestSegment=largest,DeadFactor=fd,LiveFactor=fl,Lambda=lambda,Xi=input.Xi,RhoPrime=input.RhoPrime,StiffnessFactor=k,IeBasis=rc?(input.IeBasis??""):""};
+   for(int i=0;i<path.Count;i++){double value=(fd*relD[i]+fl*relL[i])*1000;r.Stations.Add(new BeamDeflectionStation{Node=path[i].Id,Station=Distance(path[0],path[i]),Dead=relD[i]*1000,Live=relL[i]*1000,Relative=value});if(Math.Abs(value)>r.MaximumMm){r.MaximumMm=Math.Abs(value);r.SignedMaximumMm=value;r.At=r.Stations[i].Station;r.GoverningNode=path[i].Id;}}
+   if(r.GoverningNode==0){r.GoverningNode=path[0].Id;}
+   r.Exceeds=r.MaximumMm>r.LimitMm+1e-9;
+   if(!cantilever&&path.Count<3)r.Status="NOT CHECKED - no intermediate node between the supports. Add analysis nodes in STAAD (for example at quarter points) and re-export.";
+   else if(r.Exceeds)r.Status="EXCEEDS - "+N(r.MaximumMm,2)+" mm > L/"+N(n,0)+" = "+N(r.LimitMm,2)+" mm";
+   else if(!input.ServiceBasis)r.Status="REVIEW - within limit; confirm the cases are unfactored service loads";
+   else if(!input.SupportsVerified)r.Status="REVIEW - within limit; confirm Support A/B are the real supports";
+   else{r.Qualified=true;r.Status="OK - "+N(r.MaximumMm,2)+" mm ≤ L/"+N(n,0)+" = "+N(r.LimitMm,2)+" mm";}
+   results.Add(r);}
   return results;
  }
  internal static string N(double value,int decimals){return value.ToString("F"+decimals,CultureInfo.InvariantCulture);}

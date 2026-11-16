@@ -10,7 +10,8 @@ Never copy/commit `AdminPrivateKey.dat`, Owner packages, signing certificates or
 credentials. CI only needs `AccessPublicKey.xml`; never regenerate/rotate keys.
 Build both editions from shared src/. Admin Store/CI packages must be key-free.
 Never include the owner's key in GitHub artifacts, releases or MSIX packages.
-Keep edition watermark rules: Admin DTCE, User DPWH.
+Report watermark: DTCE logo in both Admin and User editions (owner decision, 16 November 2026;
+supersedes the earlier Admin DTCE / User DPWH rule).
 Store submission is not enabled until MSIX identity/packaging and account API
 setup are complete. Do not claim a GitHub release is a Microsoft Store release.
 
@@ -87,3 +88,9 @@ settings; persist the selection outside the versioned installation directory.
 Finalize v1.4.47 Admin/User/source ZIPs and push the checked source to GitHub.
 No Microsoft Store, TestFlight or Pages upload is authorized. Windows native
 visual/performance/Excel verification limits must be reported honestly.
+
+## Report and deflection preferences (16 November 2026)
+
+Report body text uses the 7pt minimum to save paper (headings may be larger); keep A4 and
+verify rendered output. Beam deflection checks follow NSCP 2015: RC Table 424.2.2 with
+Section 424.2.4 long-term deflection, steel/other members per the NSCP Chapter 1 limits.
