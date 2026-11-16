@@ -24,7 +24,7 @@ static class ModernUi {
   Application.Idle += delegate {
    if(System.Threading.Thread.CurrentThread.ManagedThreadId!=ownerThread||applying)return; applying=true;
    try { foreach(Form form in Application.OpenForms) {
-    object seen; if(windows.TryGetValue(form,out seen))continue;
+    UserCapturePolicy.Attach(form);object seen; if(windows.TryGetValue(form,out seen))continue;
     windows.Add(form,new object()); PowTheme.Apply(form);
    }} finally { applying=false; }
   };
