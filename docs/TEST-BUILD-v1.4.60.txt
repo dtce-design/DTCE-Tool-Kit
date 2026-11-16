@@ -1,0 +1,32 @@
+DTCE Tool Kit v1.4.60 — tab handle/button stability fix (16 November 2026)
+
+The reported Error creating window handle happens when switching tabs, with or
+without an Excel link. Source review found tab-caption fitting changed native
+TabControl.Padding synchronously inside OnHandleCreated, layout and selection
+notifications. Padding may recreate a WinForms tab handle. Caption fitting is now
+coalesced and posted after the native notification returns; it no longer changes
+padding during handle creation. Full captions/top tab layout remain.
+
+Shared button styling is idempotent. Text/font changes recompute room for the full
+caption and icon; captions remain a single line. Native dotted focus cues are hidden
+while keyboard clicks, DialogResult and the custom solid focus outline remain.
+Plumbing summary refresh reuses the shared bold font instead of allocating one
+for every summary row on every refresh.
+
+Both Admin/User C#5/net48 editions compile. Native regression sources compile for
+120 tab switches/resizes/font changes, nested handle lifecycle, full captions,
+repeated button styling, click/disabled behavior and button focus/caption rendering.
+Existing POW UI polish regression source also compiles. These Windows tests could
+NOT execute on this Linux host; the screenshot's crash is not claimed as reproduced
+or fully verified fixed. Re-test tab switching and buttons on Windows.
+
+Includes v1.4.59: Excel sync status is in the bottom POW status bar, visible across
+all calculation tabs, with full-text hover tooltip. Includes v1.4.58: no fixed
+attachment size/total/count caps, disk-backed originals and streaming POW save/open.
+Map BACKUP items requires a live linked Excel workbook with a BACKUP sheet.
+
+Separate Schedule Formatter logic unchanged except version. Extract the ENTIRE
+folder including tools/qpdf. Existing branding/report/PDF protection unchanged;
+PDF permissions do not guarantee tamper-proof files. No private key bundled or
+rotated. No Store/TestFlight/Pages publication. Unfinished engineering/capture
+drafts are not included in this checked package.

@@ -1,4 +1,4 @@
-using System;using System.Drawing;using System.Drawing.Drawing2D;using System.Windows.Forms;
+using System;using System.Runtime.CompilerServices;using System.Drawing;using System.Drawing.Drawing2D;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 // Common visual components. Native controls retain keyboard/accessibility/click behavior.
 static class PremiumControls {
@@ -7,11 +7,13 @@ static class PremiumControls {
  internal static Color AccentSoft {get{return DesktopAppearance.Palette.Selected;}}
  internal static Color Header {get{return DesktopAppearance.Palette.Header;}}
  internal static readonly Font TitleFont=new Font("Segoe UI Semibold",17,FontStyle.Regular);
+ static readonly ConditionalWeakTable<Button,object> styledButtons=new ConditionalWeakTable<Button,object>();
  internal static void StyleButton(Button button){
+  object marker;if(button==null||button.IsDisposed||styledButtons.TryGetValue(button,out marker))return;styledButtons.Add(button,new object());ButtonFocusChrome.Attach(button);
   bool primary=ModernUi.Primary(button.Text),pressed=false;bool chrome=object.Equals(button.Tag,"workspace-back");
   button.Font=ModernUi.Body;button.Image=CommandIcons.For(button.Text);button.TextImageRelation=TextImageRelation.ImageBeforeText;button.FlatStyle=FlatStyle.Flat;button.FlatAppearance.BorderSize=0;
   button.UseVisualStyleBackColor=false;button.BackColor=chrome?DesktopAppearance.Palette.ChromeButton:primary?Accent:ModernUi.Surface;button.ForeColor=primary?Color.White:PowTheme.Ink;button.Cursor=Cursors.Hand;
-  int labelWidth=TextRenderer.MeasureText(button.Text??"",button.Font).Width+28+(button.Image==null?0:22);button.MinimumSize=new Size(labelWidth,38);button.Padding=new Padding(12,5,12,5);button.Margin=new Padding(0,2,7,2);
+  bool sizingCaption=false;Action fitCaption=()=>{if(sizingCaption||button.IsDisposed)return;sizingCaption=true;try{primary=ModernUi.Primary(button.Text);button.Image=CommandIcons.For(button.Text);int labelWidth=TextRenderer.MeasureText(button.Text??"",button.Font,Size.Empty,TextFormatFlags.SingleLine|TextFormatFlags.NoPrefix).Width+28+(button.Image==null?0:22);button.MinimumSize=new Size(labelWidth,Math.Max(38,button.Font.Height+14));button.Invalidate();}finally{sizingCaption=false;}};fitCaption();button.TextChanged+=(s,e)=>fitCaption();button.FontChanged+=(s,e)=>fitCaption();button.AutoEllipsis=false;button.Padding=new Padding(12,5,12,5);button.Margin=new Padding(0,2,7,2);
   if(button.Parent is FlowLayoutPanel){button.AutoSize=true;button.AutoSizeMode=AutoSizeMode.GrowAndShrink;}
   button.MouseDown+=(s,e)=>{pressed=true;button.Invalidate();};button.MouseUp+=(s,e)=>{pressed=false;button.Invalidate();};
   button.KeyDown+=(s,e)=>{if(e.KeyCode==Keys.Space){pressed=true;button.Invalidate();}};button.KeyUp+=(s,e)=>{pressed=false;button.Invalidate();};
@@ -44,3 +46,4 @@ class PremiumSectionHeading:Control {
  protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);TextRenderer.DrawText(e.Graphics,Text,PremiumControls.TitleFont,new Rectangle(18,10,Math.Max(1,Width-36),30),PowTheme.Ink,TextFormatFlags.SingleLine|TextFormatFlags.NoPrefix);TextRenderer.DrawText(e.Graphics,Subtitle??"",ModernUi.Body,new Rectangle(19,43,Math.Max(1,Width-38),22),PowTheme.Muted,TextFormatFlags.NoPrefix|TextFormatFlags.SingleLine);}
 }
 }
+

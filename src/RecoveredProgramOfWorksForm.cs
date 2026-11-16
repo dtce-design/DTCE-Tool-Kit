@@ -1500,7 +1500,7 @@ namespace BeamScheduleFormatter
 			foreach (BillQuantity item in PlumbingQuantities())
 			{
 				int index = plumbingSummary.Rows.Add(item.Description, (BackupMapping.Unit(item.Unit) == "ls") ? "Set in BOQ" : ((object)item.Quantity), item.Unit);
-				plumbingSummary.Rows[index].DefaultCellStyle.Font = new Font(plumbingSummary.Font, FontStyle.Bold);
+				plumbingSummary.Rows[index].DefaultCellStyle.Font = ModernUi.Strong;
 				foreach (BillQuantity source in item.Sources)
 				{
 					index = plumbingSummary.Rows.Add("    " + (source.Basis ? "Material breakdown: " : "") + source.Description, source.Quantity, source.Unit);
