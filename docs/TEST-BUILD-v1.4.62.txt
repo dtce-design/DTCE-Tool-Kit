@@ -1,0 +1,69 @@
+DTCE Tool Kit v1.4.62 — workspace recovery and partial-output workflow (16 November 2026)
+
+Tabs: reverted FlatButtons to the previous normal native tab layout. The original
+folder-shaped painter now redraws the full header strip to cover native rectangular
+separators without changing tab positions. Deferred caption sizing/handle-lifecycle
+fix stays. Beam and Slab workspaces build a fresh complete set of native tabs from
+the existing input/detail/summary controls; Measurements is first and selected on
+first show. Original data grids are preserved, not replaced or cleared.
+
+Open after linking: cached BACKUP catalogue/routes/workbook quantities and the
+selected Excel original copy no longer trigger a false opening/wall-edits warning.
+Actual measurements/settings/manual BOQ edits remain protected. Open waits for the
+link/current sync, pauses quantity scheduling while loading, preserves the selected
+workbook original, then refreshes bindings against the live BACKUP catalogue. The
+Excel connection remains visible. Existing protection of loaded beam/slab projects
+when replacing them remains; use a fresh POW window when that existing guard applies.
+
+BOQ: source breakdowns start COLLAPSED and expand using the arrow. Explicit expansion
+is retained through refresh in the same window. Refresh restores a stable visible
+scroll anchor, and end-scroll corrects the last visible row after layout. Bottom
+padding reserves space above the footer. Duplicate initial Excel:not linked text
+was removed. BOQ display still uses 2 decimals with full calculation precision.
+
+Angle bars: NO splice/lap field or allowance. 10.322m /6 =1.720333... required pcs per
+item (display1.72); Qty2 =3.440666... total equivalent pcs. Whole stocks purchased are
+shown separately. The 6m cutting plan shares compatible profile/material leftovers
+across rows. New output columns show installed total length/net weight, whole stocks
+opened for a row, final reusable offcuts and painting reference area. Painting uses
+actual installed length, excluding purchase waste; ideal all-longitudinal-face
+perimeter =2(H+B)/1000, without end caps. Previously saved angle splice-addition
+settings are ignored and dropped. The cutting allocation is a material takeoff,
+not a connection design.
+
+Structural Steel Works IDs only: blank IDs are automatically assigned when a row
+has meaningful input (PUR/ANG/MB/AB/PL/BR/MF-001...). New-row placeholders are ignored;
+existing/custom IDs are preserved. Handbook profile cells support Ctrl+C/Ctrl+V or
+Copy/Paste profile context commands, including one profile across selected target
+profile cells. Every target is validated against its allowed profile list before
+any values are pasted. Native control events preserve calculation and row history.
+
+Slab: Manage manual reinforcement lists manual schedules, thickness, bar groups and
+usage count, with preview/Edit/Delete. Delete confirms the number of takeoff rows
+that will also be removed. Existing Manual reinforcement creation/editing stays.
+
+Save/sync/export with issues: invalid original inputs remain saved. Saved POW XML
+contains an InputIssues list and save feedback indicates retained issues. Reports
+and Excel export include a PARTIAL status/error list; successfully calculated
+quantities continue. Linked BACKUP gets a POW Input Issues worksheet. Invalid manual
+BOQ text is retained instead of silently discarded or treated as a number. Its
+Excel target is omitted from writes while other valid demands can continue. When
+issues exist, unresolved/unloaded targets retain existing workbook quantities;
+positive valid partial totals and explicit valid manual overrides can still sync.
+File/connection/catalogue ownership errors remain real operation errors, not input
+validation overrides. Error-sheet updates are cached and focus/events restored.
+
+Validation:48 core checks passed (16 angle equivalent/purchase/reuse/painting;
+15 link-only Open/input protection/partial issues/invalid manual persistence/IDs;
+17 manual slab). Both Admin/User C#5/net48 editions compile. Native workspace recovery,
+complete tab items/input visibility, last-row scrolling/footer bounds, IDs, partial
+save/export, clipboard and existing UI regression sources compile. Windows UI and
+Excel COM cannot run on this Linux host, so those fixes still need native retesting.
+No claim that the screenshot behavior has been reproduced here.
+
+Preserves v1.4.61 manual slab input, copying profile selections, 2-decimal BOQ and
+persistent linked filename, plus unlimited streaming attachments and prior report/
+save/protection changes. Independent formatter logic is unchanged except version.
+Extract the ENTIRE folder including tools/qpdf. PDF permissions cannot guarantee
+against all third-party alteration. No private key bundled or rotated. No Microsoft
+Store/TestFlight/Pages publication; unfinished engineering/capture drafts excluded.

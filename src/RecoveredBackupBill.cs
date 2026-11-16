@@ -22,7 +22,7 @@ namespace BeamScheduleFormatter
 		{
 			List<BackupTarget> source = targets.ToList();
 			List<BackupBillItem> old = previous.ToList();
-			foreach (BackupBillItem p in old.Where((BackupBillItem backupBillItem) => backupBillItem.ManualQuantity.HasValue))
+			foreach (BackupBillItem p in old.Where((BackupBillItem backupBillItem) => (backupBillItem.ManualQuantity.HasValue||backupBillItem.ManualInputText!=null)))
 			{
 				if (!source.Any((BackupTarget t) => t.SlotId == p.Slot && BackupMapping.Identity(t) == p.Signature))
 				{
@@ -40,7 +40,8 @@ namespace BeamScheduleFormatter
 				WorkbookQuantity = t.Quantity,
 				ManualQuantity = (from backupBillItem in old
 					where backupBillItem.Slot == t.SlotId && backupBillItem.Signature == BackupMapping.Identity(t)
-					select backupBillItem.ManualQuantity).FirstOrDefault()
+					select backupBillItem.ManualQuantity).FirstOrDefault(),
+                ManualInputText=old.Where(p=>p.Slot==t.SlotId&&p.Signature==BackupMapping.Identity(t)).Select(p=>p.ManualInputText).FirstOrDefault()
 			}).ToList();
 		}
 
@@ -58,6 +59,7 @@ namespace BeamScheduleFormatter
 				xmlElement2.SetAttribute("description", item.Description);
 				xmlElement2.SetAttribute("unit", item.Unit);
 				xmlElement2.SetAttribute("row", item.Row.ToString(CultureInfo.InvariantCulture));
+                if(item.ManualInputText!=null)xmlElement2.SetAttribute("manualInput",item.ManualInputText);
 				if (item.WorkbookQuantity.HasValue)
 				{
 					xmlElement2.SetAttribute("workbook", item.WorkbookQuantity.Value.ToString("R", CultureInfo.InvariantCulture));
@@ -113,6 +115,7 @@ namespace BeamScheduleFormatter
 						}
 					}
 				}
+				if(item.HasAttribute("manualInput"))backupBillItem.ManualInputText=item.GetAttribute("manualInput");
 				list.Add(backupBillItem);
 			}
 			return list;

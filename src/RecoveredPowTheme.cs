@@ -56,22 +56,7 @@ internal static partial class PowTheme {
   ModernUi.Navigation(tab);tab.Font=NavigationDepth(tab)==0?ModernUi.Strong:ModernUi.Body;tab.DrawMode=TabDrawMode.OwnerDrawFixed;tab.ShowToolTips=true;ModernUi.Buffer(tab);
   // Native variable-width tabs measure the complete caption and wrap onto more rows.
   // No fixed tab widths, abbreviated titles, or ellipsis drawing.
-  tab.DrawItem+=delegate(object sender,DrawItemEventArgs e){
-   if(e.Index<0||e.Index>=tab.TabCount)return;bool selected=e.Index==tab.SelectedIndex;Rectangle r=e.Bounds;int depth=NavigationDepth(tab);Color level=DesktopAppearance.Palette.Tab(depth);
-   using(var brush=new SolidBrush(ModernUi.Surface))e.Graphics.FillRectangle(brush,r);
-   var face=new Rectangle(r.Left+1,r.Top+3,Math.Max(1,r.Width-2),Math.Max(1,r.Height-3));
-   using(var path=new GraphicsPath()){
-    int shoulder=Math.Min(9,face.Width/4);
-    path.AddLines(new[]{new Point(face.Left,face.Bottom),new Point(face.Left,face.Top+6),new Point(face.Left+shoulder,face.Top),new Point(face.Right-shoulder,face.Top),new Point(face.Right,face.Top+6),new Point(face.Right,face.Bottom)});
-    using(var fill=new SolidBrush(selected?DesktopAppearance.Palette.ActiveTab(depth):level))e.Graphics.FillPath(fill,path);
-    using(var edge=new Pen(selected?DesktopAppearance.Palette.ActiveTab(depth):Line))e.Graphics.DrawPath(edge,path);
-    if(!selected)using(var edge=new Pen(Line))e.Graphics.DrawLine(edge,face.Left,face.Bottom-1,face.Right,face.Bottom-1);
-    else using(var join=new Pen(DesktopAppearance.Palette.ActiveTab(depth),3))e.Graphics.DrawLine(join,face.Left+2,face.Bottom-1,face.Right-2,face.Bottom-1);
-   }
-   TextRenderer.DrawText(e.Graphics,tab.TabPages[e.Index].Text,tab.Font,Rectangle.Inflate(r,-8,-3),selected?DesktopAppearance.Palette.ActiveTabText:Ink,
-    TextFormatFlags.NoPrefix|TextFormatFlags.VerticalCenter|TextFormatFlags.HorizontalCenter|TextFormatFlags.SingleLine);
-   if(tab.Focused&&selected&&NavigationTabs.KeyboardFocusVisible(tab))FocusHighlight.Draw(e.Graphics,Rectangle.Inflate(r,-5,-5),Teal);
-  };
+  tab.DrawItem+=(sender,e)=>FolderTabPainter.Draw(tab,e.Graphics,e.Index,e.Bounds);
  }
  static void StyleGrid(DataGridView grid) {
   GridAppearance.Apply(grid);ModernUi.Buffer(grid);
@@ -108,3 +93,4 @@ internal static partial class PowTheme {
  }
 }
 }
+

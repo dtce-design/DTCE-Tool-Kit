@@ -17,6 +17,7 @@ namespace BeamScheduleFormatter
 		public double? WorkbookQuantity;
 
 		public double? ManualQuantity;
+        public string ManualInputText;
 
 		public BackupTarget Target
 		{
@@ -35,6 +36,7 @@ namespace BeamScheduleFormatter
 
 		public BackupDemand ManualDemand()
 		{
+            if(!string.IsNullOrEmpty(ManualInputText)&&!BackupBill.ReadQuantity(ManualInputText).HasValue)return null;
 			double? num = ManualQuantity ?? ((BackupMapping.Unit(Unit) == "ls") ? WorkbookQuantity : ((double?)null));
 			if (!num.HasValue)
 			{

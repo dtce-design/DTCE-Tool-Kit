@@ -250,7 +250,7 @@ namespace BeamScheduleFormatter
 			AutoSize = false,
 			Width = 1100,
 			Height = 64,
-			Text = "Excel: not linked",
+			Text = "",
 			Padding = new Padding(8)
 		};
 
@@ -342,7 +342,6 @@ namespace BeamScheduleFormatter
 
 		internal List<WorksExcelTable> FinalQuantityTables()
 		{
-            if(WorksValidationIssues().Count>0)throw new Exception("Complete pending calculation rows before exporting final quantities.");
 			List<WorksExcelTable> source = WorksExcelTables();
 			List<WorksExcelTable> list = source.Where((WorksExcelTable t) => t.Name == "DTCE Tool Kit - POW").ToList();
 			List<object[]> list2 = new List<object[]>();
@@ -366,7 +365,8 @@ namespace BeamScheduleFormatter
 			list2.AddRange(CanopySummary());
 			list2.AddRange(GravelSummary());
             list2.AddRange(ExtraBillQuantities().Select(q=>new object[]{q.Description,q.Quantity,q.Unit}));
-			list.Add(new WorksExcelTable("DTCE Tool Kit - POW", new string[3] { "FINAL QUANTITY", "Quantity", "Unit" }, list2, 1, 8));
+			list.Add(new WorksExcelTable("DTCE Tool Kit - POW", new string[3] { "QUANTITY (see Input Issues)", "Quantity", "Unit" }, list2, 1, 8));
+            list.Add(PowIssueOutput.Table(WorksValidationIssues()));
 			return list;
 		}
 
@@ -3505,7 +3505,7 @@ namespace BeamScheduleFormatter
 			steelPurlins = SteelMemberGrid("Purlin");
 			steelAngles = SteelMemberGrid("Angle bar");
 			AddGrid(SteelPageNames[0], steelPurlins, "Select a handbook profile, enter cut length and quantity. Stock is fixed at 6m. Matching profile/specification offcuts are shared across compatible members automatically. Cuts over 6m require an approved splice detail.");
-			AddGrid(SteelPageNames[1], steelAngles, "Angle-bar stock is 6m. Longer members are segmented for the purchase plan; enter the approved extra cut length per joint if required. No reinforcing-bar lap formula is applied. Cutting plan shares offcuts only across compatible profile/material stock. Connection design and location follow the approved detail.");
+			AddGrid(SteelPageNames[1], steelAngles, "Angle-bar quantities use 6m stock and compatible profile/material offcut sharing. Longer entered lengths are allocated as stock portions for the purchase takeoff. No splice/lap length is added. This is a quantity allocation, not a connection design.");
 			machineBolts = SteelBoltGrid();
 			anchorBolts = SteelBoltGrid();
 			AddGrid(SteelPageNames[2], machineBolts, "A307 or A325. Overall developed length in mm. Weight = pi x diameter^2 / 4 x overall length x 7850 kg/m3 x quantity. Shaft-only estimate: heads, nuts and washers are excluded. Grade selection identifies material; this is not a connection design check.");
@@ -3667,6 +3667,7 @@ namespace BeamScheduleFormatter
 			{
 				return;
 			}
+			AssignStructuralSteelIds();
 			steelDemands.Clear();
 			steelStocks.Clear();
 			plateStocks.Clear();
@@ -3811,7 +3812,7 @@ namespace BeamScheduleFormatter
 							Measure(item2, 9, kgM, "0.000");
 							Measure(item2, 10, kgM * steelCutDemand2.Length * (double)steelCutDemand2.Quantity);
 						}
-						item2.Cells[num2].Value = item2.Tag is SteelCutDemand&&((SteelCutDemand)item2.Tag).Joints>0?"Segmented purchase | "+((SteelCutDemand)item2.Tag).Joints+" joint(s)/member; "+((SteelCutDemand)item2.Tag).SpliceExtra.ToString("0.###",CultureInfo.InvariantCulture)+" m extra/joint":"Estimated";
+						item2.Cells[num2].Value = "Estimated";
 					}
 					catch (Exception ex)
 					{
@@ -3841,6 +3842,7 @@ namespace BeamScheduleFormatter
 				}
 			}
 			steelCutGrid.Rows.Clear();
+            UpdateAngleQuantityView();
 			foreach (SteelStock steelStock in steelStocks)
 			{
 				for (int k = 0; k < steelStock.Cuts.Count; k++)
@@ -3934,6 +3936,7 @@ namespace BeamScheduleFormatter
 				steelStocks.Sum((SteelStock stock) => 6.0 * stock.KgM) + num - SteelTotal(steelPlates, 8) + plateStocks.Sum((PlateSheet p) => p.BuyKg),
 				"kg"
 			});
+			if(steelAngles.Columns.Contains("AnglePaintArea"))list.Add(new object[]{"Angle bars installed painting reference",AnglePaintingTotal(),"m2"});
 			List<object[]> list2 = list;
 			foreach (IGrouping<double, DataGridViewRow> item in from DataGridViewRow row in crossBracing.Rows
 				where !row.IsNewRow && Cell(row, 12) == "Estimated"
@@ -3969,7 +3972,7 @@ namespace BeamScheduleFormatter
 				Quantity = qty,
 				KgM = mass
 			};
-			if(row.DataGridView==steelAngles)steelDemands.AddRange(AngleSegments.Expand(steelCutDemand,AngleSpliceExtra()));else steelDemands.Add(steelCutDemand);
+			if(row.DataGridView==steelAngles)steelDemands.AddRange(AngleSegments.Expand(steelCutDemand));else steelDemands.Add(steelCutDemand);
 			row.Tag = steelCutDemand;
 			return steelCutDemand;
 		}
@@ -4524,7 +4527,7 @@ worksExcelTimer.Tick += async delegate
 			};
 			OrganizeSections();
             ConfigureRcWorkspaces();
-            ConfigureAngleSegments();
+            ConfigureAngleQuantityView();
 			tabs.Multiline = true;
 			PowTheme.Apply(this);
             InstallExcelStatusBar();
@@ -4788,7 +4791,7 @@ worksExcelTimer.Tick += async delegate
 
 		internal List<string> WorksValidationIssues()
 		{
-			return errors.Concat(beam.WorksValidationIssues()).Concat(slab.WorksValidationIssues()).Distinct()
+			return errors.Concat(beam.WorksValidationIssues()).Concat(slab.WorksValidationIssues()).Concat(backupBill.Where(b=>b.ManualInputText!=null&&!BackupBill.ReadQuantity(b.ManualInputText).HasValue).Select(b=>"BOQ "+b.Code+" / "+b.Description+": invalid manual quantity: "+b.ManualInputText)).Distinct()
 				.ToList();
 		}
 
@@ -4812,7 +4815,7 @@ worksExcelTimer.Tick += async delegate
 					Multiline = true,
 					ScrollBars = ScrollBars.Both,
 					Font = new Font("Segoe UI", 10f),
-					Text = ((list.Count == 0) ? "No input issues found." : ("Use Save Program of Works to retain incomplete inputs. Resolve these issues before exporting final quantities:\r\n\r\n" + string.Join("\r\n\r\n", list)))
+					Text = ((list.Count == 0) ? "No input issues found." : ("Use Save Program of Works to retain incomplete inputs. Partial sync/export includes the valid quantities and lists these issues:\r\n\r\n" + string.Join("\r\n\r\n", list)))
 				});
 				form.ShowDialog(this);
 			}
@@ -7337,7 +7340,6 @@ worksExcelTimer.Tick += async delegate
 			xmlElement.SetAttribute("version", "21");
 			xmlElement.SetAttribute("computedInputsKnown", projectQuantitiesKnown.ToString());
 			WriteEarthSettings(xmlElement);
-            xmlElement.SetAttribute("angleSpliceExtra",angleSpliceExtra==null?"":angleSpliceExtra.Text);
 			WriteSteelProfiles(xmlElement);
 			xmlDocument.AppendChild(xmlElement);
 			foreach (KeyValuePair<string, DataGridView> item in Tables())
@@ -7379,6 +7381,7 @@ worksExcelTimer.Tick += async delegate
 			XmlDocument xmlDocument = new XmlDocument();
 			xmlDocument.LoadXml(DataXml());
             PowProjectInformation.Write(xmlDocument.DocumentElement,ProjectInfoStore.Read());
+            PowIssueOutput.Write(xmlDocument.DocumentElement,WorksValidationIssues());
             if(includeSourceFiles)ProjectSources().Write(xmlDocument.DocumentElement);
 			snapshottingWorks = true;
 			string text;
@@ -7420,20 +7423,22 @@ worksExcelTimer.Tick += async delegate
 			saved = DataXml();
 		}
 
-		private void Open()
-		{
-			Guard();
-			using (OpenFileDialog openFileDialog = new OpenFileDialog
-			{
-				Filter = "Program of Works|*.pow.xml"
-			})
-			{
-				if (openFileDialog.ShowDialog(this) == DialogResult.OK)
-				{
-					OpenFrom(openFileDialog.FileName);
-				}
-			}
-		}
+        private async void Open()
+        {
+            if(openingPow)return;
+            try{Guard();Commit();using(var dialog=new OpenFileDialog{Filter="Program of Works|*.pow.xml"}){
+                if(dialog.ShowDialog(this)!=DialogResult.OK)return;
+                openingPow=true;
+                while((linkingExcel||capturingExcelSource)&&!IsDisposed)await System.Threading.Tasks.Task.Delay(50);
+                if(IsDisposed)return;
+                openingPow=true;worksExcelTimer.Stop();excelSaveTimer.Stop();
+                if(currentSync!=null)try{await currentSync;}catch(Exception ex){ExcelFailure(ex);}
+                var snapshot=await System.Threading.Tasks.Task.Run(()=>PowProjectFileWriter.Read(dialog.FileName));
+                if(IsDisposed)return;
+                OpenProjectDocument(snapshot.Document,snapshot.Sources);currentPowPath=Path.GetFullPath(dialog.FileName);
+                if(worksExcel!=null&&linkedHasBackup){await LoadCatalogue();lastExcelXml="";dashboardDirty=true;RefreshVisibleWorksViews();saved=DataXml();ScheduleWorksExcel();}
+            }}catch(Exception ex){if(!IsDisposed)MessageBox.Show(this,ex.Message,"Open Program of Works",MessageBoxButtons.OK,MessageBoxIcon.Information);}finally{openingPow=false;if(!IsDisposed&&worksExcel!=null&&!excelBroken)ScheduleWorksExcel();}
+        }
 
 		internal void OpenFrom(string path)
 		{
@@ -7482,9 +7487,9 @@ worksExcelTimer.Tick += async delegate
 				throw new Exception("Choose a Program of Works file.");
 			}
 			NormalizeLegacyAAC(xmlDocument.DocumentElement);
-			if (DataXml() != saved)
+			if (PowOpenState.HasInputChanges(DataXml(),saved))
 			{
-				throw new Exception("Save current opening/wall edits before opening another project.");
+				throw new Exception("Save current project inputs before opening another Program of Works.");
 			}
 			if (beam.WorksSnapshot() != null || slab.WorksSnapshot() != null)
 			{
@@ -7562,7 +7567,6 @@ worksExcelTimer.Tick += async delegate
 			try
 			{
 				ReadEarthSettings(xmlDocument.DocumentElement);
-                if(angleSpliceExtra!=null)angleSpliceExtra.Text=xmlDocument.DocumentElement.GetAttribute("angleSpliceExtra");
 				ReadSteelProfiles(xmlDocument.DocumentElement);
 				projectQuantitiesKnown = xmlDocument.DocumentElement.HasAttribute("computedInputsKnown") && bool.Parse(xmlDocument.DocumentElement.GetAttribute("computedInputsKnown"));
 				backupBill = list;
@@ -7674,6 +7678,7 @@ worksExcelTimer.Tick += async delegate
 				}
 			}
             ReadExtraProject(xmlDocument.DocumentElement);ReadRoofingSpecification(xmlDocument.DocumentElement);
+            if(worksExcel!=null){string workbook=Path.GetFileName(worksExcel.PathName);savedSourceFiles.AddRange(ProjectSources().Files.Where(f=>f.Kind=="Excel workbook (imported original)"&&f.Name.Equals(workbook,StringComparison.OrdinalIgnoreCase)));}
             projectSourceFiles.Replace(savedSourceFiles);
             if(savedProjectInformation!=null)ProjectInfoStore.Save(savedProjectInformation.Name,savedProjectInformation.Location,savedProjectInformation.Office,savedProjectInformation.OfficeAddress);
 			Recalculate();
@@ -7684,7 +7689,7 @@ worksExcelTimer.Tick += async delegate
 
 		private void OnWorksClosing(object sender, FormClosingEventArgs e)
 		{
-            if(savingPow){e.Cancel=true;return;}
+            if(savingPow||openingPow){e.Cancel=true;return;}
 			Commit();
 			worksExcelTimer.Stop();
 			if(worksExcel!=null&&!excelCloseFlushed){e.Cancel=true;if(!closingExcel){closingExcel=true;FinishExcelClose();}return;}
@@ -7719,7 +7724,7 @@ worksExcelTimer.Tick += async delegate
 
 		private void AddHome()
 		{
-			TabPage tabPage = new TabPage("Bill of Quantities");
+			TabPage tabPage = new TabPage("Bill of Quantities"){Padding=new Padding(0,0,0,8)};
 			var value = new PremiumSectionHeading { Text = "Bill of Quantities", Subtitle = "Project quantities and their measurement sources" };
 			var flowLayoutPanel = PremiumExcelToolbar();
 			boqStatus = new Label
@@ -7734,7 +7739,7 @@ worksExcelTimer.Tick += async delegate
 			boqGrid.ReadOnly = true;
 			boqGrid.AllowUserToAddRows = false;
 			boqGrid.AllowUserToDeleteRows = false;
-            boqDisclosure=new BoqDisclosure(boqGrid);ConfigureBoqQuantityDisplay();
+            boqDisclosure=new BoqDisclosure(boqGrid);ConfigureBoqQuantityDisplay();BoqScrollState.Attach(boqGrid);boqGrid.ScrollBars=ScrollBars.Both;
 			boqGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 			boqGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
 			float[] array = new float[4] { 16f, 66f, 14f, 9f };
@@ -7896,8 +7901,7 @@ worksExcelTimer.Tick += async delegate
 			if (list.Count > 0)
 			{
 				boqStatus.ForeColor = Color.Firebrick;
-				boqStatus.Text = "REVIEW: " + list.Count + " input issue(s). Select Review inputs. Save Program of Works retains your entries; final quantities are withheld until valid.";
-				return;
+				boqStatus.Text = "PARTIAL: " + list.Count + " input issue(s). Valid quantities shown; use Review inputs for the issue list.";
 			}
 			try
 			{
@@ -7920,8 +7924,8 @@ worksExcelTimer.Tick += async delegate
 					}
 				}
 				AddLegacyBoqRows();
-boqStatus.ForeColor = PowTheme.Teal;
-				boqStatus.Text = "Quantities are up to date. Source rows show the breakdown; count each material total once.";
+boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
+				boqStatus.Text = list.Count>0?"PARTIAL: "+list.Count+" issues listed; valid quantities shown.":"Quantities are up to date. Source rows show the breakdown; count each material total once.";
 			}
 			catch (Exception ex)
 			{
@@ -9242,7 +9246,7 @@ boqStatus.ForeColor = PowTheme.Teal;
 			}
 		}
 
-void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn column in boqGrid.Columns)column.ReadOnly=true;boqGrid.Columns[2].ReadOnly=false;boqGrid.CellValidating+=(s,e)=>{if(paintingBackupBill||e.RowIndex<0||e.ColumnIndex!=2)return;object tag=boqGrid.Rows[e.RowIndex].Tag;if(!(tag is BackupBillItem)&&!(tag is DataGridViewRow))return;string text=Convert.ToString(e.FormattedValue).Trim();if(text!=""&&!BackupBill.ReadQuantity(text).HasValue){e.Cancel=true;boqGrid.Rows[e.RowIndex].ErrorText="Enter a finite nonnegative quantity.";}};boqGrid.CellEndEdit+=(s,e)=>{if(paintingBackupBill||e.RowIndex<0||e.ColumnIndex!=2)return;var row=boqGrid.Rows[e.RowIndex];var item=row.Tag as BackupBillItem;var legacy=row.Tag as DataGridViewRow;if(item!=null){item.ManualQuantity=BackupBill.ReadQuantity(row.Cells[2].Value);UpdateBoundManualRows(item);}else if(legacy!=null){bool before=filling;filling=true;try{legacy.Cells[3].Value=Convert.ToString(row.Cells[2].Value);}finally{filling=before;}CommitManualEntryEdit(legacy);Recalculate();}else return;row.ErrorText="";dashboardDirty=reportPreviewDirty=true;ScheduleWorksExcel();};}
+void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn column in boqGrid.Columns)column.ReadOnly=true;boqGrid.Columns[2].ReadOnly=false;boqGrid.CellValidating+=(s,e)=>{if(paintingBackupBill||e.RowIndex<0||e.ColumnIndex!=2)return;object tag=boqGrid.Rows[e.RowIndex].Tag;if(!(tag is BackupBillItem)&&!(tag is DataGridViewRow))return;string text=Convert.ToString(e.FormattedValue).Trim();if(text!=""&&!BackupBill.ReadQuantity(text).HasValue){e.Cancel=false;boqGrid.Rows[e.RowIndex].ErrorText="Invalid quantity is retained and listed for review.";}};boqGrid.CellEndEdit+=(s,e)=>{if(paintingBackupBill||e.RowIndex<0||e.ColumnIndex!=2)return;var row=boqGrid.Rows[e.RowIndex];var item=row.Tag as BackupBillItem;var legacy=row.Tag as DataGridViewRow;if(item!=null){string raw=Convert.ToString(row.Cells[2].Value).Trim();item.ManualQuantity=BackupBill.ReadQuantity(raw);item.ManualInputText=raw!=""&&!item.ManualQuantity.HasValue?raw:null;if(item.ManualInputText==null)UpdateBoundManualRows(item);}else if(legacy!=null){bool before=filling;filling=true;try{legacy.Cells[3].Value=Convert.ToString(row.Cells[2].Value);}finally{filling=before;}CommitManualEntryEdit(legacy);Recalculate();}else return;row.ErrorText=item!=null&&item.ManualInputText!=null?"Invalid manual quantity; included in issue list":"";dashboardDirty=reportPreviewDirty=true;ScheduleWorksExcel();};}
 
 
 

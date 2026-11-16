@@ -3,11 +3,20 @@ namespace BeamScheduleFormatter {
 static class RcWorksheetLayout {
  internal static void Grid(DataGridView grid){grid.ScrollBars=ScrollBars.Both;grid.Dock=DockStyle.Fill;grid.Margin=Padding.Empty;grid.BorderStyle=BorderStyle.None;grid.AutoSizeRowsMode=DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;grid.DefaultCellStyle.WrapMode=DataGridViewTriState.True;}
  internal static void Embedded(Form owner,DataGridView input,TabControl summaries,Control oldHost,Control tools,Label source,string title,string guide){
-  TopTabLayout.Promote(owner,summaries,input,oldHost,tools,"Measurements",source);
-  foreach(TabPage page in summaries.TabPages){page.Padding=new Padding(14,10,14,14);page.AutoScroll=false;}
-  var heading=new WorksheetHeading{Text=title,Subtitle="Enter measurements below  ·  Calculated quantities update automatically"};heading.SetGuide(guide);summaries.TabPages[0].Controls.Add(heading);summaries.TabPages[0].Controls.SetChildIndex(heading,summaries.TabPages[0].Controls.Count-1);
-  summaries.SelectedIndexChanged+=(s,e)=>{var page=summaries.SelectedTab;if(page!=null)foreach(var h in page.Controls.OfType<WorksheetHeading>())page.Controls.SetChildIndex(h,page.Controls.Count-1);};
-  foreach(var label in owner.Controls.OfType<Label>().Where(l=>l.Dock==DockStyle.Top))label.Visible=false;
+  owner.SuspendLayout();try{
+   var pages=summaries.TabPages.Cast<TabPage>().ToArray();foreach(var page in pages)summaries.TabPages.Remove(page);
+   if(summaries.Parent!=null)summaries.Parent.Controls.Remove(summaries);
+   if(oldHost!=null&&oldHost!=summaries&&oldHost.Parent!=null)oldHost.Parent.Controls.Remove(oldHost);
+   var navigation=new NavigationTabs{Dock=DockStyle.Fill,AccessibleName=title+" workspace tabs"};
+   var measurements=new TabPage("Measurements"){Name="Measurements",Padding=new Padding(14,10,14,14),AutoScroll=false};input.Dock=DockStyle.Fill;measurements.Controls.Add(input);input.Visible=true;
+   if(source!=null){source.Dock=DockStyle.Top;measurements.Controls.Add(source);}
+   var heading=new WorksheetHeading{Text=title,Subtitle="Enter measurements below  ·  Calculated quantities update automatically"};heading.SetGuide(guide);measurements.Controls.Add(heading);
+   navigation.TabPages.Add(measurements);foreach(var page in pages){page.Padding=new Padding(14,10,14,14);page.AutoScroll=false;navigation.TabPages.Add(page);}
+   summaries.Dispose();if(oldHost!=null&&oldHost!=summaries)oldHost.Dispose();
+   foreach(var label in owner.Controls.OfType<Label>().Where(l=>l.Dock==DockStyle.Top))label.Visible=false;
+   owner.Controls.Add(navigation);owner.Controls.SetChildIndex(navigation,0);tools.Dock=DockStyle.Top;owner.Controls.SetChildIndex(tools,owner.Controls.Count-1);navigation.SelectedTab=measurements;
+   owner.Shown+=(s,e)=>{if(!navigation.IsDisposed){navigation.SelectedTab=measurements;input.Visible=true;}};
+  }finally{owner.ResumeLayout(true);}
   Grid(input);
  }
 }

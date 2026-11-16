@@ -8,7 +8,7 @@ static class SteelWeight {
  public static void Positive(params double[] values){if(values.Any(v=>double.IsNaN(v)||double.IsInfinity(v)||v<=0||v>1e12))throw new Exception("Enter positive finite dimensions and unit weights.");}
  public static void Count(int quantity){if(quantity<1||quantity>100000)throw new Exception("Quantity must be 1 to 100000 whole pieces.");}
 }
-class SteelCutDemand {public string Member,Specification;public double Length,KgM,SpliceExtra;public int Quantity,Joints;public SteelCutDemand Source;}
+class SteelCutDemand {public string Member,Specification;public double Length,KgM;public int Quantity,Parts;public SteelCutDemand Source;}
 class SteelCut {public SteelCutDemand Demand;public int Piece;public double RemainingAfter;}
 class SteelStock {public int Number;public string Specification;public double KgM,Length=6,Remaining=6;public readonly List<SteelCut> Cuts=new List<SteelCut>();public double Net{get{return Cuts.Sum(c=>c.Demand.Length);}}}
 class SteelStockComparer:IComparer<SteelStock>{public int Compare(SteelStock a,SteelStock b){int c=a.Remaining.CompareTo(b.Remaining);return c!=0?c:a.Number.CompareTo(b.Number);}}
