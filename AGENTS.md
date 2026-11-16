@@ -94,3 +94,9 @@ visual/performance/Excel verification limits must be reported honestly.
 Report body text uses the 7pt minimum to save paper (headings may be larger); keep A4 and
 verify rendered output. Beam deflection checks follow NSCP 2015: RC Table 424.2.2 with
 Section 424.2.4 long-term deflection, steel/other members per the NSCP Chapter 1 limits.
+
+## Release hold (16 November 2026)
+
+Owner: do not release v1.4.63/v1.4.64 yet, and do not submit to the Microsoft Store.
+Keep work on the development branch; do not merge to main (which triggers the automatic
+GitHub release) until the owner explicitly asks.
