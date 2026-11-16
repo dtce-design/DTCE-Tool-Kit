@@ -1,0 +1,20 @@
+DTCE Tool Kit v1.4.53 — Windows x64 desktop TEST BUILD
+16 November 2026 (Asia/Manila)
+
+Increase watermark opacity from 9% to the approved 18% in native report pages,
+HTML reports and the vector report layout. The large 180pt logos use the staggered
+triangular pattern. Admin uses DTCE; User uses DPWH.
+
+This revision applies to newly generated reports. Includes the checked v1.4.51
+features and flattened 300dpi AES-256/R6 PDF workflow. See that build's notes for
+scope and security limits. PDF permissions are reader-enforced, not tamper-proof.
+Other unfinished engineering drafts remain on the recovery branch.
+
+Validation: Admin/User compile against C#5/.NET Framework 4.8; 14 existing report,
+watermark and real AES-256 integration checks pass. A sample report is rendered
+for visual review. Native Windows GUI/GDI/qpdf/Excel testing remains pending.
+PowerShell Windows build/test scripts cannot run in this Linux workspace; source
+compilation and selected engine/integration checks are used here. No Store upload.
+
+Extract the ENTIRE versioned folder before running, including tools/qpdf and its
+DLLs/licenses. Requires Windows x64 and .NET Framework 4.8. No private key bundled.
