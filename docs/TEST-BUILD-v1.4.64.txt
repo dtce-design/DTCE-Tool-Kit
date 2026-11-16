@@ -48,3 +48,17 @@ VALIDATION (Linux, Mono 6.8 compiler with .NET Framework 4.8 reference assemblie
 - Still Windows-only and not run here: native UI tests, AccessProtocolTests, qpdf-secured PDF, Excel
   COM, printing, capture exclusion. Run Test.ps1 / Build-User.ps1 / Build-Admin.ps1 on Windows or CI.
 No Store, TestFlight or Pages publication. No keys added, rotated or exported.
+
+ADDITIONAL CODE REVIEW (16 November 2026, after owner request to check the whole app)
+- GitHub Actions: every CI run since 9 Nov 2026 (v1.4.37 through v1.4.64, including all ChatGPT
+  checkpoints) failed before starting: "The job was not started because recent account payments
+  have failed or your spending limit needs to be increased." No Windows test or build has run in CI
+  since v1.4.36. The owner must fix GitHub Billing & plans, then re-run PR #7 checks.
+- Reviewed and found correct: Splice/Development/Hooks (NSCP 2015 Sec. 425 equations, caps, Class A/B
+  laps, Ldh, Ldc, compression lap, bend diameters Tables 425.3.1/425.3.2); angle stock portions;
+  POW open-state comparison; Excel range batching; structural steel IDs; BOQ disclosure; wall footing
+  and site/pavement/slope quantities; no-numeric-prefill rule enforcement.
+- Fixed: POW Input Issues worksheet now writes issue/treatment text as Text format so an issue starting
+  with = + - @ cannot become an Excel formula.
+- Compiler warnings: only unused local variables (no logic effect); one removed in new code.
+- Not reviewable here: native WinForms behaviour, Excel COM, printing, capture exclusion (need Windows).
