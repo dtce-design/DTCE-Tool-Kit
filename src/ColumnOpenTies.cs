@@ -1,0 +1,12 @@
+using System;using System.Linq;using System.Globalization;using System.Windows.Forms;
+namespace BeamScheduleFormatter {
+static class ColumnOpenTies {
+ internal static void Add(MiscStructureQuantity column,double widthMm,double depthMm,double coverMm,int diameter,int parallelWidth,int parallelDepth,string hooks,LengthConfiguration cfg){if(parallelWidth<0||parallelDepth<0||parallelWidth>100||parallelDepth>100)throw new Exception("Open ties per set must be whole counts from 0 to 100.");if(parallelWidth+parallelDepth==0)return;if(hooks!="135° / 135°"&&hooks!="90° / 135°")throw new Exception("Select open-tie hook angles in Column settings.");var values=cfg.Values(diameter,false);if(values.TieInside<=0)throw new Exception("Open-tie bend geometry requires an approved detail for this diameter.");double radius=(values.TieInside+diameter)/2000,tail135=values.Tail135/1000,tail90=values.Tail90/1000;int sets=column.Steel.Result.Lines.Single(l=>l.Part=="Stirrups").TieSetsPerBeam;
+  Action<string,double,int> add=(direction,dimension,count)=>{if(count==0)return;double axis=(dimension-2*coverMm-diameter)/1000;if(axis<2*radius)throw new Exception("Open tie cannot fit the selected column cover and bend radius.");double angle=hooks=="135° / 135°"?270:225;double raw=axis-2*radius+angle*Math.PI/180*radius+tail135+(hooks=="135° / 135°"?tail135:tail90),cut=Math.Ceiling(raw/.025-1e-10)*.025;int pieces=checked(sets*count);double metres=cut*pieces*column.Quantity;column.Steel.Result.Lines.Add(new EstimateLine{Beam=column.Steel.Beam,Part="Column open ties / "+direction,Diameter=diameter,Grade=diameter<=12?cfg.GradeSmall:cfg.GradeLarge,PiecesPerBeam=pieces,CutLength=cut,Metres=metres,Kg=metres*EstimatorEngine.UnitMass(diameter),Formula="Parallel to "+direction+": "+count+" pieces/set × "+sets+" tie sets/column × "+column.Quantity+" columns; hooks "+hooks+"; centre-line axis = ("+dimension+" − 2×"+coverMm+" − "+diameter+")/1000 = "+axis.ToString("0.###",CultureInfo.InvariantCulture)+" m; raw cut = axis − 2r + bend arcs + two hook tails = "+raw.ToString("0.######",CultureInfo.InvariantCulture)+" m; cut rounded up to 25 mm."});};add("Width",widthMm,parallelWidth);add("Depth",depthMm,parallelDepth);
+ }
+}
+partial class ProgramOfWorksForm {
+ ComboBox columnOpenHooks;
+ static int OptionalCount(DataGridViewRow row,int column){double value=OptionalNumber(row,column);if(value<0||value>100000||value!=Math.Floor(value))throw new Exception("Enter a nonnegative whole bar/tie count.");return (int)value;}
+}
+}

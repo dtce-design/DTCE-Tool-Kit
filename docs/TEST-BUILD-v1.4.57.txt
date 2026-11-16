@@ -1,0 +1,47 @@
+DTCE Tool Kit v1.4.57 — checked Windows test build (16 November 2026)
+
+Save Program of Works now shows the edition logo, animated progress, an explicit
+success message and a persistent saved timestamp/file name. File compression and
+writing run in the background; same-directory atomic replacement retains the old
+file on write failure. Ctrl+S / Ctrl+Shift+S and save-before-close use this flow.
+Original imported DXFs, selected Excel workbook snapshots and imported profile XML
+travel inside the POW. Project files also accepts other attachments and exports
+original copies. Limits: 32 MiB/file, 128 MiB/project, 256 files. Older projects can
+recover embedded DXF text; originals not previously recorded cannot be recreated.
+Blank or stale beam-source labels can resolve by a unique actual mark. Unresolved
+marks remain pending for review; ambiguous source ownership is rejected.
+
+BOQ pay items have expand/collapse arrows for source breakdowns, with unchanged
+totals. Beam/foundation gravel routes to 804(7), embankment from excavation to
+804(1)a, and common borrow remains separate at 804(2)a. Excel detail-range batches
+now stay below the address-length limit, with operation-specific failure context.
+Full top-tab captions receive room to wrap. Dotted navigation focus cues are hidden.
+All new POW measurement/count rows start without numeric prefills; saved and
+imported values and calculated outputs are preserved.
+
+RC Start > Foundation / Footing Settings selects spacing or number of bars for
+each bottom/top X/Y direction; the worksheet activates the matching inputs. Legacy
+mixed methods are retained for review. Pad and wall footing actual excavation
+depths are visible, required, and used for excavation/backfill. No depth is inferred.
+Columns accept two independent main-bar diameter/count groups. Main closed hoops
+remain automatic; extra open ties parallel to Width and Depth have separate piece
+counts, cuts and purchase quantities. Hook angles are explicitly selected in Column
+settings. Column spacing schedules accept the supplied notation; a 3 ties/set note
+is not multiplied or used to infer open shapes or joint heights.
+
+237 pure/core checks passed: 26 source archives/reference recovery; 28 mixed bars,
+open ties, schedules, pay routing, Excel address batching and atomic saves; 63 POW
+beam-mark imports; 95 additional-work calculations; 25 column/purchase checks.
+Both Admin and User compile as C#5/net48. Six relevant native UI regression suites
+compile. Actual Windows UI, animated save rendering, keyboard behavior and Excel
+COM cannot run on this Linux host; native confirmation is still required. The
+Excel HRESULT fix addresses an observed overlong union address in the source;
+other workbook protection/invalid range causes may still need the new error context.
+
+All v1.4.56 report/save fixes are retained. Professional A4 reports use minimum 7pt,
+approved 18% triangular watermarks and flattened AES-256/R6 PDF export. Extract the
+ENTIRE folder, including tools/qpdf. PDF permissions do not guarantee tamper-proof
+files. Admin uses DTCE and User uses DPWH branding. Separate Schedule Formatter
+logic is unchanged, except version. No private key is bundled; keys were not rotated.
+No Microsoft Store, TestFlight or Pages publication. Unfinished wind/STAAD/
+beam-deflection/capture drafts are not part of this checked package.

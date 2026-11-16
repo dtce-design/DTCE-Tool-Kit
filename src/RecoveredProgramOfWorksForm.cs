@@ -421,10 +421,11 @@ namespace BeamScheduleFormatter
 					footingLarge.Text
 				}, array, 28);
 			}
-			array[22] = suitableSoil.Value.ToString(CultureInfo.InvariantCulture);
+			if(add)foreach(int i in new[]{2,3,4,7,8,9,10,11,12,13,14,15,16,17,18,19,20})array[i]="";
+            array[22] = suitableSoil.Value.ToString(CultureInfo.InvariantCulture);
 			array[23] = borrowSwell.Value.ToString(CultureInfo.InvariantCulture);
 			array[24] = borrowShrink.Value.ToString(CultureInfo.InvariantCulture);
-			FootingEntryForm dialog = new FootingEntryForm(array);
+			FootingEntryForm dialog = new FootingEntryForm(array,footingInputMethods.Select(m=>m==null?"Spacing (mm)":m.Text).ToArray(),(double)rcCovers["Footing"].Value);
 			try
 			{
 				if (dialog.ShowDialog(this) != DialogResult.OK)
@@ -2600,7 +2601,7 @@ namespace BeamScheduleFormatter
 				{ 10, "10" }
 			});
 			cutFill.Columns[8].ToolTipText = "Percentage of cut material suitable for reuse; 0 means all unsuitable. Subject to material approval.";
-			List<string> list = new List<string> { "Footing ID", "Description", "L m (X)", "B m (Y)", "T m", "Qty", "Exc depth m (blank=T+0.10)", "Cover mm" };
+			List<string> list = new List<string> { "Footing ID", "Description", "L m (X)", "B m (Y)", "T m", "Qty", "Excavation depth m (actual)", "Cover mm" };
 			string[] array = new string[4] { "Bottom X", "Bottom Y", "Top X", "Top Y" };
 			foreach (string text in array)
 			{
@@ -2683,7 +2684,7 @@ namespace BeamScheduleFormatter
 			{
 				for (int j = 6; j < 25; j++)
 				{
-					footings.Columns[j].Visible = (j>=8&&j<=19)||advanced.Checked && j != 22 && j != 23 && j != 24;
+					footings.Columns[j].Visible = j==6||(j>=8&&j<=19)||advanced.Checked && j != 22 && j != 23 && j != 24;
 				}
 			};
 			flowLayoutPanel.Controls.Add(advanced);
@@ -2858,7 +2859,7 @@ namespace BeamScheduleFormatter
 			{
 				foreach (KeyValuePair<int, string> value in values)
 				{
-					if (!QuantityInputDefaults.IsMultiplier(grid.Columns[value.Key].HeaderText) && row.Cells[value.Key].Value == null)
+					if (!QuantityInputDefaults.IsMultiplier(grid.Columns[value.Key].HeaderText) && !QuantityInputDefaults.IsNumber(value.Value) && row.Cells[value.Key].Value == null)
 					{
 						row.Cells[value.Key].Value = value.Value;
 					}
@@ -2993,7 +2994,8 @@ namespace BeamScheduleFormatter
 					FootingBarSpec[] array = new FootingBarSpec[4];
 					for (int k = 0; k < 4; k++)
 					{
-						int num4 = 8 + 3 * k;
+						ValidateFootingInputMethod(item2,k);
+                        int num4 = 8 + 3 * k;
 						double num5 = OptionalNumber(item2, num4);
 						double num6 = OptionalNumber(item2, num4 + 2);
 						if (num5 != Math.Truncate(num5) || num6 != Math.Truncate(num6))
@@ -3008,7 +3010,7 @@ namespace BeamScheduleFormatter
 						};
 					}
 					double num7 = Number(item2, 4);
-					FootingTakeoff footingTakeoff = FootingTakeoff.Calculate(Cell(item2, 0), Cell(item2, 1), Number(item2, 2), Number(item2, 3), num7, Count(item2, 5), OptionalNumber(item2, 6, num7 + 0.1), OptionalNumber(item2, 7, 75.0), Cell(item2, 21) != "Earth cast", array, OptionalNumber(item2, 20), configuration, OptionalNumber(item2, 23, 20.0), OptionalNumber(item2, 24, 10.0), OptionalNumber(item2, 22, 100.0));
+					FootingTakeoff footingTakeoff = FootingTakeoff.Calculate(Cell(item2, 0), Cell(item2, 1), Number(item2, 2), Number(item2, 3), num7, Count(item2, 5), Number(item2, 6), OptionalNumber(item2, 7, (double)rcCovers["Footing"].Value), Cell(item2, 21) != "Earth cast", array, OptionalNumber(item2, 20), configuration, OptionalNumber(item2, 23, 20.0), OptionalNumber(item2, 24, 10.0), OptionalNumber(item2, 22, 100.0));
 					footingResults.Add(footingTakeoff);
 					earthSources.Add(footingTakeoff.Soil);
 					item2.Tag = footingTakeoff;
@@ -3374,6 +3376,7 @@ namespace BeamScheduleFormatter
 					throw new Exception("Complete or remove unfinished roof profile rows before importing a library.");
 				}
 				List<RoofProfile> incoming = RoofProfileLibrary.Load(openFileDialog.FileName);
+                projectSourceFiles.CaptureFile(openFileDialog.FileName,"Roof profile library");
 				List<RoofProfile> list = RoofProfileLibrary.Merge(RoofProfileLibrary.Merge(File.Exists(RoofProfileLibrary.DefaultPath) ? RoofProfileLibrary.Load(RoofProfileLibrary.DefaultPath) : new List<RoofProfile>(), savedRoofProfiles), incoming);
 				RoofProfileLibrary.Save(RoofProfileLibrary.DefaultPath, list);
 				filling = true;
@@ -4431,6 +4434,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			base.Controls.Add(flowLayoutPanel);
 			GridEditHistory.AddCommands(this,flowLayoutPanel);
             Button(flowLayoutPanel, "Save Program of Works", Save);
+            Button(flowLayoutPanel,"Project files",ManageProjectFiles);powSaveIndicator=new Label{AutoSize=true,Padding=new Padding(8,10,0,0),Text=""};flowLayoutPanel.Controls.Add(powSaveIndicator);
             Button(flowLayoutPanel, "Export report file", ExportEngineeringReport);
 			Button(flowLayoutPanel, "Open Program of Works", Open);
 			Button(flowLayoutPanel, "Print preview", PreviewQuantityEngineeringReport);
@@ -5129,8 +5133,10 @@ worksExcelTimer.Tick += async delegate
 			if (estimatorForm != null)
 			{
 				estimatorForm.HideWorksExcelStatus();
+                estimatorForm.sourceAttachments.BeforeAdd=file=>{var all=ProjectSources();all.Add(file);};
 			}
-			TabPage tabPage = new TabPage(title);
+			var slabForm=form as SlabEstimatorForm;if(slabForm!=null)slabForm.sourceAttachments.BeforeAdd=file=>{var all=ProjectSources();all.Add(file);};
+            TabPage tabPage = new TabPage(title);
 			form.TopLevel = false;
 			form.FormBorderStyle = FormBorderStyle.None;
 			form.MinimumSize = Size.Empty;
@@ -5213,7 +5219,7 @@ worksExcelTimer.Tick += async delegate
 		{
 			WorksDataGridView g = new WorksDataGridView
 			{
-                DefaultValuesScope=()=>new GridInputInitialization(()=>filling,v=>filling=v),
+                DefaultValuesScope=()=>new GridInputInitialization(()=>filling,v=>filling=v),BlankNumericInputs=true,
 				Dock = DockStyle.Fill,
 				AllowUserToAddRows = true,
 				RowHeadersVisible = false,
@@ -7355,34 +7361,21 @@ worksExcelTimer.Tick += async delegate
 			WriteBackupBillRoutes(xmlElement);
 			WriteStructureConfigurations(xmlElement);
             WriteExtraProject(xmlElement);WriteRoofingSpecification(xmlElement);
+            ProjectSources().Write(xmlElement,true);
 			return xmlDocument.OuterXml;
 		}
 
-		private void Save()
-		{
-			Guard();
-            if(!string.IsNullOrEmpty(currentPowPath)){SaveTo(currentPowPath);return;}
-			Commit();
-			using (SaveFileDialog saveFileDialog = new SaveFileDialog
-			{
-				Filter = "Program of Works|*.pow.xml",
-				FileName = "Program-of-Works.pow.xml"
-			})
-			{
-				if (saveFileDialog.ShowDialog(this) == DialogResult.OK)
-				{
-					SaveTo(saveFileDialog.FileName);
-				}
-			}
-		}
+		private async void Save(){await SaveWithFeedback(false);}
 
-		internal string WorksProjectXml()
+		internal string WorksProjectXml(){return BuildWorksProjectXml(true);}
+        private string BuildWorksProjectXml(bool includeSourceFiles)
 		{
 			Commit();
 			Recalculate();
 			XmlDocument xmlDocument = new XmlDocument();
 			xmlDocument.LoadXml(DataXml());
             PowProjectInformation.Write(xmlDocument.DocumentElement,ProjectInfoStore.Read());
+            if(includeSourceFiles)ProjectSources().Write(xmlDocument.DocumentElement);
 			snapshottingWorks = true;
 			string text;
 			string text2;
@@ -7416,19 +7409,7 @@ worksExcelTimer.Tick += async delegate
 		{
 			Guard();
 			string contents = WorksProjectXml();
-			string text = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-			try
-			{
-				File.WriteAllText(text, contents, Encoding.UTF8);
-				File.Copy(text, path, true);
-			}
-			finally
-			{
-				if (File.Exists(text))
-				{
-					File.Delete(text);
-				}
-			}
+            PowProjectFileWriter.AtomicWrite(path,contents);
 			beam.WorksSaved();
 			slab.WorksSaved();
             currentPowPath=Path.GetFullPath(path);
@@ -7469,13 +7450,14 @@ worksExcelTimer.Tick += async delegate
 				{
 					DtdProcessing = DtdProcessing.Prohibit,
 					XmlResolver = null,
-					MaxCharactersInDocument = 100000000L
+					MaxCharactersInDocument = 536870912L
 				}))
 				{
 					xmlDocument.Load(reader);
 				}
 			}
             var savedProjectInformation=PowProjectInformation.Read(xmlDocument.DocumentElement);
+            var savedSourceFiles=PowSourceFiles.Read(xmlDocument.DocumentElement);
             bool roofSchema=xmlDocument.DocumentElement.Name=="ProgramOfWorks"&&xmlDocument.DocumentElement.GetAttribute("version")=="21";
             ValidateRoofingSpecification(xmlDocument.DocumentElement,roofSchema);
             bool extraSchema=xmlDocument.DocumentElement.Name=="ProgramOfWorks"&&(roofSchema||xmlDocument.DocumentElement.GetAttribute("version")=="20");
@@ -7681,6 +7663,7 @@ worksExcelTimer.Tick += async delegate
 				}
 			}
             ReadExtraProject(xmlDocument.DocumentElement);ReadRoofingSpecification(xmlDocument.DocumentElement);
+            projectSourceFiles.Replace(savedSourceFiles);
             if(savedProjectInformation!=null)ProjectInfoStore.Save(savedProjectInformation.Name,savedProjectInformation.Location,savedProjectInformation.Office,savedProjectInformation.OfficeAddress);
 			Recalculate();
 			ShowPipeGroup();
@@ -7690,10 +7673,11 @@ worksExcelTimer.Tick += async delegate
 
 		private void OnWorksClosing(object sender, FormClosingEventArgs e)
 		{
+            if(savingPow){e.Cancel=true;return;}
 			Commit();
 			worksExcelTimer.Stop();
 			if(worksExcel!=null&&!excelCloseFlushed){e.Cancel=true;if(!closingExcel){closingExcel=true;FinishExcelClose();}return;}
-			if (DataXml() != saved)
+			if (DataXml() != saved || beam.WorksDirty || slab.WorksDirty)
 			{
 				switch (MessageBox.Show(this, "Save Program of Works entries before closing?", "Program of Works", MessageBoxButtons.YesNoCancel))
 				{
@@ -7701,22 +7685,9 @@ worksExcelTimer.Tick += async delegate
 					e.Cancel = true;
 					return;
 				case DialogResult.Yes:
-					try
-					{
-						Save();
-					}
-					catch (Exception ex2)
-					{
-						MessageBox.Show(this, ex2.Message, "Save failed");
-						e.Cancel = true;
-						return;
-					}
-					if (DataXml() != saved)
-					{
-						e.Cancel = true;
-						return;
-					}
-					break;
+                    e.Cancel=true;
+                    SaveThenClose();
+                    return;
 				}
 			}
 			Form[] array = new Form[2] { beam, slab };
@@ -7757,6 +7728,7 @@ worksExcelTimer.Tick += async delegate
 			boqGrid.ReadOnly = true;
 			boqGrid.AllowUserToAddRows = false;
 			boqGrid.AllowUserToDeleteRows = false;
+            boqDisclosure=new BoqDisclosure(boqGrid);
 			boqGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 			boqGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
 			float[] array = new float[4] { 16f, 66f, 14f, 9f };
@@ -10284,6 +10256,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 				if (openFileDialog.ShowDialog(this) == DialogResult.OK)
 				{
 					List<StructureProfile> incoming = StructureProfileLibrary.Load(openFileDialog.FileName);
+                    projectSourceFiles.CaptureFile(openFileDialog.FileName,"Structure profile library");
 					StructureProfileLibrary.Save(StructureProfileLibrary.DefaultPath, StructureProfileLibrary.Merge(SavedStructureProfiles(), incoming));
 					MessageBox.Show(this, "Profiles imported and saved in Documents. Select the structure type, then Load Profile to add one. App updates reuse this library.", "Structure profiles");
 				}

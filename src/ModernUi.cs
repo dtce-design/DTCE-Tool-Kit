@@ -36,7 +36,7 @@ static class ModernUi {
  }
  internal static void Navigation(TabControl tabs) {
   tabs.Alignment=TabAlignment.Top;tabs.Multiline=true;tabs.SizeMode=TabSizeMode.Normal;
-  tabs.ItemSize=new Size(0,36);tabs.Padding=new Point(16,9);
+  tabs.ItemSize=new Size(0,36);tabs.Padding=new Point(24,9);
   tabs.AccessibleName="Program of Works sections";
  }
  internal static bool Primary(string text) {
