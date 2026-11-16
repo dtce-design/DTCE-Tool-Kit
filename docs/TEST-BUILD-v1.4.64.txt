@@ -62,3 +62,14 @@ ADDITIONAL CODE REVIEW (16 November 2026, after owner request to check the whole
   with = + - @ cannot become an Excel formula.
 - Compiler warnings: only unused local variables (no logic effect); one removed in new code.
 - Not reviewable here: native WinForms behaviour, Excel COM, printing, capture exclusion (need Windows).
+
+SECOND REVIEW PASS (owner: "Go")
+- CI re-run attempted: still blocked by GitHub billing ("recent account payments have failed").
+- User save screen now shows the DTCE logo (DPWH logo no longer used anywhere in code).
+- Fixed: concrete septic vault / CHB catch basin cover soffit formwork was measured over the full outer
+  footprint L × W; it is now the clear chamber area less partitions and the hatch (the cover bears on
+  the walls). Example 2.0 × 1.5 m, 0.15 m walls: soffit 2.64 → 1.68 m². New ChamberTakeoffTests (7).
+- Checked correct: chamber/canal concrete, wall/base forms, plaster, waterproofing, excavation and
+  backfill; RC wall concrete/forms; gravel entries.
+- Note (not changed): the BOQ "Gravel" section totals beam, footing and manual gravel; chamber/canal
+  gravel is billed under its own 804(7) source without the gravel purchase allowance. No double count.

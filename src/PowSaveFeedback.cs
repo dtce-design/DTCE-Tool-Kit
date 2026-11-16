@@ -2,12 +2,7 @@ using System;using System.IO;using System.Xml;using System.Text;using System.Dra
 namespace BeamScheduleFormatter {
 sealed class PowSaveFeedback:Form {
  readonly Label state;readonly ProgressBar progress;
- internal PowSaveFeedback(){Text="Save Program of Works";ClientSize=new Size(490,142);FormBorderStyle=FormBorderStyle.FixedDialog;ControlBox=false;ShowInTaskbar=false;StartPosition=FormStartPosition.CenterParent;BackColor=Color.White;Font=new Font("Segoe UI",10);var logo=new PictureBox{Location=new Point(18,26),Size=new Size(74,74),SizeMode=PictureBoxSizeMode.Zoom};string name=
-#if ADMIN_APP
- "DtceLogo.png";
-#else
- "DpwhLogo.png";
-#endif
+ internal PowSaveFeedback(){Text="Save Program of Works";ClientSize=new Size(490,142);FormBorderStyle=FormBorderStyle.FixedDialog;ControlBox=false;ShowInTaskbar=false;StartPosition=FormStartPosition.CenterParent;BackColor=Color.White;Font=new Font("Segoe UI",10);var logo=new PictureBox{Location=new Point(18,26),Size=new Size(74,74),SizeMode=PictureBoxSizeMode.Zoom};string name= "DtceLogo.png";
  using(var input=Assembly.GetExecutingAssembly().GetManifestResourceStream(name))if(input!=null)using(var image=Image.FromStream(input))logo.Image=new Bitmap(image);logo.Disposed+=(s,e)=>{if(logo.Image!=null)logo.Image.Dispose();};state=new Label{Location=new Point(110,27),Size=new Size(350,30),Text="Preparing Program of Works…",Font=new Font("Segoe UI Semibold",12)};Controls.Add(logo);Controls.Add(state);progress=new ProgressBar{Location=new Point(110,75),Size=new Size(350,15),Style=ProgressBarStyle.Marquee,MarqueeAnimationSpeed=25};Controls.Add(progress);}
  internal void Writing(){state.Text="Saving project and source files…";}
  internal void Complete(int issues=0){state.Text=issues>0?"Saved · "+issues+" input issues retained":"✓ Program of Works saved";state.ForeColor=issues>0?Color.FromArgb(140,94,24):Color.FromArgb(35,113,74);progress.Style=ProgressBarStyle.Continuous;progress.Value=100;}
