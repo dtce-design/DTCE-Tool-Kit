@@ -107,3 +107,9 @@ Canal, septic vault and catch basin are their own BOQ items. Their materials (ex
 gravel, concrete, rebar, forms, CHB, plaster, waterproofing) are listed as sub item numbers under the
 structure item and are NOT added to the general item quantities. Do not route them into the general
 items (a v1.4.65 test build did this by mistake and was reverted in v1.4.66).
+
+## Beam estimator ties (16 November 2026)
+
+Owner decision: tie sets and tie cut lengths stay automatic (count from the beam schedule, cut length
+from section, cover, bend diameter and 135° hooks). Do not add manual tie count / cut length override
+columns; the unused TieCount/TieCut input fields may remain as they are.
