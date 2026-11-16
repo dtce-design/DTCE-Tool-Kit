@@ -18,10 +18,10 @@ partial class ProgramOfWorksForm {
   foreach(var q in footingResults)add("Footing","Footing "+q.Id+" | "+q.Description,q.Concrete);
   foreach(var q in rcWallResults)add("Structural","RC wall "+q.Id+" | "+q.Description,q.Concrete);
   foreach(var q in canopyResults)add("Miscellaneous","Canopy "+q.Id+" | "+q.Description,q.Concrete);
-  foreach(var q in miscQuantities)add(q.Kind=="Column Estimate"?"Structural":"Miscellaneous",q.Kind+" "+q.Id+" | "+q.Description,q.Concrete);foreach(var q in wallFootingResults)add("WallFooting","Wall footing "+q.Id+" | "+q.Description,q.Concrete);foreach(var q in leanSources)add("Lean",q.Description,q.Quantity);return result;
+  foreach(var q in miscQuantities)add(q.Kind=="Column Estimate"?"Structural":"Miscellaneous",q.Kind+" "+q.Id+" | "+q.Description,q.Concrete);foreach(var q in wallFootingResults)add("WallFooting","Wall footing "+q.Id+" | "+q.Description,q.Concrete);foreach(var q in leanSources)add("Lean",q.Description,q.Quantity);foreach(var q in chamberMeasures)add("Miscellaneous",q.Kind+" "+q.Id+" | "+q.Description,q.ConcreteVolume);return result;
  }
  void RouteRequiredQuantities(List<BackupDemand> demands){if(backupBill.Count==0)return;
-  string grade60;try{grade60=SiteWorkTakeoff.Grade60Item(projectRebarPlan.Where(a=>!slopePlan.Contains(a)&&a.Demand.Grade==60).Select(a=>a.Demand.Diameter));}catch{grade60="Unsupported Grade 60 diameter above 42mm — review required";}
+  string grade60;try{grade60=SiteWorkTakeoff.Grade60Item(projectRebarPlan.Where(a=>!slopePlan.Contains(a)).Concat(chamberBarPlan).Where(a=>a.Demand.Grade==60).Select(a=>a.Demand.Diameter));}catch{grade60="Unsupported Grade 60 diameter above 42mm — review required";}
   var roofSpecs=RoofSheetPayQuantities().ToDictionary(q=>q.Description,StringComparer.Ordinal);
   foreach(var demand in demands){
    string earthCode=EarthworkPayRouting.Code(demand.Key,demand.Description,demand.Unit);if(earthCode!=null){var requiredItem=BackupPayItemCatalog.Items().Single(t=>t.Code==earthCode);demand.PayCode=requiredItem.Code;demand.PayDescription=requiredItem.Description;}

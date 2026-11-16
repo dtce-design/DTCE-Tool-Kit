@@ -993,6 +993,7 @@ namespace BeamScheduleFormatter
                 if((item.Section=="Miscellaneous Structures"||item.Section=="Wall Footing"))flag2=item.Unit=="m2";
                 if(new[]{"Pavement Construction","Slope Protection Works","Carpentry and Joinery Works"}.Contains(item.Section))flag2=true;
                 if(item.Section=="Earthworks"&&!string.IsNullOrEmpty(item.PayCode))flag2=true;
+                if(item.Section==PlumbingStructureSection)flag2=!string.IsNullOrEmpty(item.PayCode);
                 if (flag2)
 				{
 					BackupDemand backupDemand = BackupDemand.From(item);
@@ -1074,7 +1075,7 @@ namespace BeamScheduleFormatter
 			}
 			if (flag)
 			{
-				foreach (BillQuantity item5 in PlumbingQuantities())
+				foreach (BillQuantity item5 in PlumbingQuantities(false))
 				{
 					BackupDemand backupDemand2 = BackupDemand.From(item5);
 					if (BackupMapping.Unit(backupDemand2.Unit) == "ls" && backupDemand2.Quantity > 0.0)
@@ -1105,7 +1106,7 @@ namespace BeamScheduleFormatter
 			plumbingSummary.AllowUserToAddRows = false;
 			plumbingSummary.AllowUserToDeleteRows = false;
 			plumbingSummary.Columns[0].Width = 950;
-			AddGrid("Plumbing Summary", plumbingSummary, "Automatically linked from the same Tool Kit pipe, manual LS and chamber computations. Each pipe specification totals measured metres. Septic/catch-basin component quantities appear below their parent item and are not added to its LS/each quantity.");
+			AddGrid("Plumbing Summary", plumbingSummary, "Canal, septic vault and catch basin materials are included in the general items (excavation, embankment, gravel, concrete, rebar, forms, CHB, plaster, waterproofing) and listed under each item number; they have no separate lump-sum line in the BOQ. Automatically linked from the same Tool Kit pipe, manual LS and chamber computations. Each pipe specification totals measured metres. Septic/catch-basin component quantities appear below their parent item and are not added to its LS/each quantity.");
 			plumbingPipes = Grid(new string[7] { "Pipe ID", "Location / description", "Diameter / material / series / PN specification", "Measured length m / run", "Runs", "Total length m", "Status" }, 5);
 			plumbingPipes.Columns[2].Width = 520;
 			SetDefaults(plumbingPipes, new Dictionary<int, string> { { 4, "1" } });
@@ -1300,7 +1301,7 @@ namespace BeamScheduleFormatter
 						PlasterFloor = Checked(item2, 21),
 						WaterproofFaces = ((!(text == "Catch Basin (CHB)")) ? Count(item2, 22) : 0),
 						WaterproofFloor = Checked(item2, 23),
-						LsQuantity = ((text == "Catch Basin (CHB)") ? ((double)Count(item2, 6)) : Number(item2, 24))
+						LsQuantity = ((text == "Catch Basin (CHB)") ? ((double)Count(item2, 6)) : OptionalNumber(item2, 24))
 					};
 					chamberTakeoff.Calculate();
 					if (text == "Lined Canal")
@@ -1434,7 +1435,8 @@ namespace BeamScheduleFormatter
 			}
 		}
 
-		private List<BillQuantity> PlumbingQuantities()
+		// includeStructures=false for BOQ/Excel: canal, septic vault and catch basin materials are routed to the general item numbers instead.
+		private List<BillQuantity> PlumbingQuantities(bool includeStructures = true)
 		{
 			List<BillQuantity> list = new List<BillQuantity>();
 			foreach (IGrouping<string, PipeMeasure> item in from p in pipeMeasures
@@ -1457,6 +1459,7 @@ namespace BeamScheduleFormatter
 				list.Add(billQuantity);
 			}
 			foreach (IGrouping<string, ChamberTakeoff> item2 in from q in chamberMeasures
+				where includeStructures
 				group q by q.Kind)
 			{
 				BillQuantity billQuantity2 = new BillQuantity
@@ -1975,14 +1978,14 @@ namespace BeamScheduleFormatter
 			object source;
 			if (index != 0)
 			{
-				source = ((index == 1) ? enumerable : ((index == 2) ? enumerable2 : list.Concat(enumerable).Concat(enumerable2)));
+				source = ((index == 1) ? enumerable : ((index == 2) ? enumerable2 : ((index == 3) ? PlumbingGravelSources() : list.Concat(enumerable).Concat(enumerable2).Concat(PlumbingGravelSources()))));
 			}
 			else
 			{
 				IEnumerable<BillQuantity> enumerable3 = list;
 				source = enumerable3;
 			}
-			return MergeSources(((IEnumerable<BillQuantity>)source).Select((BillQuantity q) => SourceQuantity(q.Description, q.Quantity * ((index == 4) ? (1.0 + (double)gravelAllowance.Value / 100.0) : 1.0), q.Unit)));
+			return MergeSources(((IEnumerable<BillQuantity>)source).Select((BillQuantity q) => SourceQuantity(q.Description, q.Quantity * ((index == 5) ? (1.0 + (double)gravelAllowance.Value / 100.0) : 1.0), q.Unit)));
 		}
 
 		private List<BillQuantity> EarthQuantitySources(int index)
@@ -6856,6 +6859,7 @@ worksExcelTimer.Tick += async delegate
 				RecalculateStructuralSteel();
 				RecalculateMouldings();
 				RecalculatePlumbing();
+				IntegratePlumbingEarthworks();
 				RefreshProjectRebarPlan();
 				UpdateCanopyPurchases();
 				UpdateRCWallPurchases();
@@ -7825,7 +7829,7 @@ worksExcelTimer.Tick += async delegate
 			{
 				add("Canopy / Ledge", Convert.ToString(list[num][0]), Convert.ToDouble(list[num][1]), Convert.ToString(list[num][2])).Sources.AddRange(CanopyQuantitySources(num));
 			}
-			foreach (var item2 in from a in projectRebarPlan.Where(a=>!slopePlan.Contains(a))
+			foreach (var item2 in from a in projectRebarPlan.Where(a=>!slopePlan.Contains(a)).Concat(chamberBarPlan)
 				where a.Choice != null
 				group a by new
 				{
@@ -7879,7 +7883,8 @@ worksExcelTimer.Tick += async delegate
 			{
 				add("Steel purchase by profile", item4.Key + " | purchase weight", item4.Sum((SteelStock s) => s.KgM * 6.0), "kg").Sources.AddRange(StockPurchaseSources(item4));
 			}
-			rows.AddRange(PlumbingQuantities());
+			rows.AddRange(PlumbingQuantities(false));
+			rows.AddRange(PlumbingStructurePayQuantities());
 			rows.AddRange(ManualBoqQuantities());
 			rows.AddRange(ExtraBillQuantities());
             return rows;
@@ -8113,7 +8118,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 
 		private double TotalGravelInstalled()
 		{
-			return beam.WorksGravel() + footingResults.Sum((FootingTakeoff q) => q.Gravel) + wallFootingResults.Sum(q=>q.Gravel) + ManualGravelVolume();
+			return beam.WorksGravel() + footingResults.Sum((FootingTakeoff q) => q.Gravel) + wallFootingResults.Sum(q=>q.Gravel) + ManualGravelVolume() + PlumbingGravel();
 		}
 
 		private List<object[]> GravelSummary()
@@ -8138,6 +8143,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 				ManualGravelVolume(),
 				"m3"
 			});
+			list.Add(new object[3] { "Canal / septic vault / catch basin gravel (automatic)", PlumbingGravel(), "m3" });
 			list.Add(new object[3] { "TOTAL gravel installed", num, "m3" });
 			list.Add(new object[3]
 			{
