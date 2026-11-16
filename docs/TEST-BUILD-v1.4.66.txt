@@ -1,0 +1,6 @@
+DTCE Tool Kit v1.4.66 (16 November 2026)
+
+Reverts the v1.4.65 test change. Owner clarified: canal, septic vault and catch basin are their own items;
+their materials are sub item numbers listed under the structure item and are NOT included in the general
+quantities. Behaviour is back to v1.4.64 (septic LS quantity required again). AGENTS.md records the rule.
+Keeps all v1.4.64 work, including the corrected chamber cover soffit formwork.

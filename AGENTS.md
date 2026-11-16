@@ -100,3 +100,10 @@ Section 424.2.4 long-term deflection, steel/other members per the NSCP Chapter 1
 Owner: do not release v1.4.63/v1.4.64 yet, and do not submit to the Microsoft Store.
 Keep work on the development branch; do not merge to main (which triggers the automatic
 GitHub release) until the owner explicitly asks.
+
+## Plumbing structures (16 November 2026)
+
+Canal, septic vault and catch basin are their own BOQ items. Their materials (excavation, embankment,
+gravel, concrete, rebar, forms, CHB, plaster, waterproofing) are listed as sub item numbers under the
+structure item and are NOT added to the general item quantities. Do not route them into the general
+items (a v1.4.65 test build did this by mistake and was reverted in v1.4.66).
