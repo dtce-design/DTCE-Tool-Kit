@@ -2,7 +2,7 @@ using System;using System.IO;using System.Linq;using System.Collections.Generic;
 class ReportProtectionTests {
  static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}
  static void Main(string[] args){
-  var register=typeof(System.Text.Encoding).GetMethod("RegisterProvider");if(register!=null){var type=System.Reflection.Assembly.Load("System.Text.Encoding.CodePages").GetType("System.Text.CodePagesEncodingProvider");register.Invoke(null,new[]{type.GetProperty("Instance").GetValue(null,null)});}
+  var register=typeof(System.Text.Encoding).GetMethod("RegisterProvider");bool has1252=true;try{System.Text.Encoding.GetEncoding(1252);}catch{has1252=false;}if(register!=null&&!has1252){var type=System.Reflection.Assembly.Load("System.Text.Encoding.CodePages").GetType("System.Text.CodePagesEncodingProvider");register.Invoke(null,new[]{type.GetProperty("Instance").GetValue(null,null)});}
   string folder=Path.GetFullPath(args[0]);Directory.CreateDirectory(folder);string tool=Path.GetFullPath(args[1]);
   var profile=SteelCatalog.Profiles.First(p=>p.Kind=="Purlin"&&p.Name.StartsWith("C")&&p.H>=150&&p.T>=1.5);
   var input=new PurlinDesignInput{Name="SAMPLE PURLIN — NOT A PROJECT DESIGN",Profile=profile,Properties=PurlinProperties.Calculate(profile),Span=3,Spacing=.6,WindPressure=1,WindSuction=-1};var result=PurlinDesigner.Calculate(input);
