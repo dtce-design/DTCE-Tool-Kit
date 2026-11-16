@@ -3,21 +3,31 @@ namespace BeamScheduleFormatter {
 static class RevisedSchedule {
  public static string Plain(string raw){string s=raw.Replace("\\P"," ").Replace("\\U+2205","%%C");s=Regex.Replace(s,@"\\[A-Za-z][^;]*;","");return Regex.Replace(s.Replace("{","").Replace("}",""),@"\s+"," ").Trim();}
  public static string Serialize(Dxf d){var b=new StringBuilder();foreach(var e in d.Records)foreach(var p in e.P){b.AppendLine(p.Code.ToString());b.AppendLine(p.Value);}return b.ToString();}
- public static Analysis Read(string raw,string name){var entities=Dxf.Parse(raw).ModelEntities();var text=entities.Where(e=>e.Type=="MTEXT"||e.Type=="TEXT").ToList();var marks=text.Where(e=>Regex.IsMatch(Plain(e.Get(1)),@"^\d*[A-Z]+-\d{3,}$",RegexOptions.IgnoreCase)).OrderByDescending(e=>e.Num(20)).ToList();
-  if(marks.Count==0)throw new Exception("Load the REVISED DXF exported by Beam Formatter (marks such as RD-001), not the original schedule.");
-  if(marks.Select(e=>Plain(e.Get(1)).ToUpperInvariant()).Distinct().Count()!=marks.Count)throw new Exception("Duplicate revised beam marks. Load one schedule only.");
+ public static Analysis Read(string raw,string name){var entities=Dxf.Parse(raw).ModelEntities();
+  var text=entities.Where(e=>e.Type=="MTEXT"||e.Type=="TEXT").Select(e=>{var copy=e.Copy(true);string value=string.Concat(copy.P.Where(p=>p.Code==1||p.Code==3).Select(p=>p.Value));copy.P.RemoveAll(p=>p.Code==1||p.Code==3);copy.P.Add(new Pair(1,value));return copy;}).ToList();
+  var widthHeaders=text.Where(e=>Plain(e.Get(1)).Equals("B",StringComparison.OrdinalIgnoreCase)).OrderByDescending(e=>e.Num(20)).ToList();
+  if(widthHeaders.Count==0||widthHeaders.Skip(1).Any(e=>System.Math.Abs(e.Num(20)-widthHeaders[0].Num(20))<.001))throw new Exception("Missing/ambiguous beam schedule header: B. Load one compatible schedule per DXF.");
+  var widthHeader=widthHeaders[0];
+  // Match only the MARK column, not numbered original references on the right.
+  var marks=text.Where(e=>e.Num(10)<widthHeader.Num(10)-1&&e.Num(20)<widthHeader.Num(20)-1&&PowBeamMarks.IsMark(e.Get(1))).OrderByDescending(e=>e.Num(20)).ToList();
+  if(marks.Count==0)throw new Exception("No readable POW beam marks. Supported examples: GB-1, B-1, 2B-1, 3B-1, LRB, B1 and RD-001. The DXF must include the required beam-schedule columns.");
+  if(marks.Select(e=>PowBeamMarks.Name(e.Get(1))).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=marks.Count)throw new Exception("Duplicate beam marks in the MARK column. Load one schedule only.");
   var headers=text.Where(e=>e.Num(20)>marks[0].Num(20)+1).ToList();Func<string,Entity> header=s=>{var found=headers.Where(e=>Plain(e.Get(1)).Equals(s,StringComparison.OrdinalIgnoreCase)).ToList();if(found.Count!=1)throw new Exception("Missing/ambiguous revised schedule header: "+s);return found[0];};
   var bars=headers.Where(e=>new[]{"LEFT","MIDSPAN","RIGHT"}.Contains(Plain(e.Get(1)).ToUpperInvariant())).OrderBy(e=>e.Num(10)).ToList();if(bars.Count!=6)throw new Exception("Expected six reinforcement columns in revised DXF.");
   var diaHeader=headers.SingleOrDefault(e=>new[]{"%%C","Ø","O"}.Contains(Plain(e.Get(1)).ToUpperInvariant()));if(diaHeader==null)throw new Exception("Missing stirrup diameter header.");
   double[] xs=new[]{header("B").Num(10),header("D").Num(10)}.Concat(bars.Select(e=>e.Num(10))).Concat(new[]{header("LEG").Num(10),diaHeader.Num(10),header("SPACING").Num(10),header("SFR").Num(10)}).ToArray();
   var title=headers.FirstOrDefault(e=>Plain(e.Get(1)).StartsWith("SCHEDULE OF BEAMS"));var floor=title==null?null:headers.Where(e=>e.Num(20)>title.Num(20)).OrderBy(e=>e.Num(20)).FirstOrDefault();
-  var a=new Analysis{Path=name,Prefix=Plain(marks[0].Get(1)).Split('-')[0],Floor=floor==null?"":Plain(floor.Get(1)),BeamCount=marks.Count};
+  var a=new Analysis{Path=name,Prefix=Regex.Match(PowBeamMarks.Name(marks[0].Get(1)),@"^\d*[A-Z]+").Value,Floor=floor==null?"":Plain(floor.Get(1)),BeamCount=marks.Count};
   var horizontal=entities.Where(e=>e.Type=="LWPOLYLINE").Where(e=>e.P.Where(p=>p.Code==20).Select(p=>p.Value).Distinct().Count()==1&&e.P.Where(p=>p.Code==10).Any()).Where(e=>e.P.Where(p=>p.Code==10).Max(p=>double.Parse(p.Value,CultureInfo.InvariantCulture))-e.P.Where(p=>p.Code==10).Min(p=>double.Parse(p.Value,CultureInfo.InvariantCulture))>xs[11]-xs[0]).Select(e=>e.Num(20)).ToList();
+  foreach(var label in text.Where(e=>e.Num(10)<xs[0]-1&&e.Num(20)<widthHeader.Num(20)-1&&!string.IsNullOrWhiteSpace(Plain(e.Get(1)))&&!PowBeamMarks.IsMark(e.Get(1)))){
+   Func<double,bool> dimension=x=>text.Any(e=>{double value;return System.Math.Abs(e.Num(10)-x)<1&&System.Math.Abs(e.Num(20)-label.Num(20))<1&&double.TryParse(Plain(e.Get(1)),NumberStyles.Float,CultureInfo.InvariantCulture,out value)&&value>0&&!double.IsInfinity(value);});
+   if(dimension(xs[0])&&dimension(xs[1]))throw new Exception("Unsupported POW beam mark: "+Plain(label.Get(1))+". This row was not imported; review the source label.");
+  }
   var refHeader=headers.FirstOrDefault(e=>Plain(e.Get(1))=="ORIGINAL BEAM NUMBERS");
   for(int i=0;i<marks.Count;i++){
    double y=marks[i].Num(20),top=horizontal.Where(v=>v>y+.001).DefaultIfEmpty(y+4).Min(),bottom=horizontal.Where(v=>v<y-.001).DefaultIfEmpty(y-4).Max();
    if(top-bottom>12||top<=bottom)throw new Exception("Cannot locate revised row boundaries for "+Plain(marks[i].Get(1)));
-   var r=new BeamRow{Mark=Plain(marks[i].Get(1)).ToUpperInvariant()};r.Numbers.Add(r.Mark);r.SourceRows.Add(i+1);
+   var r=new BeamRow{Mark=PowBeamMarks.Name(marks[i].Get(1))};r.Numbers.Add(r.Mark);r.SourceRows.Add(i+1);
    var body=text.Where(e=>e.Num(20)<top-.001&&e.Num(20)>bottom+.001).OrderByDescending(e=>e.Num(20)).ToList();
    foreach(var e in body){if(e.Num(10)<xs[0]-1||e.Num(10)>xs[11]+2)continue;string value=Plain(e.Get(1));if(value=="+"||value=="")continue;int col=Enumerable.Range(0,xs.Length).OrderBy(c=>Math.Abs(xs[c]-e.Num(10))).First();r.Cells[col].Add(value);}
    for(int c=0;c<12;c++)if(r.Cells[c].Count==0)throw new Exception("Missing revised schedule cell "+c+" for "+r.Mark);

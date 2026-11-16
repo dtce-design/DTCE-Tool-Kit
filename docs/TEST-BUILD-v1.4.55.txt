@@ -1,0 +1,36 @@
+DTCE Tool Kit v1.4.55 — Windows x64 desktop TEST BUILD
+16 November 2026 (Asia/Manila)
+
+Scope: POW > Reinforced Concrete Works > Beam Estimate DXF imports ONLY.
+The separate Beam/Schedule Formatter parsing, grouping and export logic is not
+changed. Program.cs differs from v1.4.54 solely by the application-version constant.
+
+POW now recognizes marks shown by the owner: GB-1/2/3, B-1/2/3, 2B-1 through 2B-6,
+3B-1 through 3B-6, and bare LRB. Existing B1/2B1/RD-001 forms and single-letter
+suffixes remain supported. Hyphens and prefixes are preserved; case and typographic
+hyphen variants are normalized for matching, including CAD Unicode escapes.
+
+The reader searches the actual mark column to the left of B, below its header,
+so numbered original references on the right cannot become extra beam rows.
+Duplicate names are rejected. A dimensioned row with an unsupported mark/range
+raises an error rather than being silently omitted. MTEXT chunks are joined in
+order. POW import hints no longer require the Beam Formatter's three-digit names.
+
+Any filename is acceptable. This does not make every DXF layout compatible: the
+existing model-space/text and beam-schedule column requirements still apply
+(B/D, six main reinforcement cells, stirrup leg/diameter/spacing and SFR). Actual
+user DXF was not supplied, so its complete layout has not been verified.
+
+Validation: 63 end-to-end POW import checks pass using the actual ManualBeamSchedule
+entry point and synthetic DXFs based on the existing template. They cover all 19
+screenshot marks, legacy names, original-reference isolation, MTEXT chunks,
+unrelated lower B text, duplicate/range/missing-cell failures and unchanged rebar/
+stirrup quantities. Both desktop editions compile against C#5/.NET Framework 4.8.
+Core tests ran on .NET 8/Linux; native Windows GUI/GDI/qpdf/Excel testing remains
+pending. Tests were added to the Windows test script with the required template
+resource. No Microsoft Store upload.
+
+Includes the v1.4.54 frozen-column fix, 18% triangular watermark and protected PDF
+workflow. PDF permissions are not tamper-proof. Extract the ENTIRE versioned folder,
+including tools/qpdf, and run the EXE there. Windows x64/.NET Framework 4.8 required.
+No private key is bundled. Other unfinished engineering drafts are not included.
