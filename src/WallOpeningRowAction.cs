@@ -1,11 +1,25 @@
-using System;using System.Drawing;using System.Windows.Forms;
+using System;using System.Linq;using System.Drawing;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 static class WallOpeningRowAction {
  internal static void Attach(DataGridView grid,Action<DataGridViewRow> edit){
   const string name="EditWallOpeningsAction";if(grid.Columns.Contains(name))return;
   var column=new DataGridViewButtonColumn{Name=name,HeaderText="Openings",Text="Add / edit openings",UseColumnTextForButtonValue=true,ReadOnly=true,Width=42,MinimumWidth=38,AutoSizeMode=DataGridViewAutoSizeColumnMode.None,SortMode=DataGridViewColumnSortMode.NotSortable,FlatStyle=FlatStyle.Standard};
   // Append the UI column so numeric input indexes and saved project schemas stay intact.
-  grid.Columns.Add(column);column.DisplayIndex=2;column.Frozen=true;column.HeaderCell.ToolTipText="Add / Edit Openings";
+  // Moving an unfrozen column inside a frozen prefix throws in WinForms.
+  // Release that prefix from right to left, position the action, then restore it
+  // from left to right. Only display order changes; data-column indexes stay put.
+  var frozen=grid.Columns.Cast<DataGridViewColumn>().Where(c=>c.Frozen).OrderBy(c=>c.DisplayIndex).ToArray();
+  bool positioned=false;grid.SuspendLayout();
+  try{
+   for(int i=frozen.Length-1;i>=0;i--)frozen[i].Frozen=false;
+   grid.Columns.Add(column);column.DisplayIndex=2;positioned=true;
+  }finally{
+   try{
+    var restore=positioned?frozen.Concat(new[]{column}):frozen.AsEnumerable();
+    foreach(var item in restore.OrderBy(c=>c.DisplayIndex))item.Frozen=true;
+   }finally{grid.ResumeLayout(true);}
+  }
+  column.HeaderCell.ToolTipText="Add / Edit Openings";
   grid.CellPainting+=(s,e)=>{
    if(e.ColumnIndex!=column.Index)return;
    bool placeholder=e.RowIndex>=0&&grid.Rows[e.RowIndex].IsNewRow;

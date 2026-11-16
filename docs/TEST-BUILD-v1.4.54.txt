@@ -1,0 +1,25 @@
+DTCE Tool Kit v1.4.54 — Windows x64 desktop TEST BUILD
+16 November 2026 (Asia/Manila)
+
+Fix the masonry row-action column initialization that can stop Program of Works
+from opening with: "Unfrozen column cannot be moved before a frozen column."
+The openings icon was appended unfrozen and then moved before frozen Thickness.
+
+The corrected setup releases the existing frozen prefix from right to left,
+positions the openings icon beside Description, then restores the prefix from
+left to right. Original data-column indexes, values and visibility are preserved;
+measurement columns remain scrollable. Existing settings and project inputs are
+not migrated or replaced. The 18% watermark and v1.4.53 features remain included.
+
+Validation: Admin/User sources compile with C#5/.NET Framework 4.8 references.
+A Windows-native regression executable covering visible/hidden Thickness columns,
+unchanged data indexes and values, contiguous frozen identifiers, scrollable
+measurement columns and repeated attachment was added and compiled. It could not
+be executed in this Linux workspace (no Windows/WinForms runtime, Wine or Mono).
+Native Windows verification is therefore pending; no claim of a passed UI test.
+The GitHub workflow has recently failed before job steps, so no successful native
+CI run is available for this fix. No Microsoft Store upload was performed.
+
+Extract the ENTIRE new versioned folder, including tools/qpdf and its DLLs/licenses,
+and run that folder's EXE. Windows x64 and .NET Framework 4.8 are required. No private
+key is included. See earlier build notes for PDF security limitations and scope.
