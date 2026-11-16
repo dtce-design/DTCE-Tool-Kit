@@ -30,7 +30,7 @@ partial class ProgramOfWorksForm {
   if(report.Sections.Count==0)report.Section(scope).Note("No measured quantities have been entered for this scope.");
   return report;
  }
- void PreviewQuantityEngineeringReport(){var report=BuildQuantityEngineeringReport();string directory=System.IO.Path.Combine(System.IO.Path.GetTempPath(),"DTCE","ReportPreview");System.IO.Directory.CreateDirectory(directory);string path=System.IO.Path.Combine(directory,"DTCE-Quantity-Report-"+Guid.NewGuid().ToString("N")+".pdf");EngineeringQuantityPdf.WriteFlattened(path,report);Process.Start(new ProcessStartInfo(path){UseShellExecute=true});}
+ void PreviewQuantityEngineeringReport(){CalculationPreview.Show(this,BuildQuantityEngineeringReport());}
  void SaveQuantityEngineeringPdf(){var report=BuildQuantityEngineeringReport();using(var dialog=new SaveFileDialog{Filter="PDF report (*.pdf)|*.pdf",FileName="DTCE-Quantity-Report.pdf",OverwritePrompt=true})if(dialog.ShowDialog(this)==DialogResult.OK)EngineeringQuantityPdf.WriteFlattened(dialog.FileName,report);}
 }
 }

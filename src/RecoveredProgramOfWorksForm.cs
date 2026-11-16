@@ -192,16 +192,8 @@ namespace BeamScheduleFormatter
 			Height = 32
 		};
 
-		private readonly TextBox preview = new TextBox
-		{
-			Dock = DockStyle.Bottom,
-			Height = 185,
-			Multiline = true,
-			ReadOnly = true,
-			ScrollBars = ScrollBars.Both,
-			WordWrap = false,
-			Font = new Font("Consolas", 10f)
-		};
+		private readonly CalculationReportView preview = new CalculationReportView{Dock=DockStyle.Fill};
+        private bool renderingReportPreview;
 
 		private readonly Dictionary<string, string> finishGroups = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -350,6 +342,7 @@ namespace BeamScheduleFormatter
 
 		internal List<WorksExcelTable> FinalQuantityTables()
 		{
+            if(WorksValidationIssues().Count>0)throw new Exception("Complete pending calculation rows before exporting final quantities.");
 			List<WorksExcelTable> source = WorksExcelTables();
 			List<WorksExcelTable> list = source.Where((WorksExcelTable t) => t.Name == "DTCE Tool Kit - POW").ToList();
 			List<object[]> list2 = new List<object[]>();
@@ -403,7 +396,7 @@ namespace BeamScheduleFormatter
 					"2",
 					"2",
 					"0.40",
-					"1",
+					"",
 					"",
 					rcCovers["Footing"].Value.ToString(CultureInfo.InvariantCulture),
 					"16",
@@ -2682,7 +2675,7 @@ namespace BeamScheduleFormatter
 			}
 			CheckBox advanced = new CheckBox
 			{
-				Text = "Show reinforcement inputs",
+				Text = "Show excavation and cover details",
 				AutoSize = true,
 				Padding = new Padding(8, 6, 0, 0)
 			};
@@ -2690,7 +2683,7 @@ namespace BeamScheduleFormatter
 			{
 				for (int j = 6; j < 25; j++)
 				{
-					footings.Columns[j].Visible = advanced.Checked && j != 22 && j != 23 && j != 24;
+					footings.Columns[j].Visible = (j>=8&&j<=19)||advanced.Checked && j != 22 && j != 23 && j != 24;
 				}
 			};
 			flowLayoutPanel.Controls.Add(advanced);
@@ -2865,7 +2858,7 @@ namespace BeamScheduleFormatter
 			{
 				foreach (KeyValuePair<int, string> value in values)
 				{
-					if (row.Cells[value.Key].Value == null)
+					if (!QuantityInputDefaults.IsMultiplier(grid.Columns[value.Key].HeaderText) && row.Cells[value.Key].Value == null)
 					{
 						row.Cells[value.Key].Value = value.Value;
 					}
@@ -2968,6 +2961,7 @@ namespace BeamScheduleFormatter
 				errors.Add(ex2.Message);
 			}
 			HashSet<string> hashSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            SyncFootingReinforcement();
 			foreach (DataGridViewRow item2 in (IEnumerable)footings.Rows)
 			{
 				if (item2.IsNewRow || Empty(item2))
@@ -4086,7 +4080,7 @@ namespace BeamScheduleFormatter
 				r.Cells[17].Value = "1 rib";
 				r.Cells[18].Value = "1 rib";
 				r.Cells[2].Value = "Longspan Rib";
-				r.Cells[5].Value = "1";
+				if (!QuantityInputDefaults.IsMultiplier(r.DataGridView.Columns[5].HeaderText)) r.Cells[5].Value = "1";
 				r.Cells[9].Value = "0";
 				r.Cells[10].Value = "True";
 				r.Cells[11].Value = InsulationTypes[0];
@@ -4154,7 +4148,7 @@ namespace BeamScheduleFormatter
 			Action<DataGridViewRow> accessoryDefaults = delegate(DataGridViewRow r)
 			{
 				r.Cells[2].Value = "Flashing";
-				r.Cells[4].Value = "1";
+				if (!QuantityInputDefaults.IsMultiplier(r.DataGridView.Columns[4].HeaderText)) r.Cells[4].Value = "1";
 				r.Cells[6].Value = "2.44";
 				r.Cells[7].Value = "0";
 			};
@@ -4543,10 +4537,11 @@ worksExcelTimer.Tick += async delegate
 			tabs.TabPages.Clear();
 			tabs.TabPages.Add(pages["Bill of Quantities"]);
 			pages["Reinforced Concrete Start"].Text = "Start";
-			AddSection("Reinforced Concrete Works", new TabPage[8]
+			AddSection("Reinforced Concrete Works", new TabPage[9]
 			{
 				pages["Reinforced Concrete Start"],
 				pages["Beam Estimate"],
+                pages["Column Estimate"],
 				pages["Slab Estimate"],
 				pages["Footing Estimate"],
                 pages["Wall Footing Estimate"],
@@ -4619,7 +4614,7 @@ worksExcelTimer.Tick += async delegate
 			flowLayoutPanel.Controls.Add(reportDetail);
 			Button(flowLayoutPanel, "Print preview", delegate
 			{
-				CalculationPreview.Show(this, Report());
+				PreviewQuantityEngineeringReport();
 			});
 			tabPage.Controls.Add(flowLayoutPanel);
 			reportScope.SelectedIndexChanged += delegate
@@ -4750,22 +4745,11 @@ worksExcelTimer.Tick += async delegate
 			return selectedTab;
 		}
 
-		private void UpdateReportPreview()
-		{
-			if (reportScope.SelectedItem == null)
-			{
-				return;
-			}
-			reportPreviewDirty = false;
-			try
-			{
-				preview.Text = BuildWorksReport(reportScope.Text, reportDetail.SelectedIndex > 0);
-			}
-			catch (Exception ex)
-			{
-				preview.Text = "REVIEW REQUIRED\r\n" + ex.Message;
-			}
-		}
+		private void UpdateReportPreview(){
+            if(renderingReportPreview||reportScope.SelectedItem==null)return;renderingReportPreview=true;try{preview.SetDocument(CalculationDocument.FromEngineering(BuildQuantityEngineeringReport()));}
+            catch(Exception ex){var project=ProjectInfoStore.Read();var report=ProfessionalReport.Create("Quantity take-off / input review",project.Name,project.Location,project.Office);report.Status="Review required";report.Section("Pending inputs").Note(ex.Message);preview.SetDocument(CalculationDocument.FromEngineering(report));}
+            finally{reportPreviewDirty=false;renderingReportPreview=false;}
+        }
 
 		private bool HasPendingWorksEdit()
 		{
@@ -4832,8 +4816,8 @@ worksExcelTimer.Tick += async delegate
 		{
 			List<WorksExcelTable> list = new List<WorksExcelTable>();
 			List<object[]> list2 = new List<object[]>();
-			object[,] value = beam.WorksExcelRows(projectRebarPlan);
-			object[,] value2 = slab.WorksExcelRows(projectRebarPlan);
+			object[,] value = beam.WorksExcelRows(projectRebarPlan,false);
+			object[,] value2 = slab.WorksExcelRows(projectRebarPlan,false);
 			KeyValuePair<string, object[,]>[] array = new KeyValuePair<string, object[,]>[2]
 			{
 				new KeyValuePair<string, object[,]>("Beam", value),
@@ -5161,7 +5145,7 @@ worksExcelTimer.Tick += async delegate
 			foreach (Control control in owner.Controls)
 			{
 				Button button = control as Button;
-				if (button != null && button.Text.IndexOf("Excel", StringComparison.OrdinalIgnoreCase) >= 0)
+				if (button != null && (button.Text.IndexOf("Excel", StringComparison.OrdinalIgnoreCase) >= 0 || button.Text == "Save estimate" || button.Text == "Open estimate"))
 				{
 					control.Visible = false;
 				}
@@ -5229,6 +5213,7 @@ worksExcelTimer.Tick += async delegate
 		{
 			WorksDataGridView g = new WorksDataGridView
 			{
+                DefaultValuesScope=()=>new GridInputInitialization(()=>filling,v=>filling=v),
 				Dock = DockStyle.Fill,
 				AllowUserToAddRows = true,
 				RowHeadersVisible = false,
@@ -5321,7 +5306,7 @@ worksExcelTimer.Tick += async delegate
 			Action<DataGridViewRow> defaults = delegate(DataGridViewRow r)
 			{
 				r.Cells[3].Value = "Door";
-				r.Cells[6].Value = "1";
+				if (!QuantityInputDefaults.IsMultiplier(r.DataGridView.Columns[6].HeaderText)) r.Cells[6].Value = "1";
 				r.Cells[7].Value = "0.15";
 				r.Cells[8].Value = "0.05";
 				r.Cells[9].Value = "45";
@@ -5345,7 +5330,7 @@ worksExcelTimer.Tick += async delegate
 			g.DefaultValuesNeeded += delegate(object s, DataGridViewRowEventArgs e)
 			{
 				defaults(e.Row);
-				e.Row.Cells[20].Value = "1";
+				if (!QuantityInputDefaults.IsMultiplier(e.Row.DataGridView.Columns[20].HeaderText)) e.Row.Cells[20].Value = "1";
 				e.Row.Cells[21].Value = "Swing";
 			};
 			g.RowsAdded += delegate(object s, DataGridViewRowsAddedEventArgs e)
@@ -5357,7 +5342,7 @@ worksExcelTimer.Tick += async delegate
 						if (!g.Rows[j].IsNewRow && g.Rows[j].Cells[3].Value == null)
 						{
 							defaults(g.Rows[j]);
-							g.Rows[j].Cells[20].Value = "1";
+							if (!QuantityInputDefaults.IsMultiplier(g.Rows[j].DataGridView.Columns[20].HeaderText)) g.Rows[j].Cells[20].Value = "1";
 							g.Rows[j].Cells[21].Value = "Swing";
 						}
 					}
@@ -5482,7 +5467,7 @@ worksExcelTimer.Tick += async delegate
 				{
 					r.Cells[0].Value = NextWallId(g);
 				}
-				r.Cells[4].Value = "1";
+				if (!QuantityInputDefaults.IsMultiplier(r.DataGridView.Columns[4].HeaderText)) r.Cells[4].Value = "1";
 				r.Cells[5].Value = "0.40";
 				r.Cells[6].Value = "0.20";
 			};
@@ -6069,7 +6054,7 @@ worksExcelTimer.Tick += async delegate
 					{
 						for (int j = 1; j <= 5; j++)
 						{
-							r.Cells[j].Value = ((j == 4) ? "1" : "");
+							r.Cells[j].Value = "";
 						}
 					}
 					if (flag)
@@ -6079,7 +6064,7 @@ worksExcelTimer.Tick += async delegate
 						r.Cells[3].Value = value2.Height.ToString("R", CultureInfo.InvariantCulture);
 						if (changed)
 						{
-							r.Cells[4].Value = "1";
+							if (!QuantityInputDefaults.IsMultiplier(r.DataGridView.Columns[4].HeaderText)) r.Cells[4].Value = "1";
 						}
 						r.Cells[5].Value = "";
 					}
@@ -6301,12 +6286,12 @@ worksExcelTimer.Tick += async delegate
 					r.Cells[4].Value = "Tiles";
 					r.Cells[5].Value = "A";
 					r.Cells[6].Value = "Dimensions";
-					r.Cells[9].Value = "1";
+					if (!QuantityInputDefaults.IsMultiplier(r.DataGridView.Columns[9].HeaderText)) r.Cells[9].Value = "1";
 					r.Cells[10].Value = "0";
 				}
 				else
 				{
-					r.Cells[5].Value = "1";
+					if (!QuantityInputDefaults.IsMultiplier(r.DataGridView.Columns[5].HeaderText)) r.Cells[5].Value = "1";
 					r.Cells[6].Value = "0";
 				}
 			};
@@ -7162,8 +7147,8 @@ worksExcelTimer.Tick += async delegate
 			List<object[]> list = new List<object[]>();
 			object[][,] array = new object[2][,]
 			{
-				beam.WorksExcelRows(projectRebarPlan),
-				slab.WorksExcelRows(projectRebarPlan)
+				beam.WorksExcelRows(projectRebarPlan,false),
+				slab.WorksExcelRows(projectRebarPlan,false)
 			};
 			foreach (object[,] array2 in array)
 			{
@@ -7376,6 +7361,7 @@ worksExcelTimer.Tick += async delegate
 		private void Save()
 		{
 			Guard();
+            if(!string.IsNullOrEmpty(currentPowPath)){SaveTo(currentPowPath);return;}
 			Commit();
 			using (SaveFileDialog saveFileDialog = new SaveFileDialog
 			{
@@ -7396,6 +7382,7 @@ worksExcelTimer.Tick += async delegate
 			Recalculate();
 			XmlDocument xmlDocument = new XmlDocument();
 			xmlDocument.LoadXml(DataXml());
+            PowProjectInformation.Write(xmlDocument.DocumentElement,ProjectInfoStore.Read());
 			snapshottingWorks = true;
 			string text;
 			string text2;
@@ -7444,6 +7431,7 @@ worksExcelTimer.Tick += async delegate
 			}
 			beam.WorksSaved();
 			slab.WorksSaved();
+            currentPowPath=Path.GetFullPath(path);
 			saved = DataXml();
 		}
 
@@ -7465,6 +7453,7 @@ worksExcelTimer.Tick += async delegate
 		internal void OpenFrom(string path)
 		{
 			OpenProjectXml(File.ReadAllText(path));
+            currentPowPath=Path.GetFullPath(path);
 		}
 
 		internal void OpenProjectXml(string xml)
@@ -7486,6 +7475,7 @@ worksExcelTimer.Tick += async delegate
 					xmlDocument.Load(reader);
 				}
 			}
+            var savedProjectInformation=PowProjectInformation.Read(xmlDocument.DocumentElement);
             bool roofSchema=xmlDocument.DocumentElement.Name=="ProgramOfWorks"&&xmlDocument.DocumentElement.GetAttribute("version")=="21";
             ValidateRoofingSpecification(xmlDocument.DocumentElement,roofSchema);
             bool extraSchema=xmlDocument.DocumentElement.Name=="ProgramOfWorks"&&(roofSchema||xmlDocument.DocumentElement.GetAttribute("version")=="20");
@@ -7691,6 +7681,7 @@ worksExcelTimer.Tick += async delegate
 				}
 			}
             ReadExtraProject(xmlDocument.DocumentElement);ReadRoofingSpecification(xmlDocument.DocumentElement);
+            if(savedProjectInformation!=null)ProjectInfoStore.Save(savedProjectInformation.Name,savedProjectInformation.Location,savedProjectInformation.Office,savedProjectInformation.OfficeAddress);
 			Recalculate();
 			ShowPipeGroup();
 			saved = DataXml();
@@ -10365,7 +10356,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 							dataGridViewRow.Cells[20].Value = ((text == "Slab on fill") ? "100" : "0");
 							if (text == "CHB wall")
 							{
-								dataGridViewRow.Cells[9].Value = "1";
+								if (!QuantityInputDefaults.IsMultiplier(dataGridViewRow.DataGridView.Columns[9].HeaderText)) dataGridViewRow.Cells[9].Value = "1";
 							}
 						}
 						finally

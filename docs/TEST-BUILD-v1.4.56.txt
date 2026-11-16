@@ -1,0 +1,37 @@
+DTCE Tool Kit v1.4.56 — checked test build (16 November 2026)
+
+Project title: up to 2,000 characters; multiline editor and full report wrapping.
+Footing: visible bottom/top X/Y diameters and independent spacing/count choices.
+Column Estimate: rectangular tied RC column quantities, material/cover/tie-offset
+settings, structural concrete routing, four-face forms and project rebar purchase.
+Beam Support: Elevated / On Fill, with saved legacy selections migrated.
+New item quantities start blank. Existing entered quantities are preserved.
+All legacy print/PDF entry points use professional A4 report pages (minimum 7pt).
+Beam/slab reports use actual calculation records, full descriptions and real tables.
+TO FREE END is cantilever spacing: accept REST / AND REST; first offset from the
+schedule and one-way support zone, with a terminal closing tie at the configured
+free-end offset. The support zone is not mirrored at the free end.
+Save/Open Program of Works retains the whole project, beam/slab source schedules,
+additional sheets and project title/location. Embedded per-estimate Save/Open
+buttons are hidden. Ctrl+S saves the entire POW; Ctrl+Shift+S opens Save As.
+Pending rows are omitted from live steel summaries without throwing a strict-export
+exception. Final export/Excel sync still requires valid inputs. Default-value
+initialization is guarded against recursive calculation during row creation.
+Delete-selected-rows command-bar button removed; per-row X, confirmation, Undo/Redo
+and the existing context-menu/keyboard multi-row deletion remain available.
+Purlin/truss section previews listen to native combo selection events immediately.
+
+216 core checks pass: 63 POW imports, 95 additional-work calculations, 25 column/
+support/default rules, 19 project-title persistence/wrapping, 14 cantilever/report/
+whole-project metadata checks. A4 vector report samples were rendered and inspected;
+full title and 7pt minimum verified. Both Admin/User compile as C#5/net48.
+Native Windows UI, actual click/keyboard/save-open regression tests and Excel COM
+were NOT executable on this Linux host. UI test sources compile and are included.
+This is a test build for Windows confirmation, not a claim of native UI validation.
+
+Separate Schedule Formatter logic is unchanged (global version literal only).
+Includes existing frozen-column fix, approved 18% triangular watermark and flattened
+AES-256/R6 PDF export. Extract the ENTIRE folder including tools/qpdf before running.
+PDF permissions are not a guarantee against third-party alteration. No private key
+is bundled. No Microsoft Store, TestFlight or Pages publication. Unfinished wind/
+STAAD/beam-deflection/capture drafts are not included.

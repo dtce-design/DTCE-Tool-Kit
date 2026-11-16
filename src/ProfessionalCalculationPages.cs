@@ -2,7 +2,7 @@ using System;using System.Drawing;using System.Globalization;using System.Linq;
 namespace BeamScheduleFormatter {
 sealed partial class CalculationDocument {
  internal static CalculationDocument FromEngineering(EngineeringReport report){
-  var doc=new CalculationDocument(report.Title){ReportFile=report,FullPage=true};
+  var doc=new CalculationDocument(report.Title,true){ReportFile=report};
   foreach(var page in EngineeringQuantityPdf.Plan(report).DrawingPages){var commands=page.ToArray();doc.Sheets.Add(g=>{
    PdfBrand.Draw(g);
    foreach(var command in commands){

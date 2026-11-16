@@ -2,20 +2,22 @@ using System;using System.Linq;using System.Drawing;using System.Drawing.Drawing
 namespace BeamScheduleFormatter {
 sealed class SteelSectionPreview:Control {
  readonly Func<SteelProfile> selected;readonly Func<bool> doubleAngle;readonly ToolTip hint=new ToolTip();
- double zoom=1;PointF pan;Point drag;bool dragging;string detail="";
+ double zoom=1;PointF pan;Point drag;bool dragging;string detail="";readonly Control[] watched;
+ internal SteelProfile CurrentProfile{get{return selected();}}
  internal SteelSectionPreview(Func<SteelProfile> section,Func<bool> pair,params Control[] watched){
-  selected=section;doubleAngle=pair;DoubleBuffered=true;ResizeRedraw=true;Width=1000;Height=380;Tag="FullWidth";TabStop=true;
+  selected=section;doubleAngle=pair;this.watched=watched;DoubleBuffered=true;ResizeRedraw=true;Width=1000;Height=380;Tag="FullWidth";TabStop=true;
   AccessibleName="Interactive selected steel section";AccessibleDescription="Wheel to zoom, drag to pan, double click or press Home to fit.";
   hint.SetToolTip(this,"Scroll to zoom • drag to pan • double-click / Home to fit. Dimensions in mm.");
-  foreach(var control in watched)control.TextChanged+=(s,e)=>{ResetView();};
+  foreach(var control in watched){control.TextChanged+=ProfileChanged;var combo=control as ComboBox;if(combo!=null){combo.SelectedIndexChanged+=ProfileChanged;combo.SelectionChangeCommitted+=ProfileChanged;}}
   MouseDown+=(s,e)=>{if(e.Button!=MouseButtons.Left)return;Focus();drag=e.Location;dragging=true;Capture=true;};
   MouseMove+=(s,e)=>{if(!dragging)return;pan=new PointF(pan.X+e.X-drag.X,pan.Y+e.Y-drag.Y);drag=e.Location;Invalidate();};
   MouseUp+=(s,e)=>{dragging=false;Capture=false;};MouseCaptureChanged+=(s,e)=>{if(!Capture)dragging=false;};
   MouseWheel+=(s,e)=>{zoom=Math.Max(.4,Math.Min(4,zoom*Math.Pow(1.15,e.Delta/120.0)));Invalidate();};
   DoubleClick+=(s,e)=>ResetView();KeyDown+=(s,e)=>{if(e.KeyCode==Keys.Home){ResetView();e.Handled=true;}};
  }
+ void ProfileChanged(object sender,EventArgs e){if(!IsDisposed)ResetView();}
  void ResetView(){zoom=1;pan=PointF.Empty;Invalidate();}
- protected override void Dispose(bool disposing){if(disposing)hint.Dispose();base.Dispose(disposing);}
+ protected override void Dispose(bool disposing){if(disposing){foreach(var control in watched){control.TextChanged-=ProfileChanged;var combo=control as ComboBox;if(combo!=null){combo.SelectedIndexChanged-=ProfileChanged;combo.SelectionChangeCommitted-=ProfileChanged;}}hint.Dispose();}base.Dispose(disposing);}
  static string N(double v){return v.ToString("0.###",CultureInfo.InvariantCulture);}
  protected override void OnPaint(PaintEventArgs e){
   base.OnPaint(e);var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;var palette=DesktopAppearance.Palette;
