@@ -16,8 +16,8 @@ static class SteelPainting {
 }
 partial class ProgramOfWorksForm {
  readonly List<KeyValuePair<string,double>> steelPaintAreas=new List<KeyValuePair<string,double>>();
- internal const string SteelPaintingTotal="Metal painting TOTAL (purlins, angle bars, metal fascia)";
+ internal const string SteelPaintingTotal="Metal painting TOTAL - installed (purlins, angle bars, metal fascia)";
  void AddSteelPaint(System.Windows.Forms.DataGridViewRow row,string profileName,double length,int quantity){var profile=FindSteelProfile(profileName);if(profile==null)return;string group=row.DataGridView==steelPurlins?"Purlins":row.DataGridView==steelAngles?"Angle bars":"Metal fascia";steelPaintAreas.Add(new KeyValuePair<string,double>(group,SteelPainting.Area(profile,length,quantity)));}
- IEnumerable<object[]> SteelPaintingRows(){foreach(string group in new[]{"Purlins","Angle bars","Metal fascia"}){double area=steelPaintAreas.Where(p=>p.Key==group).Sum(p=>p.Value);if(area>0)yield return new object[]{"Metal painting - "+group.ToLowerInvariant()+" (all faces)",area,"m2"};}yield return new object[]{SteelPaintingTotal,steelPaintAreas.Sum(p=>p.Value),"m2"};}
+ IEnumerable<object[]> SteelPaintingRows(){foreach(string group in new[]{"Purlins","Angle bars","Metal fascia"}){double area=steelPaintAreas.Where(p=>p.Key==group).Sum(p=>p.Value);if(area>0)yield return new object[]{"Metal painting - "+group.ToLowerInvariant()+" (installed length, all faces)",area,"m2"};}yield return new object[]{SteelPaintingTotal,steelPaintAreas.Sum(p=>p.Value),"m2"};}
 }
 }

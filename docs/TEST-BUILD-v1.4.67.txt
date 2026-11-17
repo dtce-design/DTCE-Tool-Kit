@@ -24,7 +24,8 @@ Additions 17 November 2026 (still v1.4.67, not yet released)
   the original copy is captured, quantities sync or Excel disconnects. Work stays in the background.
 - Owner request: metal painting for purlins, angle bars and metal fascia. Area per metre from the profile:
   lipped C purlin 2H+4B+4·lip, angle 2(H+B), flat bar 2(B+t). Structural Steel Works shows per-group areas
-  and "Metal painting TOTAL (purlins, angle bars, metal fascia)" m2, which is a BOQ demand suggested to
+  and "Metal painting TOTAL - installed (purlins, angle bars, metal fascia)" m2 (installed length x qty,
+  not purchased 6 m stock), a BOQ demand suggested to
   1032(1)c Metal Painting Works (map once if the BACKUP has several 1032(1)c variants). Replaces the
   unrouted "Angle bars installed painting reference". New SteelPaintingTests.
 - Owner report: a second manual slab schedule could not be added. Cause: the "Manual reinforcement" button
