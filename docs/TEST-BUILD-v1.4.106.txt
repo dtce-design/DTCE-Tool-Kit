@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.4.106 (17 November 2026)
+
+Builds on v1.4.105.
+- Owner: after mapping Leversets, Hinges, wood doors and jamb frames to LS pay items (Finishing Hardware, Wooden
+  Doors and Windows), they still showed under "COMPUTED QUANTITIES - SELECT BACKUP PAY ITEM ONCE". v1.4.100 left a
+  mapping to an LS item without a manual LS quantity unmapped. Now the mapping is kept: the quantities are listed
+  under that LS item as its measurement basis and the mapping is saved. The LS total is written to BACKUP only once
+  a manual LS quantity is entered in Bill of Quantities; until then the BACKUP cell is not touched (never a default
+  0 or 1 LS). Only rows with no BACKUP item selected stay unmapped. Map these items once more after updating.
+- Owner timing on Windows with v1.4.105: Open 1.8 s (read file 1.0 s), was 21.9 s for reading alone.
+- BackupPartialMappingTests updated (6 checks).

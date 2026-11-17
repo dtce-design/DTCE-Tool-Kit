@@ -175,7 +175,7 @@ namespace BeamScheduleFormatter
 		}
 
 		// Owner (17 November 2026): mapping need not be complete. A quantity with no BACKUP item, or an LS item whose
-		// manual LS quantity has not been entered, is simply left unmapped (shown in the BOQ, not written to Excel)
+		// BACKUP item is left unmapped (shown in the BOQ, not written to Excel); an LS item without a manual quantity keeps its mapping as basis.
 		// instead of blocking the whole mapping. Returns the reason, or null when the route can be written.
 		// Painting items (wood, masonry, metal, railing painting) are never mapped automatically: they may not be part of
 		// the POW workbook yet. They stay listed in Bill of Quantities and are written only after the user maps them.
@@ -184,21 +184,18 @@ namespace BeamScheduleFormatter
 			return d.Description != null && d.Description.IndexOf("paint", StringComparison.OrdinalIgnoreCase) >= 0;
 		}
 
+		// Owner (17 November 2026): a quantity mapped to an LS pay item stays mapped even before the LS quantity is
+		// entered. It is listed under that item as its measurement basis; the LS total is written only when a manual LS
+		// quantity exists in Bill of Quantities (never a default 0 or 1 LS). Only an unselected row is left unmapped.
 		public static string Incomplete(BackupDemand d, BackupTarget t, List<BackupDemand> list, IDictionary<string, BackupTarget> map)
 		{
-			if (t == null)
-			{
-				return "no BACKUP item selected";
-			}
-			if (Unit(d.Unit) == "ls" && d.Sources.Any((BillQuantity s) => s.Basis && Unit(s.Unit) != "ls") && (!(d.Quantity > 0.0) || !d.Sources.Any((BillQuantity s) => !s.Basis && Unit(s.Unit) == "ls")) && !list.Any((BackupDemand c) => c != d && Unit(c.Unit) == "ls" && (c.ManualOverride || c.Key.StartsWith("Bill of Quantities|")) && map.ContainsKey(c.Key) && map[c.Key].Row == t.Row))
-			{
-				return "enter the final manual LS quantity for " + t.Description + " in Bill of Quantities to include it";
-			}
-			if (Unit(d.Unit) != Unit(t.Unit) && Unit(t.Unit) == "ls" && !list.Any((BackupDemand control) => Unit(control.Unit) == "ls" && map.ContainsKey(control.Key) && map[control.Key].Row == t.Row))
-			{
-				return "LS item " + t.Description + " has no manual LS quantity in Bill of Quantities; no default LS quantity is inferred";
-			}
-			return null;
+			return (t == null) ? "no BACKUP item selected" : null;
+		}
+
+		// True when the LS row has no manual LS quantity yet: mapped quantities are kept as basis, nothing is written.
+		public static bool BasisOnly(BackupTarget t, IEnumerable<BackupDemand> mapped)
+		{
+			return Unit(t.Unit) == "ls" && !mapped.Any((BackupDemand d) => Unit(d.Unit) == "ls" && d.Quantity > 0.0);
 		}
 
 		// Removes routes that cannot be written yet and returns them with their reasons.
