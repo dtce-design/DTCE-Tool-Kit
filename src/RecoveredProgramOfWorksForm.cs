@@ -2136,8 +2136,8 @@ namespace BeamScheduleFormatter
 		{
 			canopies = Grid(new string[26]
 			{
-				"Canopy / ledge ID", "Description / opening reference", "Length along wall m", "Projection / width m", "Thickness mm", "Qty", "Cover mm", "Main dia mm", "Main bar spacing mm (or use pcs/unit)", "Main bars per unit (or use spacing)",
-				"Distribution dia mm", "Distribution bar spacing mm (or use pcs/unit)", "Distribution bars per unit (or use spacing)", "Main wall anchorage mm", "Distribution extra ends mm (total)", "Also bottom mat", "Concrete MPa", "Grade <=12 mm", "Grade >=16 mm", "Concrete m3",
+				"Canopy / ledge ID", "Description / opening reference", "Length along wall m", "Projection / width m", "Thickness mm", "Qty", "Cover mm", "Main dia mm", "Main spacing mm", "Main count / unit",
+				"Distribution dia mm", "Distribution spacing mm", "Distribution count / unit", "Main wall anchorage mm", "Distribution extra ends mm (total)", "Also bottom mat", "Concrete MPa", "Grade <=12 mm", "Grade >=16 mm", "Concrete m3",
 				"Soffit forms m2", "3-edge side forms m2", "Total forms m2", "Net rebar kg", "Rebar BUY kg", "Status"
 			}, 19);
 			canopies.Columns.RemoveAt(15);
@@ -8433,8 +8433,8 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 		{
 			rcWalls = Grid(new string[27]
 			{
-				"RC wall ID", "Description / location", "Length m", "Height m", "Thickness mm", "Qty", "Cover mm", "Rebar layers (both ways)", "Vertical dia mm", "Vertical bar spacing mm (or use bars/layer)",
-				"Vertical bars per layer (or use spacing)", "Horizontal dia mm", "Horizontal bar spacing mm (or use bars/layer)", "Horizontal bars per layer (or use spacing)", "Vertical extra ends mm (total)", "Horizontal extra ends mm (total)", "Formed main faces (0/1/2)", "Formed vertical ends (0/1/2)", "Bottom soffit form?", "Concrete MPa",
+				"RC wall ID", "Description / location", "Length m", "Height m", "Thickness mm", "Qty", "Cover mm", "Rebar layers (both ways)", "Vertical dia mm", "Vertical spacing mm",
+				"Vertical count / layer", "Horizontal dia mm", "Horizontal spacing mm", "Horizontal count / layer", "Vertical extra ends mm (total)", "Horizontal extra ends mm (total)", "Formed main faces (0/1/2)", "Formed vertical ends (0/1/2)", "Bottom soffit form?", "Concrete MPa",
 				"Grade <=12 mm", "Grade >=16 mm", "Concrete m3", "Formworks m2", "Net rebar kg", "Rebar TO BUY kg", "Status"
 			}, 22);
 			AddCombo(rcWalls, 7, "Rebar layers (both ways)", new string[2] { "1", "2" });
@@ -10310,7 +10310,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 				plumbingMembers = Grid(new string[33]
 				{
 					"Member ID", "Structure ID", "Member type", "Description", "Length m", "Width / height m", "Thickness mm", "Members / structure", "Cover mm", "Rebar layers",
-					"X / vertical dia mm", "X / vertical spacing mm", "X / vertical bars per layer", "Y / horizontal dia mm", "Y / horizontal spacing mm", "Y / horizontal bars per layer", "X / vertical extra ends mm", "Y / horizontal extra ends mm", "Formed main faces", "Formed edge length m (blank=full)",
+					"X / vertical dia mm", "X / vertical spacing mm", "X / vertical count / layer", "Y / horizontal dia mm", "Y / horizontal spacing mm", "Y / horizontal count / layer", "X / vertical extra ends mm", "Y / horizontal extra ends mm", "Formed main faces", "Formed edge length m (blank=full)",
 					"Gravel thickness mm", "Plaster faces", "Waterproof faces", "Stock length m", "Concrete m3", "Forms m2", "Net rebar kg", "Rebar TO BUY kg", "CHB m2", "Gravel m3",
 					"Plaster m2", "Waterproof m2", "Status"
 				}, 24);

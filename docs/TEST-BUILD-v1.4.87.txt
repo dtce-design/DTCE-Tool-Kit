@@ -1,0 +1,6 @@
+DTCE Tool Kit v1.4.87 (17 November 2026)
+
+Builds on v1.4.86.
+- Owner: simpler headers without "OR". Each bar direction is "… spacing mm" and "… count / layer"
+  (canopy: "… count / unit"); e.g. "Horizontal spacing mm" and "Horizontal count / layer". Enter one of the two.
+  Tooltips explain this. Calculation and saved files unchanged.
