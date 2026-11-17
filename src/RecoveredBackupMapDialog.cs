@@ -103,6 +103,18 @@ namespace BeamScheduleFormatter
 				}
 			};
 			grid.CellClick += delegate(object s, DataGridViewCellEventArgs e) { if (e.RowIndex >= 0 && e.ColumnIndex == 3) pick(); };
+			// Dropdown arrow on the pay-item cell (owner: the arrow went missing when the dropdown became a picker).
+			grid.CellPainting += delegate(object s, DataGridViewCellPaintingEventArgs e)
+			{
+				if (e.RowIndex < 0 || e.ColumnIndex != 3 || grid.Rows[e.RowIndex].Cells[3].ReadOnly) return;
+				e.Paint(e.ClipBounds, DataGridViewPaintParts.All);
+				int w = 22; var box = new Rectangle(e.CellBounds.Right - w - 2, e.CellBounds.Top + 2, w, e.CellBounds.Height - 5);
+				using (var fill = new SolidBrush(Color.FromArgb(236, 239, 243))) e.Graphics.FillRectangle(fill, box);
+				using (var pen = new Pen(Color.FromArgb(190, 196, 204))) e.Graphics.DrawRectangle(pen, box);
+				int cx = box.Left + box.Width / 2, cy = box.Top + box.Height / 2;
+				using (var brush = new SolidBrush(Color.FromArgb(60, 70, 82))) e.Graphics.FillPolygon(brush, new[] { new Point(cx - 4, cy - 2), new Point(cx + 4, cy - 2), new Point(cx, cy + 3) });
+				e.Handled = true;
+			};
 			grid.KeyDown += delegate(object s, KeyEventArgs e) { if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.F2 || e.KeyCode == Keys.Space) { pick(); e.Handled = true; } else if (e.KeyCode == Keys.Delete || e.KeyCode == Keys.Back) { foreach (DataGridViewRow row in grid.SelectedRows) if (!row.Cells[3].ReadOnly) SetTarget(row.Cells[3], null); e.Handled = true; } };
 			FlowLayoutPanel flowLayoutPanel = new FlowLayoutPanel
 			{

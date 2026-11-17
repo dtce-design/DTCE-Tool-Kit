@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.4.112 (17 November 2026)
+
+Builds on v1.4.111.
+- Owner: "no check mark". The checkboxes on the pay-item rows were empty placeholders (only the collapsed
+  mapped-quantity rows carried a value). A pay-item row with mapped quantities now shows INCLUDE checked when any of
+  them is included; clicking it includes / excludes all of them (expand the item to choose each one). Rows without a
+  mapped quantity show no checkbox.
+- Owner: the dropdown arrow on the BACKUP pay-item cell of the mapping dialog is back (painted on the cell; a click
+  still opens the searchable picker).
+- Mono: parent row include checked by default; parent click toggles its mapped quantity (1 LS <-> 0 LS); mapping
+  dialog with 300 x 800 items opens in about 0.2 s.
