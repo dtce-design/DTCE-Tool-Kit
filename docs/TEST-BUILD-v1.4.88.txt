@@ -1,0 +1,10 @@
+DTCE Tool Kit v1.4.88 (17 November 2026)
+
+Builds on v1.4.87.
+- Bug (present since before v1.4.62): a brand-new, empty Program of Works counted as having unsaved changes,
+  because the embedded beam estimator started with an empty "saved" state. Closing an untouched POW asked
+  "Save Program of Works entries before closing?" (this also hung Windows CI on ModernUiTests). The beam and slab
+  states are now marked saved when the POW is created and after a POW is opened. Likely related to the owner's
+  earlier report that a POW would not open "although there is no current project".
+- ModernUiTests: wind sheet now has 8 tabs (STAAD Wind Input added in v1.4.63); stale count of 7 updated.
+- Checked on Linux/Mono: fresh POW not dirty, closes without a prompt; wind tab/restore checks pass.

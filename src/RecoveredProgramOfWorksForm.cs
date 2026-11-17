@@ -4544,6 +4544,9 @@ worksExcelTimer.Tick += async delegate
             initializingWorks = false;
 			Recalculate();
 			saved = DataXml();
+			/* A new, empty POW has nothing to save (the beam estimator started with an empty saved state, so every fresh POW asked to save on close). */
+			beam.WorksSaved();
+			slab.WorksSaved();
 		}
 
 		private void OrganizeSections()
@@ -7698,6 +7701,8 @@ worksExcelTimer.Tick += async delegate
 			Recalculate();
 			ShowPipeGroup();
 			saved = DataXml();
+			beam.WorksSaved();
+			slab.WorksSaved();
 		}
 
 
