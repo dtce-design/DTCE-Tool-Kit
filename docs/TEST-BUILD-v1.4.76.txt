@@ -1,0 +1,10 @@
+DTCE Tool Kit v1.4.76 (17 November 2026)
+
+Builds on v1.4.75.
+- Owner question: where to choose how many sides are plastered / painted on masonry. The columns already
+  existed (default "2 sides" and "Same as plaster") but were hidden on all masonry sheets (CHB, Load
+  Bearing, Louver, AAC). They are now shown after Net area: Plaster sides (1 side (A), 1 side (B), 2 sides),
+  Net plaster m2, Masonry paint sides (Same as plaster, None, 1 side (A), 1 side (B), 2 sides), Masonry paint
+  m2, then Status.
+- Checked on Linux/Mono with a 4 x 2 m wall: 2 sides plaster 16 m2, 1 side 8 m2; paint None 0, Same as
+  plaster follows plaster, 2 sides 16 m2.

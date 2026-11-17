@@ -4531,6 +4531,7 @@ worksExcelTimer.Tick += async delegate
             ConfigureRcWorkspaces();
             ConfigureAngleQuantityView();
 			tabs.Multiline = true;
+            ShowMasonryFinishSides();
 			PowTheme.Apply(this);
             CompactMeasurementRows();
             InstallExcelStatusBar();
