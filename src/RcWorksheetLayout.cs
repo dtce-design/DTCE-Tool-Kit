@@ -21,7 +21,7 @@ static class RcWorksheetLayout {
  }
 }
 partial class EstimatorForm {
- internal void ConfigureRcWorkspace(){var summaries=(TabControl)totals.Parent.Parent;var tools=Controls.OfType<FlowLayoutPanel>().First(p=>p.Controls.OfType<Button>().Any(b=>b.Text=="Load beam schedule DXF"));RcWorksheetLayout.Embedded(this,beams,summaries,summaries.Parent,tools,sourceLabel,"Beam Estimate",sourceLabel.Text);foreach(var g in new[]{totals,gradeTotals})RcWorksheetLayout.Grid(g);}
+ internal void ConfigureRcWorkspace(){var summaries=(TabControl)gradeTotals.Parent.Parent;var tools=Controls.OfType<FlowLayoutPanel>().First(p=>p.Controls.OfType<Button>().Any(b=>b.Text=="Load beam schedule DXF"));RcWorksheetLayout.Embedded(this,beams,summaries,summaries.Parent,tools,sourceLabel,"Beam Estimate",sourceLabel.Text);foreach(var g in new[]{totals,gradeTotals})RcWorksheetLayout.Grid(g);}
 }
 partial class SlabEstimatorForm {
  internal void ConfigureRcWorkspace(){var summaries=(TabControl)gradeTotals.Parent.Parent;var tools=Controls.OfType<FlowLayoutPanel>().First(p=>p.Controls.OfType<Button>().Any(b=>b.Text=="Load / replace DXF"));string guide=Controls.OfType<Label>().Where(l=>l.Dock==DockStyle.Top&&l!=loadedDxf).Select(l=>l.Text).FirstOrDefault()??"Load a slab DXF or enter a manual reinforcement schedule, then enter dimensions and quantity.";RcWorksheetLayout.Embedded(this,grid,summaries,summaries,tools,loadedDxf,"Slab Estimate",guide);RcWorksheetLayout.Grid(gradeTotals);}

@@ -4543,6 +4543,7 @@ worksExcelTimer.Tick += async delegate
 			};
 			OrganizeSections();
             ConfigureRcWorkspaces();
+            AddRebarSummaryTabs();
             ConfigureAngleQuantityView();
             PlaceSteelSetColumns();
             if (wood != null) PlaceOpeningPaintColumns(wood);
@@ -4569,6 +4570,7 @@ worksExcelTimer.Tick += async delegate
 		{
 			ModernUi.Navigation(tabs);
 			Dictionary<string, TabPage> pages = tabs.TabPages.Cast<TabPage>().ToDictionary((TabPage p) => p.Text);
+			sheetPages = pages;
 			tabs.TabPages.Clear();
 			tabs.TabPages.Add(pages["Bill of Quantities"]);
 			pages["Reinforced Concrete Start"].Text = "Start";
@@ -6913,6 +6915,7 @@ worksExcelTimer.Tick += async delegate
 				childWorksDirty = false;
 				RefreshVisibleWorksViews();
 				homeSummary.Text = status.Text;
+				RefreshRebarSummaries();
 				recalculatedInputs = DataXml();
 			}
 			finally

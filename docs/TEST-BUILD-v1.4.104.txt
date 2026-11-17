@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.4.104 (17 November 2026)
+
+Builds on v1.4.103.
+- Owner: "Grade 40 / Grade 60" and "By diameter" in the beam estimate are one tab, "Rebar by grade and diameter":
+  Grade 40 and Grade 60 rows per diameter with grade totals, then all grades per diameter and the grand total
+  (NET kg, LAP+OFFCUT kg, BUY kg). The slab estimate tab uses the same caption.
+- Owner: the other RC sheets now have the same summary. Column, Footing, Wall Footing, Canopy / Ledge, RC Wall and
+  Miscellaneous Structures each show "Measurements" and "Rebar by grade and diameter" tabs, filled from that
+  sheet's commercial-bar purchase plan and refreshed after every recalculation.
+- Checked on Mono: synthetic project shows beam G40 D10 / G60 D16, D20 with totals and grand total 21,232.08 kg
+  buy; footing sheet G60 D16 7,129.40 kg; empty sheets say no reinforcement yet.
