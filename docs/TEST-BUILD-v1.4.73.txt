@@ -1,0 +1,12 @@
+DTCE Tool Kit v1.4.73 (17 November 2026)
+
+Builds on v1.4.72.
+- Owner request: automatic IDs on every POW measurement sheet (openings, finishes, roofing, earthworks,
+  footings, canopies, gravel, moulding, plumbing, RC walls, clearing, trees, slope works, columns, wall
+  footings), as structural steel and walls already had. Header shows "(auto)".
+- Owner rule: existing IDs are never overwritten. Only a blank ID on a row that has input is filled
+  (PREFIX-001…), numbering continues after the highest existing PREFIX-number, and IDs do not change on
+  recalculation. Prefixes: F footing, C column, WD/AL openings, FT finish type, WF/CF/FF finish entries,
+  RF/RA roofing, CUT cut/fill, CN canopy, GR gravel, MD moulding, PP/PLS/ST/PB/PM plumbing, RW RC wall,
+  CG clearing, TR trees, SF/SM slope, WFT wall footing.
+- Checked on Linux/Mono: blank rows get F-006, F-007 after an existing F-005; "MY-F1" kept; stable on recalc.

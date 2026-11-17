@@ -6675,6 +6675,7 @@ worksExcelTimer.Tick += async delegate
 			filling = true;
 			try
 			{
+				AssignRowIds();
 				if (borrowSwell != null && borrowShrink != null)
 				{
 					beam.SetProjectSoilFactors((double)borrowSwell.Value, (double)borrowShrink.Value);
