@@ -998,7 +998,7 @@ namespace BeamScheduleFormatter
                 if(item.Section=="Canopy / Ledge"&&item.Unit=="m3")flag2=false;
                 if((item.Section=="Miscellaneous Structures"||item.Section=="Wall Footing"))flag2=item.Unit=="m2";
                 if(new[]{"Pavement Construction","Slope Protection Works","Carpentry and Joinery Works","Waterproofing"}.Contains(item.Section))flag2=true;
-                if(item.Section=="Railing")flag2=!item.Description.Contains("reference");
+                if(item.Section=="Railing"||item.Section=="Sag Rods")flag2=!item.Description.Contains("reference");
                 if(item.Section=="Earthworks"&&!string.IsNullOrEmpty(item.PayCode))flag2=true;
                 if (flag2)
 				{
@@ -4624,7 +4624,7 @@ worksExcelTimer.Tick += async delegate
 				pages["Catch Basin - CHB"],
 				pages["Lined Canal"]
 			});
-			AddSection("Structural Steel Works", SteelPageNames.Select((string name) => pages[name]).ToArray());
+			AddSection("Structural Steel Works", SteelPageNames.Select((string name) => pages[name]).Concat(pages.ContainsKey(SagRodPage) ? new TabPage[1] { pages[SagRodPage] } : new TabPage[0]).ToArray());
 			AddSection("Roofing Works", new TabPage[3]
 			{
 				pages["Roofing Start"],

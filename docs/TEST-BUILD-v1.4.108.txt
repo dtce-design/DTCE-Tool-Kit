@@ -1,0 +1,14 @@
+DTCE Tool Kit v1.4.108 (17 November 2026)
+
+Builds on v1.4.107.
+- Owner: new "Sag Rods" calculation sheet in Structural Steel Works (after Metal Fascia Frame). Per row: ID (auto
+  SR-001), description, rod dia (10 / 12 / 16 / 20 mm), rod length each incl. threads, Qty / unit, Units / set,
+  Sets, Multiplier (blank = 1), nuts and washers per rod (blank = 2). Outputs: total pcs, installed length and kg,
+  kg/m (plain round bar from 7850 kg/m3), purchase kg with 6 m stock and offcut reuse per diameter (rods over 6 m
+  split into equal cuts), nuts, washers, painting m2 (installed length).
+- BOQ section "Sag Rods": purchase weight (with stocks and final offcut per diameter), installed weight
+  (reference), nuts, washers, painting (painting is not auto-mapped, as with other painting). Included in the
+  Structural Steel Works report scope; Railing now included in the Finishing Works report scope.
+- Older projects open with an empty Sag Rods sheet.
+- Mono check: SR-001 12 mm 1.1 m x 10 x 6 x 2 = 120 pcs, 24 stocks, 12 m offcut; SR-002 16 mm 7 m x 2 split in 2 cuts;
+  purchase 165.744 kg, nuts 248, washers 244; save / reopen keeps rows.
