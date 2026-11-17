@@ -4428,11 +4428,14 @@ namespace BeamScheduleFormatter
 #if !ADMIN_APP
 var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.Dispose();
 #endif
+			/* Command bar grows to fit wrapped rows (38 px buttons); a fixed 44 px height hid the second row on narrow windows. */
 			FlowLayoutPanel flowLayoutPanel = new FlowLayoutPanel
 			{
 				Dock = DockStyle.Top,
-				Height = 44,
-				Padding = new Padding(6)
+				AutoSize = true,
+				AutoSizeMode = AutoSizeMode.GrowAndShrink,
+				WrapContents = true,
+				Padding = new Padding(8, 5, 8, 3)
 			};
 			base.Controls.Add(tabs);
 			base.Controls.Add(flowLayoutPanel);
