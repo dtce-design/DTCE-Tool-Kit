@@ -7433,14 +7433,18 @@ worksExcelTimer.Tick += async delegate
             try{Guard();Commit();using(var dialog=new OpenFileDialog{Filter="Program of Works|*.pow.xml"}){
                 if(dialog.ShowDialog(this)!=DialogResult.OK)return;
                 openingPow=true;
+                using(var busy=new PowBusyIndicator(this,"Open Program of Works","Opening "+Path.GetFileName(dialog.FileName)+"…")){
                 while((linkingExcel||capturingExcelSource)&&!IsDisposed)await System.Threading.Tasks.Task.Delay(50);
                 if(IsDisposed)return;
                 openingPow=true;worksExcelTimer.Stop();excelSaveTimer.Stop();
                 if(currentSync!=null)try{await currentSync;}catch(Exception ex){ExcelFailure(ex);}
+                busy.Status("Reading project and source files…");
                 var snapshot=await System.Threading.Tasks.Task.Run(()=>PowProjectFileWriter.Read(dialog.FileName));
                 if(IsDisposed)return;
+                busy.Status("Loading worksheets and quantities…");
                 OpenProjectDocument(snapshot.Document,snapshot.Sources);currentPowPath=Path.GetFullPath(dialog.FileName);
-                if(worksExcel!=null&&linkedHasBackup){await LoadCatalogue();lastExcelXml="";dashboardDirty=true;RefreshVisibleWorksViews();saved=DataXml();ScheduleWorksExcel();}
+                if(worksExcel!=null&&linkedHasBackup){busy.Status("Refreshing linked BACKUP items…");await LoadCatalogue();lastExcelXml="";dashboardDirty=true;RefreshVisibleWorksViews();saved=DataXml();ScheduleWorksExcel();}
+                }
             }}catch(Exception ex){if(!IsDisposed)MessageBox.Show(this,ex.Message,"Open Program of Works",MessageBoxButtons.OK,MessageBoxIcon.Information);}finally{openingPow=false;if(!IsDisposed&&worksExcel!=null&&!excelBroken)ScheduleWorksExcel();}
         }
 
