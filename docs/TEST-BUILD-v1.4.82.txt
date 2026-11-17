@@ -1,0 +1,9 @@
+DTCE Tool Kit v1.4.82 (17 November 2026)
+
+Builds on v1.4.81.
+- Owner request: automatic save of the Program of Works. With unsaved changes it saves every 15 minutes, or
+  sooner after 5 minutes without keyboard/mouse activity. It writes to the file the POW was last saved to or
+  opened from (a never-saved POW needs one normal Save first). No dialog, the window stays usable, and the
+  status bar shows "Auto-saved hh:mm · file" (or "Auto-save failed … use Save"). A cell still being typed in is
+  not committed unless the user has been idle 5 minutes. Checked every 30 s.
+- Checked on Linux/Mono: unsaved edit + 6 minutes idle -> file rewritten with the edit, POW marked saved.

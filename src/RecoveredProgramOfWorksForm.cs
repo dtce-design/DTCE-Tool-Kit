@@ -4535,6 +4535,7 @@ worksExcelTimer.Tick += async delegate
 			PowTheme.Apply(this);
             CompactMeasurementRows();
             InstallExcelStatusBar();
+            InstallAutoSave();
 			status.Height = 38;
 			status.BackColor = ModernUi.Soft;
 			status.ForeColor = PowTheme.Ink;
