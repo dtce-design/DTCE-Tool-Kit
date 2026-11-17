@@ -777,7 +777,8 @@ namespace BeamScheduleFormatter
 			mouldingEntries = Grid(new string[7] { "ID", "Description / location", "Moulding profile / size (mm)", "Length m / unit", "Qty", "Total length m", "Status" }, 5);
 			mouldingEntries.Columns[2].Width = 260;
 			SetDefaults(mouldingEntries, new Dictionary<int, string> { { 4, "1" } });
-			AddGrid("Moulding", mouldingEntries, "Enter additional moulding outside the door/window perimeter takeoff. Use the same profile and size in mm to combine totals. Do not re-enter automatic opening moulding here. Final quantity is linear metres, grouped by profile/size.");
+			AddGrid("Moulding", mouldingEntries, "Choose an Opening ID to add moulding around that door or window (length from its size and quantity), or leave it blank and enter other moulding lengths. Use the same profile and size in mm to combine totals. Final quantity is linear metres, grouped by profile/size.");
+			AddMouldingOpeningColumn();
 		}
 
 		private void RecalculateMouldings()
@@ -801,6 +802,12 @@ namespace BeamScheduleFormatter
 				{
 					continue;
 				}
+				if (OpeningMouldingRow(item))
+				{
+					continue;
+				}
+				item.Cells[3].ReadOnly = item.Cells[4].ReadOnly = false;
+				item.Cells[3].Style.BackColor = item.Cells[4].Style.BackColor = ModernUi.Input;
 				try
 				{
 					MouldingTakeoff mouldingTakeoff = new MouldingTakeoff
@@ -1682,7 +1689,7 @@ namespace BeamScheduleFormatter
 			});
 			AddCanopySettings(flowLayoutPanel);
 			AddRCWallSettings(flowLayoutPanel);
-			FlowLayoutPanel actions = tabs.TabPages.Cast<TabPage>().Single((TabPage p) => p.Text == "Wooden Doors & Windows").Controls.OfType<FlowLayoutPanel>().Single();
+			FlowLayoutPanel actions = tabs.TabPages.Cast<TabPage>().Single((TabPage p) => p.Text == "Door & Window Schedule").Controls.OfType<FlowLayoutPanel>().Single();
 			AddDoorSettings(actions);
 			card.Controls.Add(flowLayoutPanel);
 			start.Controls.Add(card);
@@ -4454,11 +4461,12 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			Embed("Slab Estimate", slab);
 			wood = OpeningGrid(true);
 			aluminum = OpeningGrid(false);
+			PlaceOpeningMaterialColumn(wood);
 			manualOpeningsGrid = OpeningGrid(false);
 			manualOpeningsGrid.Columns[22].Visible = (manualOpeningsGrid.Columns[23].Visible = (manualOpeningsGrid.Columns[24].Visible = false));
 			walls = WallGrid();
 			wood.Columns[2].Visible = (aluminum.Columns[2].Visible = false);
-			AddGrid("Wooden Doors & Windows", wood, "Overall opening dimensions in metres, INCLUDING jamb/frame. Leaf size = opening less jamb thickness. Paint: leaf faces/edges + exposed jamb. Window includes sill. Door thickness is fixed at 45mm. Door hinges/locksets are automatic; set Swing/Sliding/Fixed and leaves/unit. Select deductions in CHB Openings.");
+			AddGrid("Door & Window Schedule", wood, "Overall opening dimensions in metres, INCLUDING jamb/frame. Leaf size = opening less jamb thickness. Paint: leaf faces/edges + exposed jamb. Window includes sill. Door thickness is fixed at 45mm. Door hinges/locksets are automatic; set Swing/Sliding/Fixed and leaves/unit. Select deductions in CHB Openings.");
 			AddGrid("Aluminum Doors & Windows", aluminum, "Opening dimensions include the full rough opening/frame for CHB deduction. No aluminum painting is included. Select this schedule and quantity in CHB Openings to deduct it from a wall.");
 			AddGrid("CHB Estimate", walls, "Enter Width x Height x Qty OR Gross Area (leave the other method blank), then choose 100 or 150 mm thickness. Add / edit openings to deduct up to 3 door/window schedules. Pale-yellow cells are inputs; net areas are automatic.");
 			finishSchedule = FinishScheduleGrid();
@@ -4581,10 +4589,11 @@ worksExcelTimer.Tick += async delegate
 				pages["Gravel Estimate"]
 			});
 			AddSection("Masonry Works", new TabPage[1] { pages["CHB Estimate"] }.Concat(MasonryNames.Select((string name) => pages[name])).ToArray());
-			AddSection("Doors & Windows", new TabPage[2]
+			/* Wood, Aluminum and PVC openings share one schedule (owner, 17 November 2026); the Aluminum grid only receives
+			   rows from older saved projects, which are moved into the schedule on recalculation. */
+			AddSection("Doors & Windows", new TabPage[1]
 			{
-				pages["Wooden Doors & Windows"],
-				pages["Aluminum Doors & Windows"]
+				pages["Door & Window Schedule"]
 			});
 			pages["Finishing Start"].Text = "Start";
 			AddSection("Finishing Works", new TabPage[5]
@@ -5348,6 +5357,7 @@ worksExcelTimer.Tick += async delegate
 			dataGridViewComboBoxColumn2.Items.AddRange("Swing", "Sliding", "Fixed");
 			g.Columns.Add(dataGridViewComboBoxColumn2);
 			AddMouldingColumns(g);
+			AddOpeningMaterialColumn(g, isWood ? "Wood" : "Aluminum");
 			DataGridViewCellStyle defaultCellStyle = g.Columns[20].DefaultCellStyle;
 			Color backColor = (g.Columns[21].DefaultCellStyle.BackColor = ModernUi.Input);
 			defaultCellStyle.BackColor = backColor;
@@ -5384,8 +5394,9 @@ worksExcelTimer.Tick += async delegate
 				if (!filling && e.ColumnIndex == 3 && e.RowIndex >= 0)
 				{
 					DataGridViewRow dataGridViewRow = g.Rows[e.RowIndex];
-					dataGridViewRow.Cells[11].Value = ((isWood && Cell(dataGridViewRow, 3) == "Door") ? "1" : "0");
-					dataGridViewRow.Cells[12].Value = ((!isWood) ? "0" : ((Cell(dataGridViewRow, 3) == "Door") ? "3" : "2"));
+					bool rowWood = OpeningMaterial(dataGridViewRow, isWood) == "Wood";
+					dataGridViewRow.Cells[11].Value = ((rowWood && Cell(dataGridViewRow, 3) == "Door") ? "1" : "0");
+					dataGridViewRow.Cells[12].Value = ((!rowWood) ? "0" : ((Cell(dataGridViewRow, 3) == "Door") ? "3" : "2"));
 					Recalculate();
 				}
 			};
@@ -6686,6 +6697,8 @@ worksExcelTimer.Tick += async delegate
 			filling = true;
 			try
 			{
+				MoveAluminumRowsIntoSchedule();
+				SyncOpeningMouldings();
 				AssignRowIds();
 				FillBlankHiddenMaterials();
 				if (borrowSwell != null && borrowShrink != null)
@@ -6720,7 +6733,10 @@ worksExcelTimer.Tick += async delegate
 						}
 						try
 						{
-							if (dataGridView == wood)
+							string rowMaterial = (dataGridView == manualOpeningsGrid) ? "Manual" : OpeningMaterial(item, dataGridView == wood);
+							bool woodRow = rowMaterial == "Wood";
+							if (dataGridView != manualOpeningsGrid) StyleOpeningMaterialCells(item, woodRow);
+							if (woodRow)
 							{
 								AutomaticWoodDimensions(item);
 							}
@@ -6729,15 +6745,15 @@ worksExcelTimer.Tick += async delegate
 								Id = Cell(item, 0),
 								Description = Cell(item, 1),
 								Wall = Cell(item, 2),
-								Material = ((dataGridView == wood) ? "Wood" : ((dataGridView == manualOpeningsGrid) ? "Manual" : "Aluminum")),
+								Material = rowMaterial,
 								Kind = Cell(item, 3),
 								Width = Number(item, 4),
 								Height = Number(item, 5),
 								Quantity = Count(item, 6),
-								JambDepth = ((dataGridView == wood) ? Number(item, 7) : 0.0),
-								JambThickness = ((dataGridView == wood) ? Number(item, 8) : 0.0),
-								LeafThickness = ((dataGridView == wood) ? 0.045 : 0.0),
-								Faces = ((dataGridView == wood) ? Count(item, 10) : 0),
+								JambDepth = (woodRow ? Number(item, 7) : 0.0),
+								JambThickness = (woodRow ? Number(item, 8) : 0.0),
+								LeafThickness = (woodRow ? 0.045 : 0.0),
+								Faces = (woodRow ? Count(item, 10) : 0),
 								LocksPerUnit = ((!(Cell(item, 3) == "Door") && !(Cell(item, 11) == "")) ? Count(item, 11) : 0),
 								HingesPerUnit = ((!(Cell(item, 3) == "Door") && !(Cell(item, 12) == "")) ? Count(item, 12) : 0),
 								Leaves = ((Cell(item, 20) == "") ? 1 : Count(item, 20)),
@@ -7302,7 +7318,10 @@ worksExcelTimer.Tick += async delegate
 			case "PlumbingRebar":
 				return Enumerable.Range(0, 7).ToArray();
 			case "MouldingEntries":
-				return Enumerable.Range(0, 5).ToArray();
+				return new int[6] { 0, 1, 2, 3, 4, 7 };
+			case "Wood":
+			case "Aluminum":
+				return Enumerable.Range(0, 13).Concat(new int[5] { 20, 21, 22, 24, 25 }).ToArray();
 			default:
 				if (SteelSections.Contains(section))
 				{

@@ -1,0 +1,16 @@
+DTCE Tool Kit v1.4.95 (17 November 2026)
+
+Builds on v1.4.94.
+- Owner: one Door & Window Schedule instead of separate Wooden and Aluminum sheets. A Material column chooses
+  Wood, Aluminum or PVC (new). Wood keeps jamb, leaf and paint inputs; Aluminum and PVC are area-based without
+  paint or wooden jamb (those cells are greyed); door hardware (locksets/hinges) is counted for all doors. The BOQ
+  door/window schedule shows the material per opening (e.g. "D2 | PVC Door").
+- Older projects: rows from the old Aluminum sheet move into the schedule as Material = Aluminum on opening.
+  Saved files keep the Material in the Wood section (column 25).
+- Owner: opening moulding moved to Finishing Works > Moulding. Each moulding row can pick an Opening ID; its length
+  comes from that opening's size and quantity (read-only length/qty) and is counted once. Rows without an Opening
+  ID remain manual lengths. The old "Exterior moulding" flag/profile on the opening row are hidden but kept in step
+  and saved, so older projects show their opening moulding as moulding rows with the same quantities.
+- Checked on Linux/Mono: aluminum row migrated; PVC door 3 x 0.7 x 2.1 = 4.41 m2, no paint, 3 locksets/9 hinges;
+  old D1 exterior moulding -> moulding row 5.2 m; Opening D2 moulding 14.7 m; save/open keeps materials and
+  mouldings. StoreScreenshotTests uses the new tab name.
