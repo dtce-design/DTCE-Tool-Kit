@@ -365,8 +365,7 @@ namespace BeamScheduleFormatter
 			list2.AddRange(CanopySummary());
 			list2.AddRange(GravelSummary());
             list2.AddRange(ExtraBillQuantities().Select(q=>new object[]{q.Description,q.Quantity,q.Unit}));
-			list.Add(new WorksExcelTable("DTCE Tool Kit - POW", new string[3] { "QUANTITY (see Input Issues)", "Quantity", "Unit" }, list2, 1, 8));
-            list.Add(PowIssueOutput.Table(WorksValidationIssues()));
+			list.Add(new WorksExcelTable("DTCE Tool Kit - POW", new string[3] { "QUANTITY", "Quantity", "Unit" }, list2, 1, 8));
 			return list;
 		}
 
@@ -7786,6 +7785,7 @@ worksExcelTimer.Tick += async delegate
 			tabPage2.Controls.Add(boqGrid);
 			boqPages.TabPages.Add(tabPage2);
 			tabPage.Controls.Add(boqGrid);
+			AddIssuePanel(tabPage);
 			tabPage.Controls.Add(boqStatus);
 			tabPage.Controls.Add(flowLayoutPanel);
 			tabPage.Controls.Add(value);
@@ -7900,10 +7900,11 @@ worksExcelTimer.Tick += async delegate
 			}
 			boqGrid.Rows.Clear();
 			List<string> list = WorksValidationIssues();
+			UpdateIssuePanel(list);
 			if (list.Count > 0)
 			{
 				boqStatus.ForeColor = Color.Firebrick;
-				boqStatus.Text = "PARTIAL: " + list.Count + " input issue(s). Valid quantities shown; use Review inputs for the issue list.";
+				boqStatus.Text = "PARTIAL: " + list.Count + " input issue(s) listed below. Valid quantities shown.";
 			}
 			try
 			{
@@ -7927,7 +7928,7 @@ worksExcelTimer.Tick += async delegate
 				}
 				AddLegacyBoqRows();
 boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
-				boqStatus.Text = list.Count>0?"PARTIAL: "+list.Count+" issues listed; valid quantities shown.":"Quantities are up to date. Source rows show the breakdown; count each material total once.";
+				boqStatus.Text = list.Count>0?"PARTIAL: "+list.Count+" input issue(s) listed below; valid quantities shown.":"Quantities are up to date. Source rows show the breakdown; count each material total once.";
 			}
 			catch (Exception ex)
 			{
