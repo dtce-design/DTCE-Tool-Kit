@@ -27,3 +27,8 @@ Additions 17 November 2026 (still v1.4.67, not yet released)
   and "Metal painting TOTAL (purlins, angle bars, metal fascia)" m2, which is a BOQ demand suggested to
   1032(1)c Metal Painting Works (map once if the BACKUP has several 1032(1)c variants). Replaces the
   unrouted "Angle bars installed painting reference". New SteelPaintingTests.
+- Owner report: a second manual slab schedule could not be added. Cause: the "Manual reinforcement" button
+  edited the schedule of the selected takeoff row when that row already used a manual schedule. The two
+  buttons are now one: "Manual reinforcement schedules" (Add new schedule, Edit selected, Delete selected).
+  Add new always creates a new schedule; it fills the selected row only if that row has no slab mark yet,
+  otherwise it adds a new takeoff row.
