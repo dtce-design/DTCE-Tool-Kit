@@ -195,7 +195,7 @@ namespace BeamScheduleFormatter
 		// True when the LS row has no manual LS quantity yet: mapped quantities are kept as basis, nothing is written.
 		public static bool BasisOnly(BackupTarget t, IEnumerable<BackupDemand> mapped)
 		{
-			return Unit(t.Unit) == "ls" && !mapped.Any((BackupDemand d) => Unit(d.Unit) == "ls" && d.Quantity > 0.0);
+			return Unit(t.Unit) == "ls" && !mapped.Any((BackupDemand d) => Unit(d.Unit) == "ls" && (d.Quantity > 0.0 || d.Key.StartsWith("LS include|", StringComparison.Ordinal)));
 		}
 
 		// Removes routes that cannot be written yet and returns them with their reasons.

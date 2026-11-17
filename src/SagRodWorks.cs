@@ -2,7 +2,7 @@ using System;using System.Collections.Generic;using System.Globalization;using S
 namespace BeamScheduleFormatter {
 // Sag rods calculation sheet in Structural Steel Works (owner, 17 November 2026). Each row is one sag-rod type:
 // plain round bar of the chosen diameter, piece length including threaded ends, and the same quantity factors as the
-// other steel sheets (Qty / unit x Units / set x Sets x Multiplier; blank = 1). Nuts and washers per rod default to 2
+// other steel sheets (QTY x Units x Sets x Multiplier, all required). Nuts and washers per rod default to 2
 // when blank. All cuts of the same diameter share 6 m stocks with offcut reuse (SteelCutPlanner); weight from
 // 7850 kg/m3 (plain round bar is not in the Regan handbook); painting uses the installed length.
 class SagRodTakeoff {public string Id,Description,Profile;public double PieceLength,KgM,PaintPerMetre;public int Pieces,Nuts,Washers;public SteelCutDemand Demand;
@@ -12,16 +12,16 @@ partial class ProgramOfWorksForm {
  static readonly string[] SagRodDiameters={"10","12","16","20"};
  ExtraWorkGrid sagRodGrid;readonly List<SagRodTakeoff> sagRods=new List<SagRodTakeoff>();List<SteelStock> sagRodStocks=new List<SteelStock>();
  void AddSagRodWorks(){
-  sagRodGrid=NewExtraGrid("SagRods",SagRodPage,"Structural Steel Works",new[]{"Sag rod ID","Description / location","Rod dia mm","Rod length m (each, incl. threads)","Qty / unit","Units / set","Sets","Multiplier","Nuts / rod (blank = 2)","Washers / rod (blank = 2)","Total pcs","Installed length m","kg/m","Installed kg","Purchase kg (6 m stock)","Nuts pcs","Washers pcs","Paint m2 (installed)","Status"},10,new Dictionary<int,string>{{2,"12"}},
-   "One row per sag-rod type. Rod length = clear distance between purlins plus both threaded ends. Total pcs = Qty / unit x Units / set x Sets x Multiplier (blank = 1). Nuts and washers per rod are 2 when left blank. Cuts of the same diameter share 6 m stocks and reuse offcuts; painting uses the installed length.");
+  sagRodGrid=NewExtraGrid("SagRods",SagRodPage,"Structural Steel Works",new[]{"Sag rod ID","Description / location","Rod dia mm","Rod length m (each, incl. threads)","QTY","Units","Sets","Multiplier","Nuts / rod (blank = 2)","Washers / rod (blank = 2)","Total pcs","Installed length m","kg/m","Installed kg","Purchase kg (6 m stock)","Nuts pcs","Washers pcs","Paint m2 (installed)","Status"},10,new Dictionary<int,string>{{2,"12"}},
+   "One row per sag-rod type. Rod length = clear distance between purlins plus both threaded ends. Total pcs = QTY x Units x Sets x Multiplier (all required; use 1 where not applicable). Nuts and washers per rod are 2 when left blank. Cuts of the same diameter share 6 m stocks and reuse offcuts; painting uses the installed length.");
   var g=sagRodGrid.Grid;ExtraChoice(g,2,SagRodDiameters);g.Columns[1].Width=220;g.Columns[3].Width=170;
-  g.Columns[5].ToolTipText="Number of units in one set (e.g. bays per frame line). Blank = 1.";g.Columns[6].ToolTipText="Number of sets (e.g. buildings). Blank = 1.";g.Columns[7].ToolTipText="Additional multiplier for the whole row. Blank = 1.";}
+  g.Columns[5].ToolTipText="Number of units in one set (e.g. bays per frame line). Required.";g.Columns[6].ToolTipText="Number of sets (e.g. buildings). Required.";g.Columns[7].ToolTipText="Additional multiplier for the whole row. Required.";}
  static SteelProfile SagRodProfile(string dia){return RailingSections.Find("Round bar "+dia+"mm");}
  void RecalculateSagRods(){sagRods.Clear();sagRodStocks=new List<SteelStock>();if(sagRodGrid==null)return;var g=sagRodGrid.Grid;var ids=new HashSet<string>(StringComparer.OrdinalIgnoreCase);var demands=new List<SteelCutDemand>();
   Func<DataGridViewRow,int,int,int> factor=(row,c,blank)=>Cell(row,c)==""?blank:Count(row,c);
   foreach(DataGridViewRow row in g.Rows){if(row.IsNewRow)continue;row.Tag=null;for(int c=sagRodGrid.Inputs;c<g.Columns.Count;c++)row.Cells[c].Value="";if(Empty(row))continue;
    try{if(Cell(row,0)==""||!ids.Add(Cell(row,0)))throw new Exception("Enter a unique sag rod ID.");var profile=SagRodProfile(Cell(row,2));if(profile==null)throw new Exception("Select the rod diameter.");
-    double piece=Number(row,3);if(!(piece>0))throw new Exception("Enter the rod length.");int pieces=checked(Count(row,4)*factor(row,5,1)*factor(row,6,1)*factor(row,7,1));int segments=RailingSections.Segments(piece);
+    double piece=Number(row,3);if(!(piece>0))throw new Exception("Enter the rod length.");if(new[]{4,5,6,7}.Any(c=>Cell(row,c)==""))throw new Exception("Enter QTY, Units, Sets and Multiplier (use 1 where not applicable).");int pieces=checked(Count(row,4)*Count(row,5)*Count(row,6)*Count(row,7));int segments=RailingSections.Segments(piece);
     var t=new SagRodTakeoff{Id=Cell(row,0),Description=Cell(row,1),Profile=profile.Name,PieceLength=piece,KgM=profile.KgM,PaintPerMetre=SteelPainting.AreaPerMetre(profile),Pieces=pieces,Nuts=checked(pieces*factor(row,8,2)),Washers=checked(pieces*factor(row,9,2))};
     var demand=new SteelCutDemand{Member="Sag rod "+t.Id,Specification=profile.Name,Length=piece/segments,Quantity=checked(pieces*segments),KgM=profile.KgM};t.Demand=demand;demands.Add(demand);sagRods.Add(t);row.Tag=t;
     row.Cells[10].Value=pieces;Measure(row,11,t.Installed);row.Cells[12].Value=profile.KgM.ToString("0.###",CultureInfo.InvariantCulture);Measure(row,13,t.InstalledKg);row.Cells[15].Value=t.Nuts;row.Cells[16].Value=t.Washers;Measure(row,17,t.Paint);

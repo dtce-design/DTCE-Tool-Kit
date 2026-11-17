@@ -71,7 +71,7 @@ internal static partial class PowTheme {
   grid.DefaultCellStyle.SelectionBackColor=ModernUi.Selection;grid.DefaultCellStyle.SelectionForeColor=Ink;
   grid.RowHeadersDefaultCellStyle.BackColor=ModernUi.Soft;grid.RowHeadersDefaultCellStyle.SelectionBackColor=ModernUi.Selection;
   grid.RowTemplate.MinimumHeight=36;grid.RowTemplate.Height=36;grid.AllowUserToResizeRows=false;grid.AllowUserToOrderColumns=false;
-  grid.AutoSizeRowsMode=DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;grid.DefaultCellStyle.WrapMode=DataGridViewTriState.True;
+  grid.AutoSizeRowsMode=DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;grid.DefaultCellStyle.WrapMode=DataGridViewTriState.True;GridEditKeys.Attach(grid);
   grid.AlternatingRowsDefaultCellStyle.BackColor=ModernUi.Surface;
   foreach(DataGridViewColumn col in grid.Columns)StyleColumn(col);
   grid.CellFormatting+=delegate(object sender,DataGridViewCellFormattingEventArgs e){if(e.RowIndex<0)return;var style=e.CellStyle;if(DesktopAppearance.Palette.Dark&&style.BackColor.GetBrightness()>.65f)style.BackColor=grid.Rows[e.RowIndex].Cells[e.ColumnIndex].ReadOnly?ModernUi.Surface:ModernUi.Input;if(DesktopAppearance.Palette.Dark&&style.ForeColor.GetBrightness()<.35f)style.ForeColor=Ink;if(!DesktopAppearance.Palette.Dark&&style.BackColor.GetBrightness()<.28f&&style.BackColor.GetSaturation()<.25f){style.BackColor=grid.Rows[e.RowIndex].Cells[e.ColumnIndex].ReadOnly?ModernUi.Surface:ModernUi.Input;style.ForeColor=Ink;}if(!DesktopAppearance.Palette.Dark&&style.BackColor.GetBrightness()>.65f&&style.ForeColor.GetBrightness()>.7f)style.ForeColor=Ink;};

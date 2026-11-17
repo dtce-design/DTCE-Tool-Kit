@@ -1102,6 +1102,7 @@ namespace BeamScheduleFormatter
 			}
 			if(flag)list.AddRange(ConcretePayQuantities().Select(BackupDemand.From));
             RouteRequiredQuantities(list);
+            ApplyBoqIncludes(list);
             return list;
 		}
 
@@ -9322,12 +9323,14 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 					xmlElement.AppendChild(xmlElement2);
 				}
 			}
+			WriteBoqIncludes(xmlElement);
 		}
 
 		private void ReadBackupBillRoutes(XmlElement root)
 		{
 			backupBillRoutes.Clear();
 			XmlElement xmlElement = root["BackupBillRoutes"];
+			ReadBoqIncludes(xmlElement);
 			if (xmlElement == null)
 			{
 				return;
