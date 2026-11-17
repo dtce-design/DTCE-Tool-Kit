@@ -7798,6 +7798,7 @@ worksExcelTimer.Tick += async delegate
 			boqPages.TabPages.Add(tabPage2);
 			tabPage.Controls.Add(boqGrid);
 			AddIssuePanel(tabPage);
+			AddBoqSearch(tabPage);
 			tabPage.Controls.Add(boqStatus);
 			tabPage.Controls.Add(flowLayoutPanel);
 			tabPage.Controls.Add(value);
@@ -7939,6 +7940,7 @@ worksExcelTimer.Tick += async delegate
 					}
 				}
 				AddLegacyBoqRows();
+				if (boqDisclosure != null) boqDisclosure.Apply();
 boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 				boqStatus.Text = list.Count>0?"PARTIAL: "+list.Count+" input issue(s) listed below; valid quantities shown.":"Quantities are up to date. Source rows show the breakdown; count each material total once.";
 			}

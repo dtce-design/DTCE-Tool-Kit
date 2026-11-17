@@ -79,6 +79,36 @@ namespace BeamScheduleFormatter
 			{
 				e.ThrowException = false;
 			};
+			// Searchable picker instead of a long dropdown (owner, 17 November 2026). Click the pay item cell or press
+			// Enter/F2/Space on it. With several rows selected, the chosen item is applied to every selected row with a
+			// compatible unit.
+			grid.EditMode = DataGridViewEditMode.EditProgrammatically;
+			grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+			grid.MultiSelect = true;
+			Action pick = delegate
+			{
+				DataGridViewRow anchor = grid.CurrentRow;
+				if (anchor == null || anchor.Cells[3].ReadOnly) return;
+				BackupDemand demand = (BackupDemand)anchor.Tag;
+				var cell = (DataGridViewComboBoxCell)anchor.Cells[3];
+				var choices = cell.Items.Cast<BackupTarget>().ToList();
+				BackupTarget current = cell.Value == null ? null : choices.FirstOrDefault(t => t.Row == Convert.ToInt32(cell.Value));
+				var rows = grid.SelectedRows.Cast<DataGridViewRow>().Where(r => !r.Cells[3].ReadOnly).ToList();
+				if (!rows.Contains(anchor)) rows.Add(anchor);
+				using (var picker = new BackupTargetPicker(rows.Count > 1 ? rows.Count + " selected quantities" : demand.Description, choices, current))
+				{
+					if (picker.ShowDialog(backupMapDialog) != DialogResult.OK || picker.Selected == null) return;
+					int skipped = 0;
+					foreach (DataGridViewRow row in rows)
+					{
+						var target = (DataGridViewComboBoxCell)row.Cells[3];
+						if (target.Items.Cast<BackupTarget>().Any(t => t.Row == picker.Selected.Row)) target.Value = picker.Selected.Row; else skipped++;
+					}
+					if (skipped > 0) MessageBox.Show(backupMapDialog, skipped + " selected row(s) have a different unit and were not changed.", "BACKUP mapping");
+				}
+			};
+			grid.CellClick += delegate(object s, DataGridViewCellEventArgs e) { if (e.RowIndex >= 0 && e.ColumnIndex == 3) pick(); };
+			grid.KeyDown += delegate(object s, KeyEventArgs e) { if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.F2 || e.KeyCode == Keys.Space) { pick(); e.Handled = true; } };
 			FlowLayoutPanel flowLayoutPanel = new FlowLayoutPanel
 			{
 				Dock = DockStyle.Bottom,
