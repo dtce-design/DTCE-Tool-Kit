@@ -10,7 +10,13 @@ static class GridClipboard {
  internal static bool Process(WorksDataGridView grid,Keys keys){
   if(keys!=(Keys.Control|Keys.C)&&keys!=(Keys.Control|Keys.V))return false;
   if(grid.CurrentCell==null)return false;
-  if(grid.IsCurrentCellInEditMode&&!(grid.EditingControl is ComboBox))return false;
+  /* POW grids use EditOnEnter, so the current cell is almost always in typing mode. Let the cell's own text box
+     handle only plain one-cell work: copying highlighted text, or pasting one value into the one selected cell. */
+  if(grid.IsCurrentCellInEditMode&&!(grid.EditingControl is ComboBox)){
+   int selected=grid.SelectedCells.Cast<DataGridViewCell>().Count(c=>c.Visible);var box=grid.EditingControl as TextBoxBase;
+   if(keys==(Keys.Control|Keys.C)){if(selected<=1&&box!=null&&box.SelectionLength>0)return false;}
+   else{string text="";try{text=Clipboard.ContainsText()?Clipboard.GetText():"";}catch(System.Runtime.InteropServices.ExternalException){return false;}
+    bool block=Parse(text).Length>1||Parse(text).Any(r=>r.Length>1);if(selected<=1&&!block)return false;}}
   try{if(keys==(Keys.Control|Keys.C))Copy(grid);else Paste(grid);}
   catch(System.Runtime.InteropServices.ExternalException){MessageBox.Show(grid.FindForm(),"The clipboard is busy. Try again.","Copy / paste",MessageBoxButtons.OK,MessageBoxIcon.Information);}
   catch(Exception ex){MessageBox.Show(grid.FindForm(),ex.Message,"Paste",MessageBoxButtons.OK,MessageBoxIcon.Information);}
