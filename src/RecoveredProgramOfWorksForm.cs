@@ -7572,6 +7572,8 @@ worksExcelTimer.Tick += async delegate
 					for (int i = 0; i < array.Length; i++)
 					{
 						int num = array[i];
+						/* Material (column 25) was added in v1.4.95; older files open with the grid default (Wood / Aluminum). */
+						if ((item.Key == "Wood" || item.Key == "Aluminum") && num == OpeningMaterialColumn && !item2.HasAttribute("c" + num)) continue;
 						if (flag && IsMasonrySection(item.Key) && (num == 12 || num == 16))
 						{
 							continue;
@@ -7605,7 +7607,9 @@ worksExcelTimer.Tick += async delegate
 						}
 						if ((!(attribute != "7") || !(attribute != "8") || !(attribute != "9") || !(attribute != "10") || !(attribute != "11") || !(attribute != "12") || !(attribute != "13") || !(attribute != "14") || !(attribute != "15") || !(attribute != "16") || !(attribute != "17") || !(attribute != "18") || !(attribute != "19") || !IsMasonrySection(item.Key) || num != 19) && (!(attribute != "10") || !(attribute != "11") || !(attribute != "12") || !(attribute != "13") || !(attribute != "14") || !(attribute != "15") || !(attribute != "16") || !(attribute != "17") || !(attribute != "18") || !(attribute != "19") || !(item.Key == "RoofSheets") || (num != 17 && num != 18)) && (!(attribute != "14") || !(attribute != "15") || !(attribute != "16") || !(attribute != "17") || !(attribute != "18") || !(attribute != "19") || (!(item.Key == "Wood") && !(item.Key == "Aluminum") && !(item.Key == "CHBOpenings")) || num != 22) && (!(attribute != "15") || !(attribute != "16") || !(attribute != "17") || !(attribute != "18") || !(attribute != "19") || (!(item.Key == "Wood") && !(item.Key == "Aluminum") && !(item.Key == "CHBOpenings")) || num != 24) && (!(attribute != "19") || !(item.Key == "PlumbingLS") || num < 5) && !item2.HasAttribute("c" + num))
 						{
-							throw new Exception("Incomplete " + item.Key + " entry.");
+							/* Owner (17 November 2026): a column added in a later version (e.g. Material, moulding Opening ID) is
+							   simply blank in older files; the fill step uses the column default. Older POWs must keep opening. */
+							continue;
 						}
 					}
 				}
@@ -7700,6 +7704,7 @@ worksExcelTimer.Tick += async delegate
 						}
 						ReadSteelSets(item3.Key, item3.Value.Rows[index], item4);
 						ReadOpeningPaint(item3.Key, item3.Value.Rows[index], item4);
+						if ((item3.Key == "Wood" || item3.Key == "Aluminum") && !item4.HasAttribute("c" + OpeningMaterialColumn)) item3.Value.Rows[index].Cells[OpeningMaterialColumn].Value = (item3.Key == "Wood") ? "Wood" : "Aluminum";
 					}
 				}
 			}

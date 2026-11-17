@@ -1,0 +1,9 @@
+DTCE Tool Kit v1.4.101 (17 November 2026)
+
+Builds on v1.4.100.
+- Fixed (owner report): projects saved before v1.4.95 failed to open with "Incomplete Wood entry." The Door &
+  Window Material column (c25) and the moulding Opening ID (c7) became saved inputs in v1.4.95 and were wrongly
+  required. Any input column missing from an older file is now treated as blank / default instead of rejecting
+  the file; missing Material becomes Wood (Wood schedule) or Aluminum (old Aluminum sheet, then moved).
+- Checked on Mono: a project with a wooden door saved without c25 / pl / pj / moulding c7 opens, Material = Wood,
+  leaf 7.07 m2 + jamb 2.55 m2 as before; an older 100 KB project opens.
