@@ -142,16 +142,9 @@ namespace BeamScheduleFormatter
 						int id = (int)item.Cells[3].Tag;
 						dictionary[backupDemand.Key] = targets.Single((BackupTarget t) => t.Row == id);
 					}
-					List<KeyValuePair<BackupDemand, string>> left = BackupMapping.DropIncomplete(demands, dictionary);
+					/* Owner (17 November 2026): no confirmation list; incomplete or unselected rows simply stay unmapped (BOQ). */
+					BackupMapping.DropIncomplete(demands, dictionary);
 					BackupMapping.Validate(demands.Where((BackupDemand d) => dictionary.ContainsKey(d.Key)), dictionary);
-					if (left.Count > 0)
-					{
-						string list = string.Join("\n", left.Take(12).Select((KeyValuePair<BackupDemand, string> x) => "• " + x.Key.Description + " — " + x.Value)) + ((left.Count > 12) ? ("\n… and " + (left.Count - 12) + " more") : "");
-						if (MessageBox.Show(backupMapDialog, left.Count + " quantit" + ((left.Count == 1) ? "y stays" : "ies stay") + " unmapped and will not be written to BACKUP (they remain listed in Bill of Quantities):\n\n" + list + "\n\nApply the mapping for the others?", "BACKUP mapping", MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK)
-						{
-							return;
-						}
-					}
 					routes.Clear();
 					foreach (KeyValuePair<string, BackupTarget> item2 in dictionary)
 					{

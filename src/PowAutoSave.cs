@@ -25,6 +25,7 @@ partial class ProgramOfWorksForm {
   if(!unsavedSince.HasValue)unsavedSince=now;
   DateTime last=userActivity==null?now:userActivity.Last;if(!AutoSaveDue(now,unsavedSince.Value,last))return;
   bool idle=now-last>=AutoSaveIdle;if(!idle&&TypingInCell())return;
+  if(SourcesPending)return;/* embedded sources still loading after open */
   savingPow=true;string path=currentPowPath;
   try{Guard();string snapshot=BuildWorksProjectXml(false),fingerprint=DataXml(),beamState=beam.WorksSaveState(),slabState=slab.WorksSaveState();var sources=ProjectSources();
    if(powSaveIndicator!=null)powSaveIndicator.Text="Auto-saving…";

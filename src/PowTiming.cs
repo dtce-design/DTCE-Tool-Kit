@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Diagnostics;using System.Globalization;using System.IO;using System.Linq;
+using System;using System.Windows.Forms;using System.Collections.Generic;using System.Diagnostics;using System.Globalization;using System.IO;using System.Linq;
 namespace BeamScheduleFormatter {
 // Step timings for opening, saving and closing a Program of Works (owner, 17 November 2026: still slow on Windows,
 // not reproducible on the Linux test machine). Each operation's steps are shown in the POW status bar and appended
@@ -14,5 +14,10 @@ static class PowTiming {
    File.AppendAllText(file,DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss",CultureInfo.InvariantCulture)+" v"+Engine.Version+" "+operation+" total "+total.ElapsedMilliseconds+" ms | "+string.Join(" | ",steps.Select(s=>s.Key+" "+s.Value))+Environment.NewLine);}catch(Exception){}
   operation=null;return LastSummary;}
  internal static string Seconds(long ms){return (ms/1000.0).ToString("0.0",CultureInfo.InvariantCulture)+" s";}
+}
+partial class ProgramOfWorksForm {
+ // Embedded source files are checked after the project is shown, so opening does not wait for large workbooks.
+ void VerifySourcesInBackground(PowSourceFiles sources){var files=sources.Files.ToList();if(files.Count==0)return;System.Threading.Tasks.Task.Run(()=>{var bad=new List<string>();foreach(var f in files){try{f.Verify();}catch(Exception){bad.Add(f.Name);}}return bad;}).ContinueWith(t=>{if(IsDisposed||t.IsFaulted||t.Result.Count==0)return;try{BeginInvoke((Action)(()=>MessageBox.Show(this,"These embedded source files in the Program of Works are damaged and cannot be extracted:\n\n"+string.Join("\n",t.Result)+"\n\nThe quantities are not affected. Re-attach the original files under Project files if they are needed.","Project source files",MessageBoxButtons.OK,MessageBoxIcon.Warning)));}catch(InvalidOperationException){}});}
+
 }
 }

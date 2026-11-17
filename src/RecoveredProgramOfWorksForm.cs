@@ -7416,7 +7416,7 @@ worksExcelTimer.Tick += async delegate
 			WriteBackupBillRoutes(xmlElement);
 			WriteStructureConfigurations(xmlElement);
             WriteExtraProject(xmlElement);WriteRoofingSpecification(xmlElement);
-            ProjectSources().Write(xmlElement,true);
+            WriteSourceManifest(xmlElement);
 			return xmlDocument.OuterXml;
 		}
 
@@ -7434,7 +7434,7 @@ worksExcelTimer.Tick += async delegate
 			xmlDocument.LoadXml(DataXml());
             PowProjectInformation.Write(xmlDocument.DocumentElement,ProjectInfoStore.Read());
             PowIssueOutput.Write(xmlDocument.DocumentElement,WorksValidationIssues());
-            if(includeSourceFiles)ProjectSources().Write(xmlDocument.DocumentElement);
+            if(includeSourceFiles){ApplyDeferredSources();ProjectSources().Write(xmlDocument.DocumentElement);}
 			PowTiming.Mark("project data / issues");
 			snapshottingWorks = true;
 			string text;
@@ -7470,7 +7470,7 @@ worksExcelTimer.Tick += async delegate
 		{
 			Guard();
 			string contents = BuildWorksProjectXml(false);
-            PowProjectFileWriter.WriteWithSources(path,contents,ProjectSources());
+            ApplyDeferredSources();PowProjectFileWriter.WriteWithSources(path,contents,ProjectSources());
 			beam.WorksSaved();
 			slab.WorksSaved();
             currentPowPath=Path.GetFullPath(path);
@@ -7489,10 +7489,10 @@ worksExcelTimer.Tick += async delegate
                 openingPow=true;worksExcelTimer.Stop();excelSaveTimer.Stop();
                 if(currentSync!=null)try{await currentSync;}catch(Exception ex){ExcelFailure(ex);}
                 busy.Status("Reading project and source files…");PowTiming.Start("Open");
-                var snapshot=await System.Threading.Tasks.Task.Run(()=>PowProjectFileWriter.Read(dialog.FileName));
+                CancelDeferredSources();var snapshot=await System.Threading.Tasks.Task.Run(()=>PowProjectFileWriter.Read(dialog.FileName,true));
                 if(IsDisposed)return;PowTiming.Mark("read file");
                 busy.Status("Loading worksheets and quantities…");
-                OpenProjectDocument(snapshot.Document,snapshot.Sources);currentPowPath=Path.GetFullPath(dialog.FileName);
+                try{OpenProjectDocument(snapshot.Document,snapshot.Sources,snapshot.SourcesDeferred?dialog.FileName:null);}catch{CancelDeferredSources();throw;}currentPowPath=Path.GetFullPath(dialog.FileName);if(!snapshot.SourcesDeferred)VerifySourcesInBackground(snapshot.Sources);
                 if(worksExcel!=null&&linkedHasBackup){busy.Status("Refreshing linked BACKUP items…");await LoadCatalogue();PowTiming.Mark("Excel BACKUP items");lastExcelXml="";dashboardDirty=true;RefreshVisibleWorksViews();saved=DataXml();ScheduleWorksExcel();}
                 ShowTiming(PowTiming.Finish());}
             }}catch(Exception ex){if(!IsDisposed)MessageBox.Show(this,ex.Message,"Open Program of Works",MessageBoxButtons.OK,MessageBoxIcon.Information);}finally{openingPow=false;if(!IsDisposed&&worksExcel!=null&&!excelBroken)ScheduleWorksExcel();}
@@ -7527,7 +7527,7 @@ worksExcelTimer.Tick += async delegate
 			}
             OpenProjectDocument(xmlDocument,PowSourceFiles.Read(xmlDocument.DocumentElement));
         }
-        private void OpenProjectDocument(XmlDocument xmlDocument,PowSourceFiles savedSourceFiles)
+        private void OpenProjectDocument(XmlDocument xmlDocument,PowSourceFiles savedSourceFiles,string deferredSourcesPath=null)
         {
             Guard();
             var savedProjectInformation=PowProjectInformation.Read(xmlDocument.DocumentElement);
@@ -7549,6 +7549,7 @@ worksExcelTimer.Tick += async delegate
 			{
 				throw new Exception("This window has unsaved Program of Works inputs. Save them, or use Close Program of Works, then open the other file.");
 			}
+			if (deferredSourcesPath != null) BeginDeferredSources(deferredSourcesPath, xmlDocument.DocumentElement);
 			if (beam.WorksSnapshot() != null || slab.WorksSnapshot() != null)
 			{
 				throw new Exception("Beam or slab work is already loaded in this window. Use Close Program of Works (save first if needed), then open the saved file.");
