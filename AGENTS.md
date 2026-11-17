@@ -113,3 +113,12 @@ items (a v1.4.65 test build did this by mistake and was reverted in v1.4.66).
 Owner decision: tie sets and tie cut lengths stay automatic (count from the beam schedule, cut length
 from section, cover, bend diameter and 135° hooks). Do not add manual tie count / cut length override
 columns; the unused TieCount/TieCut input fields may remain as they are.
+
+## Store release authorization (17 November 2026)
+
+Owner explicitly asked to publish to the Microsoft Store: both User and Admin editions of v1.4.67,
+after the Windows CI build passes. This lifts the 16 November release hold for v1.4.67 only:
+merge the development branch to main (automatic GitHub release), then run the workflow manually on
+main with publish_microsoft_store=true. Store packages stay key-free. Upload is not certification;
+report Partner Center status honestly. TestFlight and Pages remain unauthorized. Later versions need
+a new explicit owner request.
