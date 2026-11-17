@@ -4532,6 +4532,7 @@ worksExcelTimer.Tick += async delegate
             ConfigureAngleQuantityView();
 			tabs.Multiline = true;
 			PowTheme.Apply(this);
+            CompactMeasurementRows();
             InstallExcelStatusBar();
 			status.Height = 38;
 			status.BackColor = ModernUi.Soft;
@@ -6549,9 +6550,9 @@ worksExcelTimer.Tick += async delegate
 					PlasterTakeoff plasterTakeoff2 = PlasterTakeoff.Calculate(wallItem2, wallOpenings, finishItems, (wallItem2.Paint == "Same as plaster") ? wallItem2.Plaster : wallItem2.Paint);
 					paintResults[wallItem2.Id] = plasterTakeoff2;
 					item3.Cells[17].Value = plasterTakeoff2.Net.ToString("0.00");
-					if (errors.Count > 0)
+					if (WallHasOpeningIssue(wallItem2.Id) || WallHasFinishIssue(wallItem2.Id))
 					{
-						item3.Cells[11].Value = "Review finish/opening issues before using totals";
+						item3.Cells[11].Value = "Review this wall's finish/opening issue before using totals";
 					}
 				}
 				catch (Exception ex2)
@@ -6837,7 +6838,7 @@ worksExcelTimer.Tick += async delegate
 						item2.Cells[8].Value = wallItem.Deduction(wallOpenings).ToString("0.00");
 						item2.Cells[9].Value = num2.ToString("0.00");
 						item2.Cells[10].Value = wallItem.Blocks(wallOpenings);
-						item2.Cells[11].Value = ((errors.Count > 0) ? "Review invalid openings before using quantities" : "Ready");
+						item2.Cells[11].Value = (WallHasOpeningIssue(wallItem.Id) ? "Review this wall's invalid opening before using quantities" : "Ready");
 					}
 					catch (Exception ex3)
 					{
