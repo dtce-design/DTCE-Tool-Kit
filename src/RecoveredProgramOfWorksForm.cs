@@ -990,7 +990,7 @@ namespace BeamScheduleFormatter
 				if(item.Section=="Reinforced Concrete Works"&&item.Description.ToLowerInvariant().Contains("concrete"))flag2=false;
                 if(item.Section=="Canopy / Ledge"&&item.Unit=="m3")flag2=false;
                 if((item.Section=="Miscellaneous Structures"||item.Section=="Wall Footing"))flag2=item.Unit=="m2";
-                if(new[]{"Pavement Construction","Slope Protection Works","Carpentry and Joinery Works"}.Contains(item.Section))flag2=true;
+                if(new[]{"Pavement Construction","Slope Protection Works","Carpentry and Joinery Works","Waterproofing"}.Contains(item.Section))flag2=true;
                 if(item.Section=="Earthworks"&&!string.IsNullOrEmpty(item.PayCode))flag2=true;
                 if (flag2)
 				{

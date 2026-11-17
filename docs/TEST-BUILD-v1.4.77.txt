@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.4.77 (17 November 2026)
+
+Builds on v1.4.76.
+- Clarified: Slab support "Roof deck / waterproofing" and "Concrete gutter / waterproofing" already route the
+  row's concrete to 900(1)d Structural Concrete with Waterproofing Admixture (forms and rebar as Elevated).
+- Owner request: these rows now also give a waterproofing area, top area = short x long x quantity, listed as
+  "Waterproofing - roof deck / concrete gutter slabs (top area)" m2 with one source line per slab row. It is a
+  computed BOQ quantity the owner maps once to the waterproofing item in the BACKUP (e.g. 1016(1)a / 1016(2)).
+  Gutter side/upturn faces are not included (no height input); add them as a manual quantity if specified.
+- Checked on Linux/Mono with the owner's gutter rows: 0.55 x 4.8 x 2 = 5.28 and 0.6 x 5.55 x 2 = 6.66, total
+  11.94 m2; the "On gravel fill" court slab is excluded.
