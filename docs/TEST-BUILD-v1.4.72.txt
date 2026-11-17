@@ -1,0 +1,6 @@
+DTCE Tool Kit v1.4.72 (17 November 2026)
+
+Builds on v1.4.71.
+- Owner decision: removed the "Project Information" button from the Slab Estimate toolbar inside the POW.
+  Project Information is edited from its Start card only. Each .pow.xml still saves the project details and
+  restores them when opened.
