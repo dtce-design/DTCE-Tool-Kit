@@ -47,11 +47,11 @@ static class GridClipboard {
   else{var selected=grid.SelectedCells.Cast<DataGridViewCell>().Where(c=>c.Visible).ToList();if(selected.Count==0)selected.Add(grid.CurrentCell);
    int top=selected.Min(c=>c.RowIndex);int left=columns.FindIndex(c=>c.Index==selected.OrderBy(x=>x.OwningColumn.DisplayIndex).First().ColumnIndex);
    for(int r=0;r<block.Length;r++)for(int c=0;c<block[r].Length;c++){if(left+c>=columns.Count)break;int rowOffset=r,columnIndex=columns[left+c].Index;
-    plan.Add(new KeyValuePair<Func<DataGridViewCell>,string>(()=>{int row=top+rowOffset;while(row>=grid.Rows.Count||grid.Rows[row].IsNewRow){if(!grid.AllowUserToAddRows&&row>=grid.Rows.Count)return null;grid.Rows.Add();}return grid.Rows[row].Cells[columnIndex];},block[r][c]));}}
+    plan.Add(new KeyValuePair<Func<DataGridViewCell>,string>(()=>{int row=top+rowOffset;while(row>=grid.Rows.Count||grid.Rows[row].IsNewRow){if(!grid.AllowUserToAddRows&&row>=grid.Rows.Count)return null;grid.AddRowWithDefaults();}return grid.Rows[row].Cells[columnIndex];},block[r][c]));}}
   int skipped=0,changed=0;
   grid.ApplyProfilePaste(()=>{foreach(var step in plan){var cell=step.Key();if(cell==null){skipped++;continue;}if(cell.ReadOnly||cell.OwningRow.ReadOnly){if(step.Value.Trim()!=""&&!single)skipped++;continue;}
     var value=Convert(cell,step.Value);if(value==null){skipped++;continue;}if(object.Equals(cell.Value,value)||(System.Convert.ToString(cell.Value)==""&&System.Convert.ToString(value)==""))continue;
-    if(cell.OwningRow.IsNewRow){var row=grid.Rows[grid.Rows.Add()];cell=row.Cells[cell.ColumnIndex];}cell.Value=value;changed++;}});
+    if(cell.OwningRow.IsNewRow){var row=grid.AddRowWithDefaults();cell=row.Cells[cell.ColumnIndex];}cell.Value=value;changed++;}});
   return new[]{changed,skipped};
  }
 }

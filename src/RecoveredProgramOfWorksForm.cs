@@ -5436,12 +5436,13 @@ worksExcelTimer.Tick += async delegate
 			HashSet<string> hashSet = new HashSet<string>(from r in (from g in MasonryGrids()
 					where g != null
 					select g).SelectMany((DataGridView g) => g.Rows.Cast<DataGridViewRow>()).Concat(grid.Rows.Cast<DataGridViewRow>())
-				where !r.IsNewRow
 				select Cell(r, 0), StringComparer.OrdinalIgnoreCase);
+			/* Lowest unused W number across all masonry sheets, including the new row's pending ID (owner, 17 November 2026: no gaps). */
+			int number = 1;
 			string text;
 			do
 			{
-				text = "W" + nextWallNumber++.ToString("000");
+				text = "W" + number++.ToString("000");
 			}
 			while (hashSet.Contains(text));
 			return text;
