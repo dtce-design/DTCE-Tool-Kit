@@ -7804,7 +7804,7 @@ worksExcelTimer.Tick += async delegate
 			boqPages.TabPages.Add(tabPage2);
 			tabPage.Controls.Add(boqGrid);
 			AddIssuePanel(tabPage);
-			AddBoqSearch(tabPage);
+			AddBoqSearch(flowLayoutPanel);
 			tabPage.Controls.Add(boqStatus);
 			tabPage.Controls.Add(flowLayoutPanel);
 			tabPage.Controls.Add(value);
