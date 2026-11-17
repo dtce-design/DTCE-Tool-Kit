@@ -1,0 +1,15 @@
+DTCE Tool Kit v1.4.100 (17 November 2026)
+
+Builds on v1.4.99.
+- Owner: BACKUP mapping no longer has to be complete. Apply mapping accepts rows left unmapped (Delete key or
+  never chosen) and LS items without a manual LS quantity (e.g. Finishing Hardware for locksets / hinges): they
+  stay unmapped, remain listed in Bill of Quantities and are not written to BACKUP. A summary lists them and asks
+  to continue. No default 1 LS is ever assumed. Background quantity writes skip such routes instead of failing.
+- Owner: the Map Backup dialog opened slowly. Each row carried a dropdown filled with every BACKUP item; the
+  pay-item cell is now plain text and the searchable picker supplies the choices (compatible list cached per
+  unit). Mono: 300 quantities x 800 BACKUP items open in about 0.2 s.
+- Owner: Door & Window Schedule has "Paint door / window leaf" and "Paint jamb" checkboxes (checked by default,
+  as before). Unchecked parts are not painted. Saved as pl / pj attributes; older files keep their painting.
+- Checked on Mono: BackupPartialMappingTests (new), ProgramOfWorksTests, RailingTests; D1 2 doors 0.9 x 2.1:
+  leaf 7.07 + jamb 2.55 m2, jamb off -> 7.07 m2, kept after save / reopen; an older project opens.
+- Still open: slow save on Windows (not reproduced on Mono).

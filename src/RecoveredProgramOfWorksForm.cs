@@ -4465,6 +4465,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			aluminum = OpeningGrid(false);
 			PlaceOpeningMaterialColumn(wood);
 			manualOpeningsGrid = OpeningGrid(false);
+			foreach (DataGridView g0 in new DataGridView[2] { aluminum, manualOpeningsGrid }) { g0.Columns[PaintLeafColumn].Visible = false; g0.Columns[PaintJambColumn].Visible = false; }
 			manualOpeningsGrid.Columns[22].Visible = (manualOpeningsGrid.Columns[23].Visible = (manualOpeningsGrid.Columns[24].Visible = false));
 			walls = WallGrid();
 			wood.Columns[2].Visible = (aluminum.Columns[2].Visible = false);
@@ -4544,6 +4545,7 @@ worksExcelTimer.Tick += async delegate
             ConfigureRcWorkspaces();
             ConfigureAngleQuantityView();
             PlaceSteelSetColumns();
+            if (wood != null) PlaceOpeningPaintColumns(wood);
 			tabs.Multiline = true;
             ShowMasonryFinishSides();
             ExplainBarSpacingColumns();
@@ -5362,6 +5364,7 @@ worksExcelTimer.Tick += async delegate
 			g.Columns.Add(dataGridViewComboBoxColumn2);
 			AddMouldingColumns(g);
 			AddOpeningMaterialColumn(g, isWood ? "Wood" : "Aluminum");
+			AddOpeningPaintColumns(g);
 			DataGridViewCellStyle defaultCellStyle = g.Columns[20].DefaultCellStyle;
 			Color backColor = (g.Columns[21].DefaultCellStyle.BackColor = ModernUi.Input);
 			defaultCellStyle.BackColor = backColor;
@@ -6763,7 +6766,9 @@ worksExcelTimer.Tick += async delegate
 								Leaves = ((Cell(item, 20) == "") ? 1 : Count(item, 20)),
 								Operation = ((Cell(item, 21) == "") ? "Swing" : Cell(item, 21)),
 								MouldingProfile = Cell(item, 24),
-								Exterior = (dataGridView != manualOpeningsGrid && Cell(item, 22) != "" && bool.Parse(Cell(item, 22)))
+								Exterior = (dataGridView != manualOpeningsGrid && Cell(item, 22) != "" && bool.Parse(Cell(item, 22))),
+								PaintLeaf = OpeningPaint(item, PaintLeafColumn),
+								PaintJamb = OpeningPaint(item, PaintJambColumn)
 							};
 							openingItem.Validate();
 							if (!ids.Add(openingItem.Id))
@@ -7399,6 +7404,7 @@ worksExcelTimer.Tick += async delegate
 							xmlElement3.SetAttribute("c" + n, Cell(item2, n));
 						}
 						WriteSteelSets(item.Key, item2, xmlElement3);
+						WriteOpeningPaint(item.Key, item2, xmlElement3);
 						xmlElement2.AppendChild(xmlElement3);
 					}
 				}
@@ -7693,6 +7699,7 @@ worksExcelTimer.Tick += async delegate
 							item3.Value.Rows[index].Cells[num2].Value = ((item3.Value.Columns[num2] is DataGridViewCheckBoxColumn) ? ((object)(text != "" && bool.Parse(text))) : text);
 						}
 						ReadSteelSets(item3.Key, item3.Value.Rows[index], item4);
+						ReadOpeningPaint(item3.Key, item3.Value.Rows[index], item4);
 					}
 				}
 			}

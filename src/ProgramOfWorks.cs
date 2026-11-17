@@ -2,13 +2,14 @@ using System;using System.IO;using System.Linq;using System.Text;using System.Xm
 namespace BeamScheduleFormatter {
 class OpeningItem {
  public string Id,Description,Wall,Material,Kind;public double Width,Height,JambDepth,JambThickness,LeafThickness;public int Quantity,Faces,HingesPerUnit,LocksPerUnit;public int Leaves=1;public string Operation="Swing";public bool Exterior;public string MouldingProfile="";
+ /* Owner (17 November 2026): painting of the door/window leaf and of the jamb can each be left out. */public bool PaintLeaf=true,PaintJamb=true;
  public double MouldingLength{get{return Material=="Manual"?0:OpeningMoulding.Length(Kind,Width,Height,Quantity,Exterior);}}
  public double Area{get{return Width*Height*Quantity;}}
  public bool Wood{get{return Material=="Wood";}}
  public double LeafWidth{get{return Width-2*JambThickness;}}public double LeafHeight{get{return Height-(Kind=="Window"?2:1)*JambThickness;}}
  public double EffectiveThickness{get{return Wood&&Kind=="Door"?OpeningHardware.WoodDoorThickness:LeafThickness;}}
- public double LeafPaint{get{return Wood?(Faces*LeafWidth*LeafHeight+2*(LeafWidth+LeafHeight*(Kind=="Door"?Leaves:1))*EffectiveThickness)*Quantity:0;}}
- public double JambPaint{get{return Wood?((2*Height+Width+(Kind=="Window"?Width:0))*(JambDepth+2*JambThickness))*Quantity:0;}}
+ public double LeafPaint{get{return Wood&&PaintLeaf?(Faces*LeafWidth*LeafHeight+2*(LeafWidth+LeafHeight*(Kind=="Door"?Leaves:1))*EffectiveThickness)*Quantity:0;}}
+ public double JambPaint{get{return Wood&&PaintJamb?((2*Height+Width+(Kind=="Window"?Width:0))*(JambDepth+2*JambThickness))*Quantity:0;}}
  public int EffectiveHinges{get{if(Material=="Manual"||Operation=="Fixed"||Operation=="Sliding")return 0;if(Kind=="Door")return checked(OpeningHardware.PerLeaf(Wood?LeafHeight:Height,(Wood?LeafWidth:Width)/Leaves)*Leaves);return HingesPerUnit;}}
  public int EffectiveLocks{get{if(Material=="Manual"||Operation=="Fixed")return 0;return Kind=="Door"?1:LocksPerUnit;}}
  public int Hinges{get{return checked(EffectiveHinges*Quantity);}}public int Locks{get{return checked(EffectiveLocks*Quantity);}}

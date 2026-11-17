@@ -12,6 +12,7 @@ namespace BeamScheduleFormatter
 		public BackupMapDialog(List<BackupDemand> demands, List<BackupTarget> targets, Dictionary<string, BackupTarget> routes)
 		{
 			BackupMapDialog backupMapDialog = this;
+			allTargets = targets;
 			AppBrand.Apply(this);
 			Text = "Map required quantities to BACKUP items";
 			base.ClientSize = new Size(1250, 700);
@@ -39,11 +40,12 @@ namespace BeamScheduleFormatter
 			grid.Columns.Add("Material", "Required quantity / material");
 			grid.Columns.Add("Quantity", "Quantity");
 			grid.Columns.Add("Unit", "Unit");
-			grid.Columns.Add(new DataGridViewComboBoxColumn
+			/* Plain text cell + searchable picker (owner, 17 November 2026: the dialog was slow to open because every row
+			   carried a dropdown loaded with every BACKUP item). The chosen BACKUP row number is kept in the cell Tag. */
+			grid.Columns.Add(new DataGridViewTextBoxColumn
 			{
 				Name = "Target",
-				HeaderText = "BACKUP pay item / specification / green total cell",
-				DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton,
+				HeaderText = "BACKUP pay item / specification / green total cell (click to choose; Delete = leave unmapped)",
 				Width = 790
 			});
 			grid.Columns[0].Width = 300;
@@ -60,15 +62,9 @@ namespace BeamScheduleFormatter
 			foreach (BackupDemand d in demands)
 			{
 				int index = grid.Rows.Add(d.Description, d.Quantity.ToString("0.########"), d.Unit);
-				DataGridViewComboBoxCell dataGridViewComboBoxCell = (DataGridViewComboBoxCell)grid.Rows[index].Cells[3];
-				dataGridViewComboBoxCell.DisplayMember = "Caption";
-				dataGridViewComboBoxCell.ValueMember = "Row";
-				dataGridViewComboBoxCell.Items.AddRange(targets.Where((BackupTarget t) => BackupMapping.Unit(t.Unit) == BackupMapping.Unit(d.Unit) || BackupMapping.Unit(t.Unit) == "ls").Cast<object>().ToArray());
+				DataGridViewCell dataGridViewComboBoxCell = grid.Rows[index].Cells[3];
 				BackupTarget value2;
-				if (routes.TryGetValue(d.Key, out value2))
-				{
-					dataGridViewComboBoxCell.Value = value2.Row;
-				}
+				SetTarget(dataGridViewComboBoxCell, routes.TryGetValue(d.Key, out value2) ? value2 : null);
 				grid.Rows[index].Tag = d;
 				if (d.TargetSlotId != null)
 				{
@@ -90,9 +86,9 @@ namespace BeamScheduleFormatter
 				DataGridViewRow anchor = grid.CurrentRow;
 				if (anchor == null || anchor.Cells[3].ReadOnly) return;
 				BackupDemand demand = (BackupDemand)anchor.Tag;
-				var cell = (DataGridViewComboBoxCell)anchor.Cells[3];
-				var choices = cell.Items.Cast<BackupTarget>().ToList();
-				BackupTarget current = cell.Value == null ? null : choices.FirstOrDefault(t => t.Row == Convert.ToInt32(cell.Value));
+				var cell = anchor.Cells[3];
+				var choices = Compatible(demand);
+				BackupTarget current = cell.Tag == null ? null : choices.FirstOrDefault(t => t.Row == (int)cell.Tag);
 				var rows = grid.SelectedRows.Cast<DataGridViewRow>().Where(r => !r.Cells[3].ReadOnly).ToList();
 				if (!rows.Contains(anchor)) rows.Add(anchor);
 				using (var picker = new BackupTargetPicker(rows.Count > 1 ? rows.Count + " selected quantities" : demand.Description, choices, current))
@@ -101,14 +97,13 @@ namespace BeamScheduleFormatter
 					int skipped = 0;
 					foreach (DataGridViewRow row in rows)
 					{
-						var target = (DataGridViewComboBoxCell)row.Cells[3];
-						if (target.Items.Cast<BackupTarget>().Any(t => t.Row == picker.Selected.Row)) target.Value = picker.Selected.Row; else skipped++;
+						if (Compatible((BackupDemand)row.Tag).Any(t => t.Row == picker.Selected.Row)) SetTarget(row.Cells[3], picker.Selected); else skipped++;
 					}
 					if (skipped > 0) MessageBox.Show(backupMapDialog, skipped + " selected row(s) have a different unit and were not changed.", "BACKUP mapping");
 				}
 			};
 			grid.CellClick += delegate(object s, DataGridViewCellEventArgs e) { if (e.RowIndex >= 0 && e.ColumnIndex == 3) pick(); };
-			grid.KeyDown += delegate(object s, KeyEventArgs e) { if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.F2 || e.KeyCode == Keys.Space) { pick(); e.Handled = true; } };
+			grid.KeyDown += delegate(object s, KeyEventArgs e) { if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.F2 || e.KeyCode == Keys.Space) { pick(); e.Handled = true; } else if (e.KeyCode == Keys.Delete || e.KeyCode == Keys.Back) { foreach (DataGridViewRow row in grid.SelectedRows) if (!row.Cells[3].ReadOnly) SetTarget(row.Cells[3], null); e.Handled = true; } };
 			FlowLayoutPanel flowLayoutPanel = new FlowLayoutPanel
 			{
 				Dock = DockStyle.Bottom,
@@ -140,14 +135,23 @@ namespace BeamScheduleFormatter
 					foreach (DataGridViewRow item in (IEnumerable)grid.Rows)
 					{
 						BackupDemand backupDemand = (BackupDemand)item.Tag;
-						if (item.Cells[3].Value == null)
+						if (item.Cells[3].Tag == null)
 						{
-							throw new Exception("Select a BACKUP item for " + backupDemand.Description);
+							continue; /* left unmapped: allowed (owner, 17 November 2026) */
 						}
-						int id = Convert.ToInt32(item.Cells[3].Value);
+						int id = (int)item.Cells[3].Tag;
 						dictionary[backupDemand.Key] = targets.Single((BackupTarget t) => t.Row == id);
 					}
-					BackupMapping.Validate(demands, dictionary);
+					List<KeyValuePair<BackupDemand, string>> left = BackupMapping.DropIncomplete(demands, dictionary);
+					BackupMapping.Validate(demands.Where((BackupDemand d) => dictionary.ContainsKey(d.Key)), dictionary);
+					if (left.Count > 0)
+					{
+						string list = string.Join("\n", left.Take(12).Select((KeyValuePair<BackupDemand, string> x) => "• " + x.Key.Description + " — " + x.Value)) + ((left.Count > 12) ? ("\n… and " + (left.Count - 12) + " more") : "");
+						if (MessageBox.Show(backupMapDialog, left.Count + " quantit" + ((left.Count == 1) ? "y stays" : "ies stay") + " unmapped and will not be written to BACKUP (they remain listed in Bill of Quantities):\n\n" + list + "\n\nApply the mapping for the others?", "BACKUP mapping", MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK)
+						{
+							return;
+						}
+					}
 					routes.Clear();
 					foreach (KeyValuePair<string, BackupTarget> item2 in dictionary)
 					{
@@ -164,6 +168,26 @@ namespace BeamScheduleFormatter
 			base.Controls.Add(value);
 			base.Controls.Add(flowLayoutPanel);
 			base.CancelButton = button2;
+		}
+
+		readonly Dictionary<string, List<BackupTarget>> compatible = new Dictionary<string, List<BackupTarget>>();
+		List<BackupTarget> allTargets;
+		List<BackupTarget> Compatible(BackupDemand d)
+		{
+			string unit = BackupMapping.Unit(d.Unit);
+			List<BackupTarget> list;
+			if (!compatible.TryGetValue(unit, out list))
+			{
+				list = allTargets.Where((BackupTarget t) => BackupMapping.Unit(t.Unit) == unit || BackupMapping.Unit(t.Unit) == "ls").ToList();
+				compatible[unit] = list;
+			}
+			return list;
+		}
+		static void SetTarget(DataGridViewCell cell, BackupTarget t)
+		{
+			cell.Tag = (t == null) ? null : (object)t.Row;
+			cell.Value = (t == null) ? "— not mapped —" : t.Caption;
+			cell.Style.ForeColor = (t == null) ? Color.Gray : Color.Empty;
 		}
 	}
 }
