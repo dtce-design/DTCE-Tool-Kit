@@ -1,0 +1,15 @@
+DTCE Tool Kit v1.4.79 (17 November 2026)
+
+Builds on v1.4.78.
+- Owner request: copy and paste text and dropdown cells across multiple rows on POW sheets.
+  Ctrl+C copies the selected cells (tab/line separated, like Excel).
+  Ctrl+V with one copied value fills every selected editable cell (e.g. the same dropdown for many rows).
+  Ctrl+V with several copied cells (e.g. from Excel) pastes the block from the top-left selected cell and adds
+  rows when needed. Dropdown cells accept only a value in their list; computed/read-only cells are skipped and
+  the number skipped is reported. One paste = one Undo step. While typing inside a text cell, Ctrl+C/V act on
+  the text as usual. The existing profile-dropdown copy/paste is unchanged.
+- Checked on Linux/Mono (Doors & Windows sheet): "Window" pasted into 3 rows; "Not an option" rejected;
+  3 x 2 width/height block pasted correctly. Mono could not drive the undo snapshot on sheets with button
+  columns (Mono-only DataGridViewButtonCell defect); Windows to be checked by the owner.
+- Open: owner reports mapped items still listed under "COMPUTED QUANTITIES - SELECT BACKUP PAY ITEM ONCE"
+  after mapping. Not reproducible without Excel; screenshot requested.
