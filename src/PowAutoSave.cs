@@ -1,8 +1,8 @@
 using System;using System.IO;using System.Threading.Tasks;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 // Automatic save of the open Program of Works (owner, 17 November 2026): when there are unsaved changes, save
-// every 15 minutes, or sooner after 5 minutes without keyboard/mouse activity. It writes to the file the POW was
-// last saved to or opened from (a never-saved POW needs one normal Save first), shows no dialog and does not block
+// every 15 minutes, or sooner after 5 minutes without keyboard/mouse activity. Since v1.4.114 it writes a recovery copy
+// (PowRecovery), never the project file; it shows no dialog and does not block
 // the window. A cell still being typed in is not committed unless the user has been idle.
 sealed class UserActivityFilter:IMessageFilter {
  internal DateTime Last=DateTime.UtcNow;
@@ -18,22 +18,25 @@ partial class ProgramOfWorksForm {
  internal bool HasUnsavedWork(){return DataXml()!=saved||beam.WorksDirty||slab.WorksDirty;}
  internal static bool AutoSaveDue(DateTime now,DateTime unsavedSince,DateTime lastActivity){return now-unsavedSince>=AutoSaveInterval||now-lastActivity>=AutoSaveIdle;}
  bool TypingInCell(){var grid=ActiveControl;while(grid is ContainerControl&&((ContainerControl)grid).ActiveControl!=null)grid=((ContainerControl)grid).ActiveControl;return grid is IDataGridViewEditingControl||grid is TextBoxBase&&grid.Parent is DataGridView;}
+ // Owner (17 November 2026): auto-save no longer writes the project file. It keeps a recovery copy in
+ // %LOCALAPPDATA%\BeamTools\Recovery\ (works for never-saved projects too); only Save replaces the .pow.xml.
+ string lastRecoveryFingerprint;
  internal async Task AutoSaveTick(DateTime now){
-  if(IsDisposed||savingPow||openingPow||string.IsNullOrEmpty(currentPowPath))return;
+  if(IsDisposed||savingPow||openingPow)return;
   bool unsaved;try{unsaved=HasUnsavedWork();}catch{return;}
-  if(!unsaved){unsavedSince=null;return;}
+  if(!unsaved){unsavedSince=null;PowRecovery.Discard(recoveryId);lastRecoveryFingerprint=null;return;}
   if(!unsavedSince.HasValue)unsavedSince=now;
   DateTime last=userActivity==null?now:userActivity.Last;if(!AutoSaveDue(now,unsavedSince.Value,last))return;
   bool idle=now-last>=AutoSaveIdle;if(!idle&&TypingInCell())return;
   if(SourcesPending)return;/* embedded sources still loading after open */
-  savingPow=true;string path=currentPowPath;
-  try{Guard();string snapshot=BuildWorksProjectXml(false),fingerprint=DataXml(),beamState=beam.WorksSaveState(),slabState=slab.WorksSaveState();var sources=ProjectSources();
-   if(powSaveIndicator!=null)powSaveIndicator.Text="Auto-saving…";
-   if(!ConfirmReplace(path,snapshot,true)){if(powSaveIndicator!=null)powSaveIndicator.Text="Auto-save skipped: the file on disk has more rows or changed - use Save";unsavedSince=now;return;}
-   await Task.Run(()=>{PowBackups.Backup(path);PowProjectFileWriter.WriteWithSources(path,snapshot,sources);});RememberPowFile(path);
-   if(IsDisposed)return;beam.WorksSavedState(beamState);slab.WorksSavedState(slabState);saved=fingerprint;unsavedSince=null;
-   if(powSaveIndicator!=null)powSaveIndicator.Text="Auto-saved "+DateTime.Now.ToString("HH:mm")+" · "+Path.GetFileName(path);}
-  catch(Exception ex){if(!IsDisposed&&powSaveIndicator!=null)powSaveIndicator.Text="Auto-save failed: "+ex.Message+" — use Save";unsavedSince=now;}
+  savingPow=true;
+  try{Guard();string fingerprint=DataXml();if(fingerprint==lastRecoveryFingerprint&&!beam.WorksDirty&&!slab.WorksDirty){unsavedSince=null;return;}
+   string snapshot=BuildWorksProjectXml(false);var sources=ProjectSources();string original=currentPowPath;
+   if(powSaveIndicator!=null)powSaveIndicator.Text="Saving recovery copy…";
+   await Task.Run(()=>PowRecovery.Write(recoveryId,original,snapshot,sources));
+   if(IsDisposed)return;lastRecoveryFingerprint=fingerprint;unsavedSince=null;
+   if(powSaveIndicator!=null)powSaveIndicator.Text="Recovery copy "+DateTime.Now.ToString("HH:mm")+" - not yet saved to the file (use Save)";}
+  catch(Exception ex){if(!IsDisposed&&powSaveIndicator!=null)powSaveIndicator.Text="Recovery copy failed: "+ex.Message+" - use Save";unsavedSince=now;}
   finally{savingPow=false;}}
 }
 }

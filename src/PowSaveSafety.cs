@@ -24,6 +24,7 @@ partial class ProgramOfWorksForm {
  bool ChangedOnDisk(string path){try{return File.Exists(path)&&knownPowWriteUtc.HasValue&&string.Equals(Path.GetFullPath(path),currentPowPath,StringComparison.OrdinalIgnoreCase)&&File.GetLastWriteTimeUtc(path)!=knownPowWriteUtc.Value;}catch(Exception){return false;}}
  // Returns false when the user declines replacing the file.
  bool ConfirmReplace(string path,string snapshot,bool automatic){if(!File.Exists(path))return true;int before;try{before=PowBackups.EntriesInFile(path);}catch(Exception){before=0;}int after=PowBackups.Entries(snapshot);
+  if(after==0&&before>0){if(!automatic)MessageBox.Show(this,"This window has no saved rows, so it cannot replace \""+Path.GetFileName(path)+"\" ("+before+" rows). Use Save As to save it under another name.","Save blocked",MessageBoxButtons.OK,MessageBoxIcon.Stop);return false;}
   bool shrinks=PowBackups.Shrinks(before,after),changed=ChangedOnDisk(path);bool foreign=!string.Equals(Path.GetFullPath(path),currentPowPath,StringComparison.OrdinalIgnoreCase);
   if(!shrinks&&!changed)return true;if(automatic)return false;
   string why=(shrinks?"The file on disk has "+before+" saved rows; this window would save "+after+".":"")+(changed?(shrinks?"\n":"")+"The file was changed on disk after this window opened or saved it.":"");

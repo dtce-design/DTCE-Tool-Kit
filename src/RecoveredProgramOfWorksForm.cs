@@ -4458,6 +4458,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
             Button(flowLayoutPanel, "Export report file", ExportEngineeringReport);
 			Button(flowLayoutPanel, "Open Program of Works", Open);
 			Button(flowLayoutPanel, "Close Program of Works", CloseProgramOfWorks);
+			Button(flowLayoutPanel, "Restore backup", RestoreBackup);
 			Button(flowLayoutPanel, "Print preview", PreviewQuantityEngineeringReport);
             Button(flowLayoutPanel, "Save PDF", SaveQuantityEngineeringPdf);
 			beam = new EstimatorForm(null);
@@ -4549,6 +4550,7 @@ worksExcelTimer.Tick += async delegate
             ConfigureRcWorkspaces();
             AddRebarSummaryTabs();
             ConfigureAngleQuantityView();
+            InstallRecovery();
             PlaceSteelSetColumns();
             if (wood != null) PlaceOpeningPaintColumns(wood);
 			tabs.Multiline = true;
@@ -7504,7 +7506,7 @@ worksExcelTimer.Tick += async delegate
                 CancelDeferredSources();var snapshot=await System.Threading.Tasks.Task.Run(()=>PowProjectFileWriter.Read(dialog.FileName,true));
                 if(IsDisposed)return;PowTiming.Mark("read file");
                 busy.Status("Loading worksheets and quantities…");
-                try{OpenProjectDocument(snapshot.Document,snapshot.Sources,snapshot.SourcesDeferred?dialog.FileName:null);}catch{CancelDeferredSources();/* a partly loaded window must not overwrite any project file */currentPowPath=null;knownPowWriteUtc=null;throw;}currentPowPath=Path.GetFullPath(dialog.FileName);RememberPowFile(currentPowPath);if(!snapshot.SourcesDeferred)VerifySourcesInBackground(snapshot.Sources);
+                try{OpenProjectDocument(snapshot.Document,snapshot.Sources,snapshot.SourcesDeferred?dialog.FileName:null);}catch{CancelDeferredSources();/* a partly loaded window must not overwrite any project file */currentPowPath=null;knownPowWriteUtc=null;throw;}currentPowPath=Path.GetFullPath(dialog.FileName);RememberPowFile(currentPowPath);WarnIfEmptyProject(snapshot.Document,dialog.FileName);if(!snapshot.SourcesDeferred)VerifySourcesInBackground(snapshot.Sources);
                 if(worksExcel!=null&&linkedHasBackup){busy.Status("Refreshing linked BACKUP items…");await LoadCatalogue();PowTiming.Mark("Excel BACKUP items");lastExcelXml="";dashboardDirty=true;RefreshVisibleWorksViews();saved=DataXml();ScheduleWorksExcel();}
                 ShowTiming(PowTiming.Finish());}
             }}catch(Exception ex){if(!IsDisposed)MessageBox.Show(this,ex.Message,"Open Program of Works",MessageBoxButtons.OK,MessageBoxIcon.Information);}finally{openingPow=false;if(!IsDisposed&&worksExcel!=null&&!excelBroken)ScheduleWorksExcel();}
