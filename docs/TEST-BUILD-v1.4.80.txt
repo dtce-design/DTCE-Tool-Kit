@@ -1,0 +1,8 @@
+DTCE Tool Kit v1.4.80 (17 November 2026)
+
+Builds on v1.4.79 (copy/paste across rows).
+- Owner report: automatic IDs skipped numbers (RW-001, RW-003). Cause: the next number was remembered from
+  earlier rows, including rows that were later removed. A blank ID now gets the lowest unused number of its
+  sheet (structural steel too), so gaps are filled. Existing IDs are still never changed; to renumber a row,
+  clear its ID and it receives the lowest free number.
+- Checked on Linux/Mono (RC walls): RW-001..003; after deleting RW-002 a new row gets RW-002; a typed ID is kept.

@@ -9,7 +9,6 @@ partial class ProgramOfWorksForm {
   {"RoofSheets","RF"},{"RoofAccessories","RA"},{"CutFill","CUT"},{"Footings","F"},{"Canopies","CN"},{"GravelEntries","GR"},{"MouldingEntries","MD"},
   {"PlumbingPipes","PP"},{"PlumbingLS","PLS"},{"PlumbingChambers","ST"},{"PlumbingRebar","PB"},{"PlumbingMembers","PM"},{"RCWalls","RW"},
   {"Clearing","CG"},{"Trees","TR"},{"SlopeFill","SF"},{"SlopeStone","SM"},{"StructuralColumn","C"},{"WallFooting","WFT"}};
- readonly Dictionary<string,int> rowIdCounters=new Dictionary<string,int>();
  IEnumerable<KeyValuePair<string,DataGridView>> AutoIdGrids(){
   foreach(var item in Tables())if(RowIdPrefixes.ContainsKey(item.Key))yield return item;
   foreach(var item in extraGrids.Values)if(item.Grid!=null&&!Tables().ContainsKey(item.Key))yield return new KeyValuePair<string,DataGridView>(item.Key,item.Grid);}
@@ -18,10 +17,9 @@ partial class ProgramOfWorksForm {
   foreach(var item in AutoIdGrids()){
    var grid=item.Value;if(grid.Columns.Count<2||grid.Columns[0].ReadOnly||grid.Columns[0].HeaderText.IndexOf("ID",StringComparison.Ordinal)<0)continue;
    string prefix=RowIdPrefix(item.Key);var used=new HashSet<string>(grid.Rows.Cast<DataGridViewRow>().Where(r=>!r.IsNewRow).Select(r=>Cell(r,0)).Where(s=>s!=""),StringComparer.OrdinalIgnoreCase);
-   int counter;if(!rowIdCounters.TryGetValue(item.Key,out counter))counter=0;
-   foreach(string id in used){int existing;if(id.StartsWith(prefix+"-",StringComparison.OrdinalIgnoreCase)&&int.TryParse(id.Substring(prefix.Length+1),out existing))counter=Math.Max(counter,existing);}
+   /* Lowest unused number (owner, 17 November 2026): no gaps such as RW-001, RW-003 after a row was removed. */
+   int counter=0;
    foreach(DataGridViewRow row in grid.Rows)if(Cell(row,0)==""&&StructuralSteelIds.HasInputs(row))row.Cells[0].Value=StructuralSteelIds.Next(prefix,used,ref counter);
-   rowIdCounters[item.Key]=counter;
    if(!grid.Columns[0].HeaderText.EndsWith("(auto)"))grid.Columns[0].HeaderText+=" (auto)";
    grid.Columns[0].ToolTipText="Left blank, an ID is assigned automatically once the row has input. An ID you typed or an existing ID is never changed.";}}
 }
