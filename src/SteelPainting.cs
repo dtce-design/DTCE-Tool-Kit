@@ -11,6 +11,8 @@ static class SteelPainting {
    case "Flat bar":return 2*(p.B+p.T)/1000;
    case "HSS rectangle":return 2*(p.H+p.B)/1000;
    case "HSS circle / pipe":return Math.PI*p.H/1000;
+   case "Round bar":return Math.PI*p.H/1000;
+   case "Square bar":return 4*p.H/1000;
    default:throw new Exception("No painting basis for "+p.Kind+".");}}
  internal static double Area(SteelProfile p,double length,int quantity){SteelWeight.Positive(length);SteelWeight.Count(quantity);return AreaPerMetre(p)*length*quantity;}
 }

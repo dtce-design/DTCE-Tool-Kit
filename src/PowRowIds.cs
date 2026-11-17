@@ -8,7 +8,7 @@ partial class ProgramOfWorksForm {
   {"Wood","WD"},{"Aluminum","AL"},{"CHBOpenings","OP"},{"FinishSchedule","FT"},{"WallFinishes","WF"},{"CeilingFinishes","CF"},{"FloorFinishes","FF"},
   {"RoofSheets","RF"},{"RoofAccessories","RA"},{"CutFill","CUT"},{"Footings","F"},{"Canopies","CN"},{"GravelEntries","GR"},{"MouldingEntries","MD"},
   {"PlumbingPipes","PP"},{"PlumbingLS","PLS"},{"PlumbingChambers","ST"},{"PlumbingRebar","PB"},{"PlumbingMembers","PM"},{"RCWalls","RW"},
-  {"Clearing","CG"},{"Trees","TR"},{"SlopeFill","SF"},{"SlopeStone","SM"},{"StructuralColumn","C"},{"WallFooting","WFT"}};
+  {"Clearing","CG"},{"Trees","TR"},{"SlopeFill","SF"},{"SlopeStone","SM"},{"StructuralColumn","C"},{"WallFooting","WFT"},{"Railing","RL"}};
  IEnumerable<KeyValuePair<string,DataGridView>> AutoIdGrids(){
   var tables=Tables();foreach(var item in tables)if(RowIdPrefixes.ContainsKey(item.Key))yield return item;
   foreach(var item in extraGrids.Values)if(item.Grid!=null&&!tables.ContainsKey(item.Key))yield return new KeyValuePair<string,DataGridView>(item.Key,item.Grid);}

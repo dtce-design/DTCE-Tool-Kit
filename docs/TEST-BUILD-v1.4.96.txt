@@ -1,0 +1,15 @@
+DTCE Tool Kit v1.4.96 (17 November 2026)
+
+Builds on v1.4.95.
+- Owner: Railing Estimate in Finishing Works. One row per railing member (Top / Mid / Bottom rail, Post, Baluster,
+  Other) with Section family (Pipe, Rectangular tube, Square tube, Round bar, Square bar) and Size from a dropdown.
+- Pipes and rectangular / square tubes use the Regan handbook catalogue already in the app. Round bars (8-25 mm)
+  and square bars (10-25 mm) are computed from 7850 kg/m3 and should be checked against the Regan handbook.
+- Pieces per run = Count / run, or ceil(run / spacing) + 1, or 1 (rail). Railing qty multiplies the row. A piece
+  longer than 6 m is split into equal cuts (approved splice assumed).
+- All cuts of the same size share 6 m stocks with best-fit offcut reuse (same planner as structural steel). BOQ:
+  "Railing steel PURCHASE weight (6 m stock, offcuts reused)" with stocks and final reusable offcut per size;
+  installed weight as reference; "Railing metal painting - installed" from installed length x painted perimeter
+  (round bar pi*d, square bar 4a). Purchase and painting items are mappable in BACKUP.
+- Checked on Linux/Mono: 10 m pipe rail -> 2 cuts of 5 m; SHS posts @1500 on 10 m -> 8 pcs; 101 round-bar
+  balusters 0.9 m -> 17 stocks, 11.1 m offcut; save/open restores the rows. New tests/RailingTests.cs.

@@ -998,6 +998,7 @@ namespace BeamScheduleFormatter
                 if(item.Section=="Canopy / Ledge"&&item.Unit=="m3")flag2=false;
                 if((item.Section=="Miscellaneous Structures"||item.Section=="Wall Footing"))flag2=item.Unit=="m2";
                 if(new[]{"Pavement Construction","Slope Protection Works","Carpentry and Joinery Works","Waterproofing"}.Contains(item.Section))flag2=true;
+                if(item.Section=="Railing")flag2=!item.Description.Contains("reference");
                 if(item.Section=="Earthworks"&&!string.IsNullOrEmpty(item.PayCode))flag2=true;
                 if (flag2)
 				{
@@ -4596,13 +4597,14 @@ worksExcelTimer.Tick += async delegate
 				pages["Door & Window Schedule"]
 			});
 			pages["Finishing Start"].Text = "Start";
-			AddSection("Finishing Works", new TabPage[5]
+			AddSection("Finishing Works", new TabPage[6]
 			{
 				pages["Finishing Start"],
 				pages["Wall Finishes"],
 				pages["Ceiling Finishes"],
 				pages["Floor Finishes"],
-				pages["Moulding"]
+				pages["Moulding"],
+				pages["Railing Estimate"]
 			});
 			AddSection("Plumbing Works", new TabPage[6]
 			{
