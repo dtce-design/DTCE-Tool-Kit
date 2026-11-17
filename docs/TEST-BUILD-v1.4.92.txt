@@ -1,0 +1,8 @@
+DTCE Tool Kit v1.4.92 (17 November 2026)
+
+Builds on v1.4.91.
+- Owner: the custom folder-tab strip from v1.4.89 is reverted. The owner prefers the previous tabs (line under the
+  tabs; the row with the active tab moves down to sit on the page when tabs need several rows) and reported that
+  tabs could not be switched with the v1.4.89-v1.4.91 strip on Windows. NavigationTabs, FolderTabPainter,
+  ModernUi.Navigation and ModernUiTests are back to their v1.4.88 state. Other v1.4.89-v1.4.91 changes (BOQ
+  search in the toolbar, pipe size dropdown, paste defaults/Wall IDs, faster save) are kept.

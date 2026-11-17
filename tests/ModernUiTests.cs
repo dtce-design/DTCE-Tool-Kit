@@ -34,8 +34,8 @@ class ModernUiTests {
   }
   using(var works=new ProgramOfWorksForm()){
    works.Show();Application.DoEvents();var tabs=Field<TabControl>(works,"tabs");
-   var nav=(NavigationTabs)tabs;Check(tabs.Alignment==TabAlignment.Top&&tabs.Multiline,"All section tabs must remain at the top and wrap at full caption width");
-   foreach(int width in new[]{1100,1450}){works.Width=width;Application.DoEvents();for(int i=0;i<tabs.TabCount;i++){var rect=nav.GetTabRect(i);int caption=TextRenderer.MeasureText(tabs.TabPages[i].Text,tabs.Font).Width;Check(rect.Width>=caption,"Full tab caption clipped: "+tabs.TabPages[i].Text);}}
+   Check(tabs.Alignment==TabAlignment.Top&&tabs.Multiline&&tabs.SizeMode==TabSizeMode.Normal,"All section tabs must remain at the top and wrap at full caption width");
+   foreach(int width in new[]{1100,1450}){works.Width=width;Application.DoEvents();for(int i=0;i<tabs.TabCount;i++){var rect=tabs.GetTabRect(i);int caption=TextRenderer.MeasureText(tabs.TabPages[i].Text,tabs.Font).Width;Check(rect.Width>=caption,"Full tab caption clipped: "+tabs.TabPages[i].Text);}}
    Check(tabs.TabPages.Cast<TabPage>().Any(p=>p.Text=="Reinforced Concrete Works"),"RC group missing");
    foreach(TabPage page in tabs.TabPages){tabs.SelectedTab=page;Application.DoEvents();Check(page.ClientSize.Width>0&&page.ClientSize.Height>0,"Section layout collapsed: "+page.Text);}
    works.Close();
