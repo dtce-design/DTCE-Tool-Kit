@@ -7482,7 +7482,7 @@ worksExcelTimer.Tick += async delegate
 		{
 			Guard();
 			string contents = BuildWorksProjectXml(false);
-            ApplyDeferredSources();PowProjectFileWriter.WriteWithSources(path,contents,ProjectSources());
+            ApplyDeferredSources();PowBackups.Backup(path);PowProjectFileWriter.WriteWithSources(path,contents,ProjectSources());
 			beam.WorksSaved();
 			slab.WorksSaved();
             currentPowPath=Path.GetFullPath(path);
@@ -7504,7 +7504,7 @@ worksExcelTimer.Tick += async delegate
                 CancelDeferredSources();var snapshot=await System.Threading.Tasks.Task.Run(()=>PowProjectFileWriter.Read(dialog.FileName,true));
                 if(IsDisposed)return;PowTiming.Mark("read file");
                 busy.Status("Loading worksheets and quantities…");
-                try{OpenProjectDocument(snapshot.Document,snapshot.Sources,snapshot.SourcesDeferred?dialog.FileName:null);}catch{CancelDeferredSources();throw;}currentPowPath=Path.GetFullPath(dialog.FileName);if(!snapshot.SourcesDeferred)VerifySourcesInBackground(snapshot.Sources);
+                try{OpenProjectDocument(snapshot.Document,snapshot.Sources,snapshot.SourcesDeferred?dialog.FileName:null);}catch{CancelDeferredSources();/* a partly loaded window must not overwrite any project file */currentPowPath=null;knownPowWriteUtc=null;throw;}currentPowPath=Path.GetFullPath(dialog.FileName);RememberPowFile(currentPowPath);if(!snapshot.SourcesDeferred)VerifySourcesInBackground(snapshot.Sources);
                 if(worksExcel!=null&&linkedHasBackup){busy.Status("Refreshing linked BACKUP items…");await LoadCatalogue();PowTiming.Mark("Excel BACKUP items");lastExcelXml="";dashboardDirty=true;RefreshVisibleWorksViews();saved=DataXml();ScheduleWorksExcel();}
                 ShowTiming(PowTiming.Finish());}
             }}catch(Exception ex){if(!IsDisposed)MessageBox.Show(this,ex.Message,"Open Program of Works",MessageBoxButtons.OK,MessageBoxIcon.Information);}finally{openingPow=false;if(!IsDisposed&&worksExcel!=null&&!excelBroken)ScheduleWorksExcel();}
@@ -7514,8 +7514,8 @@ worksExcelTimer.Tick += async delegate
 		{
 			Guard();
             var snapshot=PowProjectFileWriter.Read(path);
-            OpenProjectDocument(snapshot.Document,snapshot.Sources);
-            currentPowPath=Path.GetFullPath(path);
+            try{OpenProjectDocument(snapshot.Document,snapshot.Sources);}catch{currentPowPath=null;throw;}
+            currentPowPath=Path.GetFullPath(path);RememberPowFile(currentPowPath);
 		}
 
 		internal void OpenProjectXml(string xml)

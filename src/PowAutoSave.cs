@@ -29,7 +29,8 @@ partial class ProgramOfWorksForm {
   savingPow=true;string path=currentPowPath;
   try{Guard();string snapshot=BuildWorksProjectXml(false),fingerprint=DataXml(),beamState=beam.WorksSaveState(),slabState=slab.WorksSaveState();var sources=ProjectSources();
    if(powSaveIndicator!=null)powSaveIndicator.Text="Auto-saving…";
-   await Task.Run(()=>PowProjectFileWriter.WriteWithSources(path,snapshot,sources));
+   if(!ConfirmReplace(path,snapshot,true)){if(powSaveIndicator!=null)powSaveIndicator.Text="Auto-save skipped: the file on disk has more rows or changed - use Save";unsavedSince=now;return;}
+   await Task.Run(()=>{PowBackups.Backup(path);PowProjectFileWriter.WriteWithSources(path,snapshot,sources);});RememberPowFile(path);
    if(IsDisposed)return;beam.WorksSavedState(beamState);slab.WorksSavedState(slabState);saved=fingerprint;unsavedSince=null;
    if(powSaveIndicator!=null)powSaveIndicator.Text="Auto-saved "+DateTime.Now.ToString("HH:mm")+" · "+Path.GetFileName(path);}
   catch(Exception ex){if(!IsDisposed&&powSaveIndicator!=null)powSaveIndicator.Text="Auto-save failed: "+ex.Message+" — use Save";unsavedSince=now;}

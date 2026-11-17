@@ -1,0 +1,13 @@
+DTCE Tool Kit v1.4.113 (17 November 2026)
+
+Builds on v1.4.112.
+- Owner incident: saving an empty window replaced the saved project file with no prompt and the work was lost.
+  Save safety added (PowSaveSafety.cs):
+  * Every save / auto-save first copies the existing file to %LOCALAPPDATA%\BeamTools\POW-backups\<file name>\
+    (timestamped; newest 30 kept per file).
+  * Save asks "Replace ...?" (default No) when the file on disk has noticeably more saved rows than this window would
+    write (at least 5 rows and 20 % fewer), or when the file changed on disk after this window opened / saved it.
+  * Auto-save never replaces such a file; the status bar says to use Save.
+  * A failed Open leaves the window unbound from any file (no path), so Save asks for a file name instead of
+    writing over a project.
+- Mono: 446 saved rows counted in a 147 KB project; an empty window counts as a shrink; backup copy written.
