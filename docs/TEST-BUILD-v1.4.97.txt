@@ -1,0 +1,14 @@
+DTCE Tool Kit v1.4.97 (17 November 2026)
+
+Builds on v1.4.96.
+- Owner review of wind surface roughness / exposure (NSCP 2015 Section 207A.7). Checked: roughness classes from
+  ESA WorldCover (B = trees / built-up / mangrove, C = shrub / grass / crop / bare / wetland, D = open water),
+  B fetch 457 m (h <= 9.1 m) or max(792 m, 20h), D fetch max(1524 m, 20h), D transition max(183 m, 20h),
+  more severe of the two 45 deg upwind sectors governs, unknown cover stays Unresolved, Kz alpha / zg per Table
+  207A.3-1 with z >= 4.6 m. These are unchanged.
+- Fixed: the upwind sector used 7 rays but two pairs were the same bearing (-22.5 and +22.5 deg counted twice),
+  and the app and report said "7 rays at 15 deg". It now uses the 5 distinct rays at 22.5 deg (-45, -22.5, 0,
+  +22.5, +45) and says so. The exposure category itself could not change (B needs every ray, D any ray), but the
+  roughness mix percentages and the "rays meeting the D test" count were weighted wrongly.
+- Screening limits remain: rays are sampled every 100 m, so a D transition / fetch edge is resolved to about
+  100 m; land cover does not prove obstruction heights. Confirm the exposure on site.

@@ -6,13 +6,15 @@ class WindExposureAudit {
  public double Height,BFetch,DFetch,Transition,Available,NearestWater=double.NaN,LongestWater,ShortestB=double.NaN;public int Rays,SmoothRays;
 }
 static partial class WindAssessment {
- // Seven rays at 15° spacing cover the two 45° upwind sectors either side of the wind-from direction (−45° to +45°).
- internal static List<WindSample>[] UpwindSector(WindTerrain terrain,int direction){int previous=(direction+7)%8,next=(direction+1)%8;return new[]{terrain.Rays[previous*3+1],terrain.Rays[previous*3+2],terrain.Rays[direction*3],terrain.Rays[direction*3+1],terrain.Rays[direction*3+2],terrain.Rays[next*3],terrain.Rays[next*3+1]};}
+ // Five distinct rays at 22.5° cover the two 45° upwind sectors either side of the wind-from direction (−45°, −22.5°, 0°,
+ // +22.5°, +45°). Sampled rays sit at each direction and ±22.5°, so a neighbour's −22.5° ray is the same bearing as this
+ // direction's +22.5° ray; it is used once (review 17 November 2026: it was counted twice and the text said 7 rays at 15°).
+ internal static List<WindSample>[] UpwindSector(WindTerrain terrain,int direction){int previous=(direction+7)%8,next=(direction+1)%8;return new[]{terrain.Rays[previous*3+1],terrain.Rays[direction*3],terrain.Rays[direction*3+1],terrain.Rays[direction*3+2],terrain.Rays[next*3+1]};}
  internal static WindExposureAudit AssessExposure(WindTerrain terrain,int direction,double meanHeight){return AssessExposure(UpwindSector(terrain,direction),meanHeight,true);}
  internal static WindExposureAudit AssessExposure(IEnumerable<List<WindSample>> sector,double meanHeight,bool twoSectors=false){
   var result=new WindExposureAudit{Height=meanHeight};var rays=sector.ToList();result.Rays=rays.Count;Func<double,string> f=value=>WindTin.Finite(value)?value.ToString("0.#",CultureInfo.InvariantCulture):"unresolved";
   result.Checks.Add(new[]{"Height used for fetch",f(meanHeight)+" m","Mean roof height h when building geometry is entered; otherwise the reference height z."});
-  result.Checks.Add(new[]{"Upwind investigation",twoSectors?rays.Count+" rays at 15° across both 45° sectors (−45° to +45°)":rays.Count+" rays in one screening sector","NSCP 2015 Section 207A.7.1: exposure is determined in the two upwind sectors extending 45° either side of the wind direction; the more severe result governs."});
+  result.Checks.Add(new[]{"Upwind investigation",twoSectors?rays.Count+" rays at 22.5° across both 45° sectors (−45° to +45°)":rays.Count+" rays in one screening sector","NSCP 2015 Section 207A.7.1: exposure is determined in the two upwind sectors extending 45° either side of the wind direction; the more severe result governs."});
   if(!WindTin.Finite(meanHeight)||meanHeight<=0){result.Reason="Height is missing or invalid. No exposure category is assumed.";return result;}
   result.BFetch=BFetch(meanHeight);result.DFetch=DFetch(meanHeight);result.Transition=DTransition(meanHeight);double required=Math.Max(result.BFetch,result.DFetch+result.Transition);result.Available=rays.Count==0?0:rays.Min(ray=>ray.Count==0?0:ray.Last().D);
   result.Checks.Add(new[]{"Exposure B fetch",f(result.BFetch)+" m",meanHeight<=9.1?"h ≤ 9.1 m: Surface Roughness B must prevail for 457 m (1,500 ft).":"h > 9.1 m: Surface Roughness B must prevail for the greater of 792 m (2,600 ft) and 20h."});
