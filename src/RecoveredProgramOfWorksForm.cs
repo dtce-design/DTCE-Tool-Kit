@@ -985,7 +985,7 @@ namespace BeamScheduleFormatter
 				}
 				if (item.Section == "Structural Steel Works")
 				{
-					flag2 = new string[5] { "Purlins PURCHASE weight", "Angle bars PURCHASE weight", "Metal fascia PURCHASE weight", "Steel plates PURCHASE weight", "Crossbracing rods" }.Contains(item.Description) || item.Description.StartsWith("Turnbuckles dia ");
+					flag2 = new string[6] { "Purlins PURCHASE weight", "Angle bars PURCHASE weight", "Metal fascia PURCHASE weight", "Steel plates PURCHASE weight", "Crossbracing rods", SteelPaintingTotal }.Contains(item.Description) || item.Description.StartsWith("Turnbuckles dia ");
 				}
 				if(item.Section=="Reinforced Concrete Works"&&item.Description.ToLowerInvariant().Contains("concrete"))flag2=false;
                 if(item.Section=="Canopy / Ledge"&&item.Unit=="m3")flag2=false;
@@ -3668,6 +3668,7 @@ namespace BeamScheduleFormatter
 			}
 			AssignStructuralSteelIds();
 			steelDemands.Clear();
+			steelPaintAreas.Clear();
 			steelStocks.Clear();
 			plateStocks.Clear();
 			HashSet<string> hashSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -3935,7 +3936,7 @@ namespace BeamScheduleFormatter
 				steelStocks.Sum((SteelStock stock) => 6.0 * stock.KgM) + num - SteelTotal(steelPlates, 8) + plateStocks.Sum((PlateSheet p) => p.BuyKg),
 				"kg"
 			});
-			if(steelAngles.Columns.Contains("AnglePaintArea"))list.Add(new object[]{"Angle bars installed painting reference",AnglePaintingTotal(),"m2"});
+			list.AddRange(SteelPaintingRows());
 			List<object[]> list2 = list;
 			foreach (IGrouping<double, DataGridViewRow> item in from DataGridViewRow row in crossBracing.Rows
 				where !row.IsNewRow && Cell(row, 12) == "Estimated"
@@ -3972,6 +3973,7 @@ namespace BeamScheduleFormatter
 				KgM = mass
 			};
 			if(row.DataGridView==steelAngles)steelDemands.AddRange(AngleSegments.Expand(steelCutDemand));else steelDemands.Add(steelCutDemand);
+			AddSteelPaint(row,profile,length,qty);
 			row.Tag = steelCutDemand;
 			return steelCutDemand;
 		}

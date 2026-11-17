@@ -113,6 +113,10 @@ namespace BeamScheduleFormatter
 			{
 				code = "1046(3)";
 			}
+			if (d.StartsWith("METALPAINTINGTOTAL"))
+			{
+				code = "1032(1)c";
+			}
 			if (d.Contains("PURLINSPURCHASE"))
 			{
 				code = "1047(8)b";
