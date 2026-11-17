@@ -9,27 +9,4 @@ DTCE Tool Kit v1.4.67 (16 November 2026)
   awaits owner confirmation from the NSCP text.
 - Windows CI still blocked by GitHub billing. No release.
 
-Additions 17 November 2026 (still v1.4.67, not yet released)
-- Windows CI runs again (repository temporarily public). Real app fixes found by native tests: Selected beam
-  details tab was dropped before handle creation; POW Excel status bar covered the BOQ; Finish ID column
-  reappeared on Wall/Ceiling/Floor sheets. Several stale tests aligned with documented behaviour.
-- Owner request: POW input issues are listed inside the app, below the Bill of Quantities (hidden when none).
-  The POW Input Issues worksheet is no longer written to the linked Excel workbook. Issues are still saved
-  in the .pow.xml (InputIssues) and shown in Review inputs and reports.
-- Owner request: Close Program of Works button (normal save prompt, then back to Start) so another saved
-  POW can be opened in a fresh window. Open errors now explain this.
-- Old saved POW files: save/open round trip and the version-12 legacy migration pass on Windows CI
-  (EarthworkFootingTests 124 checks). The owner's own .pow.xml files were not available to test.
-- Owner request: animated POW -> Excel link indicator in the POW status bar, shown while a workbook links,
-  the original copy is captured, quantities sync or Excel disconnects. Work stays in the background.
-- Owner request: metal painting for purlins, angle bars and metal fascia. Area per metre from the profile:
-  lipped C purlin 2H+4B+4·lip, angle 2(H+B), flat bar 2(B+t). Structural Steel Works shows per-group areas
-  and "Metal painting TOTAL - installed (purlins, angle bars, metal fascia)" m2 (installed length x qty,
-  not purchased 6 m stock), a BOQ demand suggested to
-  1032(1)c Metal Painting Works (map once if the BACKUP has several 1032(1)c variants). Replaces the
-  unrouted "Angle bars installed painting reference". New SteelPaintingTests.
-- Owner report: a second manual slab schedule could not be added. Cause: the "Manual reinforcement" button
-  edited the schedule of the selected takeoff row when that row already used a manual schedule. The two
-  buttons are now one: "Manual reinforcement schedules" (Add new schedule, Edit selected, Delete selected).
-  Add new always creates a new schedule; it fills the selected row only if that row has no slab mark yet,
-  otherwise it adds a new takeoff row.
+(Changes after the v1.4.67 test packages are in TEST-BUILD-v1.4.68.txt.)
