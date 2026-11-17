@@ -1,0 +1,5 @@
+DTCE Tool Kit v1.4.71 (17 November 2026)
+
+Builds on v1.4.70.
+- Owner request: the "Saved hh:mm:ss · file" save status moved from between the top command buttons to the
+  right end of the bottom status bar (next to the Excel link animation). Tooltip shows the full file path.

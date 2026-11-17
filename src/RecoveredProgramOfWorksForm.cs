@@ -4438,7 +4438,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			base.Controls.Add(flowLayoutPanel);
 			GridEditHistory.AddCommands(this,flowLayoutPanel);
             Button(flowLayoutPanel, "Save Program of Works", Save);
-            Button(flowLayoutPanel,"Project files",ManageProjectFiles);powSaveIndicator=new Label{AutoSize=true,Padding=new Padding(8,10,0,0),Text=""};flowLayoutPanel.Controls.Add(powSaveIndicator);
+            Button(flowLayoutPanel,"Project files",ManageProjectFiles);/* Save status lives in the bottom status bar (owner, 17 November 2026), not between the command buttons. */powSaveIndicator=new Label{Name="PowSaveStatus",AccessibleName="Program of Works save status",Text=""};
             Button(flowLayoutPanel, "Export report file", ExportEngineeringReport);
 			Button(flowLayoutPanel, "Open Program of Works", Open);
 			Button(flowLayoutPanel, "Close Program of Works", CloseProgramOfWorks);
