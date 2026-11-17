@@ -1,0 +1,14 @@
+DTCE Tool Kit v1.4.89 (17 November 2026)
+
+Builds on v1.4.88.
+- Owner: BOQ search moved into the Bill of Quantities toolbar (compact box with placeholder, ✕ clears, Esc clears).
+- Owner: tabs did not look like folder tabs and their arrangement changed. The native Windows header moved the
+  selected tab's row to the bottom. NavigationTabs now draw and lay out their own strip: tabs keep their order,
+  wrap left-to-right with full captions, rounded folder tops, the selected tab takes the page colour with a
+  coloured top bar (main / sub / nested colours) and bold caption, hover highlight. TabPages, selection events and
+  keyboard navigation are unchanged. UI tests read the drawn tab rectangles (NavigationTabs.GetTabRect).
+- Owner: Pipe Takeoff material tabs (PPR Waterline, PVC - S600, PVC - S1000, Waterline - PVC) only ask for the
+  Size from a dropdown (e.g. 20mm…160mm for PPR, 2"/3"/4" for S600); the full specification is filled in
+  automatically and saved as before. "Other pipes" keeps the free-text specification.
+- Checked on Linux/Mono: tab layout keeps order across 3 rows; PPR 25mm -> "25mm PPR Hot and Cold Water Piping
+  System, PN20", status Estimated; Other pipes shows the text specification.

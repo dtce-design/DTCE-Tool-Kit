@@ -9646,6 +9646,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 					}
 				}
 			};
+			InstallPipeSizeColumn();
 			plumbingPipes.EditingControlShowing += delegate(object s, DataGridViewEditingControlShowingEventArgs e)
 			{
 				TextBox textBox = e.Control as TextBox;
@@ -9683,6 +9684,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 						item.Visible = Empty(item) || PipeGroups.Group(Cell(item, 2)) == pipeGroupTabs.SelectedTab.Text;
 					}
 				}
+				SyncPipeSizeColumn();
 			}
 			finally
 			{
