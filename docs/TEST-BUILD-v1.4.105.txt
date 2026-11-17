@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.4.105 (17 November 2026)
+
+Builds on v1.4.104.
+- Windows CI timing probe (v1.4.102 run): open 5.6 s of which beam / slab estimate restore 4.1 s, recalculation
+  1.3 s; save 3.0 s of which beam / slab snapshot 2.5 s. The same steps take ~0.1 s on Mono. Cause: grids with
+  automatic row height (beam / slab estimate, BOQ) re-measure the whole row with wrapped text on every cell
+  change; a recalculation writes thousands of cells.
+- GridBatch pauses automatic row sizing on every grid of the window during the beam / slab estimate
+  recalculation and restore, the POW recalculation and the POW open, then sizes rows once at the end.
+- The CI probe prints the new Windows timings; Mono results unchanged (open 0.6 s, save 0.1 s), RC summaries and
+  beam totals identical.

@@ -6700,6 +6700,11 @@ worksExcelTimer.Tick += async delegate
 
 		public void Recalculate()
 		{
+			using (GridBatch.Suspend(this)) RecalculateWorks();
+		}
+
+		private void RecalculateWorks()
+		{
 			if (initializingWorks || filling || wood == null || walls == null || finishSchedule == null || wallFinishes == null)
 			{
 				return;
@@ -7531,6 +7536,10 @@ worksExcelTimer.Tick += async delegate
             OpenProjectDocument(xmlDocument,PowSourceFiles.Read(xmlDocument.DocumentElement));
         }
         private void OpenProjectDocument(XmlDocument xmlDocument,PowSourceFiles savedSourceFiles,string deferredSourcesPath=null)
+        {
+            using(GridBatch.Suspend(this))OpenProjectDocumentRows(xmlDocument,savedSourceFiles,deferredSourcesPath);
+        }
+        private void OpenProjectDocumentRows(XmlDocument xmlDocument,PowSourceFiles savedSourceFiles,string deferredSourcesPath)
         {
             Guard();
             var savedProjectInformation=PowProjectInformation.Read(xmlDocument.DocumentElement);
