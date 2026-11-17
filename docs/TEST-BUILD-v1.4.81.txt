@@ -1,0 +1,10 @@
+DTCE Tool Kit v1.4.81 (17 November 2026)
+
+Builds on v1.4.80.
+- Owner report: RC wall rows stayed on "Check Grade <=12 mm" with no visible cell to fix. Cause: concrete MPa
+  and rebar grades are hidden, settings-driven cells (RC Wall Settings); the "no numeric pre-fill" rule blanked
+  them on every new row. The rule now applies only to visible measurement inputs. Rows already saved with
+  blank hidden materials take the values from their sheet's Settings (RC walls, canopies/ledges, footings);
+  existing values are never changed and "Apply to all" still updates every row.
+- Checked on Linux/Mono: RC wall 3 x 2.5 m, 150 mm -> 21 MPa / Grade 40 / Grade 60 filled, concrete 1.125 m3,
+  forms 7.875 m2 (one face + one end), status Estimated.

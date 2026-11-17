@@ -7,6 +7,6 @@ internal class WorksDataGridView:DataGridView {
  protected override bool ProcessCmdKey(ref Message message,Keys keys){if(DropdownCellClipboard.Process(this,keys))return true;return base.ProcessCmdKey(ref message,keys);}
  internal void ApplyProfilePaste(Action paste){var cell=CurrentCell;var beginning=new DataGridViewCellCancelEventArgs(cell.ColumnIndex,cell.RowIndex);OnCellBeginEdit(beginning);if(beginning.Cancel)return;if(DefaultValuesScope==null)paste();else using(DefaultValuesScope())paste();var completed=CurrentCell;OnCellEndEdit(new DataGridViewCellEventArgs(completed.ColumnIndex,completed.RowIndex));}
 
- protected override void OnDefaultValuesNeeded(DataGridViewRowEventArgs e){if(DefaultValuesScope==null){base.OnDefaultValuesNeeded(e);return;}using(DefaultValuesScope()){base.OnDefaultValuesNeeded(e);if(BlankNumericInputs)foreach(DataGridViewCell cell in e.Row.Cells)if(!cell.ReadOnly&&QuantityInputDefaults.IsNumber(cell.Value))cell.Value=null;}}
+ protected override void OnDefaultValuesNeeded(DataGridViewRowEventArgs e){if(DefaultValuesScope==null){base.OnDefaultValuesNeeded(e);return;}using(DefaultValuesScope()){base.OnDefaultValuesNeeded(e);/* Hidden columns hold settings-driven materials (concrete MPa, rebar grades); only visible measurement inputs start blank. */if(BlankNumericInputs)foreach(DataGridViewCell cell in e.Row.Cells)if(!cell.ReadOnly&&cell.OwningColumn!=null&&cell.OwningColumn.Visible&&QuantityInputDefaults.IsNumber(cell.Value))cell.Value=null;}}
 }
 }
