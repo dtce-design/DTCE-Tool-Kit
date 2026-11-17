@@ -1,0 +1,13 @@
+DTCE Tool Kit v1.4.98 (17 November 2026)
+
+Builds on v1.4.97.
+- Owner supplied the Regan 2026 Product Handbook for railing materials (Pipes & Tubings). Railing Estimate now
+  offers the full handbook tables: heavy gauge ERW pipe (printed p.15), light gauge TRI-R pipe (p.16), Strux
+  lightweight tube (p.17), seamless pipe Sch 40 / 80 / 160 (p.18-20), square tube (p.22-23, 0.7-8 mm),
+  rectangular tube (p.24, incl. 19x50, 25x75, 40x50) and flat bar up to 4 in (p.12). Size names show the nominal
+  inch size and gauge/schedule, e.g. "Pipe 1in light gauge OD33.4x2.6mm".
+- Square tube 38x38x3 is left out: the handbook prints 4.862 kg/m, the same as 4 mm (misprint).
+- The handbook has no plain round bar or square bar; those stay computed from 7850 kg/m3 and are labelled so.
+- Railing sizes saved by v1.4.96 (e.g. "Pipe OD33.4x3.4mm", family "Pipe") still open and compute.
+- Checked on Linux/Mono: RailingTests (22 checks, handbook values per table) and a POW run with heavy and
+  light gauge rails, SHS posts and round bar balusters; save/open keeps the sizes.

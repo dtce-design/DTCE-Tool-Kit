@@ -1,27 +1,28 @@
 using System;using System.Collections.Generic;using System.Globalization;using System.Linq;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 // Railing estimate in Finishing Works (owner, 17 November 2026).
-// Each row is one railing member: top / mid / bottom rail, post, baluster or other. Sections: pipes and rectangular /
-// square tubes from the Regan handbook catalogue already in the app; round and square bars are computed from
-// 7850 kg/m3 (verify sizes against the Regan handbook). Pieces per run = count, or ceil(run / spacing) + 1, or 1 for
+// Each row is one railing member: top / mid / bottom rail, post, baluster or other. Sections come from the Regan 2026
+// handbook tables (RailingCatalog); round and square bars are not in the handbook and are computed from 7850 kg/m3. Pieces per run = count, or ceil(run / spacing) + 1, or 1 for
 // a rail. Cuts longer than 6 m are split into equal pieces (approved splice assumed). All cuts of the same size share
 // 6 m stocks with best-fit offcut reuse (SteelCutPlanner). Painting is the installed length x painted perimeter.
 static class RailingSections {
- internal static readonly string[] Families={"Pipe","Rectangular tube","Square tube","Round bar","Square bar"};
+ internal static readonly string[] Families={"Pipe (heavy gauge)","Pipe (light gauge)","Pipe (Sch 40)","Pipe (Sch 80)","Pipe (Sch 160)","Strux tube","Rectangular tube","Square tube","Flat bar","Round bar","Square bar"};
  internal static readonly string[] Members={"Top rail","Mid rail","Bottom rail","Post","Baluster","Other"};
- static List<SteelProfile> bars;
- static List<SteelProfile> Bars(){if(bars!=null)return bars;var list=new List<SteelProfile>();
-  foreach(int d in new[]{8,10,12,16,20,25})list.Add(new SteelProfile{Name="Round bar "+d+"mm",Kind="Round bar",H=d,B=d,T=d,KgM=Math.Round(Math.PI*d*d/4e6*SteelWeight.Density,3),Source="Computed 7850 kg/m3 (verify in Regan handbook)"});
-  foreach(int a in new[]{10,12,16,20,25})list.Add(new SteelProfile{Name="Square bar "+a+"x"+a+"mm",Kind="Square bar",H=a,B=a,T=a,KgM=Math.Round(a*a/1e6*SteelWeight.Density,3),Source="Computed 7850 kg/m3 (verify in Regan handbook)"});
-  bars=list;return list;}
- internal static IEnumerable<SteelProfile> For(string family){switch(family){
-  case "Pipe":return SteelCatalog.Profiles.Where(p=>p.Kind=="HSS circle / pipe");
-  case "Rectangular tube":return SteelCatalog.Profiles.Where(p=>p.Kind=="HSS rectangle"&&Math.Abs(p.H-p.B)>1e-9);
-  case "Square tube":return SteelCatalog.Profiles.Where(p=>p.Kind=="HSS rectangle"&&Math.Abs(p.H-p.B)<=1e-9);
-  case "Round bar":return Bars().Where(p=>p.Kind=="Round bar");
-  case "Square bar":return Bars().Where(p=>p.Kind=="Square bar");
+ internal static IEnumerable<SteelProfile> For(string family){var all=RailingCatalog.All();switch(family){
+  case "Pipe":case "Pipe (heavy gauge)":return all.Where(p=>p.Name.Contains("heavy gauge"));
+  case "Pipe (light gauge)":return all.Where(p=>p.Name.Contains("light gauge"));
+  case "Pipe (Sch 40)":return all.Where(p=>p.Name.Contains("seamless Sch 40 "));
+  case "Pipe (Sch 80)":return all.Where(p=>p.Name.Contains("seamless Sch 80 "));
+  case "Pipe (Sch 160)":return all.Where(p=>p.Name.Contains("seamless Sch 160 "));
+  case "Strux tube":return all.Where(p=>p.Name.StartsWith("Strux",StringComparison.Ordinal));
+  case "Rectangular tube":return all.Where(p=>p.Name.StartsWith("RHS",StringComparison.Ordinal));
+  case "Square tube":return all.Where(p=>p.Name.StartsWith("SHS",StringComparison.Ordinal));
+  case "Flat bar":return all.Where(p=>p.Kind=="Flat bar");
+  case "Round bar":return all.Where(p=>p.Kind=="Round bar");
+  case "Square bar":return all.Where(p=>p.Kind=="Square bar");
   default:return Enumerable.Empty<SteelProfile>();}}
- internal static SteelProfile Find(string name){return Families.SelectMany(For).FirstOrDefault(p=>string.Equals(p.Name,name,StringComparison.OrdinalIgnoreCase));}
+ /* Railing catalogue first; a size saved by v1.4.96 (e.g. "Pipe OD33.4x3.4mm") is still found in the steel catalogue. */
+ internal static SteelProfile Find(string name){return RailingCatalog.All().Concat(SteelCatalog.Profiles).FirstOrDefault(p=>string.Equals(p.Name,name,StringComparison.OrdinalIgnoreCase));}
  internal static int PiecesPerRun(double runM,double spacingMm,int count){if(count>0)return count;if(spacingMm>0){SteelWeight.Positive(runM,spacingMm);return checked((int)Math.Ceiling(runM*1000/spacingMm-1e-9)+1);}return 1;}
  internal static int Segments(double pieceM){return Math.Max(1,(int)Math.Ceiling(pieceM/SteelCutPlanner.StockLength-1e-9));}
 }
@@ -30,12 +31,12 @@ class RailingTakeoff {public string Id,Description,Member,Profile;public double 
 partial class ProgramOfWorksForm {
  ExtraWorkGrid railingGrid;readonly List<RailingTakeoff> railings=new List<RailingTakeoff>();List<SteelStock> railingStocks=new List<SteelStock>();
  void AddRailingWorks(){
-  railingGrid=NewExtraGrid("Railing","Railing Estimate","Finishing Works",new[]{"Railing ID","Description / location","Member","Section","Size","Run length m","Piece length m (blank = run length)","Spacing mm","Count / run","Railing qty","Pieces","Installed length m","kg/m","Installed kg","Purchase kg (6 m stock)","Paint m2 (installed)","Status"},10,new Dictionary<int,string>{{2,"Top rail"},{3,"Pipe"}},
+  railingGrid=NewExtraGrid("Railing","Railing Estimate","Finishing Works",new[]{"Railing ID","Description / location","Member","Section","Size","Run length m","Piece length m (blank = run length)","Spacing mm","Count / run","Railing qty","Pieces","Installed length m","kg/m","Installed kg","Purchase kg (6 m stock)","Paint m2 (installed)","Status"},10,new Dictionary<int,string>{{2,"Top rail"},{3,"Pipe (heavy gauge)"}},
    "One row per railing member. Rails: Count / run = number of rails (blank = 1), piece length = run length. Posts / balusters: Piece length = height; enter Spacing mm OR Count / run (pieces = run / spacing + 1). Railing qty multiplies the whole row. All cuts of the same size share 6 m stocks and reuse offcuts; painting uses the installed length.");
-  var g=railingGrid.Grid;ExtraChoice(g,2,RailingSections.Members);ExtraChoice(g,3,RailingSections.Families);ExtraChoice(g,4,RailingSections.Families.SelectMany(RailingSections.For).Select(p=>p.Name).ToArray());
-  g.Columns[1].Width=220;g.Columns[4].Width=200;g.Columns[6].Width=150;g.DataError+=(s,e)=>{if(e.ColumnIndex==4)e.ThrowException=false;};
+  var g=railingGrid.Grid;ExtraChoice(g,2,RailingSections.Members);ExtraChoice(g,3,RailingSections.Families);ExtraChoice(g,4,RailingSections.Families.SelectMany(RailingSections.For).Select(p=>p.Name).Concat(SteelCatalog.Profiles.Where(p=>p.Kind=="HSS circle / pipe").Select(p=>p.Name)).Distinct().ToArray());
+  g.Columns[1].Width=220;g.Columns[4].Width=290;g.Columns[3].Width=150;g.Columns[6].Width=150;g.DataError+=(s,e)=>{if(e.ColumnIndex==4)e.ThrowException=false;};
   g.Columns[7].ToolTipText="Posts / balusters: centre-to-centre spacing in mm. Leave blank when Count / run is entered.";g.Columns[8].ToolTipText="Number of pieces per run (rails: number of rails). Use this OR Spacing.";}
- void PrepareRailingSizes(DataGridViewRow row){var cell=row.Cells[4] as DataGridViewComboBoxCell;if(cell==null)return;var names=RailingSections.For(Cell(row,3)).Select(p=>p.Name).ToArray();if(names.Length==0)return;cell.Items.Clear();cell.Items.AddRange(names);if(Cell(row,4)!=""&&!names.Contains(Cell(row,4)))cell.Value=null;}
+ void PrepareRailingSizes(DataGridViewRow row){var cell=row.Cells[4] as DataGridViewComboBoxCell;if(cell==null)return;var names=RailingSections.For(Cell(row,3)).Select(p=>p.Name).ToArray();if(names.Length==0)return;cell.Items.Clear();cell.Items.AddRange(names);string current=Cell(row,4);if(current!=""&&!names.Contains(current)){var saved=RailingSections.Find(current);if(saved!=null)cell.Items.Add(saved.Name);else cell.Value=null;}}
  void RecalculateRailings(){railings.Clear();railingStocks=new List<SteelStock>();if(railingGrid==null)return;var g=railingGrid.Grid;var ids=new HashSet<string>(StringComparer.OrdinalIgnoreCase);var demands=new List<SteelCutDemand>();
   foreach(DataGridViewRow row in g.Rows){if(row.IsNewRow)continue;row.Tag=null;for(int c=railingGrid.Inputs;c<g.Columns.Count;c++)row.Cells[c].Value="";PrepareRailingSizes(row);if(Empty(row))continue;
    try{if(Cell(row,0)==""||!ids.Add(Cell(row,0)))throw new Exception("Enter a unique railing ID.");var profile=RailingSections.Find(Cell(row,4));if(profile==null)throw new Exception("Select the section and size.");
