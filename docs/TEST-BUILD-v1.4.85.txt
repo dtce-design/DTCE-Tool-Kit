@@ -1,0 +1,9 @@
+DTCE Tool Kit v1.4.85 (17 November 2026)
+
+Builds on v1.4.84.
+- Owner request: click-and-drag to select several cells or rows, release, then paste. Grids no longer enter
+  typing mode on mouse down (EditOnEnter -> EditOnKeystrokeOrF2). A plain single-cell click still starts typing
+  on mouse up and opens dropdowns; typing a key or F2 also edits. Drag, Shift+click and Ctrl+click select ranges;
+  Ctrl+C / Ctrl+V then copy and paste across the selection (one value fills all selected cells; a copied block
+  pastes from the top-left cell). Applies to all grids styled by GridAppearance.
+- Windows mouse behaviour to be confirmed by the owner (not reproducible on Linux/Mono).
