@@ -1,0 +1,9 @@
+DTCE Tool Kit v1.4.109 (17 November 2026)
+
+Builds on v1.4.108.
+- Owner: quantities take long to move after mapping (needs the linked Excel; not reproducible on Linux, where the BOQ
+  rebuild takes 0.08 s). Mapping now records step timings, shown in the status bar after the Excel write and appended
+  to %LOCALAPPDATA%\BeamTools\pow-timing.log: read BACKUP items, mapping dialog (your time), update BOQ in the app,
+  write quantities to Excel, refresh BOQ after Excel.
+- The BOQ is refreshed again once the Excel write finishes, so the mapped rows show their final placement.
+- Windows CI probe now also times the BOQ rebuild and BackupQuantities.

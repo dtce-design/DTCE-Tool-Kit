@@ -9,6 +9,8 @@ class PowPerformanceProbe {
   try{
    var sw=Stopwatch.StartNew();var form=new ProgramOfWorksForm();bool mono=Type.GetType("Mono.Runtime")!=null;if(!mono){form.Show();Application.DoEvents();}else{var handle=form.Handle;}Console.WriteLine("PERF construct+show "+sw.ElapsedMilliseconds+" ms");
    PowTiming.Start("Open");sw.Restart();form.OpenFrom(copy);PowTiming.Mark("open total");Application.DoEvents();PowTiming.Mark("first paint");Console.WriteLine("PERF open "+sw.ElapsedMilliseconds+" ms :: "+PowTiming.Finish());
+   sw.Restart();t.GetMethod("UpdateBackupBillDashboard",bf).Invoke(form,null);Application.DoEvents();Console.WriteLine("PERF BOQ rebuild "+sw.ElapsedMilliseconds+" ms");
+   sw.Restart();t.GetMethod("BackupQuantities",bf,null,new[]{typeof(bool)},null).Invoke(form,new object[]{false});Console.WriteLine("PERF BackupQuantities "+sw.ElapsedMilliseconds+" ms");
    for(int pass=1;pass<=2;pass++){
     sw.Restart();t.GetMethod("Recalculate",bf,null,Type.EmptyTypes,null).Invoke(form,null);Application.DoEvents();Console.WriteLine("PERF recalculate "+sw.ElapsedMilliseconds+" ms");
     PowTiming.Start("Save");sw.Restart();form.SaveTo(copy);Console.WriteLine("PERF save "+sw.ElapsedMilliseconds+" ms :: "+PowTiming.Finish());
