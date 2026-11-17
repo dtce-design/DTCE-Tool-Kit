@@ -4439,6 +4439,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
             Button(flowLayoutPanel,"Project files",ManageProjectFiles);powSaveIndicator=new Label{AutoSize=true,Padding=new Padding(8,10,0,0),Text=""};flowLayoutPanel.Controls.Add(powSaveIndicator);
             Button(flowLayoutPanel, "Export report file", ExportEngineeringReport);
 			Button(flowLayoutPanel, "Open Program of Works", Open);
+			Button(flowLayoutPanel, "Close Program of Works", CloseProgramOfWorks);
 			Button(flowLayoutPanel, "Print preview", PreviewQuantityEngineeringReport);
             Button(flowLayoutPanel, "Save PDF", SaveQuantityEngineeringPdf);
 			beam = new EstimatorForm(null);
@@ -7490,11 +7491,11 @@ worksExcelTimer.Tick += async delegate
 			NormalizeLegacyAAC(xmlDocument.DocumentElement);
 			if (PowOpenState.HasInputChanges(DataXml(),saved))
 			{
-				throw new Exception("Save current project inputs before opening another Program of Works.");
+				throw new Exception("This window has unsaved Program of Works inputs. Save them, or use Close Program of Works, then open the other file.");
 			}
 			if (beam.WorksSnapshot() != null || slab.WorksSnapshot() != null)
 			{
-				throw new Exception("Open a saved Program of Works in a fresh Program of Works window to protect loaded beam/slab work.");
+				throw new Exception("Beam or slab work is already loaded in this window. Use Close Program of Works (save first if needed), then open the saved file.");
 			}
 			List<BackupBillItem> list = BackupBill.Read(xmlDocument.DocumentElement);
 			FinishTypeRegistry finishTypeRegistry = FinishTypeRegistry.Read(xmlDocument.DocumentElement);
