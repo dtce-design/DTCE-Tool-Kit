@@ -1,0 +1,8 @@
+DTCE Tool Kit v1.4.107 (17 November 2026)
+
+Builds on v1.4.106.
+- Owner: one more factor on every Structural Steel Works sheet, "Multiplier" (caption to be renamed when the owner
+  chooses one). Total pieces = Qty / unit x Units / set x Sets x Multiplier; blank = 1. Saved as attribute m.
+  Mono: 2 x 3 x 2 x 2 purlins = 24 cuts, 119.52 kg buy; kept after save / reopen.
+- Fixed (owner report): Roofing > insulation roll settings showed Roll area only for an insulation type already
+  used on a roof. Roll area (width x length) now shows for every type with both values.

@@ -2565,6 +2565,9 @@ namespace BeamScheduleFormatter
 				{
 					throw new Exception("Missing insulation roll settings: " + type);
 				}
+				/* Owner (17 November 2026): show the roll area for every type with width and length, not only types used on a roof. */
+				double rollWidth, rollLength;
+				dataGridViewRow.Cells[3].Value = (double.TryParse(Cell(dataGridViewRow, 1), NumberStyles.Float, CultureInfo.InvariantCulture, out rollWidth) && double.TryParse(Cell(dataGridViewRow, 2), NumberStyles.Float, CultureInfo.InvariantCulture, out rollLength) && rollWidth > 0.0 && rollLength > 0.0) ? (rollWidth * rollLength).ToString("0.00", CultureInfo.InvariantCulture) : "";
 				if (num == 0.0)
 				{
 					list.Add(new object[3]
