@@ -91,7 +91,7 @@ namespace BeamScheduleFormatter
 			string[] array2 = new string[24]
 			{
 				"", "", "Member type", "Description", "Length m", "Width / height m", "Thickness mm", "Members per structure", "Concrete cover mm", "Rebar layers (1 or 2)",
-				"X / vertical diameter mm", "X / vertical spacing mm (OR count)", "X / vertical bars per layer", "Y / horizontal diameter mm", "Y / horizontal spacing mm (OR count)", "Y / horizontal bars per layer", "X / vertical extra ends mm (total)", "Y / horizontal extra ends mm (total)", "Formed main faces (0/1/2)", "Formed edge length m (blank=full)",
+				"X / vertical diameter mm", "X / vertical bar spacing mm (or use bars per layer)", "X / vertical bars per layer", "Y / horizontal diameter mm", "Y / horizontal bar spacing mm (or use bars per layer)", "Y / horizontal bars per layer", "X / vertical extra ends mm (total)", "Y / horizontal extra ends mm (total)", "Formed main faces (0/1/2)", "Formed edge length m (blank=full)",
 				"Gravel thickness mm (on fill)", "Plaster faces (0/1/2)", "Waterproof faces (0/1/2)", "Commercial rebar length m"
 			};
 			ComboBox.ObjectCollection items = type.Items;
