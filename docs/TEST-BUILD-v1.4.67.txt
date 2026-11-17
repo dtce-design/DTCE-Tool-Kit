@@ -8,3 +8,15 @@ DTCE Tool Kit v1.4.67 (16 November 2026)
 - Steel/other deflection limits remain cited as "NSCP 2015 Chapter 1 deflection limits"; exact table number
   awaits owner confirmation from the NSCP text.
 - Windows CI still blocked by GitHub billing. No release.
+
+Additions 17 November 2026 (still v1.4.67, not yet released)
+- Windows CI runs again (repository temporarily public). Real app fixes found by native tests: Selected beam
+  details tab was dropped before handle creation; POW Excel status bar covered the BOQ; Finish ID column
+  reappeared on Wall/Ceiling/Floor sheets. Several stale tests aligned with documented behaviour.
+- Owner request: POW input issues are listed inside the app, below the Bill of Quantities (hidden when none).
+  The POW Input Issues worksheet is no longer written to the linked Excel workbook. Issues are still saved
+  in the .pow.xml (InputIssues) and shown in Review inputs and reports.
+- Owner request: Close Program of Works button (normal save prompt, then back to Start) so another saved
+  POW can be opened in a fresh window. Open errors now explain this.
+- Old saved POW files: save/open round trip and the version-12 legacy migration pass on Windows CI
+  (EarthworkFootingTests 124 checks). The owner's own .pow.xml files were not available to test.
