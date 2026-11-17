@@ -5510,7 +5510,7 @@ worksExcelTimer.Tick += async delegate
 				HeaderText = "Plaster sides",
 				Width = 125
 			};
-			dataGridViewComboBoxColumn.Items.AddRange("1 side (A)", "1 side (B)", "2 sides");
+			dataGridViewComboBoxColumn.Items.AddRange("None", "1 side (A)", "1 side (B)", "2 sides");
 			g.Columns.Add(dataGridViewComboBoxColumn);
 			g.Columns[12].DefaultCellStyle.BackColor = ModernUi.Input;
 			string[] array = new string[3] { "Plaster base m2", "Tiles deducted m2", "Net plaster m2" };
