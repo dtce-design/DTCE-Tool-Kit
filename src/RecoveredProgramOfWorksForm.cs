@@ -4676,6 +4676,7 @@ worksExcelTimer.Tick += async delegate
 				Dock = DockStyle.Fill
 			};
 			tabControl.TabPages.AddRange(pages);
+			if (pages.Length == 1) ((NavigationTabs)tabControl).StripHidden = true;
 			tabControl.Deselecting += delegate(object s, TabControlCancelEventArgs e)
 			{
 				if (!CommitPage(e.TabPage))
@@ -7428,12 +7429,13 @@ worksExcelTimer.Tick += async delegate
 			Commit();
 			/* Saving re-ran the whole recalculation (about 1 s on a mid-size project) although every edit already
 			   recalculates. Only recalculate when inputs changed since the last recalculation (owner: slow save). */
-			if (childWorksDirty || recalculatedInputs == null || DataXml() != recalculatedInputs) Recalculate();
+			if (childWorksDirty || recalculatedInputs == null || DataXml() != recalculatedInputs) { Recalculate(); PowTiming.Mark("recalculation"); }
 			XmlDocument xmlDocument = new XmlDocument();
 			xmlDocument.LoadXml(DataXml());
             PowProjectInformation.Write(xmlDocument.DocumentElement,ProjectInfoStore.Read());
             PowIssueOutput.Write(xmlDocument.DocumentElement,WorksValidationIssues());
             if(includeSourceFiles)ProjectSources().Write(xmlDocument.DocumentElement);
+			PowTiming.Mark("project data / issues");
 			snapshottingWorks = true;
 			string text;
 			string text2;
@@ -7446,6 +7448,7 @@ worksExcelTimer.Tick += async delegate
 			{
 				snapshottingWorks = false;
 			}
+			PowTiming.Mark("beam / slab snapshots");
 			string[][] array = new string[2][]
 			{
 				new string[2] { "Beam", text },
@@ -7485,13 +7488,13 @@ worksExcelTimer.Tick += async delegate
                 if(IsDisposed)return;
                 openingPow=true;worksExcelTimer.Stop();excelSaveTimer.Stop();
                 if(currentSync!=null)try{await currentSync;}catch(Exception ex){ExcelFailure(ex);}
-                busy.Status("Reading project and source files…");
+                busy.Status("Reading project and source files…");PowTiming.Start("Open");
                 var snapshot=await System.Threading.Tasks.Task.Run(()=>PowProjectFileWriter.Read(dialog.FileName));
-                if(IsDisposed)return;
+                if(IsDisposed)return;PowTiming.Mark("read file");
                 busy.Status("Loading worksheets and quantities…");
                 OpenProjectDocument(snapshot.Document,snapshot.Sources);currentPowPath=Path.GetFullPath(dialog.FileName);
-                if(worksExcel!=null&&linkedHasBackup){busy.Status("Refreshing linked BACKUP items…");await LoadCatalogue();lastExcelXml="";dashboardDirty=true;RefreshVisibleWorksViews();saved=DataXml();ScheduleWorksExcel();}
-                }
+                if(worksExcel!=null&&linkedHasBackup){busy.Status("Refreshing linked BACKUP items…");await LoadCatalogue();PowTiming.Mark("Excel BACKUP items");lastExcelXml="";dashboardDirty=true;RefreshVisibleWorksViews();saved=DataXml();ScheduleWorksExcel();}
+                ShowTiming(PowTiming.Finish());}
             }}catch(Exception ex){if(!IsDisposed)MessageBox.Show(this,ex.Message,"Open Program of Works",MessageBoxButtons.OK,MessageBoxIcon.Information);}finally{openingPow=false;if(!IsDisposed&&worksExcel!=null&&!excelBroken)ScheduleWorksExcel();}
         }
 
@@ -7550,6 +7553,7 @@ worksExcelTimer.Tick += async delegate
 			{
 				throw new Exception("Beam or slab work is already loaded in this window. Use Close Program of Works (save first if needed), then open the saved file.");
 			}
+			PowTiming.Mark("check file");
 			List<BackupBillItem> list = BackupBill.Read(xmlDocument.DocumentElement);
 			FinishTypeRegistry finishTypeRegistry = FinishTypeRegistry.Read(xmlDocument.DocumentElement);
 			List<OpeningLink> collection = OpeningLinks.Read(xmlDocument.DocumentElement);
@@ -7614,6 +7618,7 @@ worksExcelTimer.Tick += async delegate
 					}
 				}
 			}
+			PowTiming.Mark("validate sheets");
 			if (xmlDocument.DocumentElement["Beam"] != null)
 			{
 				beam.WorksRestore(xmlDocument.DocumentElement["Beam"].InnerText);
@@ -7622,6 +7627,7 @@ worksExcelTimer.Tick += async delegate
 			{
 				slab.WorksRestore(xmlDocument.DocumentElement["Slab"].InnerText);
 			}
+			PowTiming.Mark("beam / slab estimates");
 			filling = true;
 			try
 			{
@@ -7739,25 +7745,31 @@ worksExcelTimer.Tick += async delegate
 					}
 				}
 			}
-            ReadExtraProject(xmlDocument.DocumentElement);ReadRoofingSpecification(xmlDocument.DocumentElement);
+            PowTiming.Mark("fill sheets");ReadExtraProject(xmlDocument.DocumentElement);ReadRoofingSpecification(xmlDocument.DocumentElement);PowTiming.Mark("fill additional sheets");
             if(worksExcel!=null){string workbook=Path.GetFileName(worksExcel.PathName);savedSourceFiles.AddRange(ProjectSources().Files.Where(f=>f.Kind=="Excel workbook (imported original)"&&f.Name.Equals(workbook,StringComparison.OrdinalIgnoreCase)));}
             projectSourceFiles.Replace(savedSourceFiles);
             if(savedProjectInformation!=null)ProjectInfoStore.Save(savedProjectInformation.Name,savedProjectInformation.Location,savedProjectInformation.Office,savedProjectInformation.OfficeAddress);
+			PowTiming.Mark("project info / sources");
 			Recalculate();
+			PowTiming.Mark("recalculation");
 			ShowPipeGroup();
 			saved = DataXml();
 			beam.WorksSaved();
 			slab.WorksSaved();
+			PowTiming.Mark("finish open");
 		}
 
 
 		private void OnWorksClosing(object sender, FormClosingEventArgs e)
 		{
             if(savingPow||openingPow){e.Cancel=true;return;}
+			PowTiming.Start("Close", true);
 			Commit();
 			worksExcelTimer.Stop();
 			if(worksExcel!=null&&!excelCloseFlushed){e.Cancel=true;if(!closingExcel){closingExcel=true;FinishExcelClose();}return;}
-			if (DataXml() != saved || beam.WorksDirty || slab.WorksDirty)
+			bool closeDirty = DataXml() != saved || beam.WorksDirty || slab.WorksDirty;
+			PowTiming.Mark("check unsaved changes");
+			if (closeDirty)
 			{
 				switch (MessageBox.Show(this, "Save Program of Works entries before closing?", "Program of Works", MessageBoxButtons.YesNoCancel))
 				{
@@ -7783,6 +7795,8 @@ worksExcelTimer.Tick += async delegate
 					}
 				}
 			}
+			PowTiming.Mark("close beam / slab windows");
+			if (e.Cancel) PowTiming.Finish();
 		}
 
 

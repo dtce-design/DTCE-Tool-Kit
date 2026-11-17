@@ -177,6 +177,13 @@ namespace BeamScheduleFormatter
 		// Owner (17 November 2026): mapping need not be complete. A quantity with no BACKUP item, or an LS item whose
 		// manual LS quantity has not been entered, is simply left unmapped (shown in the BOQ, not written to Excel)
 		// instead of blocking the whole mapping. Returns the reason, or null when the route can be written.
+		// Painting items (wood, masonry, metal, railing painting) are never mapped automatically: they may not be part of
+		// the POW workbook yet. They stay listed in Bill of Quantities and are written only after the user maps them.
+		public static bool IsPainting(BackupDemand d)
+		{
+			return d.Description != null && d.Description.IndexOf("paint", StringComparison.OrdinalIgnoreCase) >= 0;
+		}
+
 		public static string Incomplete(BackupDemand d, BackupTarget t, List<BackupDemand> list, IDictionary<string, BackupTarget> map)
 		{
 			if (t == null)

@@ -1,0 +1,14 @@
+DTCE Tool Kit v1.4.102 (17 November 2026)
+
+Builds on v1.4.101.
+- Owner: open / save / close still slow on Windows (not reproducible on Linux/Mono: synthetic 147 KB project with
+  40 manual beams opens in 0.5 s, saves in 0.1 s). Added step timings (PowTiming): after Open / Save the bottom
+  status bar shows the time and the slowest steps; every open / save / close is appended to
+  %LOCALAPPDATA%\BeamTools\pow-timing.log (read file, check file, validate sheets, beam / slab estimates, fill
+  sheets, recalculation, Excel BACKUP items, Excel quantities, Excel file save, write file, closing ...).
+- New Windows CI probe tests/PowPerformanceProbe.cs with synthetic fixture tests/fixtures/Perf-Synthetic.pow.xml
+  (no project or personal data) prints the same timings in the CI log.
+- Owner: painting may not be part of the POW workbook yet. Painting quantities are still computed and saved, but
+  are never mapped to BACKUP automatically; they stay in Bill of Quantities until mapped by hand (existing
+  mappings are kept).
+- Owner: a POW section with a single sheet (Doors & Windows) shows it directly without one sub tab.

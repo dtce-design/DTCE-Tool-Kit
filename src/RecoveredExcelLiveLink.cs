@@ -871,7 +871,8 @@ public List<BackupTarget> RegisterBackupBillItems(){backupNameRows=null;backupNa
 				}
 				else
 				{
-					backupTarget = ((d.Quantity > 1E-10 || d.ManualOverride || d.Sources.Any((BillQuantity x) => x.Quantity > 1E-10)) ? BackupMapping.Suggest(d, targets) : null);
+					/* Painting is computed and saved but only goes to the POW workbook once it is mapped by hand (owner, 17 November 2026). */
+					backupTarget = ((d.Quantity > 1E-10 || d.ManualOverride || d.Sources.Any((BillQuantity x) => x.Quantity > 1E-10)) && !BackupMapping.IsPainting(d)) ? BackupMapping.Suggest(d, targets) : null;
 				}
 				if (backupTarget != null)
 				{

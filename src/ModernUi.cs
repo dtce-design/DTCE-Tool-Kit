@@ -35,6 +35,7 @@ static class ModernUi {
   path.AddArc(bounds.Right-d,bounds.Bottom-d,d,d,0,90);path.AddArc(bounds.Left,bounds.Bottom-d,d,d,90,90);path.CloseFigure();return path;
  }
  internal static void Navigation(TabControl tabs) {
+  var nav=tabs as NavigationTabs;if(nav!=null&&nav.StripHidden)return;
   tabs.Alignment=TabAlignment.Top;tabs.Multiline=true;tabs.SizeMode=TabSizeMode.Normal;
   tabs.ItemSize=new Size(0,36);tabs.Padding=new Point(24,9);
   tabs.AccessibleName="Program of Works sections";

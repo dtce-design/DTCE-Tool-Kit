@@ -18,6 +18,11 @@ $exe=Join-Path $out 'BeamEarthworksTests.exe'
 & $compiler /reference:System.IO.Compression.dll "/resource:$source\WindSurfaces.txt,WindSurfaces.txt" "/resource:$source\WindMap27.jpg,WindMap27.jpg" "/resource:$source\WindMap28.jpg,WindMap28.jpg" "/resource:$source\WindMap29.jpg,WindMap29.jpg" /nologo /define:ADMIN_APP /target:exe /main:BeamEarthworksTests "/out:$exe" /reference:System.Security.dll /reference:System.Core.dll "/resource:$source\AccessPublicKey.xml,AccessPublicKey.xml" "/resource:$source\app.ico,DtceIcon.ico" @files (Join-Path $repo 'tests\BeamEarthworksTests.cs') /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:Microsoft.CSharp.dll
 if($LASTEXITCODE-ne 0){throw 'Beam earthworks test compilation failed'}
 & $exe
+$exe=Join-Path $out 'PowPerformanceProbe.exe'
+& $compiler /reference:System.IO.Compression.dll "/resource:$source\WindSurfaces.txt,WindSurfaces.txt" "/resource:$source\WindMap27.jpg,WindMap27.jpg" "/resource:$source\WindMap28.jpg,WindMap28.jpg" "/resource:$source\WindMap29.jpg,WindMap29.jpg" /nologo /define:ADMIN_APP /target:exe /main:PowPerformanceProbe "/out:$exe" /reference:System.Security.dll /reference:System.Core.dll "/resource:$source\AccessPublicKey.xml,AccessPublicKey.xml" "/resource:$source\app.ico,DtceIcon.ico" @files (Join-Path $repo 'tests\PowPerformanceProbe.cs') /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:Microsoft.CSharp.dll
+if($LASTEXITCODE-ne 0){throw 'POW performance probe compilation failed'}
+& $exe
+if($LASTEXITCODE-ne 0){throw 'POW performance probe failed'}
 if($LASTEXITCODE-ne 0){throw 'Beam earthworks tests failed'}
 
 $exe=Join-Path $out 'EarthworkFootingTests.exe'

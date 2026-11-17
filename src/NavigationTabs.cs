@@ -1,7 +1,9 @@
 using System;using System.Drawing;using System.Runtime.InteropServices;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 class NavigationTabs:TabControl {
- bool sizing,measurePending;
+ bool sizing,measurePending,stripHidden;
+ // Owner (17 November 2026): a section with only one sheet shows it directly, without a single sub tab.
+ internal bool StripHidden{get{return stripHidden;}set{stripHidden=value;if(value){Appearance=TabAppearance.FlatButtons;SizeMode=TabSizeMode.Fixed;ItemSize=new Size(0,1);}}}
  [DllImport("user32.dll")]static extern IntPtr SendMessage(IntPtr handle,int message,IntPtr wparam,IntPtr lparam);
  protected override bool ShowFocusCues{get{return false;}}
  internal static bool KeyboardFocusVisible(TabControl tabs){return false;}
@@ -15,7 +17,7 @@ class NavigationTabs:TabControl {
  // Padding can recreate the native handle. Never change it inside handle creation,
  // layout or tab-selection notifications; wait until that native operation returns.
  void ScheduleCaptionMeasure(){if(sizing||measurePending||!IsHandleCreated||IsDisposed||Disposing)return;measurePending=true;try{BeginInvoke((Action)(()=>{measurePending=false;if(!IsDisposed&&!Disposing&&IsHandleCreated)EnsureCaptionRoom();}));}catch(InvalidOperationException){measurePending=false;}}
- void EnsureCaptionRoom(){if(sizing||!IsHandleCreated||TabCount==0||Width<200)return;sizing=true;try{for(int pass=0;pass<3;pass++){int deficit=0;for(int i=0;i<TabCount;i++){int needed=TextRenderer.MeasureText(TabPages[i].Text,Font,Size.Empty,TextFormatFlags.NoPrefix|TextFormatFlags.NoPadding|TextFormatFlags.SingleLine).Width+20;deficit=Math.Max(deficit,needed-GetTabRect(i).Width);}if(deficit<=0||Padding.X>=80)break;Padding=new Point(Math.Min(80,Padding.X+(deficit+1)/2+4),Padding.Y);}}finally{sizing=false;}}
- protected override void WndProc(ref Message m){base.WndProc(ref m);if(m.Msg==0x129)m.Result=new IntPtr(m.Result.ToInt64()|1);if(IsDisposed||!IsHandleCreated)return;if(m.Msg==0xF)using(var graphics=Graphics.FromHwnd(Handle))FolderTabPainter.Strip(this,graphics);else if((m.Msg==0x317||m.Msg==0x318)&&m.WParam!=IntPtr.Zero)using(var graphics=Graphics.FromHdc(m.WParam))FolderTabPainter.Strip(this,graphics);}
+ void EnsureCaptionRoom(){if(stripHidden||sizing||!IsHandleCreated||TabCount==0||Width<200)return;sizing=true;try{for(int pass=0;pass<3;pass++){int deficit=0;for(int i=0;i<TabCount;i++){int needed=TextRenderer.MeasureText(TabPages[i].Text,Font,Size.Empty,TextFormatFlags.NoPrefix|TextFormatFlags.NoPadding|TextFormatFlags.SingleLine).Width+20;deficit=Math.Max(deficit,needed-GetTabRect(i).Width);}if(deficit<=0||Padding.X>=80)break;Padding=new Point(Math.Min(80,Padding.X+(deficit+1)/2+4),Padding.Y);}}finally{sizing=false;}}
+ protected override void WndProc(ref Message m){base.WndProc(ref m);if(m.Msg==0x129)m.Result=new IntPtr(m.Result.ToInt64()|1);if(IsDisposed||!IsHandleCreated)return;if(stripHidden)return;if(m.Msg==0xF)using(var graphics=Graphics.FromHwnd(Handle))FolderTabPainter.Strip(this,graphics);else if((m.Msg==0x317||m.Msg==0x318)&&m.WParam!=IntPtr.Zero)using(var graphics=Graphics.FromHdc(m.WParam))FolderTabPainter.Strip(this,graphics);}
 }
 }
