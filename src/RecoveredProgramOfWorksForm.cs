@@ -1049,7 +1049,7 @@ namespace BeamScheduleFormatter
 						{
 							double num3 = Convert.ToDouble(item3.Cells[7].Value, CultureInfo.InvariantCulture);
 							billQuantity2.Quantity += num3;
-							billQuantity2.Sources.Add(SourceQuantity(Cell(item3, 0) + " | " + Cell(item3, 1) + " | diameter " + Cell(item3, 3) + " mm; overall length " + Cell(item3, 4) + " mm x " + Cell(item3, 5), num3, "kg"));
+							billQuantity2.Sources.Add(SourceQuantity(Cell(item3, 0) + " | " + Cell(item3, 1) + " | diameter " + Cell(item3, 3) + " mm; overall length " + Cell(item3, 4) + " mm x " + SteelQtyText(item3, 5), num3, "kg"));
 						}
 						list.Add(BackupDemand.From(billQuantity2));
 					}
@@ -3563,6 +3563,7 @@ namespace BeamScheduleFormatter
 			DataGridViewColumn dataGridViewColumn = fasciaFrame.Columns[7];
 			bool readOnly = (fasciaFrame.Columns[8].ReadOnly = true);
 			dataGridViewColumn.ReadOnly = readOnly;
+			AddSteelSetColumns();
 			steelCutGrid = Grid(new string[8] { "Stock no.", "Profile / specification", "Cut order", "Member ID", "Cut m", "Remaining after cut m", "Next use", "Final leftover m" }, 0);
 			steelCutGrid.ReadOnly = true;
 			steelCutGrid.AllowUserToAddRows = false;
@@ -3698,7 +3699,7 @@ namespace BeamScheduleFormatter
 					item2.Tag = null;
 					for (int i = num; i <= num2; i++)
 					{
-						item2.Cells[i].Value = "";
+						if (!IsSteelSetColumn(value.Columns[i])) item2.Cells[i].Value = "";
 					}
 					if (Empty(item2))
 					{
@@ -3721,7 +3722,7 @@ namespace BeamScheduleFormatter
 							{
 								throw new Exception("Select a matching handbook profile.");
 							}
-							SteelCutDemand steelCutDemand = AddSteelDemand(item2, steelProfile.Name, Cell(item2, 3), Number(item2, 4), Count(item2, 5), steelProfile.KgM);
+							SteelCutDemand steelCutDemand = AddSteelDemand(item2, steelProfile.Name, Cell(item2, 3), Number(item2, 4), SteelQty(item2, 5), steelProfile.KgM);
 							item2.Cells[6].Value = steelProfile.KgM;
 							Measure(item2, 7, steelCutDemand.Length * (double)steelCutDemand.Quantity * steelProfile.KgM);
 						}
@@ -3732,7 +3733,7 @@ namespace BeamScheduleFormatter
 								throw new Exception("Select A307 or A325.");
 							}
 							double num3 = Number(item2, 4) / 1000.0;
-							int num4 = Count(item2, 5);
+							int num4 = SteelQty(item2, 5);
 							Measure(item2, 6, num3 * (double)num4, "0.000");
 							Measure(item2, 7, SteelWeight.Rod(Number(item2, 3), num3, num4));
 						}
@@ -3755,7 +3756,7 @@ namespace BeamScheduleFormatter
 								SteelWeight.Positive(num6, num7);
 								num5 = num6 * num7;
 							}
-							int num8 = Count(item2, 6);
+							int num8 = SteelQty(item2, 6);
 							Measure(item2, 7, num5 * (double)num8, "0.000");
 							double thicknessMm = Number(item2, 5);
 							Measure(item2, 8, SteelWeight.Plate(num5, thicknessMm, num8));
@@ -3780,7 +3781,7 @@ namespace BeamScheduleFormatter
 						{
 							double num9 = SteelWeight.Diagonal(Number(item2, 2), (Cell(item2, 3) == "") ? 0.0 : Number(item2, 3), Number(item2, 4));
 							double num10 = Number(item2, 5);
-							int num11 = Count(item2, 6);
+							int num11 = SteelQty(item2, 6);
 							Measure(item2, 7, num9, "0.000");
 							Measure(item2, 8, num9 * (double)num11, "0.000");
 							Measure(item2, 9, SteelWeight.Rod(num10, num9, num11));
@@ -3816,7 +3817,7 @@ namespace BeamScheduleFormatter
 								object value2 = (item2.Cells[8].Value = "");
 								dataGridViewCell2.Value = value2;
 							}
-							SteelCutDemand steelCutDemand2 = AddSteelDemand(item2, name, Cell(item2, 4), Number(item2, 5), Count(item2, 6), kgM);
+							SteelCutDemand steelCutDemand2 = AddSteelDemand(item2, name, Cell(item2, 4), Number(item2, 5), SteelQty(item2, 6), kgM);
 							Measure(item2, 9, kgM, "0.000");
 							Measure(item2, 10, kgM * steelCutDemand2.Length * (double)steelCutDemand2.Quantity);
 						}
@@ -4542,6 +4543,7 @@ worksExcelTimer.Tick += async delegate
 			OrganizeSections();
             ConfigureRcWorkspaces();
             ConfigureAngleQuantityView();
+            PlaceSteelSetColumns();
 			tabs.Multiline = true;
             ShowMasonryFinishSides();
             ExplainBarSpacingColumns();
@@ -7396,6 +7398,7 @@ worksExcelTimer.Tick += async delegate
 							int n = array[i];
 							xmlElement3.SetAttribute("c" + n, Cell(item2, n));
 						}
+						WriteSteelSets(item.Key, item2, xmlElement3);
 						xmlElement2.AppendChild(xmlElement3);
 					}
 				}
@@ -7689,6 +7692,7 @@ worksExcelTimer.Tick += async delegate
 							string text = (string)obj;
 							item3.Value.Rows[index].Cells[num2].Value = ((item3.Value.Columns[num2] is DataGridViewCheckBoxColumn) ? ((object)(text != "" && bool.Parse(text))) : text);
 						}
+						ReadSteelSets(item3.Key, item3.Value.Rows[index], item4);
 					}
 				}
 			}
