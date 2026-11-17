@@ -10,8 +10,8 @@ partial class ProgramOfWorksForm {
   {"PlumbingPipes","PP"},{"PlumbingLS","PLS"},{"PlumbingChambers","ST"},{"PlumbingRebar","PB"},{"PlumbingMembers","PM"},{"RCWalls","RW"},
   {"Clearing","CG"},{"Trees","TR"},{"SlopeFill","SF"},{"SlopeStone","SM"},{"StructuralColumn","C"},{"WallFooting","WFT"}};
  IEnumerable<KeyValuePair<string,DataGridView>> AutoIdGrids(){
-  foreach(var item in Tables())if(RowIdPrefixes.ContainsKey(item.Key))yield return item;
-  foreach(var item in extraGrids.Values)if(item.Grid!=null&&!Tables().ContainsKey(item.Key))yield return new KeyValuePair<string,DataGridView>(item.Key,item.Grid);}
+  var tables=Tables();foreach(var item in tables)if(RowIdPrefixes.ContainsKey(item.Key))yield return item;
+  foreach(var item in extraGrids.Values)if(item.Grid!=null&&!tables.ContainsKey(item.Key))yield return new KeyValuePair<string,DataGridView>(item.Key,item.Grid);}
  internal static string RowIdPrefix(string key){string prefix;if(RowIdPrefixes.TryGetValue(key,out prefix))return prefix;var letters=new string(key.Where(char.IsUpper).ToArray());return letters.Length>0?letters:key.Substring(0,Math.Min(3,key.Length)).ToUpperInvariant();}
  void AssignRowIds(){
   /* Masonry walls keep their W001 numbering; a wall row with input but a blank ID (e.g. created by paste) gets the next free W number. */

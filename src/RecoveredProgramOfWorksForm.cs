@@ -6884,6 +6884,7 @@ worksExcelTimer.Tick += async delegate
 				childWorksDirty = false;
 				RefreshVisibleWorksViews();
 				homeSummary.Text = status.Text;
+				recalculatedInputs = DataXml();
 			}
 			finally
 			{
@@ -7388,10 +7389,13 @@ worksExcelTimer.Tick += async delegate
 		private async void Save(){await SaveWithFeedback(false);}
 
 		internal string WorksProjectXml(){return BuildWorksProjectXml(true);}
+        private string recalculatedInputs;
         private string BuildWorksProjectXml(bool includeSourceFiles)
 		{
 			Commit();
-			Recalculate();
+			/* Saving re-ran the whole recalculation (about 1 s on a mid-size project) although every edit already
+			   recalculates. Only recalculate when inputs changed since the last recalculation (owner: slow save). */
+			if (childWorksDirty || recalculatedInputs == null || DataXml() != recalculatedInputs) Recalculate();
 			XmlDocument xmlDocument = new XmlDocument();
 			xmlDocument.LoadXml(DataXml());
             PowProjectInformation.Write(xmlDocument.DocumentElement,ProjectInfoStore.Read());
