@@ -20,3 +20,5 @@ Additions 17 November 2026 (still v1.4.67, not yet released)
   POW can be opened in a fresh window. Open errors now explain this.
 - Old saved POW files: save/open round trip and the version-12 legacy migration pass on Windows CI
   (EarthworkFootingTests 124 checks). The owner's own .pow.xml files were not available to test.
+- Owner request: animated POW -> Excel link indicator in the POW status bar, shown while a workbook links,
+  the original copy is captured, quantities sync or Excel disconnects. Work stays in the background.
