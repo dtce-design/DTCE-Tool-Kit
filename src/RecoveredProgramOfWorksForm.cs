@@ -4097,13 +4097,10 @@ namespace BeamScheduleFormatter
 			roofSheets.Columns[7].ToolTipText = "Reference: Hi-Corr 1.5 lap = 0.970m, 2.5 lap = 0.890m. Hi-Rib: 1-rib lap = 1.030m; 2-rib lap = 0.750m.";
 			Action<DataGridViewRow> roofDefaults = delegate(DataGridViewRow r)
 			{
-				r.Cells[17].Value = "1 rib";
-				r.Cells[18].Value = "1 rib";
-				r.Cells[2].Value = "Longspan Rib";
+				/* Owner (18 November 2026, "alisin default values"): a new roofing row starts blank. Profile, side lap,
+				   Insulation? and insulation type are chosen by the user; only the hidden end lap keeps its 0. */
 				if (!QuantityInputDefaults.IsMultiplier(r.DataGridView.Columns[5].HeaderText)) r.Cells[5].Value = "1";
 				r.Cells[9].Value = "0";
-				r.Cells[10].Value = "True";
-				r.Cells[11].Value = InsulationTypes[0];
 			};
 			roofSheets.DefaultValuesNeeded += delegate(object s, DataGridViewRowEventArgs e)
 			{
