@@ -1,0 +1,19 @@
+DTCE Tool Kit v1.4.123 test build (18 November 2026)
+
+Footing Estimate (owner: L, B, D and "parallel to" captions)
+- Dimensions: L (m), B (m), D (m) instead of L m (X), B m (Y), T m.
+- Bar groups: "Bottom bars parallel to L / parallel to B" and "Top bars
+  parallel to L / parallel to B" for diameter, spacing and no. of bars per
+  footing (grid, entry dialog, Footing settings, messages and steel lines).
+- Saved files are unchanged (columns are stored by position).
+
+Rebar diameter protection (owner: for all calculations)
+- Supported rebar diameters: 10, 12, 16, 20, 25, 28, 32, 36, 40, 50 mm.
+- Every rebar diameter column in the app refuses a typed size that is not in
+  the list: the cell stays in edit with a warning and an error icon until a
+  supported size is entered (or the value is cleared).
+- Calculations also reject unsupported sizes with a clear message naming
+  the supported list (footings, manual slab schedules, plumbing structure
+  bars, and every takeoff that weighs rebar).
+
+Includes v1.4.118-122. Not a Microsoft Store release.

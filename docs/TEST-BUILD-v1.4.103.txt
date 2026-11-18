@@ -1,0 +1,15 @@
+DTCE Tool Kit v1.4.103 (17 November 2026)
+
+Builds on v1.4.102.
+- Owner timing log: "read file 21.9 s" on open, "write file 24 s" on save. Cause: every embedded project source
+  file (original Excel workbook, DXF schedules) was un-gzipped, hashed and written out on every open and
+  re-gzipped on every save.
+  * Open: the source archive is skipped while the project loads and read in the background afterwards; until it
+    arrives the saved manifest stands in, so the project is not marked as changed. Archive entries keep their
+    stored gzip-base64 text; a file is decoded (SHA-256 and size verified) only when its content is needed, and
+    all entries are verified in the background (warning if one is damaged; quantities unaffected).
+  * Save: stored entries are copied back as-is without compressing again; a newly attached file is compressed once
+    and cached. Saving right after opening waits for the background source read first; auto-save skips until then.
+  * Mono, 32 MB project (30 MB attachment): read 0.09 s (deferred), open 0.5 s, re-save 0.2 s (was 0.7 s), contents
+    identical after round trip; PowSourceFilesTests (26) and PowLargeWorkbookTests (13) pass.
+- Owner: Apply mapping no longer shows the list of quantities that stay unmapped; they simply stay unmapped (BOQ).

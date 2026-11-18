@@ -1,0 +1,14 @@
+DTCE Tool Kit v1.4.125 test build (18 November 2026)
+
+Tables: last column fully visible (owner: "if nag click ako right arrow hanggang
+dulo di nagpapakita yung buong column sa right", for all tables)
+- Windows sizes a table's horizontal scroll range before its vertical scroll
+  bar appears (rows grow when text wraps), so the right-most column ended
+  partly under the vertical bar. Every table now brings the whole current
+  cell into view when you move with the arrow keys / Tab / End, and the last
+  column when the horizontal bar is scrolled to its end; the scroll range is
+  refreshed when needed.
+- Column Estimate: Tie input method column is wide enough for
+  "Spacing schedule".
+
+Includes v1.4.118-124. Not a Microsoft Store release.

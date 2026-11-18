@@ -1,0 +1,16 @@
+DTCE Tool Kit v1.4.110 (17 November 2026)
+
+Builds on v1.4.109.
+- Owner: Bill of Quantities has an INCLUDE checkbox beside UNIT for every mapped quantity (one row per mapped
+  quantity, its measurement sources indented below). Checked = counts in the pay item total; unchecked = stays
+  mapped and saved but counts as 0. Default: checked for measured items, unchecked for LS items.
+  An LS item without a manual quantity becomes 1 LS when at least one of its mapped quantities is included
+  (shown as "1 LS - included mapped quantities"); unchecking all writes 0 LS. A manual LS quantity entered in
+  BOQ always takes precedence. Include choices are saved with the project (BackupBillRoutes/Include, LsAuto).
+- Owner: Structural Steel Works and Sag Rods: QTY, Units, Sets and Multiplier are all required; a row with a blank
+  factor shows "Enter QTY, Units, Sets and Multiplier (use 1 where not applicable)" and is not computed. Rows from
+  older files open with the missing factors = 1, so their quantities are unchanged. Captions: QTY, Units, Sets,
+  Multiplier. Tests that add steel rows now enter the factors.
+- Owner: F2 or F4 edits the current cell with the caret at the end of the text (like Excel's F2).
+- Mono checks: Leversets mapped to an LS item: default no LS, checked -> 1 LS, unchecked -> 0 LS, saved; steel row
+  with blank factors not computed, filled -> 9.96 kg; older project purlin opens 1/1/1, same 9.96 kg.

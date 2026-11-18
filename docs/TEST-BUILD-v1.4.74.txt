@@ -1,0 +1,10 @@
+DTCE Tool Kit v1.4.74 (17 November 2026)
+
+Builds on v1.4.73.
+- Owner report: one wrong CHB row changed the Status of every other wall to "Review finish/opening issues".
+  Cause: wall status checked the total error count of the whole POW. Now a wall shows a review status only
+  when its own openings (by wall reference or opening link) or its own wall finishes have an issue.
+- Owner request: uniform row height on all POW measurement sheets (36 px). Long text no longer grows a row;
+  it ends with "…" and the full text shows as a tooltip (issues are also listed under the BOQ).
+- Checked on Linux/Mono: walls W001/W002 "Ready" while W003 lacks quantity and an unrelated door row is
+  invalid; all rows 36 px; no wrapping.

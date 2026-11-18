@@ -1,0 +1,8 @@
+DTCE Tool Kit v1.4.93 (17 November 2026)
+
+Builds on v1.4.92.
+- Owner: more compact reports. The detailed POW quantity report listed measurement inputs as a "Record N" heading
+  plus a two-column parameter/value table for every single row. Each sheet now gives one table with one line per
+  record: ID | Description | Inputs ("Width m 4; Height m 3; Wall Qty 1; …"). Values and rebar diameter text are
+  unchanged; empty inputs are omitted.
+- Sample (300 CHB walls, 60 footings, 80 purlins, detailed report): 127 -> 60 A4 pages.

@@ -1,0 +1,13 @@
+DTCE Tool Kit v1.4.94 (17 November 2026)
+
+Builds on v1.4.93.
+- Owner: slow open and save. Profiled with a sample of 300 CHB walls, 60 footings and 80 purlins (Linux/Mono).
+  Cause: the concrete pay-item lookup scanned the whole BACKUP catalogue once per concrete member while building
+  the Bill of Quantities (~0.8 s per recalculation). The lookup is now done once per concrete group.
+  Recalculation 945 -> 193 ms; opening the POW 1,090 -> 328 ms; BOQ refresh 838 -> 49 ms. Pay-item results are
+  unchanged (AdditionalWorks 95, PowRefinement 28, ProgramOfWorks 14, StructuralColumn 25 checks pass). Together
+  with v1.4.91 (save skips an unchanged recalculation) both open and save are much faster.
+- Owner: check button sizes/layout. The POW command bar had a fixed 44 px height while buttons are 38 px; wrapped
+  buttons on a narrow window were hidden. It now grows to fit its rows. The BOQ search box matches the 38 px button
+  row (bordered box, vertically centred text, small ✕ clear).
+- Owner: when tabs wrap onto two or more rows, a full-width coloured line is drawn under the tab rows.

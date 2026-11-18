@@ -1,0 +1,21 @@
+using System;using System.Collections.Generic;using System.Globalization;using System.Linq;using System.Text;
+namespace BeamScheduleFormatter {
+class WindStaadHeightRow {public string Direction,Exposure;public double Height,Kz,Kzt,Qz;}
+class WindStaadBand {public string Axis;public int Type;public double Top,Windward,Leeward,Combined;}
+// Wind data prepared for STAAD.Pro: velocity-pressure profile and wall intensities for DEFINE WIND LOAD (INT / HEIG).
+static class WindStaadInput {
+ static string F(double v){return v.ToString("0.###",CultureInfo.InvariantCulture);}
+ internal static List<WindStaadHeightRow> Profile(WindBuildingInput building,double speed,double kd,IEnumerable<WindDirection> directions,double interval=3){
+  building.Validate();if(!WindTin.Finite(interval)||interval<=0||!WindTin.Finite(speed)||speed<=0||!WindTin.Finite(kd)||kd<=0||kd>1)throw new Exception("Check height increment and wind parameters.");
+  var heights=new SortedSet<double>{0,4.57,building.Eave,building.Height,building.Apex};for(double z=interval;z<building.Apex;z+=interval)heights.Add(Math.Round(z,6));
+  var rows=new List<WindStaadHeightRow>();foreach(var d in directions){if(!new[]{"B","C","D"}.Contains(d.Exposure)||!WindTin.Finite(d.Kzt))continue;foreach(double z in heights.Where(h=>h<=building.Apex+1e-9)){double kz=WindBuildingLoads.Kz(d.Exposure,z),kzt=WindBuildingLoads.TopographyAt(d,z);rows.Add(new WindStaadHeightRow{Direction=d.Name,Exposure=d.Exposure,Height=z,Kz=kz,Kzt=kzt,Qz=.613*kz*kzt*kd*Math.Pow(speed/3.6,2)/1000});}}
+  return rows;}
+ // Windward external pressure at the top of each band plus the leeward suction magnitude; internal pressure cancels across the two walls.
+ internal static List<WindStaadBand> WallBands(WindBuildingInput building,double speed,IList<WindDirection> directions){
+  var rows=WindBuildingLoads.Calculate(building,speed,directions).Where(r=>r.GCpi>0).ToList();var bands=new List<WindStaadBand>();int type=0;
+  foreach(var axis in rows.GroupBy(r=>r.Direction)){type++;var lee=axis.FirstOrDefault(r=>r.Surface=="Leeward wall");if(lee==null)continue;double leeward=lee.Qh*lee.G*lee.Cp;
+   foreach(var w in axis.Where(r=>r.Surface=="Windward wall"&&r.Z>1e-9).OrderBy(r=>r.Z)){double windward=w.Q*w.G*w.Cp;bands.Add(new WindStaadBand{Axis=axis.Key,Type=type,Top=w.Z,Windward=windward,Leeward=leeward,Combined=windward+Math.Abs(leeward)});}}
+  return bands;}
+ internal static string Commands(IEnumerable<WindStaadBand> bands){var b=new StringBuilder("UNIT METER KN\nDEFINE WIND LOAD");foreach(var axis in bands.GroupBy(x=>x.Type)){var list=axis.OrderBy(x=>x.Top).ToList();b.Append("\nTYPE ").Append(axis.Key).Append("\n* ").Append(list[0].Axis).Append(": windward + leeward walls, kN/m2, heights from ground\nINT ").Append(string.Join(" ",list.Select(x=>F(x.Combined)))).Append(" HEIG ").Append(string.Join(" ",list.Select(x=>F(x.Top))));}return b.ToString();}
+}
+}

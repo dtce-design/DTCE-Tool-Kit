@@ -1,0 +1,10 @@
+DTCE Tool Kit v1.4.91 (17 November 2026)
+
+Builds on v1.4.90.
+- Owner report: saving the POW is very slow. Measured on a sample with 300 CHB walls, 60 footings and 80 purlins
+  (Linux/Mono): full recalculation ~1,000 ms, project XML ~10 ms, file write 4-9 ms. Every save ran the full
+  recalculation again although each edit already recalculates. Save now recalculates only when inputs changed
+  since the last recalculation (or embedded beam/slab work changed): save preparation ~20 ms on the same sample.
+  Auto-save benefits the same way.
+- Minor: automatic ID assignment reads the sheet list once per pass.
+- Remaining cost is the per-edit recalculation (~1 s on that sample); report if typing feels slow.

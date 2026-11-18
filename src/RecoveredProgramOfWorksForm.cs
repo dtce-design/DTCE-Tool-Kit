@@ -365,8 +365,7 @@ namespace BeamScheduleFormatter
 			list2.AddRange(CanopySummary());
 			list2.AddRange(GravelSummary());
             list2.AddRange(ExtraBillQuantities().Select(q=>new object[]{q.Description,q.Quantity,q.Unit}));
-			list.Add(new WorksExcelTable("DTCE Tool Kit - POW", new string[3] { "QUANTITY (see Input Issues)", "Quantity", "Unit" }, list2, 1, 8));
-            list.Add(PowIssueOutput.Table(WorksValidationIssues()));
+			list.Add(new WorksExcelTable("DTCE Tool Kit - POW", new string[3] { "QUANTITY", "Quantity", "Unit" }, list2, 1, 8));
 			return list;
 		}
 
@@ -778,7 +777,8 @@ namespace BeamScheduleFormatter
 			mouldingEntries = Grid(new string[7] { "ID", "Description / location", "Moulding profile / size (mm)", "Length m / unit", "Qty", "Total length m", "Status" }, 5);
 			mouldingEntries.Columns[2].Width = 260;
 			SetDefaults(mouldingEntries, new Dictionary<int, string> { { 4, "1" } });
-			AddGrid("Moulding", mouldingEntries, "Enter additional moulding outside the door/window perimeter takeoff. Use the same profile and size in mm to combine totals. Do not re-enter automatic opening moulding here. Final quantity is linear metres, grouped by profile/size.");
+			AddGrid("Moulding", mouldingEntries, "Choose an Opening ID to add moulding around that door or window (length from its size and quantity), or leave it blank and enter other moulding lengths. Use the same profile and size in mm to combine totals. Final quantity is linear metres, grouped by profile/size.");
+			AddMouldingOpeningColumn();
 		}
 
 		private void RecalculateMouldings()
@@ -802,6 +802,12 @@ namespace BeamScheduleFormatter
 				{
 					continue;
 				}
+				if (OpeningMouldingRow(item))
+				{
+					continue;
+				}
+				item.Cells[3].ReadOnly = item.Cells[4].ReadOnly = false;
+				item.Cells[3].Style.BackColor = item.Cells[4].Style.BackColor = ModernUi.Input;
 				try
 				{
 					MouldingTakeoff mouldingTakeoff = new MouldingTakeoff
@@ -986,12 +992,13 @@ namespace BeamScheduleFormatter
 				}
 				if (item.Section == "Structural Steel Works")
 				{
-					flag2 = new string[5] { "Purlins PURCHASE weight", "Angle bars PURCHASE weight", "Metal fascia PURCHASE weight", "Steel plates PURCHASE weight", "Crossbracing rods" }.Contains(item.Description) || item.Description.StartsWith("Turnbuckles dia ");
+					flag2 = new string[6] { "Purlins PURCHASE weight", "Angle bars PURCHASE weight", "Metal fascia PURCHASE weight", "Steel plates PURCHASE weight", "Crossbracing rods", SteelPaintingTotal }.Contains(item.Description) || item.Description.StartsWith("Turnbuckles dia ");
 				}
 				if(item.Section=="Reinforced Concrete Works"&&item.Description.ToLowerInvariant().Contains("concrete"))flag2=false;
                 if(item.Section=="Canopy / Ledge"&&item.Unit=="m3")flag2=false;
                 if((item.Section=="Miscellaneous Structures"||item.Section=="Wall Footing"))flag2=item.Unit=="m2";
-                if(new[]{"Pavement Construction","Slope Protection Works","Carpentry and Joinery Works"}.Contains(item.Section))flag2=true;
+                if(new[]{"Pavement Construction","Slope Protection Works","Carpentry and Joinery Works","Waterproofing"}.Contains(item.Section))flag2=true;
+                if(item.Section=="Railing"||item.Section=="Sag Rods")flag2=!item.Description.Contains("reference");
                 if(item.Section=="Earthworks"&&!string.IsNullOrEmpty(item.PayCode))flag2=true;
                 if (flag2)
 				{
@@ -1042,7 +1049,7 @@ namespace BeamScheduleFormatter
 						{
 							double num3 = Convert.ToDouble(item3.Cells[7].Value, CultureInfo.InvariantCulture);
 							billQuantity2.Quantity += num3;
-							billQuantity2.Sources.Add(SourceQuantity(Cell(item3, 0) + " | " + Cell(item3, 1) + " | diameter " + Cell(item3, 3) + " mm; overall length " + Cell(item3, 4) + " mm x " + Cell(item3, 5), num3, "kg"));
+							billQuantity2.Sources.Add(SourceQuantity(Cell(item3, 0) + " | " + Cell(item3, 1) + " | diameter " + Cell(item3, 3) + " mm; overall length " + Cell(item3, 4) + " mm x " + SteelQtyText(item3, 5), num3, "kg"));
 						}
 						list.Add(BackupDemand.From(billQuantity2));
 					}
@@ -1095,6 +1102,7 @@ namespace BeamScheduleFormatter
 			}
 			if(flag)list.AddRange(ConcretePayQuantities().Select(BackupDemand.From));
             RouteRequiredQuantities(list);
+            ApplyBoqIncludes(list);
             return list;
 		}
 
@@ -1364,9 +1372,9 @@ namespace BeamScheduleFormatter
 							throw new Exception("Structure ID not found or structure has invalid dimensions.");
 						}
 						int num = Count(row, 3);
-						if (num < 6 || num > 50)
+						if (!RebarDiameters.IsSupported(num))
 						{
-							throw new Exception("Enter a Grade40 diameter from 6 to 50mm.");
+							throw new Exception(RebarDiameters.Message(num.ToString(CultureInfo.InvariantCulture)));
 						}
 						double num2 = Number(row, 4);
 						double num3 = Number(row, 6);
@@ -1683,7 +1691,7 @@ namespace BeamScheduleFormatter
 			});
 			AddCanopySettings(flowLayoutPanel);
 			AddRCWallSettings(flowLayoutPanel);
-			FlowLayoutPanel actions = tabs.TabPages.Cast<TabPage>().Single((TabPage p) => p.Text == "Wooden Doors & Windows").Controls.OfType<FlowLayoutPanel>().Single();
+			FlowLayoutPanel actions = tabs.TabPages.Cast<TabPage>().Single((TabPage p) => p.Text == "Door & Window Schedule").Controls.OfType<FlowLayoutPanel>().Single();
 			AddDoorSettings(actions);
 			card.Controls.Add(flowLayoutPanel);
 			start.Controls.Add(card);
@@ -2137,8 +2145,8 @@ namespace BeamScheduleFormatter
 		{
 			canopies = Grid(new string[26]
 			{
-				"Canopy / ledge ID", "Description / opening reference", "Length along wall m", "Projection / width m", "Thickness mm", "Qty", "Cover mm", "Main dia mm", "Main spacing mm (OR count)", "Main pcs/unit (OR spacing)",
-				"Distribution dia mm", "Distribution spacing mm (OR count)", "Distribution pcs/unit (OR spacing)", "Main wall anchorage mm", "Distribution extra ends mm (total)", "Also bottom mat", "Concrete MPa", "Grade <=12 mm", "Grade >=16 mm", "Concrete m3",
+				"Canopy / ledge ID", "Description / opening reference", "Length along wall m", "Projection / width m", "Thickness mm", "Qty", "Cover mm", "Main dia mm", "Main spacing mm", "Main count / unit",
+				"Distribution dia mm", "Distribution spacing mm", "Distribution count / unit", "Main wall anchorage mm", "Distribution extra ends mm (total)", "Also bottom mat", "Concrete MPa", "Grade <=12 mm", "Grade >=16 mm", "Concrete m3",
 				"Soffit forms m2", "3-edge side forms m2", "Total forms m2", "Net rebar kg", "Rebar BUY kg", "Status"
 			}, 19);
 			canopies.Columns.RemoveAt(15);
@@ -2558,6 +2566,9 @@ namespace BeamScheduleFormatter
 				{
 					throw new Exception("Missing insulation roll settings: " + type);
 				}
+				/* Owner (17 November 2026): show the roll area for every type with width and length, not only types used on a roof. */
+				double rollWidth, rollLength;
+				dataGridViewRow.Cells[3].Value = (double.TryParse(Cell(dataGridViewRow, 1), NumberStyles.Float, CultureInfo.InvariantCulture, out rollWidth) && double.TryParse(Cell(dataGridViewRow, 2), NumberStyles.Float, CultureInfo.InvariantCulture, out rollLength) && rollWidth > 0.0 && rollLength > 0.0) ? (rollWidth * rollLength).ToString("0.00", CultureInfo.InvariantCulture) : "";
 				if (num == 0.0)
 				{
 					list.Add(new object[3]
@@ -2601,15 +2612,15 @@ namespace BeamScheduleFormatter
 				{ 10, "10" }
 			});
 			cutFill.Columns[8].ToolTipText = "Percentage of cut material suitable for reuse; 0 means all unsuitable. Subject to material approval.";
-			List<string> list = new List<string> { "Footing ID", "Description", "L m (X)", "B m (Y)", "T m", "Qty", "Excavation depth m (actual)", "Cover mm" };
-			string[] array = new string[4] { "Bottom X", "Bottom Y", "Top X", "Top Y" };
+			List<string> list = new List<string> { "Footing ID", "Description", "L (m)", "B (m)", "D (m)", "Qty", "Excavation depth m (actual)", "Cover mm" };
+			string[] array = new string[4] { "Bottom bars parallel to L", "Bottom bars parallel to B", "Top bars parallel to L", "Top bars parallel to B" }; /* owner, 18 November 2026: L, B, D and "parallel to" captions */
 			foreach (string text in array)
 			{
 				list.AddRange(new string[3]
 				{
 					text + " dia mm",
 					text + " spacing mm",
-					text + " pcs/footing"
+					text + " no. of bars/footing"
 				});
 			}
 			list.AddRange(new string[13]
@@ -2642,7 +2653,7 @@ namespace BeamScheduleFormatter
 				{ 26, "40" },
 				{ 27, "60" }
 			});
-			AddGrid("Footing Estimate", footings, "Rectangular flat footings; dimensions in m, cover in mm. X bars run along L; Y bars run along B. For EACH bar group enter spacing OR pieces; blank diameter = unused group. Cut = run - 2 cover + specified total end allowance. Top mat optional. Excavation allowance 0.30m each side, gravel 0.10m under footprint. Count shared pits only once.");
+			AddGrid("Footing Estimate", footings, "Rectangular flat footings; L = length, B = width, D = depth (m); cover in mm. Bars parallel to L run along the length; bars parallel to B run along the width. For EACH bar group enter spacing OR no. of bars; blank diameter = unused group. Cut = run - 2 cover + specified total end allowance. Top mat optional. Excavation allowance 0.30m each side, gravel 0.10m under footprint. Count shared pits only once.");
 			footings.Columns[20].ToolTipText = "Total extra length at BOTH ends of each bar, from approved hook/development detail. 0 = straight cut. Not a structural anchorage check. Commercial splices use saved material configuration.";
 			FlowLayoutPanel flowLayoutPanel = tabs.TabPages.Cast<TabPage>().First((TabPage p) => p.Text == "Footing Estimate").Controls.OfType<FlowLayoutPanel>().First();
 			Button(flowLayoutPanel, "New footing", delegate
@@ -3267,7 +3278,7 @@ namespace BeamScheduleFormatter
 			}
 			tables.Add(new WorksExcelTable("POW Footings", new string[12]
 			{
-				"ID", "Description", "L m", "B m", "T m", "Qty", "Concrete m3", "Forms m2", "Rebar BUY kg", "Excavation bank m3",
+				"ID", "Description", "L m", "B m", "D m", "Qty", "Concrete m3", "Forms m2", "Rebar BUY kg", "Excavation bank m3",
 				"Gravel m3", "Compacted space m3"
 			}, list));
 		}
@@ -3556,6 +3567,7 @@ namespace BeamScheduleFormatter
 			DataGridViewColumn dataGridViewColumn = fasciaFrame.Columns[7];
 			bool readOnly = (fasciaFrame.Columns[8].ReadOnly = true);
 			dataGridViewColumn.ReadOnly = readOnly;
+			AddSteelSetColumns();
 			steelCutGrid = Grid(new string[8] { "Stock no.", "Profile / specification", "Cut order", "Member ID", "Cut m", "Remaining after cut m", "Next use", "Final leftover m" }, 0);
 			steelCutGrid.ReadOnly = true;
 			steelCutGrid.AllowUserToAddRows = false;
@@ -3669,6 +3681,7 @@ namespace BeamScheduleFormatter
 			}
 			AssignStructuralSteelIds();
 			steelDemands.Clear();
+			steelPaintAreas.Clear();
 			steelStocks.Clear();
 			plateStocks.Clear();
 			HashSet<string> hashSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -3690,7 +3703,7 @@ namespace BeamScheduleFormatter
 					item2.Tag = null;
 					for (int i = num; i <= num2; i++)
 					{
-						item2.Cells[i].Value = "";
+						if (!IsSteelSetColumn(value.Columns[i])) item2.Cells[i].Value = "";
 					}
 					if (Empty(item2))
 					{
@@ -3713,7 +3726,7 @@ namespace BeamScheduleFormatter
 							{
 								throw new Exception("Select a matching handbook profile.");
 							}
-							SteelCutDemand steelCutDemand = AddSteelDemand(item2, steelProfile.Name, Cell(item2, 3), Number(item2, 4), Count(item2, 5), steelProfile.KgM);
+							SteelCutDemand steelCutDemand = AddSteelDemand(item2, steelProfile.Name, Cell(item2, 3), Number(item2, 4), SteelQty(item2, 5), steelProfile.KgM);
 							item2.Cells[6].Value = steelProfile.KgM;
 							Measure(item2, 7, steelCutDemand.Length * (double)steelCutDemand.Quantity * steelProfile.KgM);
 						}
@@ -3724,7 +3737,7 @@ namespace BeamScheduleFormatter
 								throw new Exception("Select A307 or A325.");
 							}
 							double num3 = Number(item2, 4) / 1000.0;
-							int num4 = Count(item2, 5);
+							int num4 = SteelQty(item2, 5);
 							Measure(item2, 6, num3 * (double)num4, "0.000");
 							Measure(item2, 7, SteelWeight.Rod(Number(item2, 3), num3, num4));
 						}
@@ -3747,7 +3760,7 @@ namespace BeamScheduleFormatter
 								SteelWeight.Positive(num6, num7);
 								num5 = num6 * num7;
 							}
-							int num8 = Count(item2, 6);
+							int num8 = SteelQty(item2, 6);
 							Measure(item2, 7, num5 * (double)num8, "0.000");
 							double thicknessMm = Number(item2, 5);
 							Measure(item2, 8, SteelWeight.Plate(num5, thicknessMm, num8));
@@ -3772,7 +3785,7 @@ namespace BeamScheduleFormatter
 						{
 							double num9 = SteelWeight.Diagonal(Number(item2, 2), (Cell(item2, 3) == "") ? 0.0 : Number(item2, 3), Number(item2, 4));
 							double num10 = Number(item2, 5);
-							int num11 = Count(item2, 6);
+							int num11 = SteelQty(item2, 6);
 							Measure(item2, 7, num9, "0.000");
 							Measure(item2, 8, num9 * (double)num11, "0.000");
 							Measure(item2, 9, SteelWeight.Rod(num10, num9, num11));
@@ -3808,7 +3821,7 @@ namespace BeamScheduleFormatter
 								object value2 = (item2.Cells[8].Value = "");
 								dataGridViewCell2.Value = value2;
 							}
-							SteelCutDemand steelCutDemand2 = AddSteelDemand(item2, name, Cell(item2, 4), Number(item2, 5), Count(item2, 6), kgM);
+							SteelCutDemand steelCutDemand2 = AddSteelDemand(item2, name, Cell(item2, 4), Number(item2, 5), SteelQty(item2, 6), kgM);
 							Measure(item2, 9, kgM, "0.000");
 							Measure(item2, 10, kgM * steelCutDemand2.Length * (double)steelCutDemand2.Quantity);
 						}
@@ -3936,7 +3949,7 @@ namespace BeamScheduleFormatter
 				steelStocks.Sum((SteelStock stock) => 6.0 * stock.KgM) + num - SteelTotal(steelPlates, 8) + plateStocks.Sum((PlateSheet p) => p.BuyKg),
 				"kg"
 			});
-			if(steelAngles.Columns.Contains("AnglePaintArea"))list.Add(new object[]{"Angle bars installed painting reference",AnglePaintingTotal(),"m2"});
+			list.AddRange(SteelPaintingRows());
 			List<object[]> list2 = list;
 			foreach (IGrouping<double, DataGridViewRow> item in from DataGridViewRow row in crossBracing.Rows
 				where !row.IsNewRow && Cell(row, 12) == "Estimated"
@@ -3973,6 +3986,7 @@ namespace BeamScheduleFormatter
 				KgM = mass
 			};
 			if(row.DataGridView==steelAngles)steelDemands.AddRange(AngleSegments.Expand(steelCutDemand));else steelDemands.Add(steelCutDemand);
+			AddSteelPaint(row,profile,length,qty);
 			row.Tag = steelCutDemand;
 			return steelCutDemand;
 		}
@@ -4427,19 +4441,24 @@ namespace BeamScheduleFormatter
 #if !ADMIN_APP
 var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.Dispose();
 #endif
+			/* Command bar grows to fit wrapped rows (38 px buttons); a fixed 44 px height hid the second row on narrow windows. */
 			FlowLayoutPanel flowLayoutPanel = new FlowLayoutPanel
 			{
 				Dock = DockStyle.Top,
-				Height = 44,
-				Padding = new Padding(6)
+				AutoSize = true,
+				AutoSizeMode = AutoSizeMode.GrowAndShrink,
+				WrapContents = true,
+				Padding = new Padding(8, 5, 8, 3)
 			};
 			base.Controls.Add(tabs);
 			base.Controls.Add(flowLayoutPanel);
 			GridEditHistory.AddCommands(this,flowLayoutPanel);
             Button(flowLayoutPanel, "Save Program of Works", Save);
-            Button(flowLayoutPanel,"Project files",ManageProjectFiles);powSaveIndicator=new Label{AutoSize=true,Padding=new Padding(8,10,0,0),Text=""};flowLayoutPanel.Controls.Add(powSaveIndicator);
+            Button(flowLayoutPanel,"Project files",ManageProjectFiles);/* Save status lives in the bottom status bar (owner, 17 November 2026), not between the command buttons. */powSaveIndicator=new Label{Name="PowSaveStatus",AccessibleName="Program of Works save status",Text=""};
             Button(flowLayoutPanel, "Export report file", ExportEngineeringReport);
 			Button(flowLayoutPanel, "Open Program of Works", Open);
+			Button(flowLayoutPanel, "Close Program of Works", CloseProgramOfWorks);
+			Button(flowLayoutPanel, "Restore backup", RestoreBackup);
 			Button(flowLayoutPanel, "Print preview", PreviewQuantityEngineeringReport);
             Button(flowLayoutPanel, "Save PDF", SaveQuantityEngineeringPdf);
 			beam = new EstimatorForm(null);
@@ -4449,11 +4468,13 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			Embed("Slab Estimate", slab);
 			wood = OpeningGrid(true);
 			aluminum = OpeningGrid(false);
+			PlaceOpeningMaterialColumn(wood);
 			manualOpeningsGrid = OpeningGrid(false);
+			foreach (DataGridView g0 in new DataGridView[2] { aluminum, manualOpeningsGrid }) { g0.Columns[PaintLeafColumn].Visible = false; g0.Columns[PaintJambColumn].Visible = false; }
 			manualOpeningsGrid.Columns[22].Visible = (manualOpeningsGrid.Columns[23].Visible = (manualOpeningsGrid.Columns[24].Visible = false));
 			walls = WallGrid();
 			wood.Columns[2].Visible = (aluminum.Columns[2].Visible = false);
-			AddGrid("Wooden Doors & Windows", wood, "Overall opening dimensions in metres, INCLUDING jamb/frame. Leaf size = opening less jamb thickness. Paint: leaf faces/edges + exposed jamb. Window includes sill. Door thickness is fixed at 45mm. Door hinges/locksets are automatic; set Swing/Sliding/Fixed and leaves/unit. Select deductions in CHB Openings.");
+			AddGrid("Door & Window Schedule", wood, "Overall opening dimensions in metres, INCLUDING jamb/frame. Leaf size = opening less jamb thickness. Paint: leaf faces/edges + exposed jamb. Window includes sill. Door thickness is fixed at 45mm. Door hinges/locksets are automatic; set Swing/Sliding/Fixed and leaves/unit. Select deductions in CHB Openings.");
 			AddGrid("Aluminum Doors & Windows", aluminum, "Opening dimensions include the full rough opening/frame for CHB deduction. No aluminum painting is included. Select this schedule and quantity in CHB Openings to deduct it from a wall.");
 			AddGrid("CHB Estimate", walls, "Enter Width x Height x Qty OR Gross Area (leave the other method blank), then choose 100 or 150 mm thickness. Add / edit openings to deduct up to 3 door/window schedules. Pale-yellow cells are inputs; net areas are automatic.");
 			finishSchedule = FinishScheduleGrid();
@@ -4527,10 +4548,20 @@ worksExcelTimer.Tick += async delegate
 			};
 			OrganizeSections();
             ConfigureRcWorkspaces();
+            AddRebarSummaryTabs();
             ConfigureAngleQuantityView();
+            InstallRecovery();
+            /* closing the Program of Works ends its project: the next one starts with blank project information */
+            FormClosed += (s0, e0) => { if (!Automated) ProjectInfoStore.ClearProject(); };
+            PlaceSteelSetColumns();
+            if (wood != null) PlaceOpeningPaintColumns(wood);
 			tabs.Multiline = true;
+            ShowMasonryFinishSides();
+            ExplainBarSpacingColumns();
 			PowTheme.Apply(this);
+            CompactMeasurementRows();
             InstallExcelStatusBar();
+            InstallAutoSave();
 			status.Height = 38;
 			status.BackColor = ModernUi.Soft;
 			status.ForeColor = PowTheme.Ink;
@@ -4538,12 +4569,16 @@ worksExcelTimer.Tick += async delegate
             initializingWorks = false;
 			Recalculate();
 			saved = DataXml();
+			/* A new, empty POW has nothing to save (the beam estimator started with an empty saved state, so every fresh POW asked to save on close). */
+			beam.WorksSaved();
+			slab.WorksSaved();
 		}
 
 		private void OrganizeSections()
 		{
 			ModernUi.Navigation(tabs);
 			Dictionary<string, TabPage> pages = tabs.TabPages.Cast<TabPage>().ToDictionary((TabPage p) => p.Text);
+			sheetPages = pages;
 			tabs.TabPages.Clear();
 			tabs.TabPages.Add(pages["Bill of Quantities"]);
 			pages["Reinforced Concrete Start"].Text = "Start";
@@ -4569,19 +4604,21 @@ worksExcelTimer.Tick += async delegate
 				pages["Gravel Estimate"]
 			});
 			AddSection("Masonry Works", new TabPage[1] { pages["CHB Estimate"] }.Concat(MasonryNames.Select((string name) => pages[name])).ToArray());
-			AddSection("Doors & Windows", new TabPage[2]
+			/* Wood, Aluminum and PVC openings share one schedule (owner, 17 November 2026); the Aluminum grid only receives
+			   rows from older saved projects, which are moved into the schedule on recalculation. */
+			AddSection("Doors & Windows", new TabPage[1]
 			{
-				pages["Wooden Doors & Windows"],
-				pages["Aluminum Doors & Windows"]
+				pages["Door & Window Schedule"]
 			});
 			pages["Finishing Start"].Text = "Start";
-			AddSection("Finishing Works", new TabPage[5]
+			AddSection("Finishing Works", new TabPage[6]
 			{
 				pages["Finishing Start"],
 				pages["Wall Finishes"],
 				pages["Ceiling Finishes"],
 				pages["Floor Finishes"],
-				pages["Moulding"]
+				pages["Moulding"],
+				pages["Railing Estimate"]
 			});
 			AddSection("Plumbing Works", new TabPage[6]
 			{
@@ -4592,7 +4629,7 @@ worksExcelTimer.Tick += async delegate
 				pages["Catch Basin - CHB"],
 				pages["Lined Canal"]
 			});
-			AddSection("Structural Steel Works", SteelPageNames.Select((string name) => pages[name]).ToArray());
+			AddSection("Structural Steel Works", SteelPageNames.Select((string name) => pages[name]).Concat(pages.ContainsKey(SagRodPage) ? new TabPage[1] { pages[SagRodPage] } : new TabPage[0]).ToArray());
 			AddSection("Roofing Works", new TabPage[3]
 			{
 				pages["Roofing Start"],
@@ -4649,6 +4686,7 @@ worksExcelTimer.Tick += async delegate
 				Dock = DockStyle.Fill
 			};
 			tabControl.TabPages.AddRange(pages);
+			if (pages.Length == 1) ((NavigationTabs)tabControl).StripHidden = true;
 			tabControl.Deselecting += delegate(object s, TabControlCancelEventArgs e)
 			{
 				if (!CommitPage(e.TabPage))
@@ -5336,6 +5374,8 @@ worksExcelTimer.Tick += async delegate
 			dataGridViewComboBoxColumn2.Items.AddRange("Swing", "Sliding", "Fixed");
 			g.Columns.Add(dataGridViewComboBoxColumn2);
 			AddMouldingColumns(g);
+			AddOpeningMaterialColumn(g, isWood ? "Wood" : "Aluminum");
+			AddOpeningPaintColumns(g);
 			DataGridViewCellStyle defaultCellStyle = g.Columns[20].DefaultCellStyle;
 			Color backColor = (g.Columns[21].DefaultCellStyle.BackColor = ModernUi.Input);
 			defaultCellStyle.BackColor = backColor;
@@ -5372,8 +5412,9 @@ worksExcelTimer.Tick += async delegate
 				if (!filling && e.ColumnIndex == 3 && e.RowIndex >= 0)
 				{
 					DataGridViewRow dataGridViewRow = g.Rows[e.RowIndex];
-					dataGridViewRow.Cells[11].Value = ((isWood && Cell(dataGridViewRow, 3) == "Door") ? "1" : "0");
-					dataGridViewRow.Cells[12].Value = ((!isWood) ? "0" : ((Cell(dataGridViewRow, 3) == "Door") ? "3" : "2"));
+					bool rowWood = OpeningMaterial(dataGridViewRow, isWood) == "Wood";
+					dataGridViewRow.Cells[11].Value = ((rowWood && Cell(dataGridViewRow, 3) == "Door") ? "1" : "0");
+					dataGridViewRow.Cells[12].Value = ((!rowWood) ? "0" : ((Cell(dataGridViewRow, 3) == "Door") ? "3" : "2"));
 					Recalculate();
 				}
 			};
@@ -5427,12 +5468,13 @@ worksExcelTimer.Tick += async delegate
 			HashSet<string> hashSet = new HashSet<string>(from r in (from g in MasonryGrids()
 					where g != null
 					select g).SelectMany((DataGridView g) => g.Rows.Cast<DataGridViewRow>()).Concat(grid.Rows.Cast<DataGridViewRow>())
-				where !r.IsNewRow
 				select Cell(r, 0), StringComparer.OrdinalIgnoreCase);
+			/* Lowest unused W number across all masonry sheets, including the new row's pending ID (owner, 17 November 2026: no gaps). */
+			int number = 1;
 			string text;
 			do
 			{
-				text = "W" + nextWallNumber++.ToString("000");
+				text = "W" + number++.ToString("000");
 			}
 			while (hashSet.Contains(text));
 			return text;
@@ -5506,7 +5548,7 @@ worksExcelTimer.Tick += async delegate
 				HeaderText = "Plaster sides",
 				Width = 125
 			};
-			dataGridViewComboBoxColumn.Items.AddRange("1 side (A)", "1 side (B)", "2 sides");
+			dataGridViewComboBoxColumn.Items.AddRange("None", "1 side (A)", "1 side (B)", "2 sides");
 			g.Columns.Add(dataGridViewComboBoxColumn);
 			g.Columns[12].DefaultCellStyle.BackColor = ModernUi.Input;
 			string[] array = new string[3] { "Plaster base m2", "Tiles deducted m2", "Net plaster m2" };
@@ -5804,6 +5846,8 @@ worksExcelTimer.Tick += async delegate
 						Width = 125,
 						DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton
 					};
+					// Keep the replaced column's visibility: Finish IDs are assigned at Finishing Start, not on measurement sheets.
+					dataGridViewComboBoxColumn.Visible = dataGridView.Columns[2].Visible;
 					dataGridView.Columns.RemoveAt(2);
 					dataGridView.Columns.Insert(2, dataGridViewComboBoxColumn);
 					dataGridViewComboBoxColumn.DefaultCellStyle.BackColor = ModernUi.Input;
@@ -6545,9 +6589,9 @@ worksExcelTimer.Tick += async delegate
 					PlasterTakeoff plasterTakeoff2 = PlasterTakeoff.Calculate(wallItem2, wallOpenings, finishItems, (wallItem2.Paint == "Same as plaster") ? wallItem2.Plaster : wallItem2.Paint);
 					paintResults[wallItem2.Id] = plasterTakeoff2;
 					item3.Cells[17].Value = plasterTakeoff2.Net.ToString("0.00");
-					if (errors.Count > 0)
+					if (WallHasOpeningIssue(wallItem2.Id) || WallHasFinishIssue(wallItem2.Id))
 					{
-						item3.Cells[11].Value = "Review finish/opening issues before using totals";
+						item3.Cells[11].Value = "Review this wall's finish/opening issue before using totals";
 					}
 				}
 				catch (Exception ex2)
@@ -6664,6 +6708,11 @@ worksExcelTimer.Tick += async delegate
 
 		public void Recalculate()
 		{
+			using (GridBatch.Suspend(this)) RecalculateWorks();
+		}
+
+		private void RecalculateWorks()
+		{
 			if (initializingWorks || filling || wood == null || walls == null || finishSchedule == null || wallFinishes == null)
 			{
 				return;
@@ -6671,6 +6720,10 @@ worksExcelTimer.Tick += async delegate
 			filling = true;
 			try
 			{
+				MoveAluminumRowsIntoSchedule();
+				SyncOpeningMouldings();
+				AssignRowIds();
+				FillBlankHiddenMaterials();
 				if (borrowSwell != null && borrowShrink != null)
 				{
 					beam.SetProjectSoilFactors((double)borrowSwell.Value, (double)borrowShrink.Value);
@@ -6703,7 +6756,10 @@ worksExcelTimer.Tick += async delegate
 						}
 						try
 						{
-							if (dataGridView == wood)
+							string rowMaterial = (dataGridView == manualOpeningsGrid) ? "Manual" : OpeningMaterial(item, dataGridView == wood);
+							bool woodRow = rowMaterial == "Wood";
+							if (dataGridView != manualOpeningsGrid) StyleOpeningMaterialCells(item, woodRow);
+							if (woodRow)
 							{
 								AutomaticWoodDimensions(item);
 							}
@@ -6712,21 +6768,23 @@ worksExcelTimer.Tick += async delegate
 								Id = Cell(item, 0),
 								Description = Cell(item, 1),
 								Wall = Cell(item, 2),
-								Material = ((dataGridView == wood) ? "Wood" : ((dataGridView == manualOpeningsGrid) ? "Manual" : "Aluminum")),
+								Material = rowMaterial,
 								Kind = Cell(item, 3),
 								Width = Number(item, 4),
 								Height = Number(item, 5),
 								Quantity = Count(item, 6),
-								JambDepth = ((dataGridView == wood) ? Number(item, 7) : 0.0),
-								JambThickness = ((dataGridView == wood) ? Number(item, 8) : 0.0),
-								LeafThickness = ((dataGridView == wood) ? 0.045 : 0.0),
-								Faces = ((dataGridView == wood) ? Count(item, 10) : 0),
+								JambDepth = (woodRow ? Number(item, 7) : 0.0),
+								JambThickness = (woodRow ? Number(item, 8) : 0.0),
+								LeafThickness = (woodRow ? 0.045 : 0.0),
+								Faces = (woodRow ? Count(item, 10) : 0),
 								LocksPerUnit = ((!(Cell(item, 3) == "Door") && !(Cell(item, 11) == "")) ? Count(item, 11) : 0),
 								HingesPerUnit = ((!(Cell(item, 3) == "Door") && !(Cell(item, 12) == "")) ? Count(item, 12) : 0),
 								Leaves = ((Cell(item, 20) == "") ? 1 : Count(item, 20)),
 								Operation = ((Cell(item, 21) == "") ? "Swing" : Cell(item, 21)),
 								MouldingProfile = Cell(item, 24),
-								Exterior = (dataGridView != manualOpeningsGrid && Cell(item, 22) != "" && bool.Parse(Cell(item, 22)))
+								Exterior = (dataGridView != manualOpeningsGrid && Cell(item, 22) != "" && bool.Parse(Cell(item, 22))),
+								PaintLeaf = OpeningPaint(item, PaintLeafColumn),
+								PaintJamb = OpeningPaint(item, PaintJambColumn)
 							};
 							openingItem.Validate();
 							if (!ids.Add(openingItem.Id))
@@ -6832,7 +6890,7 @@ worksExcelTimer.Tick += async delegate
 						item2.Cells[8].Value = wallItem.Deduction(wallOpenings).ToString("0.00");
 						item2.Cells[9].Value = num2.ToString("0.00");
 						item2.Cells[10].Value = wallItem.Blocks(wallOpenings);
-						item2.Cells[11].Value = ((errors.Count > 0) ? "Review invalid openings before using quantities" : "Ready");
+						item2.Cells[11].Value = (WallHasOpeningIssue(wallItem.Id) ? "Review this wall's invalid opening before using quantities" : "Ready");
 					}
 					catch (Exception ex3)
 					{
@@ -6870,6 +6928,8 @@ worksExcelTimer.Tick += async delegate
 				childWorksDirty = false;
 				RefreshVisibleWorksViews();
 				homeSummary.Text = status.Text;
+				RefreshRebarSummaries();
+				recalculatedInputs = DataXml();
 			}
 			finally
 			{
@@ -7284,7 +7344,10 @@ worksExcelTimer.Tick += async delegate
 			case "PlumbingRebar":
 				return Enumerable.Range(0, 7).ToArray();
 			case "MouldingEntries":
-				return Enumerable.Range(0, 5).ToArray();
+				return new int[6] { 0, 1, 2, 3, 4, 7 };
+			case "Wood":
+			case "Aluminum":
+				return Enumerable.Range(0, 13).Concat(new int[5] { 20, 21, 22, 24, 25 }).ToArray();
 			default:
 				if (SteelSections.Contains(section))
 				{
@@ -7357,6 +7420,8 @@ worksExcelTimer.Tick += async delegate
 							int n = array[i];
 							xmlElement3.SetAttribute("c" + n, Cell(item2, n));
 						}
+						WriteSteelSets(item.Key, item2, xmlElement3);
+						WriteOpeningPaint(item.Key, item2, xmlElement3);
 						xmlElement2.AppendChild(xmlElement3);
 					}
 				}
@@ -7367,22 +7432,26 @@ worksExcelTimer.Tick += async delegate
 			WriteBackupBillRoutes(xmlElement);
 			WriteStructureConfigurations(xmlElement);
             WriteExtraProject(xmlElement);WriteRoofingSpecification(xmlElement);
-            ProjectSources().Write(xmlElement,true);
+            WriteSourceManifest(xmlElement);
 			return xmlDocument.OuterXml;
 		}
 
 		private async void Save(){await SaveWithFeedback(false);}
 
 		internal string WorksProjectXml(){return BuildWorksProjectXml(true);}
+        private string recalculatedInputs;
         private string BuildWorksProjectXml(bool includeSourceFiles)
 		{
 			Commit();
-			Recalculate();
+			/* Saving re-ran the whole recalculation (about 1 s on a mid-size project) although every edit already
+			   recalculates. Only recalculate when inputs changed since the last recalculation (owner: slow save). */
+			if (childWorksDirty || recalculatedInputs == null || DataXml() != recalculatedInputs) { Recalculate(); PowTiming.Mark("recalculation"); }
 			XmlDocument xmlDocument = new XmlDocument();
 			xmlDocument.LoadXml(DataXml());
             PowProjectInformation.Write(xmlDocument.DocumentElement,ProjectInfoStore.Read());
             PowIssueOutput.Write(xmlDocument.DocumentElement,WorksValidationIssues());
-            if(includeSourceFiles)ProjectSources().Write(xmlDocument.DocumentElement);
+            if(includeSourceFiles){ApplyDeferredSources();ProjectSources().Write(xmlDocument.DocumentElement);}
+			PowTiming.Mark("project data / issues");
 			snapshottingWorks = true;
 			string text;
 			string text2;
@@ -7395,6 +7464,7 @@ worksExcelTimer.Tick += async delegate
 			{
 				snapshottingWorks = false;
 			}
+			PowTiming.Mark("beam / slab snapshots");
 			string[][] array = new string[2][]
 			{
 				new string[2] { "Beam", text },
@@ -7416,7 +7486,7 @@ worksExcelTimer.Tick += async delegate
 		{
 			Guard();
 			string contents = BuildWorksProjectXml(false);
-            PowProjectFileWriter.WriteWithSources(path,contents,ProjectSources());
+            ApplyDeferredSources();PowBackups.Backup(path);PowProjectFileWriter.WriteWithSources(path,contents,ProjectSources());
 			beam.WorksSaved();
 			slab.WorksSaved();
             currentPowPath=Path.GetFullPath(path);
@@ -7429,14 +7499,18 @@ worksExcelTimer.Tick += async delegate
             try{Guard();Commit();using(var dialog=new OpenFileDialog{Filter="Program of Works|*.pow.xml"}){
                 if(dialog.ShowDialog(this)!=DialogResult.OK)return;
                 openingPow=true;
+                using(var busy=new PowBusyIndicator(this,"Open Program of Works","Opening "+Path.GetFileName(dialog.FileName)+"…")){
                 while((linkingExcel||capturingExcelSource)&&!IsDisposed)await System.Threading.Tasks.Task.Delay(50);
                 if(IsDisposed)return;
                 openingPow=true;worksExcelTimer.Stop();excelSaveTimer.Stop();
                 if(currentSync!=null)try{await currentSync;}catch(Exception ex){ExcelFailure(ex);}
-                var snapshot=await System.Threading.Tasks.Task.Run(()=>PowProjectFileWriter.Read(dialog.FileName));
-                if(IsDisposed)return;
-                OpenProjectDocument(snapshot.Document,snapshot.Sources);currentPowPath=Path.GetFullPath(dialog.FileName);
-                if(worksExcel!=null&&linkedHasBackup){await LoadCatalogue();lastExcelXml="";dashboardDirty=true;RefreshVisibleWorksViews();saved=DataXml();ScheduleWorksExcel();}
+                busy.Status("Reading project and source files…");PowTiming.Start("Open");
+                CancelDeferredSources();var snapshot=await System.Threading.Tasks.Task.Run(()=>PowProjectFileWriter.Read(dialog.FileName,true));
+                if(IsDisposed)return;PowTiming.Mark("read file");
+                busy.Status("Loading worksheets and quantities…");
+                try{OpenProjectDocument(snapshot.Document,snapshot.Sources,snapshot.SourcesDeferred?dialog.FileName:null);}catch{CancelDeferredSources();/* a partly loaded window must not overwrite any project file */currentPowPath=null;knownPowWriteUtc=null;throw;}currentPowPath=Path.GetFullPath(dialog.FileName);RememberPowFile(currentPowPath);WarnIfEmptyProject(snapshot.Document,dialog.FileName);if(!snapshot.SourcesDeferred)VerifySourcesInBackground(snapshot.Sources);
+                if(worksExcel!=null&&linkedHasBackup){busy.Status("Refreshing linked BACKUP items…");await LoadCatalogue();PowTiming.Mark("Excel BACKUP items");lastExcelXml="";dashboardDirty=true;RefreshVisibleWorksViews();saved=DataXml();ScheduleWorksExcel();}
+                ShowTiming(PowTiming.Finish());}
             }}catch(Exception ex){if(!IsDisposed)MessageBox.Show(this,ex.Message,"Open Program of Works",MessageBoxButtons.OK,MessageBoxIcon.Information);}finally{openingPow=false;if(!IsDisposed&&worksExcel!=null&&!excelBroken)ScheduleWorksExcel();}
         }
 
@@ -7444,8 +7518,8 @@ worksExcelTimer.Tick += async delegate
 		{
 			Guard();
             var snapshot=PowProjectFileWriter.Read(path);
-            OpenProjectDocument(snapshot.Document,snapshot.Sources);
-            currentPowPath=Path.GetFullPath(path);
+            try{OpenProjectDocument(snapshot.Document,snapshot.Sources);}catch{currentPowPath=null;throw;}
+            currentPowPath=Path.GetFullPath(path);RememberPowFile(currentPowPath);
 		}
 
 		internal void OpenProjectXml(string xml)
@@ -7469,7 +7543,11 @@ worksExcelTimer.Tick += async delegate
 			}
             OpenProjectDocument(xmlDocument,PowSourceFiles.Read(xmlDocument.DocumentElement));
         }
-        private void OpenProjectDocument(XmlDocument xmlDocument,PowSourceFiles savedSourceFiles)
+        private void OpenProjectDocument(XmlDocument xmlDocument,PowSourceFiles savedSourceFiles,string deferredSourcesPath=null)
+        {
+            using(GridBatch.Suspend(this))OpenProjectDocumentRows(xmlDocument,savedSourceFiles,deferredSourcesPath);
+        }
+        private void OpenProjectDocumentRows(XmlDocument xmlDocument,PowSourceFiles savedSourceFiles,string deferredSourcesPath)
         {
             Guard();
             var savedProjectInformation=PowProjectInformation.Read(xmlDocument.DocumentElement);
@@ -7489,12 +7567,14 @@ worksExcelTimer.Tick += async delegate
 			NormalizeLegacyAAC(xmlDocument.DocumentElement);
 			if (PowOpenState.HasInputChanges(DataXml(),saved))
 			{
-				throw new Exception("Save current project inputs before opening another Program of Works.");
+				throw new Exception("This window has unsaved Program of Works inputs. Save them, or use Close Program of Works, then open the other file.");
 			}
+			if (deferredSourcesPath != null) BeginDeferredSources(deferredSourcesPath, xmlDocument.DocumentElement);
 			if (beam.WorksSnapshot() != null || slab.WorksSnapshot() != null)
 			{
-				throw new Exception("Open a saved Program of Works in a fresh Program of Works window to protect loaded beam/slab work.");
+				throw new Exception("Beam or slab work is already loaded in this window. Use Close Program of Works (save first if needed), then open the saved file.");
 			}
+			PowTiming.Mark("check file");
 			List<BackupBillItem> list = BackupBill.Read(xmlDocument.DocumentElement);
 			FinishTypeRegistry finishTypeRegistry = FinishTypeRegistry.Read(xmlDocument.DocumentElement);
 			List<OpeningLink> collection = OpeningLinks.Read(xmlDocument.DocumentElement);
@@ -7517,6 +7597,8 @@ worksExcelTimer.Tick += async delegate
 					for (int i = 0; i < array.Length; i++)
 					{
 						int num = array[i];
+						/* Material (column 25) was added in v1.4.95; older files open with the grid default (Wood / Aluminum). */
+						if ((item.Key == "Wood" || item.Key == "Aluminum") && num == OpeningMaterialColumn && !item2.HasAttribute("c" + num)) continue;
 						if (flag && IsMasonrySection(item.Key) && (num == 12 || num == 16))
 						{
 							continue;
@@ -7550,11 +7632,14 @@ worksExcelTimer.Tick += async delegate
 						}
 						if ((!(attribute != "7") || !(attribute != "8") || !(attribute != "9") || !(attribute != "10") || !(attribute != "11") || !(attribute != "12") || !(attribute != "13") || !(attribute != "14") || !(attribute != "15") || !(attribute != "16") || !(attribute != "17") || !(attribute != "18") || !(attribute != "19") || !IsMasonrySection(item.Key) || num != 19) && (!(attribute != "10") || !(attribute != "11") || !(attribute != "12") || !(attribute != "13") || !(attribute != "14") || !(attribute != "15") || !(attribute != "16") || !(attribute != "17") || !(attribute != "18") || !(attribute != "19") || !(item.Key == "RoofSheets") || (num != 17 && num != 18)) && (!(attribute != "14") || !(attribute != "15") || !(attribute != "16") || !(attribute != "17") || !(attribute != "18") || !(attribute != "19") || (!(item.Key == "Wood") && !(item.Key == "Aluminum") && !(item.Key == "CHBOpenings")) || num != 22) && (!(attribute != "15") || !(attribute != "16") || !(attribute != "17") || !(attribute != "18") || !(attribute != "19") || (!(item.Key == "Wood") && !(item.Key == "Aluminum") && !(item.Key == "CHBOpenings")) || num != 24) && (!(attribute != "19") || !(item.Key == "PlumbingLS") || num < 5) && !item2.HasAttribute("c" + num))
 						{
-							throw new Exception("Incomplete " + item.Key + " entry.");
+							/* Owner (17 November 2026): a column added in a later version (e.g. Material, moulding Opening ID) is
+							   simply blank in older files; the fill step uses the column default. Older POWs must keep opening. */
+							continue;
 						}
 					}
 				}
 			}
+			PowTiming.Mark("validate sheets");
 			if (xmlDocument.DocumentElement["Beam"] != null)
 			{
 				beam.WorksRestore(xmlDocument.DocumentElement["Beam"].InnerText);
@@ -7563,6 +7648,7 @@ worksExcelTimer.Tick += async delegate
 			{
 				slab.WorksRestore(xmlDocument.DocumentElement["Slab"].InnerText);
 			}
+			PowTiming.Mark("beam / slab estimates");
 			filling = true;
 			try
 			{
@@ -7643,6 +7729,9 @@ worksExcelTimer.Tick += async delegate
 							string text = (string)obj;
 							item3.Value.Rows[index].Cells[num2].Value = ((item3.Value.Columns[num2] is DataGridViewCheckBoxColumn) ? ((object)(text != "" && bool.Parse(text))) : text);
 						}
+						ReadSteelSets(item3.Key, item3.Value.Rows[index], item4);
+						ReadOpeningPaint(item3.Key, item3.Value.Rows[index], item4);
+						if ((item3.Key == "Wood" || item3.Key == "Aluminum") && !item4.HasAttribute("c" + OpeningMaterialColumn)) item3.Value.Rows[index].Cells[OpeningMaterialColumn].Value = (item3.Key == "Wood") ? "Wood" : "Aluminum";
 					}
 				}
 			}
@@ -7677,23 +7766,32 @@ worksExcelTimer.Tick += async delegate
 					}
 				}
 			}
-            ReadExtraProject(xmlDocument.DocumentElement);ReadRoofingSpecification(xmlDocument.DocumentElement);
+            PowTiming.Mark("fill sheets");ReadExtraProject(xmlDocument.DocumentElement);ReadRoofingSpecification(xmlDocument.DocumentElement);PowTiming.Mark("fill additional sheets");
             if(worksExcel!=null){string workbook=Path.GetFileName(worksExcel.PathName);savedSourceFiles.AddRange(ProjectSources().Files.Where(f=>f.Kind=="Excel workbook (imported original)"&&f.Name.Equals(workbook,StringComparison.OrdinalIgnoreCase)));}
             projectSourceFiles.Replace(savedSourceFiles);
+            if(savedProjectInformation==null&&!Automated)ProjectInfoStore.ClearProject();
             if(savedProjectInformation!=null)ProjectInfoStore.Save(savedProjectInformation.Name,savedProjectInformation.Location,savedProjectInformation.Office,savedProjectInformation.OfficeAddress);
+			PowTiming.Mark("project info / sources");
 			Recalculate();
+			PowTiming.Mark("recalculation");
 			ShowPipeGroup();
 			saved = DataXml();
+			beam.WorksSaved();
+			slab.WorksSaved();
+			PowTiming.Mark("finish open");
 		}
 
 
 		private void OnWorksClosing(object sender, FormClosingEventArgs e)
 		{
             if(savingPow||openingPow){e.Cancel=true;return;}
+			PowTiming.Start("Close", true);
 			Commit();
 			worksExcelTimer.Stop();
 			if(worksExcel!=null&&!excelCloseFlushed){e.Cancel=true;if(!closingExcel){closingExcel=true;FinishExcelClose();}return;}
-			if (DataXml() != saved || beam.WorksDirty || slab.WorksDirty)
+			bool closeDirty = DataXml() != saved || beam.WorksDirty || slab.WorksDirty;
+			PowTiming.Mark("check unsaved changes");
+			if (closeDirty)
 			{
 				switch (MessageBox.Show(this, "Save Program of Works entries before closing?", "Program of Works", MessageBoxButtons.YesNoCancel))
 				{
@@ -7719,6 +7817,8 @@ worksExcelTimer.Tick += async delegate
 					}
 				}
 			}
+			PowTiming.Mark("close beam / slab windows");
+			if (e.Cancel) PowTiming.Finish();
 		}
 
 
@@ -7742,7 +7842,7 @@ worksExcelTimer.Tick += async delegate
             boqDisclosure=new BoqDisclosure(boqGrid);ConfigureBoqQuantityDisplay();BoqScrollState.Attach(boqGrid);boqGrid.ScrollBars=ScrollBars.Both;
 			boqGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 			boqGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
-			float[] array = new float[4] { 16f, 66f, 14f, 9f };
+			float[] array = new float[4] { 8f, 78f, 12f, 8f }; /* owner, 18 November 2026: wider DESCRIPTION, narrower ITEM NO. */
 			for (int num = 0; num < 4; num++)
 			{
 				boqGrid.Columns[num].FillWeight = array[num];
@@ -7754,10 +7854,10 @@ worksExcelTimer.Tick += async delegate
 					minimumWidth = 80;
 					break;
 				case 0:
-					minimumWidth = 170;
+					minimumWidth = 105;
 					break;
 				case 1:
-					minimumWidth = 300;
+					minimumWidth = 360;
 					break;
 				}
 				dataGridViewColumn.MinimumWidth = minimumWidth;
@@ -7784,6 +7884,8 @@ worksExcelTimer.Tick += async delegate
 			tabPage2.Controls.Add(boqGrid);
 			boqPages.TabPages.Add(tabPage2);
 			tabPage.Controls.Add(boqGrid);
+			AddIssuePanel(tabPage);
+			AddBoqSearch(flowLayoutPanel);
 			tabPage.Controls.Add(boqStatus);
 			tabPage.Controls.Add(flowLayoutPanel);
 			tabPage.Controls.Add(value);
@@ -7897,11 +7999,13 @@ worksExcelTimer.Tick += async delegate
 				return;
 			}
 			boqGrid.Rows.Clear();
+			boqStatusNotes.Clear();
 			List<string> list = WorksValidationIssues();
+			UpdateIssuePanel(list);
 			if (list.Count > 0)
 			{
 				boqStatus.ForeColor = Color.Firebrick;
-				boqStatus.Text = "PARTIAL: " + list.Count + " input issue(s). Valid quantities shown; use Review inputs for the issue list.";
+				boqStatus.Text = "PARTIAL: " + list.Count + " input issue(s) listed below. Valid quantities shown.";
 			}
 			try
 			{
@@ -7924,8 +8028,9 @@ worksExcelTimer.Tick += async delegate
 					}
 				}
 				AddLegacyBoqRows();
+				if (boqDisclosure != null) boqDisclosure.Apply();
 boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
-				boqStatus.Text = list.Count>0?"PARTIAL: "+list.Count+" issues listed; valid quantities shown.":"Quantities are up to date. Source rows show the breakdown; count each material total once.";
+				boqStatus.Text = list.Count>0?"PARTIAL: "+list.Count+" input issue(s) listed below; valid quantities shown.":"Quantities are up to date. Source rows show the breakdown; count each material total once.";
 			}
 			catch (Exception ex)
 			{
@@ -8415,8 +8520,8 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 		{
 			rcWalls = Grid(new string[27]
 			{
-				"RC wall ID", "Description / location", "Length m", "Height m", "Thickness mm", "Qty", "Cover mm", "Rebar layers (both ways)", "Vertical dia mm", "Vertical spacing mm (OR count)",
-				"Vertical bars / layer (OR spacing)", "Horizontal dia mm", "Horizontal spacing mm (OR count)", "Horizontal bars / layer (OR spacing)", "Vertical extra ends mm (total)", "Horizontal extra ends mm (total)", "Formed main faces (0/1/2)", "Formed vertical ends (0/1/2)", "Bottom soffit form?", "Concrete MPa",
+				"RC wall ID", "Description / location", "Length m", "Height m", "Thickness mm", "Qty", "Cover mm", "Rebar layers (both ways)", "Vertical dia mm", "Vertical spacing mm",
+				"Vertical count / layer", "Horizontal dia mm", "Horizontal spacing mm", "Horizontal count / layer", "Vertical extra ends mm (total)", "Horizontal extra ends mm (total)", "Formed main faces (0/1/2)", "Formed vertical ends (0/1/2)", "Bottom soffit form?", "Concrete MPa",
 				"Grade <=12 mm", "Grade >=16 mm", "Concrete m3", "Formworks m2", "Net rebar kg", "Rebar TO BUY kg", "Status"
 			}, 22);
 			AddCombo(rcWalls, 7, "Rebar layers (both ways)", new string[2] { "1", "2" });
@@ -9224,12 +9329,14 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 					xmlElement.AppendChild(xmlElement2);
 				}
 			}
+			WriteBoqIncludes(xmlElement);
 		}
 
 		private void ReadBackupBillRoutes(XmlElement root)
 		{
 			backupBillRoutes.Clear();
 			XmlElement xmlElement = root["BackupBillRoutes"];
+			ReadBoqIncludes(xmlElement);
 			if (xmlElement == null)
 			{
 				return;
@@ -9623,6 +9730,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 					}
 				}
 			};
+			InstallPipeSizeColumn();
 			plumbingPipes.EditingControlShowing += delegate(object s, DataGridViewEditingControlShowingEventArgs e)
 			{
 				TextBox textBox = e.Control as TextBox;
@@ -9660,6 +9768,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 						item.Visible = Empty(item) || PipeGroups.Group(Cell(item, 2)) == pipeGroupTabs.SelectedTab.Text;
 					}
 				}
+				SyncPipeSizeColumn();
 			}
 			finally
 			{
@@ -10292,7 +10401,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 				plumbingMembers = Grid(new string[33]
 				{
 					"Member ID", "Structure ID", "Member type", "Description", "Length m", "Width / height m", "Thickness mm", "Members / structure", "Cover mm", "Rebar layers",
-					"X / vertical dia mm", "X / vertical spacing mm", "X / vertical bars per layer", "Y / horizontal dia mm", "Y / horizontal spacing mm", "Y / horizontal bars per layer", "X / vertical extra ends mm", "Y / horizontal extra ends mm", "Formed main faces", "Formed edge length m (blank=full)",
+					"X / vertical dia mm", "X / vertical spacing mm", "X / vertical count / layer", "Y / horizontal dia mm", "Y / horizontal spacing mm", "Y / horizontal count / layer", "X / vertical extra ends mm", "Y / horizontal extra ends mm", "Formed main faces", "Formed edge length m (blank=full)",
 					"Gravel thickness mm", "Plaster faces", "Waterproof faces", "Stock length m", "Concrete m3", "Forms m2", "Net rebar kg", "Rebar TO BUY kg", "CHB m2", "Gravel m3",
 					"Plaster m2", "Waterproof m2", "Status"
 				}, 24);

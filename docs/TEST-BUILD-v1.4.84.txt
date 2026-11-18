@@ -1,0 +1,9 @@
+DTCE Tool Kit v1.4.84 (17 November 2026)
+
+Builds on v1.4.83 (BOQ search, searchable mapping picker).
+- Owner report: copy/paste across rows (v1.4.79) did not work. Cause: POW grids use EditOnEnter, so the selected
+  cell is almost always in typing mode and the paste went to that one cell's text box. Now, while typing mode is
+  active, the grid handles Ctrl+V when several cells are selected or the clipboard holds several cells (from Excel
+  or the grid), and Ctrl+C copies the whole cell / selected cells unless text inside the cell is highlighted.
+  Select target cells with Shift+click (range) or Ctrl+click (individual cells); dragging starts typing instead.
+- Windows behaviour of the typing-mode path could not be exercised on Linux/Mono; owner to confirm.

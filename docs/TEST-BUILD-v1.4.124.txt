@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.4.124 test build (18 November 2026)
+
+Column Estimate ties (owner: "di niya mabasa yung ties")
+- A tie schedule typed in "Tie spacing mm / count / schedule", e.g.
+  1 - 50mm, 11 - 75mm, AND REST AT 200mm C/C, is now read as a spacing
+  schedule even when Tie input method still says Spacing (mm). Before, the
+  row failed with "Check Tie spacing mm / count / schedule".
+- A plain number still means spacing (mm) or number of ties, as selected.
+- Check: 3.00 m column, 300 x 300, the schedule above gives 30 tie sets.
+
+Includes v1.4.118-123. Not a Microsoft Store release.

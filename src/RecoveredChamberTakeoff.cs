@@ -193,7 +193,8 @@ namespace BeamScheduleFormatter
 			AdditionalConcrete = OtherConcrete * (double)Count;
 			ConcreteVolume = BaseConcrete + CoverConcrete + WallConcrete + AdditionalConcrete;
 			double num10 = ((Kind == "Septic Vault, Concrete") ? (num4 * H + num5 * H + 2.0 * PartitionLength * H - 2.0 * WallOpeningArea) : 0.0);
-			double num11 = ((Cover > 0.0) ? (L * W - num7 + (num4 + ((num7 > 0.0) ? (2.0 * (OpeningL + OpeningW)) : 0.0)) * Cover) : 0.0);
+			// Cover soffit is formed only over the clear chamber area (the cover bears on the walls and partitions), less the hatch opening.
+			double num11 = ((Cover > 0.0) ? (Math.Max(0.0, num6 - PartitionLength * PartitionThickness - num7) + (num4 + ((num7 > 0.0) ? (2.0 * (OpeningL + OpeningW)) : 0.0)) * Cover) : 0.0);
 			WallForms = num10 * (double)Count;
 			BaseForms = num4 * Base * (double)Count;
 			CoverForms = num11 * (double)Count;

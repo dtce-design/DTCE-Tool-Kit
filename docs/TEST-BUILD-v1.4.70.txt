@@ -1,0 +1,8 @@
+DTCE Tool Kit v1.4.70 (17 November 2026)
+
+Builds on v1.4.69.
+- Owner report: mapped quantities did not show in the app right away. Cause: after OK in Map BACKUP items the
+  Bill of Quantities waited until every quantity had been written to Excel. The chosen mapping now updates the
+  app's BOQ immediately; the Excel write continues in the background (status bar and link animation show it).
+- Open question to owner: which "map" is slow (Map BACKUP items or the Wind site map) and how long it takes.
+  The BACKUP sheet is read in one batch and names are cached; Excel COM timing cannot be measured on Linux.

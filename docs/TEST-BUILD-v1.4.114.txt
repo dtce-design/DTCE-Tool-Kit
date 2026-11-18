@@ -1,0 +1,16 @@
+DTCE Tool Kit v1.4.114 (17 November 2026)
+
+Builds on v1.4.113. Data-loss protection requested by the owner after a project was replaced by an empty save:
+1. Auto-save no longer writes the project file. It keeps a recovery copy per window in
+   %LOCALAPPDATA%\BeamTools\Recovery\ (also for never-saved projects). The copy is deleted after a successful Save
+   or a clean close; after a crash / power loss the next POW window offers to open it (Yes / No = keep / Cancel =
+   delete). Only Save / Save As replace a .pow.xml.
+2. Save writes to a temporary file, then re-reads it (well-formed XML, same number of saved rows) before it replaces
+   the project file; if the check fails the original file is left untouched.
+3. A window with no saved rows can never be saved over a file that has rows (blocked; Save As only).
+4. Opening a file with no saved rows warns and offers the backup list.
+5. New "Restore backup" button: lists the backups (made before every save since v1.4.113) and recovery copies of
+   the open file with date, kind, rows and size; the chosen copy opens unbound (Save asks where to keep it; choose
+   the original file to restore). "Open backup folder" opens %LOCALAPPDATA%\BeamTools\POW-backups.
+- Mono checks: recovery copy written and listed only after its window closes; empty window refused over a 446-row
+  file; empty window saves to a new file; verified save keeps 446 rows; backup list shows backup and recovery copy.

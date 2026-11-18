@@ -1,0 +1,5 @@
+DTCE Tool Kit v1.4.117 (18 November 2026)
+
+Builds on v1.4.116.
+- Owner: the include checkbox column has no caption and is only as wide as the checkbox (34 px); its meaning is
+  in the header tooltip. Everything else as v1.4.116 (status panel, blank project information, BOQ parts).

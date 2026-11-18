@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.4.126 test build (18 November 2026)
+
+Bill of Quantities include checkbox (owner: "no check box")
+- The include box beside UNIT is now drawn by the app instead of the
+  Windows checkbox glyph, which did not appear: an outlined square, filled
+  with a white check mark when the mapped quantity counts in the total.
+- Shown on pay items with mapped Tool Kit quantities and on each mapped
+  quantity row; measurement source rows (e.g. Footing F-001) have none.
+- One click anywhere in the box cell toggles it (Space still works).
+
+Includes v1.4.118-125. Not a Microsoft Store release.

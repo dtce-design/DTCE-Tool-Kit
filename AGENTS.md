@@ -10,7 +10,8 @@ Never copy/commit `AdminPrivateKey.dat`, Owner packages, signing certificates or
 credentials. CI only needs `AccessPublicKey.xml`; never regenerate/rotate keys.
 Build both editions from shared src/. Admin Store/CI packages must be key-free.
 Never include the owner's key in GitHub artifacts, releases or MSIX packages.
-Keep edition watermark rules: Admin DTCE, User DPWH.
+Report watermark: none in the Admin edition; DPWH logo in the User edition, for official use (owner
+decision, 18 November 2026; supersedes the 16 November DTCE-in-both rule).
 Store submission is not enabled until MSIX identity/packaging and account API
 setup are complete. Do not claim a GitHub release is a Microsoft Store release.
 
@@ -87,3 +88,38 @@ settings; persist the selection outside the versioned installation directory.
 Finalize v1.4.47 Admin/User/source ZIPs and push the checked source to GitHub.
 No Microsoft Store, TestFlight or Pages upload is authorized. Windows native
 visual/performance/Excel verification limits must be reported honestly.
+
+## Report and deflection preferences (16 November 2026)
+
+Report body text uses the 7pt minimum to save paper (headings may be larger); keep A4 and
+verify rendered output. Beam deflection checks follow NSCP 2015: RC Table 424.2.2 with
+Section 424.2.4 long-term deflection, steel/other members per the NSCP Chapter 1 limits.
+
+## Release hold (16 November 2026)
+
+Owner: do not release v1.4.63/v1.4.64 yet, and do not submit to the Microsoft Store.
+Keep work on the development branch; do not merge to main (which triggers the automatic
+GitHub release) until the owner explicitly asks.
+
+## Plumbing structures (16 November 2026)
+
+Canal, septic vault and catch basin are their own BOQ items. Their materials (excavation, embankment,
+gravel, concrete, rebar, forms, CHB, plaster, waterproofing) are listed as sub item numbers under the
+structure item and are NOT added to the general item quantities. Do not route them into the general
+items (a v1.4.65 test build did this by mistake and was reverted in v1.4.66).
+
+## Beam estimator ties (16 November 2026)
+
+Owner decision: tie sets and tie cut lengths stay automatic (count from the beam schedule, cut length
+from section, cover, bend diameter and 135° hooks). Do not add manual tie count / cut length override
+columns; the unused TieCount/TieCut input fields may remain as they are.
+
+## Store release authorization (17 November 2026)
+
+Owner explicitly asked to publish to the Microsoft Store: both User and Admin editions of the current
+build (requested as v1.4.67; renumbered v1.4.68, now v1.4.127, at the owner's request after further fixes), after the Windows
+CI build passes and the owner has checked the test build. This lifts the 16 November release hold for that build only:
+merge the development branch to main (automatic GitHub release), then run the workflow manually on
+main with publish_microsoft_store=true. Store packages stay key-free. Upload is not certification;
+report Partner Center status honestly. TestFlight and Pages remain unauthorized. Later versions need
+a new explicit owner request.

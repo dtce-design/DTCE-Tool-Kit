@@ -1,0 +1,13 @@
+DTCE Tool Kit v1.4.99 (17 November 2026) - source checkpoint, work in progress
+
+Builds on v1.4.98.
+- Fixed: projects saved before the Railing sheet existed failed to open with "Incomplete additional quantity
+  sheets". Sheets added later (Structural Column, Railing) are now optional in older files.
+- Owner: Steel Works sheets (purlins, angle bars, machine / anchor bolts, plates, cross bracing, fascia frame)
+  have Qty / unit, Units / set and Sets. Total pieces = Qty / unit x Units / set x Sets; blank Units / Sets = 1,
+  so older projects compute as before. Saved as entry attributes u / s. Checked on Mono: 2 x 3 x 2 purlins =
+  12 cuts (59.76 kg buy), bolts 4 x 5, bracing 2 lines x 3 sets; save / reopen keeps the values. Column order
+  next to Qty / unit uses DisplayIndex and needs a Windows check (Mono does not reorder).
+- Owner: BOQ search clear button is a small painted round chip, shown only while text is entered.
+- Pending: slow save on Windows (not reproduced on Mono: ~40 ms for a 100 KB project), slow Map Backup
+  dialog, painting include checkboxes and door hardware to Finishing Hardware without an automatic 1 LS.

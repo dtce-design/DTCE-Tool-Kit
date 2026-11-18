@@ -1,0 +1,75 @@
+DTCE Tool Kit v1.4.64 — NSCP 2015 beam deflection, DTCE watermark, 7pt reports (16 November 2026)
+
+Builds on v1.4.63 (see TEST-BUILD-v1.4.63.txt).
+
+1. BEAM DEFLECTION CHECK PER NSCP 2015
+- Each beam row selects an NSCP 2015 criterion instead of a free L/n:
+  Reinforced concrete — Table 424.2.2:
+    Row 1 flat roof, no damageable nonstructural elements: immediate roof live load ≤ L/180
+    Row 2 floor, no damageable nonstructural elements: immediate live load ≤ L/360
+    Row 3 roof/floor supporting damageable elements: after attachment ≤ L/480
+    Row 4 roof/floor supporting non-damageable elements: after attachment ≤ L/240
+  Steel / other — NSCP Chapter 1 member limits: floor L/360 (L), L/240 (D+L); roof with plaster ceiling
+    L/360, L/240; nonplaster ceiling L/240, L/180; no ceiling L/180, L/120. Cantilever: L = 2 × length.
+  Custom L/n (project specification) remains available.
+- Dead/sustained and live STAAD cases are entered separately and superposed node by node.
+- RC time-dependent deflection: λΔ = ξ/(1+50ρ') (Section 424.2.4.1.1), ξ from Table 424.2.4.1.3
+  (sheet setting: 5 years+, 12, 6, 3 months). After attachment = λΔ·δD,i + δL,i (conservative: all
+  sustained load assumed after attachment).
+- Cracking: immediate deflections × Ig/Ie when STAAD uses gross stiffness. New "RC Ie calculator"
+  (Section 424.2.3.5, Eq. 424.2.3.5a): Ec = 4700√fc', fr = 0.62λ√fc', Mcr = fr·Ig/yt, cracked
+  transformed section with compression steel, Branson Ie ≤ Ig. Fills Ig/Ie and ρ' for the selected
+  row; the report reproduces the derivation and flags edited values that differ from it.
+- Report: NSCP criteria tables, parameters per beam (ξ, ρ', λΔ, Ig/Ie), summary, node tables with
+  δD, δL and each check, substitution at the governing node, governing deflected shape.
+- Saved sheets from v1.4.63 open as Custom-limit rows (their cases become live cases).
+
+2. WATERMARK — DTCE logo in both User and Admin reports (owner decision; supersedes Admin DTCE /
+   User DPWH). The unused DPWH watermark data was removed from the report assets. The DPWH logo
+   resource is still used by the User save-feedback screen only. AGENTS.md updated.
+
+3. REPORT TEXT SIZE — 7pt body to save paper (headings larger):
+- Print CSS: body, tables, notes and equations 7pt with tighter spacing; rows/figures/equations not
+  split across pages.
+- Flowed PDF layout (used by Export PDF): 7pt body/table text, 8.8pt line pitch, smaller headings.
+- Drawn pages: default text and table cells 7pt (never below 7pt).
+- PDF table columns are now sized from their content (longest word minimum, spare width to longer
+  text) instead of fixed 72/18/10% splits, so short values such as "L/180" no longer wrap.
+
+4. OTHER
+- CommercialBarsTests updated to the current "Ø16" diameter display (stale check; 836 checks pass).
+
+VALIDATION (Linux, Mono 6.8 compiler with .NET Framework 4.8 reference assemblies, C# 5)
+- Admin and User compile. BeamDeflectionTests 95 (incl. Ie values matched to an independent Python
+  calculation), WindAuditTests 77, SavedConfigurationTests 10, CommercialBarsTests 836,
+  EngineeringQuantityPdf 8, LongProjectTitle 19, ProfessionalTakeoff 14 and all other pure suites pass.
+- Sample report through the real form (Mono/Xvfb) printed by Chromium to A4: 3 pages, minimum and body
+  text 7pt, DTCE watermark. Vector layout checked with poppler (3 pages).
+- Still Windows-only and not run here: native UI tests, AccessProtocolTests, qpdf-secured PDF, Excel
+  COM, printing, capture exclusion. Run Test.ps1 / Build-User.ps1 / Build-Admin.ps1 on Windows or CI.
+No Store, TestFlight or Pages publication. No keys added, rotated or exported.
+
+ADDITIONAL CODE REVIEW (16 November 2026, after owner request to check the whole app)
+- GitHub Actions: every CI run since 9 Nov 2026 (v1.4.37 through v1.4.64, including all ChatGPT
+  checkpoints) failed before starting: "The job was not started because recent account payments
+  have failed or your spending limit needs to be increased." No Windows test or build has run in CI
+  since v1.4.36. The owner must fix GitHub Billing & plans, then re-run PR #7 checks.
+- Reviewed and found correct: Splice/Development/Hooks (NSCP 2015 Sec. 425 equations, caps, Class A/B
+  laps, Ldh, Ldc, compression lap, bend diameters Tables 425.3.1/425.3.2); angle stock portions;
+  POW open-state comparison; Excel range batching; structural steel IDs; BOQ disclosure; wall footing
+  and site/pavement/slope quantities; no-numeric-prefill rule enforcement.
+- Fixed: POW Input Issues worksheet now writes issue/treatment text as Text format so an issue starting
+  with = + - @ cannot become an Excel formula.
+- Compiler warnings: only unused local variables (no logic effect); one removed in new code.
+- Not reviewable here: native WinForms behaviour, Excel COM, printing, capture exclusion (need Windows).
+
+SECOND REVIEW PASS (owner: "Go")
+- CI re-run attempted: still blocked by GitHub billing ("recent account payments have failed").
+- User save screen now shows the DTCE logo (DPWH logo no longer used anywhere in code).
+- Fixed: concrete septic vault / CHB catch basin cover soffit formwork was measured over the full outer
+  footprint L × W; it is now the clear chamber area less partitions and the hatch (the cover bears on
+  the walls). Example 2.0 × 1.5 m, 0.15 m walls: soffit 2.64 → 1.68 m². New ChamberTakeoffTests (7).
+- Checked correct: chamber/canal concrete, wall/base forms, plaster, waterproofing, excavation and
+  backfill; RC wall concrete/forms; gravel entries.
+- Note (not changed): the BOQ "Gravel" section totals beam, footing and manual gravel; chamber/canal
+  gravel is billed under its own 804(7) source without the gravel purchase allowance. No double count.

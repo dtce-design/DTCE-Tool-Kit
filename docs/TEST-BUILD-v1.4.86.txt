@@ -1,0 +1,7 @@
+DTCE Tool Kit v1.4.86 (17 November 2026)
+
+Builds on v1.4.85.
+- Owner: "(OR count)" / "(OR spacing)" headers were unclear. Each bar direction has a pair of columns and
+  only ONE is entered: spacing in mm, or the number of bars. Headers now read e.g. "Horizontal bar spacing mm
+  (or use bars/layer)" and "Horizontal bars per layer (or use spacing)" (RC walls, canopies/ledges, plumbing
+  structure members), with tooltips. Calculation and saved files are unchanged (columns are saved by position).

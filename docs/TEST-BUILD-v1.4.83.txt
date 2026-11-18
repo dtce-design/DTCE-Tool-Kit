@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.4.83 (17 November 2026)
+
+Builds on v1.4.82.
+- Owner request: search bar above the Bill of Quantities. Every typed word must appear in the item no. or
+  description ("900 concrete", "1032 painting"). A pay item stays visible when one of its source rows matches;
+  matching source rows show even when collapsed. Esc or Clear restores all rows.
+  Checked on Linux/Mono: "concrete" 28/275 rows, "903" the three 903(2) items, no match 0, clear 268/275.
+- Owner request: easier item no. selection in Map BACKUP items. Clicking the pay item cell (or Enter/F2/Space)
+  opens a searchable picker (item no. / description words, double-click or Enter selects). With several rows
+  selected (Ctrl/Shift), the chosen item is applied to all selected rows with a compatible unit; the others
+  are reported. Mapping rules and saved named ranges are unchanged.

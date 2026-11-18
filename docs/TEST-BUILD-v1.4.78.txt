@@ -1,0 +1,7 @@
+DTCE Tool Kit v1.4.78 (17 November 2026)
+
+Builds on v1.4.77.
+- Owner request: "None" option for masonry Plaster sides (no plaster). Masonry paint sides already had None.
+  Plaster None gives 0 m2 plaster; paint "Same as plaster" then gives 0 m2; paint can still be chosen on
+  unplastered walls (e.g. None plaster + 2 sides paint = 16 m2 on a 4 x 2 m wall).
+- FinishQuantitiesTests 20, FinishTypeGroupingTests 12 and ProgramOfWorksTests 14 pass on Linux/Mono.

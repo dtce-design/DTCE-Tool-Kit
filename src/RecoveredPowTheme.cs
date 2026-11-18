@@ -28,6 +28,13 @@ internal static partial class PowTheme {
     flow.AutoSize=true;flow.AutoSizeMode=AutoSizeMode.GrowAndShrink;flow.WrapContents=true;
     flow.MinimumSize=new Size(0,40);flow.Padding=new Padding(12,4,12,4);flow.BackColor=ModernUi.Surface;
    }
+   // Dialog command bars (owner, 18 November 2026: button formatting): tall enough for the 38 px styled buttons
+   // plus margins so captions and rounded edges are never clipped.
+   if(flow!=null&&flow.Dock==DockStyle.Bottom&&flow.FlowDirection!=FlowDirection.TopDown){
+    flow.Padding=new Padding(Math.Max(flow.Padding.Left,10),6,Math.Max(flow.Padding.Right,10),6);
+    flow.Height=Math.Max(flow.Height,56);flow.MinimumSize=new Size(0,56);flow.WrapContents=false;
+    if(flow.BackColor==SystemColors.Control||flow.BackColor==Color.White)flow.BackColor=ModernUi.Surface;
+   }
    var tab=root as TabControl;if(tab!=null)StyleTabs(tab);
    var button=root as Button;if(button!=null&&!(button is ToolModuleButton))PremiumControls.StyleButton(button);
    var grid=root as DataGridView;if(grid!=null)StyleGrid(grid);
@@ -71,11 +78,12 @@ internal static partial class PowTheme {
   grid.DefaultCellStyle.SelectionBackColor=ModernUi.Selection;grid.DefaultCellStyle.SelectionForeColor=Ink;
   grid.RowHeadersDefaultCellStyle.BackColor=ModernUi.Soft;grid.RowHeadersDefaultCellStyle.SelectionBackColor=ModernUi.Selection;
   grid.RowTemplate.MinimumHeight=36;grid.RowTemplate.Height=36;grid.AllowUserToResizeRows=false;grid.AllowUserToOrderColumns=false;
-  grid.AutoSizeRowsMode=DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;grid.DefaultCellStyle.WrapMode=DataGridViewTriState.True;
+  grid.AutoSizeRowsMode=DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;grid.DefaultCellStyle.WrapMode=DataGridViewTriState.True;GridEditKeys.Attach(grid);
   grid.AlternatingRowsDefaultCellStyle.BackColor=ModernUi.Surface;
   foreach(DataGridViewColumn col in grid.Columns)StyleColumn(col);
   grid.CellFormatting+=delegate(object sender,DataGridViewCellFormattingEventArgs e){if(e.RowIndex<0)return;var style=e.CellStyle;if(DesktopAppearance.Palette.Dark&&style.BackColor.GetBrightness()>.65f)style.BackColor=grid.Rows[e.RowIndex].Cells[e.ColumnIndex].ReadOnly?ModernUi.Surface:ModernUi.Input;if(DesktopAppearance.Palette.Dark&&style.ForeColor.GetBrightness()<.35f)style.ForeColor=Ink;if(!DesktopAppearance.Palette.Dark&&style.BackColor.GetBrightness()<.28f&&style.BackColor.GetSaturation()<.25f){style.BackColor=grid.Rows[e.RowIndex].Cells[e.ColumnIndex].ReadOnly?ModernUi.Surface:ModernUi.Input;style.ForeColor=Ink;}if(!DesktopAppearance.Palette.Dark&&style.BackColor.GetBrightness()>.65f&&style.ForeColor.GetBrightness()>.7f)style.ForeColor=Ink;};
   grid.ColumnAdded+=delegate(object s,DataGridViewColumnEventArgs e){StyleColumn(e.Column);};
+  ApplyCompact(grid);
  }
  static void StyleColumn(DataGridViewColumn col){col.HeaderCell.Style=new DataGridViewCellStyle{Font=ModernUi.Strong,ForeColor=Ink,BackColor=PremiumControls.Header,Alignment=DataGridViewContentAlignment.MiddleLeft,Padding=new Padding(10,8,10,8),WrapMode=DataGridViewTriState.True};col.MinimumWidth=Math.Max(col.MinimumWidth,ModernUi.HeaderMinimum(col.HeaderText));col.SortMode=DataGridViewColumnSortMode.NotSortable;col.DefaultCellStyle.BackColor=col.ReadOnly?ModernUi.Surface:ModernUi.Input;if(col.ReadOnly)col.DefaultCellStyle.ForeColor=Ink;if(col.Name=="EditWallOpeningsAction"){col.MinimumWidth=38;col.Width=42;col.AutoSizeMode=DataGridViewAutoSizeColumnMode.None;col.HeaderCell.Style.Padding=new Padding(0);}}
 

@@ -1,0 +1,8 @@
+DTCE Tool Kit v1.4.75 (17 November 2026)
+
+Builds on v1.4.74.
+- Owner report: saving the POW is slow. Measured on a sample project (Linux/Mono): recalculation ~70 ms,
+  project XML ~75 ms, file write ~3-50 ms. The save then kept the window disabled for a fixed 0.9 s to show
+  "Saved". The window is now usable as soon as the file is written; the "Saved" confirmation closes by itself
+  after 0.7 s without blocking. Large projects still spend time in recalculation and in embedding source
+  files (DXF / original Excel copy); owner to report timing if a specific file remains slow.

@@ -1,0 +1,94 @@
+DTCE Tool Kit v1.4.63 — Beam Deflection Check, wind explanations and STAAD wind input (16 November 2026)
+
+Baseline: checked v1.4.62 (main 421a658, tree b232b8e), confirmed identical to the owner's handoff archive
+DTCE-Tool-Kit-Source-v1.4.62.zip (SHA256 15c5554c…a6229). The 15 Nov draft branch
+(draft/next-wind-deflection-2026-11-15, ed96c5b) was reviewed and ported piece by piece; it was not merged.
+
+1. BEAM DEFLECTION CHECK — separate Design Sheet (new access program, bit 256)
+- Design Sheets > Beam Deflection Check. Approval needs the new "Beam Deflection Check" program;
+  Wind/Purlin/Truss approvals do not grant it. Desktop approver, mobile generator (mask 503) and iOS
+  list were updated. Mobile service worker cache bumped to dtce-access-v4.
+- Tabs: STAAD input requirements | STAAD model geometry | STAAD node displacements | Beams to check |
+  Deflection results | Calculation report.
+- STAAD input requirements tab lists exactly what to provide: node coordinates, member incidences and
+  node translations (both supports and every intermediate node, service load cases), the STAAD
+  commands (PRINT JOINT DISPLACEMENTS) and modelling tips, plus a live "Loaded data" status.
+- Imports: .STD (expanded JOINT COORDINATES / MEMBER INCIDENCES / SUPPORTS, line continuation, SET Z UP),
+  .ANL (JOINT DISPLACEMENT tables incl. continuation rows/page breaks; echoed geometry), STAAD
+  Nodes/Beams/Node Displacements tables pasted or from CSV/Excel (.xlsx cached values; macros not run).
+- Units: taken from table headings ("X (mm)"), a separate unit row, the STAAD UNIT command (MMS, CM,
+  METER, FEET, INCHES) or the ANL heading (CM RADIANS); otherwise the unit selected on the tab. Mixed
+  heading units are rejected. The report records where each unit came from.
+- Physical beams: list STAAD member IDs (12, 13, 14 or 12-14). Members are ordered into one straight
+  chain between Support A and Support B; intermediate nodes are stations, not supports. Branching,
+  gaps, loops, off-line nodes, axial direction and missing node results are rejected with the node IDs.
+  "Suggest beam lines" proposes collinear chains split at columns/posts (verify before use).
+- Calculation: between supports δrel = u − [uA + (uB − uA)x/L]; cantilever δrel = u − uA.
+  δallow = L/n or the smaller optional absolute limit. Per beam and load case. One beam can be listed
+  twice for different limits (e.g. live L/360, total L/240).
+- Result wording: OK only when within limit AND service load basis AND real supports are confirmed;
+  otherwise REVIEW. NOT CHECKED when there is no interior node. EXCEEDS when over the limit.
+- Report (Export PDF / Print preview / Export report file / Excel): numbered sections — Scope and
+  method, STAAD input data, Deflection criteria (NSCP 2015 Table 424.2.2 typical limits, 424.2.3 note),
+  Summary of checks, one section per beam with node table, governing substitution and deflected-shape
+  figure, Limitations and review notes. Drawn PDF pages add deflected shapes (3 per A4 page).
+  No engineer approval or signature is implied.
+- Save/Open sheet XML keeps tables and beam rows (sheet XML limit raised to 64 M characters).
+
+2. WIND LOAD (NSCP 2015)
+- Exposure: now investigated in the two 45° upwind sectors either side of each wind-from direction
+  (207A.7.1) using 7 rays at 15°, instead of 3 rays within ±15°. The more severe result governs.
+  B / D fetch, D transition, continuous B distance, nearest/longest water and qualifying rays are
+  listed with a plain-language reason for B, C, D or UNRESOLVED (no-data never becomes C).
+- Fetch height: mean roof height h when building geometry is entered, otherwise z (window, map,
+  report and PDF now agree; previously the window could show Unresolved without building data).
+- Kzt: all five 207A.8.1 conditions listed per direction. H measured from the upwind terrain.
+  Conditions 3–5 are evaluated; 1–2 (isolation/protrusion) are shown as REVIEW and Kzt is calculated
+  as if met (conservative). Shows why Kzt = 1.00 (e.g. hill shape but H/Lh < 0.2 or site in lower half)
+  or the full K1, K2, K3 substitution with μ, γ and the H/Lh > 0.5 rule.
+- New result tabs: "Exposure and Kzt explanation" (per direction) and "STAAD Wind Input":
+  qz by height (eave, mean roof, apex), wall pressure bands (windward qz·G·Cp at band top + |leeward
+  qh·G·Cp|, internal pressure cancels) and a ready STAAD DEFINE WIND LOAD / TYPE / INT / HEIG block with
+  copy/CSV export. Notes warn against applying G·Cp twice. Roofs are applied separately.
+- Engineering report adds exposure, Kzt and STAAD wind input sections; drawn PDF adds explanation
+  pages with auto-height rows (no truncated text).
+- Map: traced source-map contour strokes (verified by overlay on the embedded NSCP maps for I, II and
+  III-V) replace synthetic TIN isolines; roughness grid clipped to the study circle; labels show
+  "N / Exposure C". Report map is re-centred on the site with the whole circle in frame and does not
+  export a partially loaded basemap. Speed lookup itself still uses the existing TIN.
+- Terrain profiles: one scale for distance and elevation, with a stated vertical exaggeration
+  (auto 1/2/5/10/20/50/100×; mouse wheel changes it, double-click resets). Same in the report SVG.
+- Building model: apex dimension measured vertically from ground below the apex; model follows the
+  ridge orientation; rise shown.
+
+3. SPLICE, DEVELOPMENT & HOOKS — saved configurations can be deleted (multi-select, confirmation,
+   atomic write). Built-in/generated presets can be hidden and brought back with "Restore built-ins".
+   Projects that used a removed configuration still resolve the same values.
+
+4. USER EDITION ONLY — asks Windows to exclude app windows from capture (SetWindowDisplayAffinity
+   WDA_EXCLUDEFROMCAPTURE, Windows 10 2004+; WDA_MONITOR fallback). Covers Snipping Tool / Print Screen
+   and recorders using standard capture APIs. Best effort: not DRM; privileged/other capture methods and
+   cameras cannot be prevented; native message boxes/file dialogs are not covered. Admin unaffected.
+
+5. Purlin/truss section preview and truss weld reference: source wiring re-checked (profile/family
+   changes invalidate the preview; weld inputs repaint/highlight on edit and focus). Native interaction
+   still needs Windows confirmation.
+
+VALIDATION ACTUALLY PERFORMED (Linux container, Mono 6.8 compiler with .NET Framework 4.8 reference
+assemblies, -langversion:5)
+- Admin and User editions compile (C# 5 / net48 references).
+- New: BeamDeflectionTests 66, WindAuditTests 77, SavedConfigurationTests 10 (+ edition policy check
+  compiled both ways) — all pass.
+- Existing pure suites pass under Mono, including WindRecovery 40, WindBuildingLoads 24, SteelSection-
+  Geometry 2462, PowBeamMarkImport 63, Piece 263, AngleSegments 16, PowOpenAndIssues 15, ManualSlab 17,
+  EngineeringQuantityPdf 8, LongProjectTitle 19 and the other calculation suites in Test.ps1.
+- Beam Deflection form exercised under Mono/Xvfb: inputs, calculation, save/open round-trip, report
+  build. HTML report rendered in Chromium to A4 PDF: 2 pages, minimum text 7 pt.
+- Mobile generator: mask 256/503 accepted, unknown bits rejected (WebCrypto, Node).
+- Fail identically on the unchanged v1.4.62 baseline (not caused by this update): CommercialBarsTests
+  (stale exact-format check against PurchaseReports.Summary), AccessProtocolTests and other tests that
+  need Win32 APIs, and native WinForms UI tests (Mono TabControl/icon differences).
+NOT performed here: Windows native UI, real STAAD files from the owner, Excel COM, qpdf-secured PDF
+output, printing, capture-exclusion behaviour, Windows build scripts and MSIX. Run scripts/Test.ps1,
+Build-User.ps1 and Build-Admin.ps1 on Windows (or CI on a pull request) before release.
+No Microsoft Store, TestFlight or Pages publication. No keys added, rotated or exported.

@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.4.116 (18 November 2026)
+
+Builds on v1.4.115.
+- Owner: the status is separate from the table. The STATUS column was removed from Bill of Quantities; the panel
+  under the table is now a Status panel listing input errors, quantities that are not mapped, mapped quantities that
+  are excluded and automatic LS values, with a summary line (e.g. "Status: 8 not mapped · 1 excluded").
+  Double-click a "Not mapped" line to choose its BACKUP item; double-click an "Excluded" line to include it again.
+  Right-click a mapped quantity in the table still offers Change BACKUP item / Leave unmapped / Include.
+- Owner: project information (title, location) starts blank: when the app starts, and after a Program of Works is
+  closed; opening a POW file loads its own project information, and a POW file without it leaves the fields blank.
+  The office name and address are kept. (Skipped under CI so tests keep their sample data.)

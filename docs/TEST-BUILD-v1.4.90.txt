@@ -1,0 +1,10 @@
+DTCE Tool Kit v1.4.90 (17 November 2026)
+
+Builds on v1.4.89.
+- Owner report (CHB Estimate): a row had no Wall ID ("Enter Wall ID and description") and no plaster/paint sides,
+  while the empty new row below already showed W010 and "2 sides". Cause: pasting into the new row created a
+  blank row without the sheet's defaults. Paste now moves the new row's defaults (auto ID, sides, materials) to
+  the pasted row and gives the new row fresh defaults; rows added by a multi-row paste also get defaults.
+- Masonry rows with input but a blank Wall ID are filled automatically on recalculation (repairs such rows).
+- Wall IDs use the lowest unused W number across masonry sheets (no gaps), like the other automatic IDs.
+- Checked on Linux/Mono: pasted row -> W003 with "2 sides"; blank-ID row -> W004; status Ready.

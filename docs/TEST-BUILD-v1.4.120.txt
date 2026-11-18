@@ -1,0 +1,12 @@
+DTCE Tool Kit v1.4.120 test build (18 November 2026)
+
+Bill of Quantities
+- Columns: DESCRIPTION is wider and ITEM NO. narrower (owner request).
+- Status no longer shows a bare "OK" when no Tool Kit quantity is mapped to
+  any pay item. The include checkbox and the expand arrow only appear on pay
+  items that receive Tool Kit quantities; when none do, Status now explains
+  why: either the project has no worksheet rows yet (quantities come from
+  the BACKUP workbook) or the quantities are not mapped yet (use Map BACKUP
+  items).
+
+Includes v1.4.118-119. Not a Microsoft Store release.

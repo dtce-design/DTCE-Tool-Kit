@@ -17,7 +17,7 @@ partial class WindDesignForm {
     CalculationDocument.Text(g,WindColors.Legend,36,716,523,28,7);
     CalculationDocument.Text(g,(wind.Coastal?"Nearest-contour continuation outside TIN hull. ":"Delaunay TIN interpolation. ")+"Source raster digitization is approximate; terrain/exposure are preliminary candidates requiring site review.",36,751,523,40,8,false,PowTheme.Muted);
    });
-   var directions=terrain==null?new List<WindDirection>():WindAssessment.Calculate(terrain,z,wind.V,kd);
+   double fetchHeight=ExposureHeight();var directions=terrain==null?new List<WindDirection>():WindAssessment.Calculate(terrain,z,wind.V,kd,WindTin.Finite(fetchHeight)?(double?)fetchHeight:null);
    doc.Sheets.Add(g=>{
     CalculationDocument.Section(g,"02 / EIGHT-DIRECTION VELOCITY-PRESSURE CALCULATIONS",130);
     var rows=directions.Select(d=>new[]{d.Name,d.Exposure,F(d.H),F(d.Lh),F(d.Kzt),F(d.Kz),F(d.Qz),d.Shape}).ToList();
@@ -39,6 +39,7 @@ partial class WindDesignForm {
     CalculationDocument.Section(g,"TERRAIN PROFILES / "+string.Join(" & ",pair.Select(d=>d.Name)),130);
     for(int n=0;n<pair.Length;n++)WindProfileDrawing.Draw(g,new RectangleF(36,172+n*305,523,295),pair[n]);
    });}
+   {List<WindStaadBand> staadBands=null;string staadText="";if(BuildingEnabled&&terrain!=null){var sb=Building();var sd=WindAssessment.Calculate(terrain,sb.Height,wind.V,sb.Kd,sb.Height);staadBands=WindStaadInput.WallBands(sb,wind.V,sd);staadText=WindStaadInput.Commands(staadBands);}WindAuditPages.Add(doc,directions,staadBands,staadText);}
    if(BuildingEnabled){var b=Building();string ridge=Value("RidgeDirection");var pressure=PressureRows(b);var grouped=pressure.GroupBy(r=>r.Direction).ToArray();
     doc.Sheets.Add(g=>{
      CalculationDocument.Section(g,"BUILDING PRESSURE BASIS",130);

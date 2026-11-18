@@ -40,7 +40,7 @@ class BeamEstimate {
 static class EstimatorEngine {
  public static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
  public static string DisplayPart(string part){if(part.EndsWith(" CONTINUOUS"))return part.Replace(" CONTINUOUS"," STRAIGHT / CONTINUOUS");if(part=="Bottom CUT MIDSPAN")return "Bottom CURTAILED MIDSPAN";if(part=="Bottom CUT LEFT"||part=="Bottom CUT RIGHT")return part.Replace("CUT","END EXTRA");if(part.StartsWith("Top CUT "))return part.Replace("Top CUT ","Top EXTRA ");return part;}
- public static double UnitMass(int diameter){switch(diameter){case 10:return .617;case 12:return .888;case 16:return 1.578;case 20:return 2.466;case 25:return 3.853;case 28:return 4.834;case 32:return 6.313;case 36:return 7.990;case 40:return 9.865;case 50:return 15.41;default:throw new Exception("No configured nominal rebar mass for "+diameter+"mm.");}}
+ public static double UnitMass(int diameter){switch(diameter){case 10:return .617;case 12:return .888;case 16:return 1.578;case 20:return 2.466;case 25:return 3.853;case 28:return 4.834;case 32:return 6.313;case 36:return 7.990;case 40:return 9.865;case 50:return 15.41;default:throw new Exception(RebarDiameters.Message(diameter.ToString(System.Globalization.CultureInfo.InvariantCulture)));}}
  public static Dictionary<int,int> Bars(IEnumerable<string> raw,bool eachFace=false){
   var result=new Dictionary<int,int>();foreach(string text in raw){string s=Engine.Normal(text).Replace("#","O").Replace("Ø","O");if(s=="-"||s==""||s=="+")continue;
    var m=Regex.Match(s,@"^(\d+)-O(\d+)(EF)?$");if(!m.Success)throw new Exception("Unsupported bar notation: "+text);

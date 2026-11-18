@@ -1,0 +1,8 @@
+DTCE Tool Kit v1.4.69 (17 November 2026)
+
+Builds on v1.4.68 (see TEST-BUILD-v1.4.68.txt).
+- Owner request: loading animation while a saved Program of Works opens (DTCE logo, moving progress bar and
+  the current step: reading files, loading worksheets and quantities, refreshing linked BACKUP items).
+  The indicator runs on its own UI thread so it keeps moving while the worksheets are filled.
+- Checked on Linux/Mono: indicator appears within 0.1 s, keeps running while the main thread is blocked and
+  closes cleanly, including when closed immediately. Windows appearance to be checked by the owner.

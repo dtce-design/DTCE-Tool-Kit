@@ -24,7 +24,7 @@ static class ModernUi {
   Application.Idle += delegate {
    if(System.Threading.Thread.CurrentThread.ManagedThreadId!=ownerThread||applying)return; applying=true;
    try { foreach(Form form in Application.OpenForms) {
-    object seen; if(windows.TryGetValue(form,out seen))continue;
+    UserCapturePolicy.Attach(form);object seen; if(windows.TryGetValue(form,out seen))continue;
     windows.Add(form,new object()); PowTheme.Apply(form);
    }} finally { applying=false; }
   };
@@ -35,6 +35,7 @@ static class ModernUi {
   path.AddArc(bounds.Right-d,bounds.Bottom-d,d,d,0,90);path.AddArc(bounds.Left,bounds.Bottom-d,d,d,90,90);path.CloseFigure();return path;
  }
  internal static void Navigation(TabControl tabs) {
+  var nav=tabs as NavigationTabs;if(nav!=null&&nav.StripHidden)return;
   tabs.Alignment=TabAlignment.Top;tabs.Multiline=true;tabs.SizeMode=TabSizeMode.Normal;
   tabs.ItemSize=new Size(0,36);tabs.Padding=new Point(24,9);
   tabs.AccessibleName="Program of Works sections";
@@ -42,7 +43,9 @@ static class ModernUi {
  internal static bool Primary(string text) {
   return text=="Add entry" || text=="Apply" || text=="Apply deductions" || text=="Build preview" ||
    text=="Save project information" || text=="Save footing" || text=="Open / Link Excel" ||
-   text=="Save Program of Works" || text=="Calculate";
+   text=="Save Program of Works" || text=="Calculate" ||
+   // Main action of each dialog (owner, 18 November 2026: button formatting).
+   text=="Open selected copy" || text=="Select" || text=="Apply mapping" || text=="Add schedule";
  }
  static readonly Dictionary<string,int> headerWords=new Dictionary<string,int>(StringComparer.Ordinal);
  internal static int HeaderMinimum(string header){int width=60;foreach(string word in (header??"").Split(new[]{' ','\r','\n'},StringSplitOptions.RemoveEmptyEntries)){int measured;if(!headerWords.TryGetValue(word,out measured)){measured=TextRenderer.MeasureText(word,Strong).Width;headerWords.Add(word,measured);}width=Math.Max(width,measured);}return Math.Min(180,width+24);}

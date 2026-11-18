@@ -1,0 +1,9 @@
+DTCE Tool Kit v1.4.111 (17 November 2026)
+
+Builds on v1.4.110.
+- Fixed (owner): the BOQ INCLUDE checkbox could not be clicked (read-only column; the column was also created
+  after the first BOQ row). The column is now created before the rows; a click (or Space) toggles the value.
+- Owner: every mapped / linked quantity is included (checked) by default, LS items too; unchecking subtracts it
+  from the item total. An LS item with included mapped quantities and no manual LS quantity is 1 LS; unchecking
+  all of them makes it 0 LS. A manual LS quantity still takes precedence.
+- Mono: Leversets mapped to an LS item -> 1 LS by default; click -> unchecked, 0 LS.
