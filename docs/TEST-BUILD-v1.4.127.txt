@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.4.127 test build (18 November 2026)
+
+Bill of Quantities include checkbox: pay item (main row) and its quantities
+- Main row checked: every mapped quantity under it is checked and counted.
+- One or more quantities under it unchecked: the main row shows a dash
+  icon instead of the check; the unchecked quantities are not in the total.
+- None checked: empty box.
+- Clicking the main row: dash or empty -> checks all; check -> unchecks all.
+  Clicking a quantity row toggles only that quantity.
+
+Includes v1.4.118-126. Not a Microsoft Store release.
