@@ -26,6 +26,10 @@ class OpeningRoutesUiTests {
    var net=PdmNetwork.Build(rows);Check(net.Nodes.Count>0&&net.Nodes.Min(n=>n.ES)==0&&net.Nodes.All(n=>n.EF==n.ES+n.Row.Days&&n.TF==n.LS-n.ES&&n.LS==n.LF-n.Row.Days),"PDM uses the standard ES = 0, EF = ES + D, TF = LS - ES convention");
    Check(!net.Nodes.Any(n=>ScheduleRow.IsLumpSum(n.Row.Unit)),"LS items without a duration stay out of the network");
    var pert=PertResult.Build(net);Check(pert.Activities.All(a=>Math.Abs(a.A-0.8*a.M)<1e-9&&Math.Abs(a.B-1.2*a.M)<1e-9),"PERT optimistic / pessimistic = -/+20 %");
-   var set=new ScheduleSet(rows,null);Check(set.Sheets.Count>=4&&ScheduleSet.PageW==1654&&ScheduleSet.PageH==1169,"issue set on A3 landscape");}}
+   var crew=ScheduleManpower.Parse("Foreman x1; Skilled Laborer x2; Unskilled Laborer x4; Foreman x1");Check(crew.Sum(k=>k.Value)==8&&ScheduleManpower.Compact("Foreman x1; Skilled Laborer x2; Foreman x1")=="2 Foreman, 2 Skilled Laborer","DUPA crew parsed and same trades added");
+   var mr=new List<ScheduleRow>{new ScheduleRow{Code="A",Unit="m",Days=3,Start=1,Finish=3,Crews=2,Crew="Foreman x1; Unskilled Laborer x2"},new ScheduleRow{Code="B",Unit="m",Days=2,Start=2,Finish=3,Crews=1,Crew="Foreman x1; Skilled Laborer x3"},new ScheduleRow{Code="C",Unit="ls",Days=0,Crew="Foreman x1"}};
+   var md=ScheduleManpower.Daily(mr);Check(md.Length==4&&md[1]==6&&md[2]==10&&md[3]==10&&ScheduleManpower.ManDays(mr[0])==18&&ScheduleManpower.Men(mr[2])==0,"daily manpower = DUPA crew x crews on each working day; LS not counted");
+   var tr=ScheduleManpower.Trades(mr);Check(tr.First(t=>t.Trade=="Foreman").Peak==3&&tr.Sum(t=>t.ManDays)==md.Sum(),"manpower per trade adds up to the daily totals");
+   var set=new ScheduleSet(rows,null);Check(set.Sheets.Count>=4&&ScheduleSet.PageW==1654&&ScheduleSet.PageH==1169&&set.Sheets.Any(k=>k.Key=="MANPOWER LOADING")&&set.Sheets.Any(k=>k.Key=="MANPOWER SCHEDULE"),"issue set on A3 landscape with the manpower sheets");}}
   Console.WriteLine("PASS: "+checks+" automatic door / window BOQ mapping checks");}
 }
