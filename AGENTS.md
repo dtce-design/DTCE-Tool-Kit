@@ -10,8 +10,8 @@ Never copy/commit `AdminPrivateKey.dat`, Owner packages, signing certificates or
 credentials. CI only needs `AccessPublicKey.xml`; never regenerate/rotate keys.
 Build both editions from shared src/. Admin Store/CI packages must be key-free.
 Never include the owner's key in GitHub artifacts, releases or MSIX packages.
-Report watermark: DTCE logo in both Admin and User editions (owner decision, 16 November 2026;
-supersedes the earlier Admin DTCE / User DPWH rule).
+Report watermark: none in the Admin edition; DPWH logo in the User edition, for official use (owner
+decision, 18 November 2026; supersedes the 16 November DTCE-in-both rule).
 Store submission is not enabled until MSIX identity/packaging and account API
 setup are complete. Do not claim a GitHub release is a Microsoft Store release.
 
@@ -117,7 +117,7 @@ columns; the unused TieCount/TieCut input fields may remain as they are.
 ## Store release authorization (17 November 2026)
 
 Owner explicitly asked to publish to the Microsoft Store: both User and Admin editions of the current
-build (requested as v1.4.67; renumbered v1.4.68, now v1.4.121, at the owner's request after further fixes), after the Windows
+build (requested as v1.4.67; renumbered v1.4.68, now v1.4.122, at the owner's request after further fixes), after the Windows
 CI build passes and the owner has checked the test build. This lifts the 16 November release hold for that build only:
 merge the development branch to main (automatic GitHub release), then run the workflow manually on
 main with publish_microsoft_store=true. Store packages stay key-free. Upload is not certification;

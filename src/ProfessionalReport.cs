@@ -8,7 +8,7 @@ class EngineeringReport {
  public EngineeringSection Section(string title){var s=new EngineeringSection{Title=title};Sections.Add(s);return s;}
  public static string Escape(string text){return (text??"").Replace("&","&amp;").Replace("<","&lt;").Replace(">","&gt;").Replace("\"","&quot;").Replace("'","&#39;");}
  public string Html(){var b=new StringBuilder();b.Append("<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><meta http-equiv='Content-Security-Policy' content=\"default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'none'\"><title>").Append(Escape(Title)).Append("</title><style>").Append(Css).Append("</style></head><body><aside class='screen-note'>DTCE ENGINEERING REPORT <span>A4 · 100% scale · Print / Save as PDF: Ctrl+P</span></aside><main>");
-  if(Logo!=""){b.Append("<div class='report-watermark' aria-hidden='true'>");foreach(var tile in ReportWatermarkPattern.Tiles())b.Append("<img alt='' style='left:").Append(tile[0].ToString("0.###",CultureInfo.InvariantCulture)).Append("pt;top:").Append(tile[1].ToString("0.###",CultureInfo.InvariantCulture)).Append("pt;width:").Append(tile[2].ToString("0.###",CultureInfo.InvariantCulture)).Append("pt' src='data:image/png;base64,").Append(Logo).Append("'>");b.Append("</div>");}
+  if(Logo!=""){b.Append("<div class='report-watermark' aria-hidden='true'>");foreach(var tile in ReportWatermarkPattern.Active())b.Append("<img alt='' style='left:").Append(tile[0].ToString("0.###",CultureInfo.InvariantCulture)).Append("pt;top:").Append(tile[1].ToString("0.###",CultureInfo.InvariantCulture)).Append("pt;width:").Append(tile[2].ToString("0.###",CultureInfo.InvariantCulture)).Append("pt' src='data:image/png;base64,").Append(Logo).Append("'>");b.Append("</div>");}
   b.Append("<header class='masthead'><div class='brand'>");if(Logo!="")b.Append("<img alt='Report edition logo' src='data:image/png;base64,").Append(Logo).Append("'>");b.Append("<div><strong>DTCE</strong><span>ENGINEERING CALCULATIONS</span></div></div><div class='document-meta'>").Append(Escape(Status)).Append("<br>").Append(Generated.ToString("dd MMM yyyy",CultureInfo.InvariantCulture)).Append("<br>DTCE Tool Kit v").Append(Engine.Version).Append("</div></header>");
   b.Append("<div class='title-block'><div class='eyebrow'>CALCULATION REPORT</div><h1>").Append(Escape(Title)).Append("</h1><p class='subtitle'>").Append(Escape(Subtitle)).Append("</p></div><table class='project'><tbody><tr><th>PROJECT</th><td>").Append(Escape(Project)).Append("</td></tr><tr><th>LOCATION</th><td>").Append(Escape(Location)).Append("</td></tr>");if(!string.IsNullOrWhiteSpace(Office))b.Append("<tr><th>OFFICE</th><td>").Append(Escape(Office)).Append("</td></tr>");b.Append("</tbody></table>");
   if(Highlights.Count>0){b.Append("<table class='highlights'><tr>");foreach(var item in Highlights)b.Append("<td><span>").Append(Escape(item.Key)).Append("</span><strong>").Append(Escape(item.Value)).Append("</strong></td>");b.Append("</tr></table>");}
@@ -35,7 +35,13 @@ class EngineeringSection {
  public void Figure(string imageOrSvg,string caption,bool svg=false){Blocks.Add((svg&&imageOrSvg.Contains("800 610")?"<figure class='figure plan'>":"<figure class='figure'>")+(svg?imageOrSvg:"<img alt='"+EngineeringReport.Escape(caption)+"' src='data:image/png;base64,"+imageOrSvg+"'>")+"<figcaption>"+EngineeringReport.Escape(caption)+"</figcaption></figure>");}
 }
 static class ProfessionalReport {
- public static EngineeringReport Create(string title,string project,string location,string office=""){var report=new EngineeringReport{Title=title,Project=project,Location=location,Office=office};string logo= "DtceLogo.png";
+ public static EngineeringReport Create(string title,string project,string location,string office=""){var report=new EngineeringReport{Title=title,Project=project,Location=location,Office=office};string logo=
+#if ADMIN_APP
+ "DtceLogo.png";
+#else
+ "DpwhLogo.png";
+#endif
+
   using(var input=typeof(ProfessionalReport).Assembly.GetManifestResourceStream(logo))if(input!=null)using(var output=new MemoryStream()){input.CopyTo(output);report.Logo=Convert.ToBase64String(output.ToArray());}return report;}
  static bool FixedTable(EngineeringSection section,string[] lines,ref int index){
   string[] headers=Regex.Split(lines[index].Trim(),@"\s{2,}");if(headers.Length<3||!headers.Any(c=>c.Any(char.IsLetter))||index+1>=lines.Length)return false;

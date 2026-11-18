@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.4.122 test build (18 November 2026)
+
+Report watermark (owner: "alisin na ang watermark sa admin at ibalik ang dpwh
+logo sa user, para for official use lang siya")
+- Admin edition: no watermark on any report (quantity PDF, calculation
+  reports, printed/drawn pages, report files).
+- User edition: the DPWH logo is the report watermark again and the report
+  header logo, so User reports are for official use.
+- Supersedes the 16 November 2026 rule (DTCE logo in both editions).
+
+Includes v1.4.121 RC Start layout and v1.4.118-120. Not a Microsoft Store release.
