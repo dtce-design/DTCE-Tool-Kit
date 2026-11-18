@@ -1,0 +1,18 @@
+DTCE Tool Kit v1.4.115 (18 November 2026)
+
+Builds on v1.4.114.
+- Owner: INCLUDE column is only as wide as its checkbox (fixed 76 px).
+- Owner: new STATUS column on the right of Bill of Quantities. Pay item: "Linked: n mapped[, m excluded]",
+  "Manual quantity", "Excel value". Mapped quantity: "Mapped", "Auto-matched", "... · excluded", "Manual quantity",
+  "Automatic 1 LS / 0 LS". Unmapped quantity: "Not mapped".
+- Owner: mappings can be changed in Bill of Quantities. Click the (blue) STATUS of a quantity to choose another
+  BACKUP item in the searchable picker; right-click for Change / Leave unmapped / Include in total. The choice is
+  saved with the project (BackupBillRoutes/Override) and wins over the workbook mapping on the next Excel update;
+  the Map BACKUP items dialog remains authoritative when used.
+- Owner: Bill of Quantities grouped by PART following the owner's BACKUP layout: A Facilities for the Engineer,
+  B Other General Requirements, C Pavement, D Slope Protection, E Earthworks, F Ground Improvement, G Piling,
+  H Reinforced Concrete, I Finishing Works with I.1 Termite Control ... I.8 Roofing, J Plumbing / Sanitary,
+  K Electrical, L Mechanical, M Water Supply, N Water Pumping (part from the item number).
+- Painting items are not shown as auto-matched in the app BOQ either (consistent with the Excel write).
+- Mono checks: statuses shown; remap to another LS item and "leave unmapped" work and are saved; PART headings
+  appear in the owner's order A..N.
