@@ -1,4 +1,4 @@
-using System;using System.Windows.Forms;
+using System;using System.Linq;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 // Owner (18 November 2026): pressing Right arrow to the last column (or scrolling to the end) left the right-most column
 // partly hidden in every table. Windows sizes the horizontal scroll range before the vertical scroll bar appears (rows
@@ -9,7 +9,11 @@ static class GridFullColumn {
   bool busy=false;
   Action<int> reveal=column=>{if(busy||g.IsDisposed||!g.IsHandleCreated||column<0||column>=g.ColumnCount||g.Columns[column].Frozen)return;busy=true;try{
     Func<int> overflow=()=>{var rect=g.GetColumnDisplayRectangle(column,false);if(rect.Width==0)return 0;int visible=g.DisplayRectangle.Right;return Math.Max(0,rect.Right-visible);};
-    int need=overflow();if(need<=0)return;int before=g.HorizontalScrollingOffset;
+    int need=overflow();if(need<=0)return;
+    /* Never hide the start of the cell: when the column is wider than the visible area (e.g. a long pay-item column),
+       only bring its left edge into view (owner, 18 November 2026: Map BACKUP items opened scrolled to the right). */
+    var shown=g.GetColumnDisplayRectangle(column,false);int frozen=(g.RowHeadersVisible?g.RowHeadersWidth:0)+g.Columns.Cast<DataGridViewColumn>().Where(c=>c.Visible&&c.Frozen).Sum(c=>c.Width);
+    if(g.Columns[column].Width>g.DisplayRectangle.Width-frozen)need=Math.Min(need,Math.Max(0,shown.Left-frozen));if(need<=0)return;int before=g.HorizontalScrollingOffset;
     try{g.HorizontalScrollingOffset=before+need;}catch(ArgumentException){}
     if(overflow()>0){var bars=g.ScrollBars;g.ScrollBars=ScrollBars.None;g.ScrollBars=bars;try{g.HorizontalScrollingOffset=g.HorizontalScrollingOffset+overflow();}catch(ArgumentException){}}
    }catch(InvalidOperationException){}finally{busy=false;}};

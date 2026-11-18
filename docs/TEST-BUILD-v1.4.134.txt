@@ -1,0 +1,17 @@
+DTCE Tool Kit v1.4.134 test build (18 November 2026)
+
+Status bar on calculation sheets (owner: "maglagay na lang siguro ng status bar
+yung errors at anong id")
+- Every calculation sheet with a Status column now shows a bar under the
+  table when rows need attention: "<ID>: <full message>" for each row (for
+  example "RW-001: Wall 100 mm is less than ..."). Click a line to go to that
+  row. The bar hides when every row is estimated.
+
+Map BACKUP items window (owner: "fix window")
+- The pay-item column now fills the window and wraps, so there is no
+  horizontal scrolling, and the dialog no longer opens scrolled to the right
+  with the first column cut off.
+- Tables in general: moving to a cell wider than the visible area brings its
+  start into view instead of its end (regression from v1.4.125).
+
+Includes v1.4.130-133. Not a Microsoft Store release.
