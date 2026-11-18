@@ -1,0 +1,10 @@
+DTCE Tool Kit v1.13.1 test build (18 November 2026) - formatting
+
+Railing pieces in Bill of Quantities (owner: "per size per section")
+- The breakdown under "Railing pieces to buy (6 m stock lengths)" now reads
+  section | size: N pcs x 6 m (for the railing rows), sorted by section and
+  then by size, e.g. "Pipe (heavy gauge) | Pipe 1/2in heavy gauge
+  OD21.3x2.8mm: 4 pcs x 6 m (for RL-001 Top rail ...; RL-002 Post ...)".
+- Still one BOQ line to map.
+
+Includes v1.13.0. Not a Microsoft Store release (v1.5.0 is the Store build).

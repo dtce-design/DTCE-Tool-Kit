@@ -26,7 +26,7 @@ static class RailingSections {
  internal static int PiecesPerRun(double runM,double spacingMm,int count){if(count>0)return count;if(spacingMm>0){SteelWeight.Positive(runM,spacingMm);return checked((int)Math.Ceiling(runM*1000/spacingMm-1e-9)+1);}return 1;}
  internal static int Segments(double pieceM){return Math.Max(1,(int)Math.Ceiling(pieceM/SteelCutPlanner.StockLength-1e-9));}
 }
-class RailingTakeoff {public string Id,Description,Member,Profile;public double PieceLength,KgM,PaintPerMetre;public int Pieces,Segments;public bool Painted=true;public SteelCutDemand Demand;
+class RailingTakeoff {public string Id,Description,Member,Profile,Section;public double PieceLength,KgM,PaintPerMetre;public int Pieces,Segments;public bool Painted=true;public SteelCutDemand Demand;
  public double Installed{get{return PieceLength*Pieces;}}public double InstalledKg{get{return Installed*KgM;}}public double Paint{get{return Painted?Installed*PaintPerMetre:0;}}}
 partial class ProgramOfWorksForm {
  ExtraWorkGrid railingGrid;readonly List<RailingTakeoff> railings=new List<RailingTakeoff>();List<SteelStock> railingStocks=new List<SteelStock>();
@@ -43,7 +43,7 @@ partial class ProgramOfWorksForm {
    try{if(Cell(row,0)==""||!ids.Add(Cell(row,0)))throw new Exception("Enter a unique railing ID.");var profile=RailingSections.Find(Cell(row,4));if(profile==null)throw new Exception("Select the section and size.");
     double run=Number(row,5);double piece=Cell(row,6)==""?run:Number(row,6);double spacing=OptionalNumber(row,7);int count=Cell(row,8)==""?0:Count(row,8);if(spacing>0&&count>0)throw new Exception("Enter Spacing OR Count / run, not both.");int qty=Count(row,9);
     int perRun=RailingSections.PiecesPerRun(run,spacing,count);int pieces=checked(perRun*qty);int segments=RailingSections.Segments(piece);
-    var t=new RailingTakeoff{Id=Cell(row,0),Description=Cell(row,1),Member=Cell(row,2),Profile=profile.Name,PieceLength=piece,KgM=profile.KgM,PaintPerMetre=SteelPainting.AreaPerMetre(profile),Pieces=pieces,Segments=segments,Painted=Cell(row,10)!=""&&bool.Parse(Cell(row,10))};
+    var t=new RailingTakeoff{Id=Cell(row,0),Description=Cell(row,1),Member=Cell(row,2),Section=Cell(row,3),Profile=profile.Name,PieceLength=piece,KgM=profile.KgM,PaintPerMetre=SteelPainting.AreaPerMetre(profile),Pieces=pieces,Segments=segments,Painted=Cell(row,10)!=""&&bool.Parse(Cell(row,10))};
     var demand=new SteelCutDemand{Member="Railing "+t.Id,Specification=profile.Name,Length=piece/segments,Quantity=checked(pieces*segments),KgM=profile.KgM};t.Demand=demand;demands.Add(demand);railings.Add(t);row.Tag=t;
     row.Cells[11].Value=pieces;Measure(row,12,t.Installed);row.Cells[13].Value=profile.KgM.ToString("0.###",CultureInfo.InvariantCulture);Measure(row,14,t.InstalledKg);Measure(row,16,t.Paint);
     row.Cells[17].Value=segments>1?"Estimated - each "+piece.ToString("0.###",CultureInfo.InvariantCulture)+" m piece spliced into "+segments+" cuts of "+(piece/segments).ToString("0.###",CultureInfo.InvariantCulture)+" m":"Estimated";}
@@ -54,8 +54,10 @@ partial class ProgramOfWorksForm {
      6 m pieces to buy broken down per material (profile / size), not per member type. Members of the same material share
      stock lengths and offcuts; each material line names the railing rows it covers. */
   var pieces=new BillQuantity{Section="Railing",Description="Railing pieces to buy (6 m stock lengths)",Unit="pcs",Quantity=railingStocks.Count};
-  foreach(var group in railingStocks.GroupBy(x=>x.Specification).OrderBy(x=>x.Key)){var rows=railings.Where(r=>r.Profile==group.Key).ToList();
-   pieces.Sources.Add(new BillQuantity{Description=group.Key+": "+group.Count()+" pcs x 6 m (for "+string.Join("; ",rows.Select(r=>r.Id+" "+r.Member+" "+r.Pieces+" pcs x "+r.PieceLength.ToString("0.###",CultureInfo.InvariantCulture)+" m"))+")",Quantity=group.Count(),Unit="pcs"});}
+  /* Breakdown per section, then per size (owner, 18 November 2026: "per size per section"). */
+  foreach(var group in railingStocks.GroupBy(x=>x.Specification).Select(g=>new{Stocks=g,Rows=railings.Where(r=>r.Profile==g.Key).ToList()}).OrderBy(x=>x.Rows.Count>0?x.Rows[0].Section:"").ThenBy(x=>x.Stocks.Key)){
+   string section=group.Rows.Count>0?group.Rows[0].Section:"";
+   pieces.Sources.Add(new BillQuantity{Description=(section==""?"":section+" | ")+group.Stocks.Key+": "+group.Stocks.Count()+" pcs x 6 m (for "+string.Join("; ",group.Rows.Select(r=>r.Id+" "+r.Member+" "+r.Pieces+" pcs x "+r.PieceLength.ToString("0.###",CultureInfo.InvariantCulture)+" m"))+")",Quantity=group.Stocks.Count(),Unit="pcs"});}
   list.Add(pieces);
   var paint=new BillQuantity{Section="Railing",Description="Railing metal painting - installed",Unit="m2",Quantity=railings.Sum(r=>r.Paint)};
   foreach(var r in railings)if(r.Painted)paint.Sources.Add(new BillQuantity{Description=r.Id+" | "+r.Member+" | "+r.Profile+": "+r.Installed.ToString("0.###",CultureInfo.InvariantCulture)+" m x "+r.PaintPerMetre.ToString("0.####",CultureInfo.InvariantCulture)+" m2/m",Quantity=r.Paint,Unit="m2"});
