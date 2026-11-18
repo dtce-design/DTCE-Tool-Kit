@@ -13,3 +13,9 @@ fixes raise PATCH). Contains everything since the v1.4.129 release:
   as well (tab order rebuilt instead of inserted).
 
 Microsoft Store upload requested by the owner (18 November 2026).
+
+Store upload option (owner: "icancel mo tapos ulitin", "cancel certification")
+- New manual workflow input replace_pending_store_submission (default off).
+  When on, the upload first validates the new package, cancels a submission
+  still in certification, then submits this build. If the Store refuses the
+  cancel, the run stops and says to cancel it in Partner Center.

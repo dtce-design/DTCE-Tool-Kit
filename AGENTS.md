@@ -132,6 +132,9 @@ the v1.4.127 submissions were still in Certification ("Existing submission is no
 Store jobs of run 44231420200 only after v1.4.127 certification finishes (or the owner cancels it in Partner Center).
 New owner request (18 November 2026, "pakipush sa Microsoft"): publish v1.5.0 (User and Admin) the same way after
 its Windows CI passes; it supersedes the blocked v1.4.129 upload. Later versions again need a new explicit request.
+Owner (18 November 2026, "icancel mo tapos ulitin", "cancel certification"): cancel the v1.4.127 submissions still
+in certification and submit v1.5.0 instead. Run the workflow with publish_microsoft_store=true and
+replace_pending_store_submission=true for this release only; that input stays false by default.
 
 ## Version numbers (18 November 2026)
 

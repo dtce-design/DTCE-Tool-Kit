@@ -9,6 +9,10 @@ on:
         description: Explicitly upload to Microsoft Store (requires owner instruction)
         type: boolean
         default: false
+      replace_pending_store_submission:
+        description: Cancel a Store submission still in certification and submit this build instead (requires owner instruction)
+        type: boolean
+        default: false
       publish_ios:
         description: Explicitly upload to TestFlight (requires owner instruction)
         type: boolean
@@ -144,6 +148,7 @@ jobs:
           STORE_CERTIFICATION_NOTES: ${{ secrets.STORE_CERTIFICATION_NOTES }}
           STORE_SCREENSHOT_DIR: store-screenshots/User
           STORE_EDITION: User
+          STORE_REPLACE_PENDING: ${{ inputs.replace_pending_store_submission }}
           STORE_APP_ID: 9NSQN0157W5K
           STORE_RELEASE_NOTES: ${{ vars.STORE_RELEASE_NOTES }}
         run: |
@@ -179,6 +184,7 @@ jobs:
           STORE_CERTIFICATION_NOTES: ${{ secrets.STORE_ADMIN_CERTIFICATION_NOTES }}
           STORE_SCREENSHOT_DIR: store-screenshots/Admin
           STORE_EDITION: Admin
+          STORE_REPLACE_PENDING: ${{ inputs.replace_pending_store_submission }}
           STORE_APP_ID: 9P53CR08ZSZ3
           STORE_RELEASE_NOTES: ${{ vars.STORE_ADMIN_RELEASE_NOTES }}
         run: |
