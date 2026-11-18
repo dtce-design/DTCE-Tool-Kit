@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.5.3 test build (18 November 2026) - bug fix
+
+Plastering quantities missing (owner: "bat nawala yung quantities ng plastering?")
+- Cause: v1.5.1 removed every wall without a CHB thickness from the
+  calculation, which also removed its automatic plaster (and paint) area.
+- Now such a wall is counted again (plaster and paint do not depend on the
+  thickness; 150 mm is assumed for the CHB quantity), but its status is not
+  Ready: "Select the CHB / block thickness (mm); 150 mm assumed for now". It
+  appears in the sheet's status bar until a thickness is chosen.
+
+Includes v1.5.1-1.5.2. Not a Microsoft Store release (v1.5.0 is the Store build).

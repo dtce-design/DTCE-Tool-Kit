@@ -6879,12 +6879,10 @@ worksExcelTimer.Tick += async delegate
 							throw new Exception("Enter both Width and Height, or Gross Area only.");
 						}
 						NormalizeMasonryRow(item2);
-						/* Owner (18 November 2026): a wall without a selected thickness is not "Ready" (it used to fall back to
-						   150 mm silently). */
-						if (Cell(item2, 18) == "")
-						{
-							throw new Exception("Select the CHB / block thickness (mm).");
-						}
+						/* Owner (18 November 2026): a wall without a selected thickness is not "Ready"; it is still counted (plaster and
+						   paint do not depend on the thickness), with 150 mm assumed for CHB, and flagged until a thickness is chosen.
+						   v1.5.1 excluded the whole wall, which also removed its plaster. */
+						bool thicknessMissing = Cell(item2, 18) == "";
 						WallItem wallItem = new WallItem
 						{
 							Material = WallMaterial(item2),
@@ -6911,7 +6909,7 @@ worksExcelTimer.Tick += async delegate
 						item2.Cells[8].Value = wallItem.Deduction(wallOpenings).ToString("0.00");
 						item2.Cells[9].Value = num2.ToString("0.00");
 						item2.Cells[10].Value = wallItem.Blocks(wallOpenings);
-						item2.Cells[11].Value = (WallHasOpeningIssue(wallItem.Id) ? "Review this wall's invalid opening before using quantities" : "Ready");
+						item2.Cells[11].Value = (WallHasOpeningIssue(wallItem.Id) ? "Review this wall's invalid opening before using quantities" : thicknessMissing ? "Select the CHB / block thickness (mm); 150 mm assumed for now" : "Ready");
 					}
 					catch (Exception ex3)
 					{
