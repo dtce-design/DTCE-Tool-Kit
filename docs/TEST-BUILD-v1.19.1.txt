@@ -1,0 +1,6 @@
+DTCE Tool Kit v1.19.1 test build (18 November 2026) - formatting
+
+Bill of Quantities (owner: "isagad hanggang sa dulo ng table yung search bar")
+- The search bar now spans the full width of the table and resizes with it.
+
+Includes v1.19.0. Not a Microsoft Store release (v1.5.0 is the Store build).

@@ -1,0 +1,14 @@
+DTCE Tool Kit v1.13.3 test build (18 November 2026) - formatting
+
+Finishing Works > Start (owner: "apaka pangit")
+- Left: "FINISH SCHEDULE" heading, Add/Remove buttons and a table that fills
+  the panel width (Finish ID, Description, BOQ group / item no., Status) with
+  no horizontal scroll bar.
+- Right: "TOTALS PER GROUP" heading with a short note on how areas are added,
+  and a 4-column table (BOQ group / item no., Finish IDs, Measured entries,
+  Total m2) that fills the panel. The duplicate BOQ item column was removed.
+- A custom group that is not yet mapped shows "(not mapped yet)" in orange.
+- Areas without a Finish ID show "No Finish ID yet - choose one on the sheet".
+
+Includes v1.13.2 (railing pieces summarized per section and size).
+Not a Microsoft Store release (v1.5.0 is the Store build).

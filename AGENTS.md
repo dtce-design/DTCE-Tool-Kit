@@ -135,6 +135,14 @@ its Windows CI passes; it supersedes the blocked v1.4.129 upload. Later versions
 Owner (18 November 2026, "icancel mo tapos ulitin", "cancel certification"): cancel the v1.4.127 submissions still
 in certification and submit v1.5.0 instead. Run the workflow with publish_microsoft_store=true and
 replace_pending_store_submission=true for this release only; that input stays false by default.
+Done 18 November 2026: v1.5.0 merged to main (GitHub release OK). The owner had cancelled the v1.4.127
+certification in Partner Center; the canceled submissions were removed and new User and Admin submissions were
+created and committed; Partner Center reported "accepted for processing" (PreProcessing). v1.5.1 and later need a
+new explicit request.
+New owner request (18 November 2026, "upload sa microsoft store"): publish v1.19.4 (User and Admin) the same way after
+its Windows CI passes (publish_microsoft_store=true; replace_pending_store_submission stays false unless the owner asks).
+Owner (18 November 2026, "isama ang bago"): include the newer changes and publish v1.20.0 instead of v1.19.4.
+Later versions again need a new explicit request.
 
 ## Version numbers (18 November 2026)
 

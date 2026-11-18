@@ -5,7 +5,7 @@ namespace BeamScheduleFormatter {
 // status is not a normal result, with its ID (first column) and the full message. Click a line to go to that row.
 static class GridStatusBar {
  static readonly ConditionalWeakTable<DataGridView,object> attached=new ConditionalWeakTable<DataGridView,object>();
- static readonly string[] Normal={"Estimated","Ready","Saved in project","Linked","OK","Computed"};
+ static readonly string[] Normal={"Estimated","Ready","Saved in project","Linked","OK","Computed","Paint only"};
  internal static bool IsIssue(string status){status=(status??"").Trim();return status!=""&&!Normal.Any(n=>status.StartsWith(n,StringComparison.OrdinalIgnoreCase));}
  static int StatusColumn(DataGridView g){for(int i=g.ColumnCount-1;i>=0;i--)if(string.Equals((g.Columns[i].HeaderText??"").Trim(),"Status",StringComparison.OrdinalIgnoreCase))return i;return -1;}
  internal static void Attach(DataGridView g){object seen;if(g==null||attached.TryGetValue(g,out seen))return;attached.Add(g,new object());

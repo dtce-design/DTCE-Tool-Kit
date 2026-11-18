@@ -1,0 +1,14 @@
+DTCE Tool Kit v1.11.0 test build (18 November 2026)
+
+Railings in Bill of Quantities (owner: "tanggalin yung railing weight sa BOQ,
+tapos i-group per member type")
+- Railing purchase weight and installed weight are no longer BOQ quantities
+  (they remain on the Railing Estimate sheet).
+- Pieces are grouped per member type: "Railing top rail - pieces to buy
+  (6 m stock lengths)", "... mid rail ...", "... bottom rail ...", "... post
+  ...", "... baluster ...", "... other ...", each with its profiles and the
+  railing rows they cover. Each member type is cut from its own 6 m lengths
+  (offcuts reused within that member type).
+- Railing metal painting stays (only members ticked "With painting?").
+
+Includes v1.10.0. Not a Microsoft Store release (v1.5.0 is the Store build).

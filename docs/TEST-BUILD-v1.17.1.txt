@@ -1,0 +1,9 @@
+DTCE Tool Kit v1.17.1 test build (18 November 2026) - bug fix
+
+Row delete button (x) on every table (owner: "kapag iba ang naka-select tapos ibang
+row yung x na pinindot ko, yung selected na row ang madedelete")
+- Clicking x deletes only the row it is on. Before, the row of a cell selected
+  elsewhere was deleted as well (or instead). Deleting several selected rows is
+  still done with Ctrl+Delete or right-click > Delete selected rows.
+
+Includes v1.17.0. Not a Microsoft Store release (v1.5.0 is the Store build).

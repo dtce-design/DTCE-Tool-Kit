@@ -4,10 +4,10 @@ namespace BeamScheduleFormatter {
 partial class ProgramOfWorksForm {
  TextBox boqSearch;
  [DllImport("user32.dll",CharSet=CharSet.Unicode)]static extern IntPtr SendMessage(IntPtr hWnd,int msg,IntPtr wParam,string lParam);
- void AddBoqSearch(FlowLayoutPanel toolbar){
+ void AddBoqSearch(FlowLayoutPanel toolbar){/* toolbar: the strip above the BOQ table (v1.19.0) */
   /* Same 38 px row height as the toolbar buttons: the text box is centred vertically in a bordered box and the clear
      action is a small link-style label, so the search lines up with the buttons beside it. */
-  var box=new Panel{Width=340,Height=38,Margin=new Padding(14,2,7,2),Padding=new Padding(30,0,4,0),BackColor=ModernUi.Input,BorderStyle=BorderStyle.None};
+  var box=new Panel{Width=340,Height=38,Margin=new Padding(0,2,0,2),Padding=new Padding(30,3,8,3),BackColor=ModernUi.Input,BorderStyle=BorderStyle.None};/* v1.19.4: the clear button sits inside the border (it covered the border at the right end) */
   boqSearch=new TextBox{Name="BoqSearch",AccessibleName="Search Bill of Quantities",BorderStyle=BorderStyle.None,Font=ModernUi.Body,BackColor=ModernUi.Input,Anchor=AnchorStyles.Left|AnchorStyles.Right};
   /* Owner (17 November 2026): the plain "✕" glyph looked rough. The clear button is now a small painted round chip,
      shown only while there is search text, darker on hover. */

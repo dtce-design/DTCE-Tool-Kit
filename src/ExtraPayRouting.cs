@@ -25,6 +25,7 @@ partial class ProgramOfWorksForm {
   var roofSpecs=RoofSheetPayQuantities().ToDictionary(q=>q.Description,StringComparer.Ordinal);
   foreach(var demand in demands){
    string earthCode=EarthworkPayRouting.Code(demand.Key,demand.Description,demand.Unit);if(earthCode!=null){var requiredItem=BackupPayItemCatalog.Items().Single(t=>t.Code==earthCode);demand.PayCode=requiredItem.Code;demand.PayDescription=requiredItem.Description;}
+   if(demand.Key.StartsWith(FinishGroupSection+"|")){var std=FinishStandard.Find(demand.Description);if(std!=null){demand.PayCode=std.Code;demand.PayDescription=std.PayDescription;}}
    BillQuantity roofSpec;if(demand.Key.StartsWith("Roofing Works|")&&roofSpecs.TryGetValue(demand.Description,out roofSpec)){demand.PayCode=roofSpec.PayCode;demand.PayDescription=roofSpec.PayDescription;}
    if(demand.Key.StartsWith("Rebar purchase by size|")){bool g60=PayText(demand.Description).Contains("GRADE60");demand.PayCode=g60?"902(1)a2":"902(1)a1";demand.PayDescription=g60?grade60:"Reinforcing Steel (Deformed), Grade 40";}
    if(demand.Key.StartsWith("Earthworks|")&&BackupMapping.Unit(demand.Unit)=="m3"&&PayText(demand.Description).Contains("EXCAVATION")&&!PayText(demand.Description).Contains("EMBANKMENT")&&!PayText(demand.Description).Contains("UNSUITABLE")&&!PayText(demand.Description).Contains("SURPLUS")){demand.PayCode=excavationMaterial.Text=="Soft Rock"?"803(1)b":excavationMaterial.Text=="Hard Rock"?"803(1)c":"803(1)a";demand.PayDescription="Structure Excavation ("+excavationMaterial.Text+")";}

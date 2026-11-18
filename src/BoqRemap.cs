@@ -9,13 +9,16 @@ namespace BeamScheduleFormatter {
 //   on the next Excel update (routes are written to BACKUP then).
 partial class ProgramOfWorksForm {
  readonly Dictionary<string,string> boqRouteOverrides=new Dictionary<string,string>(StringComparer.Ordinal);readonly HashSet<string> boqUnmapped=new HashSet<string>(StringComparer.Ordinal);
- internal sealed class BoqStatusNote {internal string Kind,Text;internal BackupDemand Demand;internal BackupBillItem Item;}
+ internal sealed class BoqStatusNote {internal string Kind,Text;internal BackupDemand Demand;internal BackupBillItem Item;internal List<BackupDemand> Demands;}
  readonly List<BoqStatusNote> boqStatusNotes=new List<BoqStatusNote>();
  // Collected while the BOQ is rebuilt; shown in the status panel under the table.
  void NoteBoqStatus(BackupBillItem item,List<BackupDemand> sources){string head=item.Code+" "+item.Description;
   if(item.ManualInputText!=null)boqStatusNotes.Add(new BoqStatusNote{Kind="Error",Text=head+": invalid manual quantity \""+item.ManualInputText+"\"",Item=item});
   foreach(var d in sources){if(d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal)){boqStatusNotes.Add(new BoqStatusNote{Kind="Automatic LS",Text=head+": "+(d.Quantity>0?"1 LS from included mapped quantities":"0 LS - no mapped quantity included"),Item=item});continue;}
-   if(d.ManualOverride)continue;if(!BoqIncluded(d.Key,item))boqStatusNotes.Add(new BoqStatusNote{Kind="Excluded",Text=d.Description+" — mapped to "+head+" but not counted (double-click to include)",Demand=d,Item=item});}}
+   }
+  /* Owner (18 November 2026, "huwag na isa-isahin, yung parent item no. lang ilagay"): one Excluded line per pay item. */
+  var excluded=sources.Where(d=>!d.ManualOverride&&!d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal)&&!BoqIncluded(d.Key,item)).ToList();
+  if(excluded.Count>0)boqStatusNotes.Add(new BoqStatusNote{Kind="Excluded",Text=head+" — "+excluded.Count+" mapped quantit"+(excluded.Count==1?"y":"ies")+" not counted (double-click to include)",Demand=excluded[0],Demands=excluded,Item=item});}
  void BoqRemapSetup(){
   var menu=new ContextMenuStrip();BackupDemand target=null;var change=new ToolStripMenuItem("Change BACKUP item…");var unmap=new ToolStripMenuItem("Leave unmapped");var include=new ToolStripMenuItem("Include in total");
   change.Click+=(s,e)=>{if(target!=null)ChangeBoqMapping(target);};unmap.Click+=(s,e)=>{if(target!=null)SetBoqRoute(target.Key,null);};
@@ -29,7 +32,7 @@ partial class ProgramOfWorksForm {
  void ChangeBoqMapping(BackupDemand d){var choices=backupBill.Select(b=>b.Target).Where(t=>BackupMapping.Unit(t.Unit)==BackupMapping.Unit(d.Unit)||BackupMapping.Unit(t.Unit)=="ls").ToList();if(choices.Count==0){MessageBox.Show(this,"No BACKUP item with a compatible unit ("+d.Unit+") is loaded. Link the BACKUP workbook first.","Change BACKUP item",MessageBoxButtons.OK,MessageBoxIcon.Information);return;}
   string currentSlot=SlotForDemand(d);var current=choices.FirstOrDefault(t=>t.SlotId==currentSlot);
   using(var picker=new BackupTargetPicker(d.Description,choices,current)){if(picker.ShowDialog(this)!=DialogResult.OK||picker.Selected==null)return;SetBoqRoute(d.Key,picker.Selected.SlotId);}}
- void SetBoqRoute(string key,string slot){if(slot==null){backupBillRoutes.Remove(key);boqUnmapped.Add(key);boqRouteOverrides[key]=null;}else{backupBillRoutes[key]=slot;boqUnmapped.Remove(key);boqRouteOverrides[key]=slot;}
+ void SetBoqRoute(string key,string slot){if(slot==null){backupBillRoutes.Remove(key);boqIncludes.Remove(key);/* unmapped: listed as Not mapped with its quantity */boqUnmapped.Add(key);boqRouteOverrides[key]=null;}else{backupBillRoutes[key]=slot;boqUnmapped.Remove(key);boqRouteOverrides[key]=slot;}
   dashboardDirty=reportPreviewDirty=true;RefreshVisibleWorksViews();ScheduleWorksExcel();if(excelStatus!=null&&worksExcel!=null)excelStatus.Text="Mapping changed in Bill of Quantities. Writing to BACKUP in the background…";}
  // Applied to every Excel write plan so BOQ choices win over the mapping stored in the workbook.
  void ApplyBoqRouteOverrides(BackupWritePlan plan){if(plan==null||plan.Routes==null)return;foreach(var pair in boqRouteOverrides){if(pair.Value==null){plan.Routes.Remove(pair.Key);continue;}var t=plan.Targets.FirstOrDefault(x=>x.SlotId==pair.Value);if(t!=null&&plan.Demands.Any(d=>d.Key==pair.Key))plan.Routes[pair.Key]=t;}}

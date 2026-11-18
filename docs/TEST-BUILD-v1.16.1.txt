@@ -1,0 +1,15 @@
+DTCE Tool Kit v1.16.1 test build (18 November 2026) - bug fix (save speed)
+
+Save Program of Works (owner: "matagal mag save, write file 87 sec")
+- A project file carries its attached source files, so it can be large, and
+  project folders are often on a synced drive (Google Drive / OneDrive) or a
+  network folder. Before, each save read or wrote the whole file in the project
+  folder four times: copy the old file as backup, write, and two verification
+  reads.
+- Now the file is written and verified on the local disk (in the backup folder
+  %LOCALAPPDATA%\BeamTools\POW-backups, where it is also the newest backup),
+  then copied once to the project folder and checked by size before it
+  replaces the project file. The first save of a file still keeps a copy of the
+  version being replaced. The newest 30 copies per file are kept, as before.
+
+Includes v1.16.0. Not a Microsoft Store release (v1.5.0 is the Store build).

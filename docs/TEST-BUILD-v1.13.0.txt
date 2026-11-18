@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.13.0 test build (18 November 2026)
+
+Sticky pay item in Bill of Quantities (owner: "kapag naka-dropdown, maglolock yung
+position ng cell, gagalaw yung nasa loob, at mag-unlock pag naabot ang last")
+- While you scroll through the rows of an expanded pay item, that pay item
+  (item no., description, quantity, unit) stays pinned just under the column
+  headers, with a blue line under it.
+- It is released as soon as its last sub row has scrolled past and the next
+  pay item comes up. Click the pinned row to jump back to the pay item.
+
+Includes v1.12.0. Not a Microsoft Store release (v1.5.0 is the Store build).

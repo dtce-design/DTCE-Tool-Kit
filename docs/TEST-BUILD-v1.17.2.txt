@@ -1,0 +1,13 @@
+DTCE Tool Kit v1.17.2 test build (18 November 2026) - bug fix
+
+Masonry Works (owner: "nagpapalit ako ng qty sa masonry, di nag-uupdate ang total",
+"kapag area ang ginamit ko")
+- When a wall uses "OR Gross area m2" instead of Width x Height, Wall Qty now
+  multiplies the area (e.g. 20 m2 x 3 = 60 m2). Before, Wall Qty was ignored
+  for area rows, so changing it did not change the net area, CHB pcs, plaster,
+  paint, BOQ or the linked Excel. A blank Wall Qty on an area row counts as 1.
+- The calculation report shows "Gross wall area: 20.00 m2 x 3 = 60.00 m2".
+- Projects with area rows and Wall Qty other than 1 will show larger totals
+  now; please check those rows.
+
+Includes v1.17.1. Not a Microsoft Store release (v1.5.0 is the Store build).

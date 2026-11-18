@@ -992,7 +992,7 @@ namespace BeamScheduleFormatter
 				}
 				if (item.Section == "Structural Steel Works")
 				{
-					flag2 = new string[6] { "Purlins PURCHASE weight", "Angle bars PURCHASE weight", "Metal fascia PURCHASE weight", "Steel plates PURCHASE weight", "Crossbracing rods", SteelPaintingTotal }.Contains(item.Description) || item.Description.StartsWith("Turnbuckles dia ");
+					flag2 = new string[5] { "Purlins PURCHASE weight", "Angle bars PURCHASE weight", "Metal fascia PURCHASE weight", "Steel plates PURCHASE weight", "Crossbracing rods" }.Contains(item.Description) || item.Description.StartsWith("Metal painting - ") /* owner, 18 November 2026: painting broken down per member type */ || item.Description.StartsWith("Turnbuckles dia ");
 				}
 				if(item.Section=="Reinforced Concrete Works"&&item.Description.ToLowerInvariant().Contains("concrete"))flag2=false;
                 if(item.Section=="Canopy / Ledge"&&item.Unit=="m3")flag2=false;
@@ -1057,7 +1057,7 @@ namespace BeamScheduleFormatter
 			}
 			if (flag)
 			{
-				foreach (OpeningItem item4 in openings.Where((OpeningItem o) => o.Material != "Manual"))
+				foreach (OpeningItem item4 in openings.Where((OpeningItem o) => o.Material != "Manual" && o.Material != "Opening"))
 				{
 					BillQuantity billQuantity3 = new BillQuantity();
 					billQuantity3.Section = "Door / window schedule";
@@ -1955,7 +1955,7 @@ namespace BeamScheduleFormatter
 			if (key == "Leversets" || key == "Hinges")
 			{
 				return MergeSources(from o in openings
-					where o.Material != "Manual"
+					where o.Material != "Manual" && o.Material != "Opening"
 					select SourceQuantity(o.Id + " | " + o.Description, (key == "Hinges") ? o.Hinges : o.Locks, "pcs"));
 			}
 			if (key == "Plaster" || key == "MasonryPaint")
@@ -2098,11 +2098,19 @@ namespace BeamScheduleFormatter
 				return MergeSources(StockPurchaseSources(steelStocks).Concat(GridWeightSources(machineBolts, 7)).Concat(GridWeightSources(anchorBolts, 7)).Concat(GridWeightSources(steelPlates, 11))
 					.Concat(GridWeightSources(crossBracing, 9)));
 			}
+			if (name == SteelPaintingTotal)
+			{
+				return steelPaintDetails.ToList();
+			}
+			if (name.StartsWith("Metal painting - "))
+			{
+				return steelPaintDetails.Where((BillQuantity d) => d.Description.StartsWith(name.Substring(17).Split(' ')[0], StringComparison.OrdinalIgnoreCase)).ToList();
+			}
 			if (name.StartsWith("Turnbuckles dia "))
 			{
 				return MergeSources(from DataGridViewRow r in crossBracing.Rows
-					where !r.IsNewRow && Cell(r, 12) == "Estimated" && name == "Turnbuckles dia " + Number(r, 5).ToString("0.###", CultureInfo.InvariantCulture) + "mm"
-					select SourceQuantity(Cell(r, 0) + " | " + Cell(r, 1), Count(r, 6), "pcs"));
+					where !r.IsNewRow && Cell(r, crossBracing.Columns.Count - 1) == "Estimated" && name == "Turnbuckles dia " + Number(r, 5).ToString("0.###", CultureInfo.InvariantCulture) + "mm"
+					select SourceQuantity(Cell(r, 0) + " | " + Cell(r, 1), SteelQty(r, 6), "pcs"));
 			}
 			return new List<BillQuantity>();
 		}
@@ -2604,6 +2612,9 @@ namespace BeamScheduleFormatter
 				"Alignment / zone ID", "Description", "Start station", "End station", "Cut area start m2", "Cut area end m2", "Fill area start m2", "Fill area end m2", "Suitable soil %", "Swell %",
 				"Bank shrink %", "Distance m", "Cut bank m3", "Fill compacted m3", "Status"
 			}, 11);
+			/* Owner (18 November 2026, "ang input na area is compacted, so dapat yung volume required is loose"): the sheet also
+			   shows the loose volume needed for the compacted fill: compacted / (1 - bank shrink) x (1 + swell). */
+			{ int looseColumn = cutFill.Columns.Add("FillRequiredLoose", "Fill required loose m3"); cutFill.Columns[looseColumn].ReadOnly = true; cutFill.Columns[looseColumn].ToolTipText = "Loose volume needed for the compacted fill = compacted / (1 - bank shrink %) x (1 + swell %). Embankment in Bill of Quantities uses loose volumes (from excavation first, then common borrow)."; try { cutFill.Columns[looseColumn].DisplayIndex = cutFill.Columns[13].DisplayIndex + 1; } catch (InvalidOperationException) { } }
 			AddGrid("Cut & Fill", cutFill, "Average end area: volume = (start area + end area)/2 x station distance. Areas are m2, NOT depths or volumes. Station: metres or 0+020. Same alignment intervals must not overlap. Insert zero/change-point sections. Exclude beam/footing trenches already counted separately.");
 			SetDefaults(cutFill, new Dictionary<int, string>
 			{
@@ -2842,10 +2853,11 @@ namespace BeamScheduleFormatter
 			});
 			start.Controls.Add(new Label
 			{
-				Text = "Estimating defaults: suitable soil 100%, swell 20%, bank shrink 10%. Confirm against project soil data. These factors apply automatically to cut/fill, beam trenches, footings and common borrow; individual-row overrides are disabled. Gravel has a separate purchase allowance.",
+				Text = "These factors apply to every cut / fill row, beam trench, footing and common borrow. Defaults are estimating assumptions (reusable 100%, swell 20%, shrinkage 10%); confirm them against the project soil data.",
 				Width = 1100,
 				Height = 42
 			});
+			ArrangeSoilFactors(flowLayoutPanel2);
 			start.Controls.Add(flowLayoutPanel2);
 			start.Resize += delegate
 			{
@@ -2923,6 +2935,7 @@ namespace BeamScheduleFormatter
 					{
 						item.Cells[i].Value = "";
 					}
+					if (cutFill.Columns.Contains("FillRequiredLoose")) item.Cells["FillRequiredLoose"].Value = "";
 					try
 					{
 						item.Cells[8].Value = suitableSoil.Value;
@@ -2955,6 +2968,7 @@ namespace BeamScheduleFormatter
 						item.Cells[11].Value = (cutFillInterval.End - cutFillInterval.Start).ToString("0.00");
 						item.Cells[12].Value = cutFillInterval.Cut.ToString("0.00");
 						item.Cells[13].Value = cutFillInterval.Fill.ToString("0.00");
+						if (cutFill.Columns.Contains("FillRequiredLoose")) item.Cells["FillRequiredLoose"].Value = (cutFillInterval.Fill / (1.0 - earthworkMaterial2.Shrink / 100.0) * (1.0 + earthworkMaterial2.Swell / 100.0)).ToString("0.00");
 						item.Cells[14].Value = "Estimated";
 					}
 					catch (Exception ex)
@@ -3577,6 +3591,7 @@ namespace BeamScheduleFormatter
 			bool readOnly = (fasciaFrame.Columns[8].ReadOnly = true);
 			dataGridViewColumn.ReadOnly = readOnly;
 			AddSteelSetColumns();
+			AddSteelPaintColumns();
 			steelCutGrid = Grid(new string[8] { "Stock no.", "Profile / specification", "Cut order", "Member ID", "Cut m", "Remaining after cut m", "Next use", "Final leftover m" }, 0);
 			steelCutGrid.ReadOnly = true;
 			steelCutGrid.AllowUserToAddRows = false;
@@ -3690,7 +3705,7 @@ namespace BeamScheduleFormatter
 			}
 			AssignStructuralSteelIds();
 			steelDemands.Clear();
-			steelPaintAreas.Clear();
+			steelPaintAreas.Clear();steelPaintDetails.Clear();
 			steelStocks.Clear();
 			plateStocks.Clear();
 			HashSet<string> hashSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -3712,7 +3727,7 @@ namespace BeamScheduleFormatter
 					item2.Tag = null;
 					for (int i = num; i <= num2; i++)
 					{
-						if (!IsSteelSetColumn(value.Columns[i])) item2.Cells[i].Value = "";
+						if (!IsSteelSetColumn(value.Columns[i]) && value.Columns[i].Name != SteelPaintOnlyColumn) item2.Cells[i].Value = "";
 					}
 					if (Empty(item2))
 					{
@@ -3734,6 +3749,11 @@ namespace BeamScheduleFormatter
 							if (steelProfile == null || steelProfile.Kind != ((value == steelPurlins) ? "Purlin" : "Angle bar"))
 							{
 								throw new Exception("Select a matching handbook profile.");
+							}
+							if (IsSteelPaintOnly(item2))
+							{
+								AddPaintOnlyRow(item2, steelProfile.Name, Number(item2, 4), SteelQty(item2, 5));
+								continue;
 							}
 							SteelCutDemand steelCutDemand = AddSteelDemand(item2, steelProfile.Name, Cell(item2, 3), Number(item2, 4), SteelQty(item2, 5), steelProfile.KgM);
 							item2.Cells[6].Value = steelProfile.KgM;
@@ -3797,9 +3817,18 @@ namespace BeamScheduleFormatter
 							int num11 = SteelQty(item2, 6);
 							Measure(item2, 7, num9, "0.000");
 							Measure(item2, 8, num9 * (double)num11, "0.000");
+							if (IsSteelPaintOnly(item2))
+							{
+								SteelWeight.Positive(num10, num9);
+								SteelWeight.Count(num11);
+								AddRodPaint(item2, num10, num9, num11);
+								item2.Cells[num2].Value = SteelPaintOnlyStatus;
+								continue;
+							}
 							Measure(item2, 9, SteelWeight.Rod(num10, num9, num11));
 							item2.Cells[10].Value = num11;
 							item2.Cells[11].Value = num10;
+							AddRodPaint(item2, num10, num9, num11);
 						}
 						else
 						{
@@ -3819,6 +3848,11 @@ namespace BeamScheduleFormatter
 							}
 							string name = steelProfile2.Name;
 							double kgM = steelProfile2.KgM;
+							if (IsSteelPaintOnly(item2))
+							{
+								AddPaintOnlyRow(item2, name, Number(item2, 5), SteelQty(item2, 6));
+								continue;
+							}
 							if (flag2)
 							{
 								Measure(item2, 7, steelProfile2.B, "0.###");
@@ -3961,13 +3995,13 @@ namespace BeamScheduleFormatter
 			list.AddRange(SteelPaintingRows());
 			List<object[]> list2 = list;
 			foreach (IGrouping<double, DataGridViewRow> item in from DataGridViewRow row in crossBracing.Rows
-				where !row.IsNewRow && Cell(row, 12) == "Estimated"
+				where !row.IsNewRow && Cell(row, crossBracing.Columns.Count - 1) == "Estimated" /* Status moved to the end when QTY/Units/Sets/Multiplier were added */
 				group row by Number(row, 5))
 			{
 				list2.Add(new object[3]
 				{
 					"Turnbuckles dia " + item.Key.ToString("0.###", CultureInfo.InvariantCulture) + "mm",
-					item.Sum((DataGridViewRow row) => Count(row, 6)),
+					item.Sum((DataGridViewRow row) => SteelQty(row, 6)),
 					"pcs"
 				});
 			}
@@ -4483,14 +4517,14 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			AddGrid("Door & Window Schedule", wood, "Overall opening dimensions in metres, INCLUDING jamb/frame. Leaf size = opening less jamb thickness. Paint: leaf faces/edges + exposed jamb. Window includes sill. Door thickness is fixed at 45mm. Door hinges/locksets are automatic; set Swing/Sliding/Fixed and leaves/unit. Select deductions in CHB Openings.");
 			AddGrid("Aluminum Doors & Windows", aluminum, "Opening dimensions include the full rough opening/frame for CHB deduction. No aluminum painting is included. Select this schedule and quantity in CHB Openings to deduct it from a wall.");
 			AddGrid("CHB Estimate", walls, "Enter Width x Height x Qty OR Gross Area (leave the other method blank), then choose 100 or 150 mm thickness. Add / edit openings to deduct up to 3 door/window schedules. Pale-yellow cells are inputs; net areas are automatic.");
-			finishSchedule = FinishScheduleGrid();
+			finishSchedule = FinishScheduleGrid();InstallFinishPayItemPicker();
 			AddGrid("Finish Schedule", finishSchedule, "GUIDE: Type a Group name for each Finish ID (example: Porcelain Glazed Tiles and Trims). Reuse the same spelling to combine areas across floors, walls and ceilings. Prescribed names use fixed Excel cells; custom names appear in POW Finish Types.");
 			wallFinishes = FinishGrid(true);
 			ceilingFinishes = FinishGrid(false);
 			floorFinishes = FinishGrid(false);
-			AddGrid("Wall Finishes", wallFinishes, "Wall ID links the finish to CHB. Side A/B identify the two wall faces. Assign Finish IDs and groups in Finishing Works > Start; its Group controls all summarized areas. Tiles deduct from plaster on selected faces only. Whole wall (auto) uses net CHB area; Dimensions requires the actual opening overlap as deduction per face.");
-			AddGrid("Ceiling Finishes", ceilingFinishes, "Enter measurement ID, dimensions and quantity. Deduction is total openings/voids for this entry in m2; it is deducted once. Assign Finish IDs and groups in Finishing Works > Start.");
-			AddGrid("Floor Finishes", floorFinishes, "Enter finish code, dimensions and quantity. Deduction is total excluded area for this entry in m2; it is deducted once. Assign Finish IDs and groups in Finishing Works > Start; its schedule Group controls area totals. No percentage factor is added.");
+			AddGrid("Wall Finishes", wallFinishes, "Wall ID links the finish to CHB. Side A/B identify the two wall faces. Choose the Finish ID in the Finish ID column (defined in Finishing Works > Start); its Group controls all summarized areas. Tiles deduct from plaster on selected faces only. Whole wall (auto) uses net CHB area; Dimensions requires the actual opening overlap as deduction per face.");
+			AddGrid("Ceiling Finishes", ceilingFinishes, "Enter measurement ID, dimensions and quantity. Deduction is total openings/voids for this entry in m2; it is deducted once. Choose the Finish ID in the Finish ID column (defined in Finishing Works > Start).");
+			AddGrid("Floor Finishes", floorFinishes, "Enter finish code, dimensions and quantity. Deduction is total excluded area for this entry in m2; it is deducted once. Choose the Finish ID in the Finish ID column (defined in Finishing Works > Start); its schedule Group controls area totals. No percentage factor is added.");
 			AddMasonryMaterials();
 			AddStructuralSteel();
 			AddRoofing();
@@ -4560,6 +4594,7 @@ worksExcelTimer.Tick += async delegate
             /* closing the Program of Works ends its project: the next one starts with blank project information */
             FormClosed += (s0, e0) => { if (!Automated) ProjectInfoStore.ClearProject(); };
             InstallStandardSettings();
+            InstallRowInclusion();
             PlaceSteelSetColumns();
             if (wood != null) PlaceOpeningPaintColumns(wood);
 			tabs.Multiline = true;
@@ -5356,7 +5391,7 @@ worksExcelTimer.Tick += async delegate
 				Name = "Type",
 				Width = 100
 			};
-			dataGridViewComboBoxColumn.Items.AddRange("Door", "Window");
+			dataGridViewComboBoxColumn.Items.AddRange("Door", "Window", "Opening"); /* "Opening": dimensions only, deducted from its wall (owner, 18 November 2026) */
 			g.Columns.RemoveAt(3);
 			g.Columns.Insert(3, dataGridViewComboBoxColumn);
 			for (int i = 7; i <= 10; i++)
@@ -5388,6 +5423,9 @@ worksExcelTimer.Tick += async delegate
 			};
 			dataGridViewComboBoxColumn2.Items.AddRange("Swing", "Sliding", "Fixed");
 			g.Columns.Add(dataGridViewComboBoxColumn2);
+			/* Owner (18 November 2026, "huwag mo na ilagay yung operation"): the Operation column is hidden and every opening is
+			   counted as Swing; window hardware follows Locksets/unit and Hinges/unit (enter 0 for sliding or fixed). */
+			dataGridViewComboBoxColumn2.Visible = false;
 			AddMouldingColumns(g);
 			AddOpeningMaterialColumn(g, isWood ? "Wood" : "Aluminum");
 			AddOpeningPaintColumns(g);
@@ -5803,7 +5841,8 @@ worksExcelTimer.Tick += async delegate
 		private DataGridView FinishScheduleGrid()
 		{
 			DataGridView dataGridView = Grid(new string[4] { "Finish ID", "Description", "Group (type a name)", "Status" }, 3);
-			dataGridView.Columns[2].Width = 480;
+			dataGridView.Columns[2].Width = 330;
+			dataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill; dataGridView.Columns[0].FillWeight = 16; dataGridView.Columns[1].FillWeight = 34; dataGridView.Columns[2].FillWeight = 50; dataGridView.Columns[3].FillWeight = 14;
 			dataGridView.Columns[2].DefaultCellStyle.WrapMode = DataGridViewTriState.True;
 			dataGridView.Columns[2].ToolTipText = "Type a group name. Matching names combine across all finish IDs. Use the exact prescribed name when linking to a fixed Excel finish group; other names appear in POW Finish Types.";
 			dataGridView.CellEndEdit += delegate
@@ -6384,6 +6423,7 @@ worksExcelTimer.Tick += async delegate
 				}
 			};
 			int material = g.Columns.Add("MaterialName", "Group (from Finish ID)");
+			AddFinishTypedAreaColumn(g, wall);
 			g.Columns[material].ReadOnly = true;
 			g.Columns[material].Width = 300;
 			g.Columns[material].DefaultCellStyle.WrapMode = DataGridViewTriState.True;
@@ -6485,7 +6525,7 @@ worksExcelTimer.Tick += async delegate
 					if (flag)
 					{
 						bool flag2 = Cell(item, 6) == "Whole wall (auto)";
-						for (int k = 7; k <= 10; k++)
+						foreach (int k in new int[5] { 7, 8, 9, 10, item.DataGridView.Columns.Contains(FinishTypedAreaColumn) ? item.DataGridView.Columns[FinishTypedAreaColumn].Index : 10 })
 						{
 							item.Cells[k].ReadOnly = flag2;
 							item.Cells[k].Style.BackColor = (flag2 ? Color.FromArgb(235, 237, 240) : ModernUi.Input);
@@ -6511,8 +6551,14 @@ worksExcelTimer.Tick += async delegate
 						};
 						if (!flag || !(finishItem.Basis == "Whole wall (auto)"))
 						{
-							finishItem.Length = Number(item, flag ? 7 : 3);
-							finishItem.Width = Number(item, flag ? 8 : 4);
+							string typed = TypedFinishArea(item);
+							if (typed != "") finishItem.TypedArea = Number(item, item.DataGridView.Columns[FinishTypedAreaColumn].Index);
+							if (typed == "" || Cell(item, flag ? 7 : 3) != "" || Cell(item, flag ? 8 : 4) != "")
+							{
+								if (typed != "") throw new Exception("Use Length x Height OR the typed area, not both.");
+								finishItem.Length = Number(item, flag ? 7 : 3);
+								finishItem.Width = Number(item, flag ? 8 : 4);
+							}
 							finishItem.Quantity = Count(item, flag ? 9 : 5);
 							finishItem.Deduction = Number(item, flag ? 10 : 6);
 						}
@@ -6535,13 +6581,15 @@ worksExcelTimer.Tick += async delegate
 						{
 							throw new Exception("Duplicate finish Entry ID across finish tabs.");
 						}
-						WallItem wallItem = (flag ? FindWall(finishItem.Wall) : null);
-						if (flag && wallItem == null)
+						/* a wall finish entry without Wall ID (owner, 18 November 2026) counts on its own, e.g. an adjustment */
+						bool linkedWall = flag && !string.IsNullOrWhiteSpace(finishItem.Wall);
+						WallItem wallItem = (linkedWall ? FindWall(finishItem.Wall) : null);
+						if (linkedWall && wallItem == null)
 						{
 							throw new Exception("Wall ID not found or wall has an error.");
 						}
 						double num3 = finishItem.PerFace(wallItem, wallOpenings);
-						if (flag && num3 > wallItem.Net(wallOpenings) + 1E-07)
+						if (linkedWall && num3 > wallItem.Net(wallOpenings) + 1E-07)
 						{
 							throw new Exception("Finish area exceeds the linked net wall area per face.");
 						}
@@ -6743,6 +6791,7 @@ worksExcelTimer.Tick += async delegate
 				{
 					beam.SetProjectSoilFactors((double)borrowSwell.Value, (double)borrowShrink.Value);
 				}
+				PruneDeletedWallLinks();
 				openings.Clear();
 				wallOpenings.Clear();
 				wallItems.Clear();
@@ -6771,9 +6820,11 @@ worksExcelTimer.Tick += async delegate
 						}
 						try
 						{
-							string rowMaterial = (dataGridView == manualOpeningsGrid) ? "Manual" : OpeningMaterial(item, dataGridView == wood);
+							bool plainOpening = dataGridView != manualOpeningsGrid && Cell(item, 3) == "Opening";
+							string rowMaterial = (dataGridView == manualOpeningsGrid) ? "Manual" : plainOpening ? "Opening" : OpeningMaterial(item, dataGridView == wood);
 							bool woodRow = rowMaterial == "Wood";
 							if (dataGridView != manualOpeningsGrid) StyleOpeningMaterialCells(item, woodRow);
+							if (dataGridView != manualOpeningsGrid) StylePlainOpeningCells(item, plainOpening);
 							if (woodRow)
 							{
 								AutomaticWoodDimensions(item);
@@ -6781,7 +6832,7 @@ worksExcelTimer.Tick += async delegate
 							OpeningItem openingItem = new OpeningItem
 							{
 								Id = Cell(item, 0),
-								Description = Cell(item, 1),
+								Description = (plainOpening && Cell(item, 1) == "") ? "Opening" : Cell(item, 1),
 								Wall = Cell(item, 2),
 								Material = rowMaterial,
 								Kind = Cell(item, 3),
@@ -6791,15 +6842,15 @@ worksExcelTimer.Tick += async delegate
 								JambDepth = (woodRow ? Number(item, 7) : 0.0),
 								JambThickness = (woodRow ? Number(item, 8) : 0.0),
 								LeafThickness = (woodRow ? 0.045 : 0.0),
-								Faces = (woodRow ? Count(item, 10) : 0),
+								Faces = ((woodRow && OpeningPaint(item, PaintLeafColumn)) ? Count(item, 10) : 0), /* owner, 18 November 2026: Paint faces is only needed when the leaf is painted */
 								LocksPerUnit = ((!(Cell(item, 3) == "Door") && !(Cell(item, 11) == "")) ? Count(item, 11) : 0),
 								HingesPerUnit = ((!(Cell(item, 3) == "Door") && !(Cell(item, 12) == "")) ? Count(item, 12) : 0),
 								Leaves = ((Cell(item, 20) == "") ? 1 : Count(item, 20)),
-								Operation = ((Cell(item, 21) == "") ? "Swing" : Cell(item, 21)),
+								Operation = "Swing", /* Operation column removed (owner, 18 November 2026) */
 								MouldingProfile = Cell(item, 24),
-								Exterior = (dataGridView != manualOpeningsGrid && Cell(item, 22) != "" && bool.Parse(Cell(item, 22))),
+								Exterior = (dataGridView != manualOpeningsGrid && !plainOpening && Cell(item, 22) != "" && bool.Parse(Cell(item, 22))),
 								PaintLeaf = OpeningPaint(item, PaintLeafColumn),
-								PaintJamb = OpeningPaint(item, PaintJambColumn)
+								PaintJamb = OpeningPaint(item, PaintLeafColumn) /* one combined paint checkbox (owner, 18 November 2026) */
 							};
 							openingItem.Validate();
 							if (!ids.Add(openingItem.Id))
@@ -6807,7 +6858,7 @@ worksExcelTimer.Tick += async delegate
 								throw new Exception("Duplicate Opening ID (including other opening tab).");
 							}
 							openings.Add(openingItem);
-							bool flag = openingItem.Kind == "Door" || openingItem.Operation != "Swing" || openingItem.Material == "Manual";
+							bool flag = openingItem.Kind == "Door" || openingItem.Operation != "Swing" || openingItem.Material == "Manual" || openingItem.Material == "Opening";
 							int[] array2 = new int[2] { 11, 12 };
 							foreach (int index in array2)
 							{
@@ -6824,10 +6875,6 @@ worksExcelTimer.Tick += async delegate
 								item.Cells[9].Value = "45";
 								item.Cells[9].ReadOnly = true;
 								item.Cells[9].Style.BackColor = Color.FromArgb(235, 237, 240);
-							}
-							else
-							{
-								item.Cells[9].ReadOnly = false;
 							}
 							item.Cells[13].Value = openingItem.Area.ToString("0.00");
 							item.Cells[14].Value = openingItem.LeafPaint.ToString("0.00");
@@ -6879,6 +6926,10 @@ worksExcelTimer.Tick += async delegate
 							throw new Exception("Enter both Width and Height, or Gross Area only.");
 						}
 						NormalizeMasonryRow(item2);
+						/* Owner (18 November 2026): a wall without a selected thickness is not "Ready"; it is still counted (plaster and
+						   paint do not depend on the thickness), with 150 mm assumed for CHB, and flagged until a thickness is chosen.
+						   v1.5.1 excluded the whole wall, which also removed its plaster. */
+						bool thicknessMissing = Cell(item2, 18) == "";
 						WallItem wallItem = new WallItem
 						{
 							Material = WallMaterial(item2),
@@ -6886,7 +6937,7 @@ worksExcelTimer.Tick += async delegate
 							Description = Cell(item2, 1),
 							Length = ((Cell(item2, 19) == "") ? Number(item2, 2) : 1.0),
 							Height = ((Cell(item2, 19) == "") ? Number(item2, 3) : 1.0),
-							Quantity = ((!(Cell(item2, 19) == "")) ? 1 : Count(item2, 4)),
+							Quantity = ((Cell(item2, 19) != "" && Cell(item2, 4) == "") ? 1 : Count(item2, 4)), /* Wall Qty also multiplies a gross area input */
 							BlockWidth = ((Cell(item2, 5) == "") ? 0.4 : Number(item2, 5)),
 							BlockHeight = ((Cell(item2, 6) == "") ? 0.2 : Number(item2, 6)),
 							Plaster = ((Cell(item2, 12) == "") ? "2 sides" : Cell(item2, 12)),
@@ -6905,7 +6956,7 @@ worksExcelTimer.Tick += async delegate
 						item2.Cells[8].Value = wallItem.Deduction(wallOpenings).ToString("0.00");
 						item2.Cells[9].Value = num2.ToString("0.00");
 						item2.Cells[10].Value = wallItem.Blocks(wallOpenings);
-						item2.Cells[11].Value = (WallHasOpeningIssue(wallItem.Id) ? "Review this wall's invalid opening before using quantities" : "Ready");
+						item2.Cells[11].Value = (WallHasOpeningIssue(wallItem.Id) ? "Review this wall's invalid opening before using quantities" : thicknessMissing ? "Select the CHB / block thickness (mm); 150 mm assumed for now" : "Ready");
 					}
 					catch (Exception ex3)
 					{
@@ -6918,7 +6969,7 @@ worksExcelTimer.Tick += async delegate
 					errors.Add(item3.Id + ": Wall ID " + item3.Wall + " has no CHB row; not deducted.");
 				}
 				RecalculateFinishes();
-				RefreshFinishAssignments();
+				RefreshFinishAssignments();RefreshFinishGroupTotals();
 				RecalculateRoofing();
 				RecalculateGravel();
 				RecalculateEarthworks();
@@ -6959,7 +7010,7 @@ worksExcelTimer.Tick += async delegate
 			stringBuilder.AppendLine("PROGRAM OF WORKS | QUANTITY BACKUP");
 			stringBuilder.AppendLine("OPENINGS SUMMARY");
 			stringBuilder.AppendLine(string.Format("{0,-10}{1,15}{2,15}{3,13}{4,13}", "MATERIAL", "OPENING m2", "PAINT m2", "LOCKSETS", "HINGES"));
-			string[] array = new string[3] { "Wood", "Aluminum", "Manual" };
+			string[] array = new string[5] { "Wood", "Aluminum", "PVC", "Steel", "Manual" };
 			foreach (string material in array)
 			{
 				IEnumerable<OpeningItem> source = openings.Where((OpeningItem o) => o.Material == material);
@@ -6987,7 +7038,7 @@ worksExcelTimer.Tick += async delegate
 			foreach (WallItem w in wallItems)
 			{
 				stringBuilder.AppendLine(w.Id + " | " + w.Description + " | CHB " + w.ThicknessMm.ToString("0.00") + "mm");
-				stringBuilder.AppendLine(string.Format(CultureInfo.InvariantCulture, w.EnteredArea.HasValue ? "  Gross wall area: {3:0.00} m2" : "  Wall: {0:0.00} x {1:0.00} m x {2} = {3:0.00} m2", w.Length, w.Height, w.Quantity, w.Gross));
+				stringBuilder.AppendLine(string.Format(CultureInfo.InvariantCulture, w.EnteredArea.HasValue ? "  Gross wall area: " + w.EnteredArea.Value.ToString("0.00", CultureInfo.InvariantCulture) + " m2 x {2} = {3:0.00} m2" : "  Wall: {0:0.00} x {1:0.00} m x {2} = {3:0.00} m2", w.Length, w.Height, w.Quantity, w.Gross));
 				foreach (OpeningItem item in wallOpenings.Where((OpeningItem o) => string.Equals(o.Wall, w.Id, StringComparison.OrdinalIgnoreCase)))
 				{
 					stringBuilder.AppendLine("    Less " + item.Id + " / " + item.Description + ": " + item.Area.ToString("0.00") + " m2");
@@ -7400,10 +7451,10 @@ worksExcelTimer.Tick += async delegate
 					switch (section)
 					{
 					case "WallFinishes":
-						return Enumerable.Range(0, 11).Concat(new int[1] { 14 }).ToArray();
+						return Enumerable.Range(0, 11).Concat(new int[2] { 14, 15 }).ToArray();
 					case "CeilingFinishes":
 					case "FloorFinishes":
-						return Enumerable.Range(0, 7).Concat(new int[1] { 10 }).ToArray();
+						return Enumerable.Range(0, 7).Concat(new int[2] { 10, 11 }).ToArray();
 					default:
 						return Enumerable.Range(0, 13).Concat(new int[4] { 20, 21, 22, 24 }).ToArray();
 					}
@@ -7412,6 +7463,11 @@ worksExcelTimer.Tick += async delegate
 		}
 
 		private string DataXml()
+		{
+			return WithExcludedValues(DataXmlCore);
+		}
+
+		private string DataXmlCore()
 		{
 			XmlDocument xmlDocument = new XmlDocument();
 			XmlElement xmlElement = xmlDocument.CreateElement("ProgramOfWorks");
@@ -7436,7 +7492,9 @@ worksExcelTimer.Tick += async delegate
 							xmlElement3.SetAttribute("c" + n, Cell(item2, n));
 						}
 						WriteSteelSets(item.Key, item2, xmlElement3);
+						WriteSteelPaintOnly(item2, xmlElement3);
 						WriteOpeningPaint(item.Key, item2, xmlElement3);
+						WriteRowExcluded(item2, xmlElement3);
 						xmlElement2.AppendChild(xmlElement3);
 					}
 				}
@@ -7501,7 +7559,7 @@ worksExcelTimer.Tick += async delegate
 		{
 			Guard();
 			string contents = BuildWorksProjectXml(false);
-            ApplyDeferredSources();PowBackups.Backup(path);PowProjectFileWriter.WriteWithSources(path,contents,ProjectSources());
+            ApplyDeferredSources();PowProjectFileWriter.Save(path,contents,ProjectSources(),true);
 			beam.WorksSaved();
 			slab.WorksSaved();
             currentPowPath=Path.GetFullPath(path);
@@ -7674,7 +7732,7 @@ worksExcelTimer.Tick += async delegate
 				ReadBackupBillRoutes(xmlDocument.DocumentElement);
 				ReadStructureConfigurations(xmlDocument.DocumentElement);
 				finishTypeCells = finishTypeRegistry;
-				openingAssignments.Clear();
+				openingAssignments.Clear();ClearParkedWallOpenings();
 				openingAssignments.AddRange(collection);
 				foreach (KeyValuePair<string, DataGridView> item3 in Tables())
 				{
@@ -7745,8 +7803,10 @@ worksExcelTimer.Tick += async delegate
 							item3.Value.Rows[index].Cells[num2].Value = ((item3.Value.Columns[num2] is DataGridViewCheckBoxColumn) ? ((object)(text != "" && bool.Parse(text))) : text);
 						}
 						ReadSteelSets(item3.Key, item3.Value.Rows[index], item4);
+						ReadSteelPaintOnly(item3.Value.Rows[index], item4);
 						ReadOpeningPaint(item3.Key, item3.Value.Rows[index], item4);
 						if ((item3.Key == "Wood" || item3.Key == "Aluminum") && !item4.HasAttribute("c" + OpeningMaterialColumn)) item3.Value.Rows[index].Cells[OpeningMaterialColumn].Value = (item3.Key == "Wood") ? "Wood" : "Aluminum";
+						ReadRowExcluded(item3.Value.Rows[index], item4);
 					}
 				}
 			}
@@ -7898,9 +7958,21 @@ worksExcelTimer.Tick += async delegate
 			TabPage tabPage2 = new TabPage("BACKUP quantities");
 			tabPage2.Controls.Add(boqGrid);
 			boqPages.TabPages.Add(tabPage2);
-			tabPage.Controls.Add(boqGrid);
+			/* Owner (18 November 2026): the red summary line above the table is removed (the Status panel lists the same
+			   issues), and the search bar sits on the table itself, directly above its header. */
+			boqStatus.Visible = false;
+			var boqSearchStrip = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 48, Padding = new Padding(0, 4, 0, 4), WrapContents = false };
+			var boqTableArea = new Panel { Dock = DockStyle.Fill };
+			boqTableArea.Controls.Add(boqGrid);
+			boqTableArea.Controls.Add(boqSearchStrip);
+			tabPage.Controls.Add(boqTableArea);
 			AddIssuePanel(tabPage);
-			AddBoqSearch(flowLayoutPanel);
+			AddBoqSearch(boqSearchStrip);
+			/* Owner (18 November 2026, "isagad hanggang sa dulo ng table"): the search bar spans the full table width. */
+			Action fitSearch = delegate { foreach (Control c in boqSearchStrip.Controls) c.Width = Math.Max(200, boqSearchStrip.ClientSize.Width - c.Margin.Horizontal - boqSearchStrip.Padding.Horizontal); };
+			boqSearchStrip.Resize += delegate { fitSearch(); };
+			boqSearchStrip.ControlAdded += delegate { fitSearch(); };
+			fitSearch();
 			tabPage.Controls.Add(boqStatus);
 			tabPage.Controls.Add(flowLayoutPanel);
 			tabPage.Controls.Add(value);
@@ -8406,14 +8478,55 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 			{
 				Dock = DockStyle.Fill,
 				Size = new Size(1100, 650),
-				Orientation = Orientation.Horizontal,
-				SplitterDistance = 250,
-				Panel1MinSize = 140,
-				Panel2MinSize = 140
+				Orientation = Orientation.Vertical, /* owner, 18 November 2026: Finish Schedule and Totals per Group side by side */
+				SplitterDistance = 560,
+				Panel1MinSize = 320,
+				Panel2MinSize = 320
+			};
+			/* Owner (18 November 2026, "hindi napapansin yung division"): a visible divider between the two panels and an
+			   outline around each panel. */
+			splitContainer.SplitterWidth = 14;
+			splitContainer.Panel1.Padding = new Padding(1);
+			splitContainer.Panel2.Padding = new Padding(1);
+			PaintEventHandler outline = delegate(object s, PaintEventArgs e)
+			{
+				Control c = (Control)s;
+				using (Pen pen = new Pen(PowTheme.Muted))
+				{
+					e.Graphics.DrawRectangle(pen, 0, 0, c.Width - 1, c.Height - 1);
+				}
+			};
+			splitContainer.Panel1.Paint += outline;
+			splitContainer.Panel2.Paint += outline;
+			splitContainer.Paint += delegate(object s, PaintEventArgs e)
+			{
+				Rectangle r = splitContainer.SplitterRectangle;
+				int x = r.Left + r.Width / 2;
+				using (Pen pen = new Pen(PowTheme.Teal, 3f))
+				{
+					e.Graphics.DrawLine(pen, x, r.Top + 6, x, r.Bottom - 6);
+				}
+				using (SolidBrush brush = new SolidBrush(PowTheme.Teal))
+				{
+					int mid = r.Top + r.Height / 2;
+					for (int i = -1; i <= 1; i++)
+					{
+						e.Graphics.FillEllipse(brush, x - 4, mid + i * 10 - 4, 8, 8);
+					}
+				}
+			};
+			splitContainer.SplitterMoved += delegate { splitContainer.Invalidate(); };
+			splitContainer.Resize += delegate { splitContainer.Invalidate(); };
+			bool finishSplitPlaced = false;
+			splitContainer.SizeChanged += delegate
+			{
+				if (finishSplitPlaced || splitContainer.Width < 700) return;
+				finishSplitPlaced = true;
+				try { splitContainer.SplitterDistance = (int)(splitContainer.Width * 0.48); } catch (InvalidOperationException) { }
 			};
 			Label value = new Label
 			{
-				Text = "FINISH SCHEDULE | Define Finish IDs, descriptions and material groups here",
+				Text = "FINISH SCHEDULE",
 				Dock = DockStyle.Top,
 				Height = 42,
 				Padding = new Padding(10),
@@ -8464,20 +8577,33 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 					}
 				}
 			};
-			splitContainer.Panel2.Controls.Add(finishAssignments);
+			splitContainer.Panel2.Controls.Add(FinishGroupTotalsGrid());splitContainer.Panel2.Controls.Add(FinishGroupChartControl()); /* owner, 18 November 2026: consolidated per group; Finish IDs are chosen on the measurement sheets */
+			/* Owner (18 November 2026, "ang pangit"): both panels share one heading style and their tables start at the same height. */
 			splitContainer.Panel2.Controls.Add(new Label
 			{
-				Text = "ASSIGN FINISHES | Add measurement entries in Wall/Ceiling/Floor Finishes, then assign their Finish IDs here. Those working sheets contain measurements only.",
+				Text = "Areas with the same group are added together and go to that BOQ item. Pick each area's Finish ID in Wall / Ceiling / Floor Finishes.",
 				Dock = DockStyle.Top,
-				Height = 65,
+				Height = 44,
+				Padding = new Padding(10, 4, 10, 4),
+				ForeColor = PowTheme.Muted,
+				TextAlign = ContentAlignment.MiddleLeft
+			});
+			splitContainer.Panel2.Controls.Add(new Label
+			{
+				Text = "TOTALS PER GROUP",
+				Dock = DockStyle.Top,
+				Height = 42,
 				Padding = new Padding(10),
-				ForeColor = PowTheme.Muted
+				Font = new Font("Segoe UI", 11f, FontStyle.Bold)
 			});
 			tabPage.Controls.Add(splitContainer);
 			DataGridView[] array2 = new DataGridView[3] { wallFinishes, ceilingFinishes, floorFinishes };
 			foreach (DataGridView dataGridView in array2)
 			{
-				dataGridView.Columns[2].Visible = false;
+				/* Owner (18 November 2026, "pano ko i-assign yung mga na-measure kong area sa Finish ID"): the Finish ID can be
+				   chosen directly on each measurement row; the Assign Finishes table at Start shows and edits the same value. */
+				dataGridView.Columns[2].Visible = true;
+				dataGridView.Columns[2].ToolTipText = "Choose the Finish ID from the Finish Schedule (Finishing Works > Start). The same choice appears in Assign Finishes.";
 				dataGridView.Columns[(dataGridView == wallFinishes) ? 14 : 10].Visible = false;
 			}
 		}

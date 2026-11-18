@@ -1,0 +1,26 @@
+DTCE Tool Kit v1.19.2 test build (18 November 2026) - bug fixes
+
+Bill of Quantities include box (owner: "pakicheck ng mabuti yung coding sa include
+exclude check box sa BOQ, ayusin lahat ng bug")
+- An unchecked quantity that later becomes "not mapped" (e.g. after Map BACKUP
+  items) was set to 0 and disappeared from both the BOQ and the Not mapped
+  list. It is now listed under Not mapped with its quantity, and its exclusion
+  is cleared (a quantity can only be excluded from a pay item).
+- LS items: a quantity listed under an LS item by automatic suggestion now
+  also makes the item 1 LS (before, only saved mappings did), so the LS total
+  matches what the BOQ lists.
+- A quick second click on the box (read by Windows as a double click) was
+  ignored; every click now toggles.
+- A click on the pinned pay item band (while scrolling) could toggle the box of
+  the hidden row under it; it now only jumps to the pay item.
+- The box always shows and toggles the saved include state (it could show a
+  stale value).
+
+Deleted walls (owner: "yung lumang opening na naka-save sa wall ID, dapat yung
+deleted rows naalis na unless nag-undo")
+- Openings of a deleted wall are removed with it. They come back only with Undo
+  (the same wall row with the same inputs). A new wall that receives the same
+  automatic ID no longer gets the old openings. Old links in a saved project
+  that point to a wall ID that no longer exists are removed on opening.
+
+Includes v1.19.1. Not a Microsoft Store release (v1.5.0 is the Store build).

@@ -1,0 +1,24 @@
+DTCE Tool Kit v1.17.0 test build (18 November 2026) - new feature
+
+Automatic Bill of Quantities mapping for Doors & Windows (owner: "pwede ba automatic
+na pagmap yung leverset hinges sa finishing hardware, tapos yung doors and windows
+automatic na if wooden tapos aluminum door / aluminum window")
+- Leversets and hinges        -> 1004(2) Finishing Hardware
+- Wood doors / windows, jambs -> 1010(4) Wooden Doors and Windows (KD Tanguile)
+- Aluminum door               -> 1007(2) Powder-Coated Aluminum-Framed Glass Door
+- Aluminum window             -> 1008(2) Powder-Coated Aluminum-Framed Glass Window
+- PVC door                    -> 1043(1) PVC Doors and Frames
+- Steel door                  -> 1006(6) Steel Doors and Frames
+- Steel window                -> 1005(5) Steel Window
+These are defaults: a quantity you already mapped, changed or unmapped in the
+BOQ keeps your choice. PVC windows have no standard item and stay for manual
+mapping.
+
+New opening material "Steel" (owner: "additional type Steel Window"): Steel
+doors and windows behave like Aluminum / PVC (no wood jamb, leaf or paint inputs).
+
+Operation column removed (owner: "huwag mo na ilagay yung operation"): every
+opening is counted as Swing. Doors get their hinges automatically; window
+hardware follows Locksets/unit and Hinges/unit (enter 0 for sliding or fixed).
+
+Includes v1.16.1. Not a Microsoft Store release (v1.5.0 is the Store build).

@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.12.0 test build (18 November 2026)
+
+Railings in Bill of Quantities (owner: "sa railing per material hindi per member";
+"isang map lang, di need every material i-map")
+- One BOQ line to map: "Railing pieces to buy (6 m stock lengths)", in pcs.
+- Its breakdown is per material (profile / size): number of 6 m pieces and
+  the railing rows they cover (ID, member, cut pieces x cut length).
+  Members of the same material share stock lengths and offcuts.
+- No railing weights in the BOQ (from v1.11.0); railing painting unchanged.
+
+Includes v1.11.0-1.11.1. Not a Microsoft Store release (v1.5.0 is the Store build).

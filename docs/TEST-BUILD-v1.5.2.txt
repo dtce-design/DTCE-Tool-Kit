@@ -1,0 +1,13 @@
+DTCE Tool Kit v1.5.2 test build (18 November 2026) - bug fix
+
+Bill of Quantities include checkbox (owner: "kapag in-uncheck ko yung checkbox sa
+BOQ, hindi siya ma-unmap; stay pa din doon, di lang masasama sa total")
+- An unchecked quantity stays mapped and listed under its pay item with its
+  own quantity (shown struck through); only the pay-item total leaves it out.
+  Before, the row showed 0 and looked removed.
+- Unchecking now also works for automatically suggested mappings (before, it
+  only changed the total for mappings already saved in the workbook).
+- "Leave unmapped" (right-click) is the separate action that removes the
+  mapping; it also clears the unchecked state.
+
+Includes v1.5.1. Not a Microsoft Store release (v1.5.0 is the Store build).

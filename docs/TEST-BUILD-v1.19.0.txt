@@ -1,0 +1,24 @@
+DTCE Tool Kit v1.19.0 test build (18 November 2026) - new feature
+
+Include / exclude rows (owner: "lagyan ng additional check box sa pinaka left after
+X to include or exclude from totals")
+- Every calculation sheet (Program of Works measurement and estimate tables,
+  including the additional works sheets) has a box beside the row's x.
+  Ticked (default) = counted. Unticked = the row stays with its inputs (shown
+  grey, Status "Excluded from totals") but is left out of every total, BOQ line,
+  report and Excel output. Tick it again to count it.
+- The setting is saved with the project. Not shown on the roof profile library
+  and the finish schedule (definition tables).
+
+Deleted walls (owner: "kapag nag-delete ako ng previous rows, bakit ganito" -
+"Wall ID W013 has no CHB row; not deducted")
+- Deleting a wall row releases the openings assigned to it, so no input error
+  remains. Undo (or entering the same Wall ID again) brings the deductions back.
+
+Bill of Quantities
+- The red summary line above the table is removed (owner: "alisin na ito, nasa
+  status naman na"); issues stay in the Status panel.
+- The search bar sits on the table, directly above its header (owner:
+  "incorporate search bar sa table").
+
+Includes v1.18.1. Not a Microsoft Store release (v1.5.0 is the Store build).

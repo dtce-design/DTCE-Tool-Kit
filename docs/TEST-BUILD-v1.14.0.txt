@@ -1,0 +1,13 @@
+DTCE Tool Kit v1.14.0 test build (18 November 2026) - new feature
+
+Structural Steel Works paint options (owner: "maglagay ng option na paint lang
+i-calculate, hindi kasama sa weight" and "bat di pinapakita yung paint calculated
+sa purlin")
+- Purlin Estimate, Angle Bars, Crossbracing and Metal Fascia Frame have a new
+  "Paint area m2" column showing the metal painting area of each row.
+- New "Paint only" checkbox per row. A ticked row (e.g. existing steel to be
+  repainted) is counted in Metal painting only: no steel weight, purchase,
+  cutting plan or turnbuckles. Its status reads "Paint only - not in steel weight".
+- Paint only is saved with the project; older projects open with it unticked.
+
+Includes v1.13.4. Not a Microsoft Store release (v1.5.0 is the Store build).

@@ -1,0 +1,7 @@
+DTCE Tool Kit v1.8.1 test build (18 November 2026) - layout
+
+Finishing Works > Start (owner: "side by side")
+- Finish Schedule (left) and Totals per Group (right) are now side by side;
+  the divider can be dragged. Column widths fit the half-width panels.
+
+Includes v1.8.0. Not a Microsoft Store release (v1.5.0 is the Store build).

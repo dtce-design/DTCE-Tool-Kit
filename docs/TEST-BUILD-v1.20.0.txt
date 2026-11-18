@@ -1,0 +1,26 @@
+DTCE Tool Kit v1.20.0 test build (18 November 2026) - new features
+
+Finishing Works
+- Wall / Ceiling / Floor Finishes: new "OR Area m2" column - type the area
+  instead of Length x Height / Width (area x Qty) (owner: "or mag-type ng area").
+- Wall Finishes: an entry may have no Wall ID (Dimensions or typed area). A
+  negative typed area is an adjustment that closes / zeroes an excess in its
+  finish group; it must have a blank Wall ID. A group never goes below 0; an
+  adjustment larger than the measured area is listed as an input issue.
+- Finishing Works > Start: bar chart of the total m2 per finish group under
+  Totals per Group.
+
+Earthworks
+- Cut & Fill: new "Fill required loose m3" column = compacted fill / (1 -
+  shrinkage) x (1 + swell) (owner: "ang input na area is compacted, so dapat
+  yung volume required is loose"). The Bill of Quantities embankment lines
+  were already loose volumes (from excavation first, then common borrow).
+- Earthworks Start: soil factors rearranged with plain names, what each means
+  and a live example (owner: "medyo magulo yung factors, paki-explain at
+  paki-ayos"). Values and formulas unchanged.
+
+Tests: two older checks updated to the owner's later decisions (Finish ID is
+chosen on the measurement sheets; the opening Operation column is hidden).
+
+Includes v1.19.4. Microsoft Store upload requested for this build (after green
+Windows CI); upload is not certification.

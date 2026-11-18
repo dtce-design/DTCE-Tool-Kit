@@ -3,7 +3,7 @@ namespace BeamScheduleFormatter {
 sealed class GridRowSnapshot {
  internal object Extra;
  internal readonly List<DataGridViewRow> Rows=new List<DataGridViewRow>();
- static DataGridViewRow Copy(DataGridViewRow source){var row=(DataGridViewRow)source.Clone();for(int i=0;i<source.Cells.Count;i++){row.Cells[i].Value=source.Cells[i].Value;row.Cells[i].ReadOnly=source.Cells[i].ReadOnly;}return row;}
+ static DataGridViewRow Copy(DataGridViewRow source){var row=(DataGridViewRow)source.Clone();row.HeaderCell.Tag=source.HeaderCell.Tag;for(int i=0;i<source.Cells.Count;i++){row.Cells[i].Value=source.Cells[i].Value;row.Cells[i].ReadOnly=source.Cells[i].ReadOnly;}return row;}
  internal static GridRowSnapshot Capture(DataGridView grid){var state=new GridRowSnapshot();foreach(DataGridViewRow row in grid.Rows)if(!row.IsNewRow)state.Rows.Add(Copy(row));return state;}
  internal bool SameInputs(GridRowSnapshot other){if(Rows.Count!=other.Rows.Count)return false;for(int r=0;r<Rows.Count;r++){if(Rows[r].Cells.Count!=other.Rows[r].Cells.Count)return false;for(int c=0;c<Rows[r].Cells.Count;c++)if(!Rows[r].Cells[c].ReadOnly&&!object.Equals(Rows[r].Cells[c].Value,other.Rows[r].Cells[c].Value))return false;}return true;}
  internal void Restore(DataGridView grid){grid.Rows.Clear();grid.Rows.AddRange(Rows.Select(Copy).ToArray());}
@@ -13,6 +13,7 @@ sealed class GridEditHistory {
  static readonly ConditionalWeakTable<DataGridView,GridEditHistory> histories=new ConditionalWeakTable<DataGridView,GridEditHistory>();
  static readonly ConditionalWeakTable<Form,ActiveGrid> active=new ConditionalWeakTable<Form,ActiveGrid>();sealed class ActiveGrid{internal GridEditHistory History;}
  internal static event Action StateChanged;
+ /* > 0 while the app itself changes cells (e.g. excluding a row from totals); such changes do not clear Undo. */internal static int Quiet;
  internal static Func<IWin32Window,int,bool> ConfirmDelete=(owner,count)=>MessageBox.Show(owner,"Delete "+count+" selected row"+(count==1?"":"s")+"?\nYou can restore them with Undo.","Confirm row deletion",MessageBoxButtons.YesNo,MessageBoxIcon.Warning,MessageBoxDefaultButton.Button2)==DialogResult.Yes;
  GridEditHistory commandTarget;
  readonly DataGridView grid;readonly UndoHistory<GridEditAction> history=new UndoHistory<GridEditAction>();GridRowSnapshot before;bool restoring,completing;Func<bool> busy=()=>false;Action<bool> setBusy=value=>{};Action changed=()=>{};Func<object,object,bool> sameExtra=(a,b)=>true;Func<object> captureExtra=()=>null;Action<object> restoreExtra=value=>{};
@@ -27,8 +28,8 @@ sealed class GridEditHistory {
   grid.CellBeginEdit+=(s,e)=>{if(restoring||busy())return;Complete();before=Snapshot();};
   grid.CellEndEdit+=(s,e)=>{if(restoring||busy()||before==null||!grid.IsHandleCreated)return;grid.BeginInvoke((Action)(()=>{if(!grid.IsDisposed)Complete();}));};
   grid.RowsRemoved+=(s,e)=>{if(!restoring&&before==null){history.Clear();Notify();}};
-  grid.RowsAdded+=(s,e)=>{if(!restoring&&before==null&&(busy()||!grid.ContainsFocus)){history.Clear();Notify();}};grid.SelectionChanged+=(s,e)=>{if(!restoring)Notify();};
-  grid.CellValueChanged+=(s,e)=>{if(!restoring&&before==null&&e.RowIndex>=0&&e.ColumnIndex>=0&&!grid.Rows[e.RowIndex].Cells[e.ColumnIndex].ReadOnly&&(busy()||!grid.ContainsFocus))Clear();};
+  grid.RowsAdded+=(s,e)=>{if(Quiet>0)return;if(!restoring&&before==null&&(busy()||!grid.ContainsFocus)){history.Clear();Notify();}};grid.SelectionChanged+=(s,e)=>{if(!restoring)Notify();};
+  grid.CellValueChanged+=(s,e)=>{if(Quiet>0)return;if(!restoring&&before==null&&e.RowIndex>=0&&e.ColumnIndex>=0&&!grid.Rows[e.RowIndex].Cells[e.ColumnIndex].ReadOnly&&(busy()||!grid.ContainsFocus))Clear();};
   grid.ColumnAdded+=(s,e)=>Clear();grid.ColumnRemoved+=(s,e)=>Clear();
   grid.UserDeletingRow+=(s,e)=>{e.Cancel=true;if(grid.IsHandleCreated)grid.BeginInvoke((Action)DeleteSelected);};
   grid.Enter+=(s,e)=>EnsureMenu();grid.MouseDown+=(s,e)=>{if(e.Button==MouseButtons.Right)EnsureMenu();};
@@ -53,7 +54,9 @@ sealed class GridEditHistory {
  bool Commit(){if(busy()||restoring||grid.ReadOnly)return false;if(!grid.EndEdit())return false;Complete();return true;}
  internal List<DataGridViewRow> SelectedRows(){return grid.SelectedCells.Cast<DataGridViewCell>().Select(cell=>cell.OwningRow).Concat(grid.SelectedRows.Cast<DataGridViewRow>()).Distinct().Where(row=>!row.IsNewRow&&row.Visible&&!row.ReadOnly&&row.Cells.Cast<DataGridViewCell>().Any(cell=>!cell.ReadOnly)&&grid.AllowUserToDeleteRows&&!grid.ReadOnly).OrderBy(row=>row.Index).ToList();}
  void Apply(Action action){bool was=busy();var original=Snapshot();restoring=true;before=null;grid.SuspendLayout();setBusy(true);try{try{action();}catch{Restore(original);throw;}finally{setBusy(was);grid.ResumeLayout(false);}changed();}finally{restoring=false;Notify();}}
- internal void DeleteRow(int index){if(index<0||index>=grid.Rows.Count||grid.Rows[index].IsNewRow)return;foreach(DataGridViewRow row in grid.Rows)row.Selected=false;grid.Rows[index].Selected=true;DeleteSelected();}
+ /* Owner (18 November 2026): the row whose × was clicked is deleted, never the row of a cell selected elsewhere (the
+    selected cells used to be added to the deletion). */
+ internal void DeleteRow(int index){if(index<0||index>=grid.Rows.Count||grid.Rows[index].IsNewRow)return;var target=grid.Rows[index];DeleteRows(new[]{target});}
  internal void DeleteSelected(){DeleteRows(SelectedRows());}
  internal void ClearSelectedCells(){if(grid.ReadOnly||!Commit())return;var cells=grid.SelectedCells.Cast<DataGridViewCell>().Where(c=>!c.ReadOnly&&!c.OwningRow.IsNewRow&&c.Visible&&!(c is DataGridViewComboBoxCell)&&!(c is DataGridViewCheckBoxCell)&&!(c is DataGridViewButtonCell)&&c.Value!=null&&Convert.ToString(c.Value)!="").ToList();if(cells.Count==0)return;
   var old=Snapshot();Apply(()=>{foreach(var cell in cells)cell.Value="";Record(new GridEditAction{Before=old,After=Snapshot(),Description="Clear cells"});});}

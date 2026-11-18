@@ -1,13 +1,18 @@
 using System;using System.Collections.Generic;using System.Globalization;using System.IO;using System.Linq;using System.Text;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 // Save safety (owner, 17 November 2026: a save replaced the project file and its quantities were lost, with no prompt).
-// - Before a POW file is replaced, the previous file is copied to %LOCALAPPDATA%\BeamTools\POW-backups\<name>\ (the
+// - Since v1.16.1 each save is written and verified in this backup folder, then copied once to the project (the
+//   first save of a file there also copies the version being replaced). Before: the previous file is copied to %LOCALAPPDATA%\BeamTools\POW-backups\<name>\ (the
 //   newest 30 copies per file are kept).
 // - Save asks before replacing a file that holds noticeably more entries than this window would write, or that was
 //   changed on disk after this window opened / saved it. Auto-save never replaces such a file; it waits for a manual Save.
 // - A failed Open leaves the window unbound from any file, so a partly loaded window cannot overwrite a project.
 static class PowBackups {
  internal static string Folder{get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"BeamTools","POW-backups");}}
+ static string Dir(string path){string name=Path.GetFileName(path);foreach(char c in Path.GetInvalidFileNameChars())name=name.Replace(c,'_');return Path.Combine(Folder,name);}
+ internal static bool HasAny(string path){string dir=Dir(path);return Directory.Exists(dir)&&Directory.EnumerateFiles(dir).Any(f=>!f.EndsWith(".tmp",StringComparison.OrdinalIgnoreCase));}
+ internal static string NewPath(string path){string dir=Dir(path);Directory.CreateDirectory(dir);return Path.Combine(dir,DateTime.Now.ToString("yyyyMMdd-HHmmss-fff",CultureInfo.InvariantCulture)+"-"+Path.GetFileName(dir));}
+ internal static void Trim(string path){string dir=Dir(path);if(!Directory.Exists(dir))return;foreach(var old in new DirectoryInfo(dir).GetFiles().Where(f=>!f.Name.EndsWith(".tmp",StringComparison.OrdinalIgnoreCase)).OrderByDescending(f=>f.LastWriteTimeUtc).Skip(30))try{old.Delete();}catch(Exception){}}
  internal static string Backup(string path){if(!File.Exists(path))return null;var info=new FileInfo(path);if(info.Length==0)return null;
   string name=Path.GetFileName(path);foreach(char c in Path.GetInvalidFileNameChars())name=name.Replace(c,'_');string dir=Path.Combine(Folder,name);Directory.CreateDirectory(dir);
   string target=Path.Combine(dir,DateTime.Now.ToString("yyyyMMdd-HHmmss",CultureInfo.InvariantCulture)+"-"+name);File.Copy(path,target,true);

@@ -1,0 +1,10 @@
+DTCE Tool Kit v1.17.3 test build (18 November 2026) - formatting
+
+Bill of Quantities Status panel (owner: "huwag na isa-isahin, yung parent item
+no. lang ilagay")
+- Excluded quantities are listed once per pay item, e.g.
+  "1008(2) Powder-Coated Aluminum-Framed Glass Window — 4 mapped quantities not
+  counted (double-click to include)". Double-clicking the line includes all of
+  them again. The heading reads "N pay items with excluded quantities".
+
+Includes v1.17.2. Not a Microsoft Store release (v1.5.0 is the Store build).
