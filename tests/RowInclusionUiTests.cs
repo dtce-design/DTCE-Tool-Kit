@@ -16,9 +16,17 @@ class RowInclusionUiTests {
    /* deleting a wall releases its opening assignments */
    var g=Get<DataGridView>(f,"wood");var o=g.Rows[g.Rows.Add()];o.Cells[0].Value="OPEN-1";o.Cells[3].Value="Opening";o.Cells[4].Value="1";o.Cells[5].Value="1";o.Cells[6].Value="2";
    var links=Get<List<OpeningLink>>(f,"openingAssignments");links.Add(new OpeningLink{Wall="W001",Schedule="OPEN-1",Quantity=1});f.Recalculate();Check(Convert.ToString(w.Rows[0].Cells[8].Value)=="1.00","Opening deducted");
-   w.Rows.RemoveAt(0);f.Recalculate();Check(links.Count==0&&!Get<List<string>>(f,"errors").Any(e=>e.Contains("has no CHB row")),"Deleted wall: no stale opening error");}
+   w.Rows.RemoveAt(0);f.Recalculate();Check(links.Count==0&&!Get<List<string>>(f,"errors").Any(e=>e.Contains("has no CHB row")),"Deleted wall: no stale opening error");
+   {var n=w.Rows[w.Rows.Add()];n.Cells[0].Value="W001";n.Cells[1].Value="New wall";n.Cells[2].Value="7";n.Cells[3].Value="3";n.Cells[4].Value="1";n.Cells[18].Value="150";f.Recalculate();Check(links.Count==0,"A new wall reusing a deleted wall ID does not get its old openings");}}
   using(var f=new ProgramOfWorksForm()){f.OpenProjectXml(xml);f.Recalculate();var w=Get<DataGridView>(f,"walls");
    Check(Math.Abs(Boq(f,"Masonry Works|CHB 150")-30)<1e-6&&w.Rows[1].HeaderCell.Tag!=null,"Exclusion survives save / open");
    Include(f,w.Rows[1],true);Check(Math.Abs(Boq(f,"Masonry Works|CHB 150")-45)<1e-6&&Convert.ToString(w.Rows[1].Cells[2].Value)=="5","Including the row again restores its inputs and total");}
+  /* BOQ include box (v1.19.2): an excluded quantity that becomes unmapped is listed with its quantity, not hidden */
+  using(var f=new ProgramOfWorksForm()){var g=Get<DataGridView>(f,"wood");foreach(var id in new[]{"W-01","W-02"}){var r=g.Rows[g.Rows.Add()];r.Cells[0].Value=id;r.Cells[1].Value="Win";r.Cells[3].Value="Window";r.Cells[25].Value="Aluminum";r.Cells[4].Value="0.9";r.Cells[5].Value="2.1";r.Cells[6].Value="2";}f.Recalculate();
+   var inc=Get<Dictionary<string,bool>>(f,"boqIncludes");string key=f.BackupQuantities().First(d=>d.Key.Contains("W-01")).Key;inc[key]=false;
+   Check(f.BackupQuantities().First(d=>d.Key==key).Quantity==0,"Excluded mapped quantity counts 0");
+   Get<Dictionary<string,string>>(f,"backupBillRoutes").Remove(key);Get<HashSet<string>>(f,"boqUnmapped").Add(key);List<BackupDemand> unmapped;
+   var mi=typeof(ProgramOfWorksForm).GetMethod("SourcesByItem",BindingFlags.Instance|BindingFlags.NonPublic);var args=new object[]{f.BackupQuantities(false),null};mi.Invoke(f,args);unmapped=(List<BackupDemand>)args[1];
+   Check(unmapped.Any(d=>d.Key==key&&Math.Abs(d.Quantity-3.78)<1e-9)&&!inc.ContainsKey(key),"Unmapped quantity is listed with its quantity and is no longer excluded");}
   Console.WriteLine("PASS: "+checks+" row include / exclude and deleted-wall checks");}
 }

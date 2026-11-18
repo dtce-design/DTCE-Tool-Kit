@@ -7717,7 +7717,7 @@ worksExcelTimer.Tick += async delegate
 				ReadBackupBillRoutes(xmlDocument.DocumentElement);
 				ReadStructureConfigurations(xmlDocument.DocumentElement);
 				finishTypeCells = finishTypeRegistry;
-				openingAssignments.Clear();parkedOpeningLinks.Clear();parkedManualOpenings.Clear();
+				openingAssignments.Clear();ClearParkedWallOpenings();
 				openingAssignments.AddRange(collection);
 				foreach (KeyValuePair<string, DataGridView> item3 in Tables())
 				{

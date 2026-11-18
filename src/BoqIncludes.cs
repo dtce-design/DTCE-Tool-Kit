@@ -35,7 +35,7 @@ readonly Dictionary<string,double> boqExcludedQuantities=new Dictionary<string,d
      include box is drawn here: an outlined square, filled with a check mark when the quantity counts in the total. */
   boqGrid.CellPainting+=(s,e)=>{if(e.RowIndex<0||e.ColumnIndex<0||boqGrid.Columns[e.ColumnIndex].Name!=BoqIncludeColumn)return;var cell=boqGrid.Rows[e.RowIndex].Cells[e.ColumnIndex];
    e.PaintBackground(e.ClipBounds,(e.State&DataGridViewElementStates.Selected)!=0);e.Handled=true;if(cell.Tag==null)return;
-   bool on=cell.Value is bool?(bool)cell.Value:string.Equals(Convert.ToString(cell.Value),"True",StringComparison.OrdinalIgnoreCase);
+   var single=cell.Tag as string;bool on=single!=null?BoqIncluded(single,null):cell.Value is bool?(bool)cell.Value:string.Equals(Convert.ToString(cell.Value),"True",StringComparison.OrdinalIgnoreCase);
    /* Owner (18 November 2026): a pay item shows a check when all of its mapped quantities are included, an empty box when
       none are, and a dash when only some are (the unchecked ones are not in the total). */
    var group=cell.Tag as string[];bool partial=false;if(group!=null&&group.Length>0){int included=group.Count(k=>BoqIncluded(k,null));on=included==group.Length;partial=included>0&&!on;}
@@ -45,9 +45,13 @@ readonly Dictionary<string,double> boqExcludedQuantities=new Dictionary<string,d
     if(partial)using(var dash=new Pen(Color.White,2.2f){StartCap=System.Drawing.Drawing2D.LineCap.Round,EndCap=System.Drawing.Drawing2D.LineCap.Round})g.DrawLine(dash,box.Left+size*.25f,box.Top+size*.5f,box.Right-size*.25f,box.Top+size*.5f);
     if(on)using(var tick=new Pen(Color.White,2f){StartCap=System.Drawing.Drawing2D.LineCap.Round,EndCap=System.Drawing.Drawing2D.LineCap.Round,LineJoin=System.Drawing.Drawing2D.LineJoin.Round})g.DrawLines(tick,new[]{new PointF(box.Left+size*.22f,box.Top+size*.52f),new PointF(box.Left+size*.43f,box.Top+size*.72f),new PointF(box.Left+size*.78f,box.Top+size*.3f)});}
    finally{g.SmoothingMode=mode;}};
-  boqGrid.CellMouseClick+=(s,e)=>{if(paintingBackupBill||e.RowIndex<0||e.ColumnIndex<0||e.Button!=MouseButtons.Left||boqGrid.Columns[e.ColumnIndex].Name!=BoqIncludeColumn)return;var cell=boqGrid.Rows[e.RowIndex].Cells[e.ColumnIndex];if(cell.Tag!=null)ToggleInclude(cell);};}
+  /* v1.19.2: a quick second click arrives as a double click and was lost; both count as a click. A click on the pinned
+     pay item band belongs to that band, not to the hidden row under it. */
+  DataGridViewCellMouseEventHandler click=(s,e)=>{if(paintingBackupBill||e.RowIndex<0||e.ColumnIndex<0||e.Button!=MouseButtons.Left||boqGrid.Columns[e.ColumnIndex].Name!=BoqIncludeColumn)return;
+   var bounds=boqGrid.GetCellDisplayRectangle(e.ColumnIndex,e.RowIndex,false);if(BoqStickyItem.Covers(boqGrid,bounds.Top+e.Y))return;var cell=boqGrid.Rows[e.RowIndex].Cells[e.ColumnIndex];if(cell.Tag!=null)ToggleInclude(cell);};
+  boqGrid.CellMouseClick+=click;boqGrid.CellMouseDoubleClick+=click;}
  // A mapped-quantity row toggles itself; a pay item row toggles all of its mapped quantities.
- void ToggleInclude(DataGridViewCell cell){var keys=cell.Tag as string[];var key=cell.Tag as string;if(key!=null)keys=new[]{key};if(keys==null||keys.Length==0)return;/* pay item: all included -> uncheck all; none or some -> check all (owner, 18 November 2026) */bool now=keys.Length>1||cell.Tag is string[]?!keys.All(k=>BoqIncluded(k,null)):!(cell.Value is bool&&(bool)cell.Value);cell.Value=now;foreach(string k in keys)boqIncludes[k]=now;
+ void ToggleInclude(DataGridViewCell cell){var keys=cell.Tag as string[];var key=cell.Tag as string;if(key!=null)keys=new[]{key};if(keys==null||keys.Length==0)return;/* pay item: all included -> uncheck all; none or some -> check all (owner, 18 November 2026) */bool now=!keys.All(k=>BoqIncluded(k,null));cell.Value=now;foreach(string k in keys)boqIncludes[k]=now;
   dashboardDirty=reportPreviewDirty=true;try{BeginInvoke((Action)(()=>{RefreshVisibleWorksViews();ScheduleWorksExcel();}));}catch(InvalidOperationException){}}
  // Called by the BOQ rebuild: one row per mapped quantity (with INCLUDE), its measurement sources indented below.
  void AddBoqDemandRows(DataGridViewRow parent,string branch,BackupBillItem item,List<BackupDemand> sources,List<DataGridViewRow> pending){EnsureBoqIncludeColumn();
@@ -59,6 +63,11 @@ readonly Dictionary<string,double> boqExcludedQuantities=new Dictionary<string,d
    bool same=d.Sources.Count==1&&d.Sources[0].Description==d.Description;if(same)continue;
    foreach(var source in d.Sources){var detail=new DataGridViewRow();detail.CreateCells(boqGrid,"","          \u203A  "+source.Description,source.Quantity.ToString("0.########",CultureInfo.InvariantCulture),source.Unit,null);detail.ReadOnly=true;detail.DefaultCellStyle.ForeColor=PowTheme.Muted;detail.DefaultCellStyle.Font=BoqDetailFont;detail.Cells[2].Style.Padding=new Padding(0,0,BoqDetailQuantityIndent,0);detail.Cells[2].Style.BackColor=detail.Cells[3].Style.BackColor=Color.Empty;BoqDisclosure.Detail(detail,branch);pending.Add(detail);}}}
  string BoqSlotOf(BackupDemand d){if(d.TargetSlotId!=null)return d.TargetSlotId;string slot;return backupBillRoutes.TryGetValue(d.Key,out slot)?slot:null;}
+ /* The pay item a quantity is listed under in Bill of Quantities, including an automatic suggestion (same rule as
+    SourcesByItem). v1.19.2: the LS rule used only saved routes, so a suggested quantity listed under an LS item did not
+    make it 1 LS. */
+ static string ListedIn(Dictionary<BackupDemand,string> listed,BackupDemand d){string slot;return listed.TryGetValue(d,out slot)?slot:null;}
+ string BoqListedSlot(BackupDemand d,List<BackupTarget> targets){string slot=BoqSlotOf(d);if(slot!=null)return slot;if(boqUnmapped.Contains(d.Key)||BackupMapping.IsPainting(d))return null;var t=BackupMapping.Suggest(d,targets);return t==null?null:t.SlotId;}
  // Runs at the end of BackupQuantities: excluded mapped quantities count as 0; LS items get their 1 LS control.
  /* Metal painting is listed per member type (purlins, angle bars, metal fascia, crossbracing) instead of one total
     (owner, 18 November 2026). A project that mapped the old total keeps that pay item for the new lines. */
@@ -69,8 +78,10 @@ readonly Dictionary<string,double> boqExcludedQuantities=new Dictionary<string,d
   /* Owner (18 November 2026): an unchecked quantity stays mapped and listed under its pay item with its own quantity;
      it is only left out of the total. This applies to saved and automatically suggested mappings alike. */
   boqExcludedQuantities.Clear();foreach(var d in list){if(d.ManualOverride||BoqIncluded(d.Key,null))continue;boqExcludedQuantities[d.Key]=d.Quantity;d.Quantity=0;}
-  foreach(var item in items.Values){if(BackupMapping.Unit(item.Unit)!="ls"||item.ManualQuantity.HasValue)continue;var mapped=list.Where(d=>!d.ManualOverride&&BackupMapping.Unit(d.Unit)!="ls"&&BoqSlotOf(d)==item.Slot).ToList();if(mapped.Count==0)continue;
-   if(list.Any(d=>!d.ManualOverride&&BackupMapping.Unit(d.Unit)=="ls"&&d.Quantity>0&&BoqSlotOf(d)==item.Slot))continue;
+  var lsItems=items.Values.Where(item=>BackupMapping.Unit(item.Unit)=="ls"&&!item.ManualQuantity.HasValue).ToList();if(lsItems.Count==0)return;
+  var targets=backupBill.Select(b=>b.Target).ToList();var listed=new Dictionary<BackupDemand,string>();foreach(var d in list)if(!d.ManualOverride)listed[d]=BoqListedSlot(d,targets);
+  foreach(var item in lsItems){var mapped=list.Where(d=>!d.ManualOverride&&BackupMapping.Unit(d.Unit)!="ls"&&ListedIn(listed,d)==item.Slot).ToList();if(mapped.Count==0)continue;
+   if(list.Any(d=>!d.ManualOverride&&BackupMapping.Unit(d.Unit)=="ls"&&d.Quantity>0&&ListedIn(listed,d)==item.Slot))continue;
    bool any=mapped.Any(d=>d.Quantity>1e-10&&BoqIncluded(d.Key,item));if(!any&&!lsAutoSlots.Contains(item.Slot))continue;if(any)lsAutoSlots.Add(item.Slot);
    var control=new BackupDemand{Key=LsIncludePrefix+item.Slot,Description=any?"1 LS - included mapped quantities":"0 LS - no mapped quantity included",Unit=item.Unit,Quantity=any?1:0,TargetSlotId=item.Slot,TargetIdentity=item.Signature,ManualPriority=1};
    control.Sources.Add(new BillQuantity{Description=control.Description,Quantity=control.Quantity,Unit=item.Unit});list.Add(control);}}

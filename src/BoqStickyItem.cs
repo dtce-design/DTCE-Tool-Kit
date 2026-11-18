@@ -7,6 +7,9 @@ static class BoqStickyItem {
  // The pay item to pin when the first visible row is a sub row of an item whose own row has scrolled out of view.
  internal static DataGridViewRow PinnedRow(DataGridView grid,int firstVisible){if(grid.RowCount==0||firstVisible<=0||firstVisible>=grid.RowCount)return null;var first=grid.Rows[firstVisible];var node=first.HeaderCell.Tag as BoqSourceNode;if(node==null||!node.Detail)return null;
   for(int i=firstVisible-1;i>=0;i--){var candidate=grid.Rows[i].HeaderCell.Tag as BoqSourceNode;if(candidate!=null&&!candidate.Detail&&candidate.Key==node.Key)return grid.Rows[i];}return null;}
+ /* true when y (grid coordinates) lies on the pinned pay item band: a click there belongs to the pinned row, not to
+    the hidden row underneath (v1.19.2: an include box under the band was toggled by mistake). */
+ internal static bool Covers(DataGridView grid,int y){DataGridViewRow row;try{row=PinnedRow(grid,grid.FirstDisplayedScrollingRowIndex);}catch(Exception){return false;}if(row==null)return false;int top=grid.ColumnHeadersVisible?grid.ColumnHeadersHeight:0;return y>=top&&y<=top+Math.Max(row.Height,grid.RowTemplate.Height);}
  internal static void Attach(DataGridView grid){
   Func<DataGridViewRow> pinned=()=>PinnedRow(grid,grid.FirstDisplayedScrollingRowIndex);
   Func<int> top=()=>grid.ColumnHeadersVisible?grid.ColumnHeadersHeight:0;
