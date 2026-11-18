@@ -1,0 +1,12 @@
+DTCE Tool Kit v1.5.4 test build (18 November 2026) - fix
+
+Excel status message (owner: "ilipat sa status", "at saka di naman mahanap")
+- The bottom bar no longer says "N unassigned source(s), visible in BOQ".
+  That count included items the BOQ does not list (zero quantities, painting
+  not yet mapped), so the items could not be found.
+- Quantities that need mapping are listed in the Bill of Quantities Status
+  panel as "Not mapped"; double-click a line to map it.
+- The bottom bar now reads "Excel quantities updated | file saves after 5
+  seconds idle."
+
+Includes v1.5.1-1.5.3. Not a Microsoft Store release (v1.5.0 is the Store build).
