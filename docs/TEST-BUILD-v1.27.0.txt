@@ -1,0 +1,31 @@
+DTCE Tool Kit v1.27.0 test build (18 November 2026) - new feature
+
+Realistic construction schedule and manpower (owner: "gusto ko yung makatotohanan na
+construction schedule at manpower")
+- Construction logic instead of whole phases in parallel: each pay item gets a
+  trade from its item no. / description and follows the trades it depends on with
+  FS / SS / FF relations and lags, e.g. lean concrete overlaps the excavation,
+  rebar starts on the lean concrete, formworks overlap the rebar, footing pours
+  follow the forms, frame pours finish after the last forms, backfill -> soil
+  poisoning -> gravel -> slab on fill, masonry starts with the frame, trusses 7
+  working days after the frame (curing), roofing after the steel, insulation and
+  accessories with the roofing, plumbing / electrical rough-in before plaster,
+  ceiling and tiles, waterproofing before tiles, doors after plaster, painting
+  overlapping the plaster and finishing after it. Items of an unknown trade follow
+  the work phase of their item no.
+- CPM on that network (ES of the first activity = 0, EF = ES + D, LS = LF - D,
+  TF = LS - ES). Manpower levelling: non-critical items are started within their
+  float on the day that keeps the daily labour lowest; the duration is not changed.
+  Lean concrete, footing pours, roof insulation and roofing accessories are not
+  moved.
+- Manpower: workers = DUPA crew without its foreman x crews; foremen = 1 per 15
+  workers (or part) on each day, instead of one foreman for every item.
+- PDM: every relation drawn with its label at the arrowhead (e.g. "12 SS +2");
+  nodes placed by network level. PERT-CPM: same network (activity on node, since
+  activity on arrow cannot show SS / FF overlaps) with a | m | b and ES | te | EF;
+  PERT table has a Predecessors column; sigma from the activities that drive the
+  finish.
+- Sample (42 items): 154 working days (was 226 with whole phases in sequence);
+  peak 50 workers (was 110), average 20.4, 3,137 man-days. PERT: P90 163, P95 166.
+
+Includes v1.26.0. Not tested on Windows. Not a Microsoft Store release.
