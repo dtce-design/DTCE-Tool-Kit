@@ -1,0 +1,15 @@
+DTCE Tool Kit v1.5.0 (18 November 2026)
+
+First build under the new version rule (MAJOR.MINOR.PATCH: features raise MINOR,
+fixes raise PATCH). Contains everything since the v1.4.129 release:
+- v1.4.130 Sag rods without nuts and washers.
+- v1.4.131 New roofing rows start blank.
+- v1.4.132 Standard values and roofing profiles remembered for new projects.
+- v1.4.133 RC wall cover/thickness message shows the numbers and the fix.
+- v1.4.134 Status bar with row IDs on calculation sheets; Map BACKUP items
+  window fits without horizontal scroll; RC Start cards cannot collapse.
+- v1.4.135 Canopy / Ledge under Miscellaneous Structures.
+- v1.5.0 Canopy / Ledge is the first Miscellaneous Structures tab on Windows
+  as well (tab order rebuilt instead of inserted).
+
+Microsoft Store upload requested by the owner (18 November 2026).

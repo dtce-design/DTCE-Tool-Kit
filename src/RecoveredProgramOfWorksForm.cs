@@ -4601,7 +4601,14 @@ worksExcelTimer.Tick += async delegate
                 pages["Miscellaneous Structures"]
 			});
             /* Owner (18 November 2026): Canopy / Ledge belongs under Miscellaneous Structures (first nested tab). */
-            pages["Miscellaneous Structures"].Controls.OfType<TabControl>().Single().TabPages.Insert(0, pages["Canopy / Ledge Estimate"]);
+            {
+                /* Rebuild the order (TabPages.Insert is ignored before the tab control has a window handle). */
+                var miscTabs = pages["Miscellaneous Structures"].Controls.OfType<TabControl>().Single();
+                var existing = miscTabs.TabPages.Cast<TabPage>().ToList();
+                miscTabs.TabPages.Clear();
+                miscTabs.TabPages.Add(pages["Canopy / Ledge Estimate"]);
+                foreach (var tab in existing) miscTabs.TabPages.Add(tab);
+            }
 			pages["Earthworks Start"].Text = "Start";
 			AddSection("Earthworks", new TabPage[5]
 			{

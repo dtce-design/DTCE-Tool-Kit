@@ -117,7 +117,7 @@ columns; the unused TieCount/TieCut input fields may remain as they are.
 ## Store release authorization (17 November 2026)
 
 Owner explicitly asked to publish to the Microsoft Store: both User and Admin editions of the current
-build (requested as v1.4.67; renumbered v1.4.68, now v1.4.127, at the owner's request after further fixes), after the Windows
+build (requested as v1.4.67; renumbered v1.4.68, now v1.5.0, at the owner's request after further fixes), after the Windows
 CI build passes and the owner has checked the test build. This lifts the 16 November release hold for that build only:
 merge the development branch to main (automatic GitHub release), then run the workflow manually on
 main with publish_microsoft_store=true. Store packages stay key-free. Upload is not certification;
@@ -130,6 +130,8 @@ same way after its Windows CI passes. Later versions again need a new explicit r
 Result 18 November 2026: v1.4.129 merged to main (GitHub release OK), but both Store uploads were refused because
 the v1.4.127 submissions were still in Certification ("Existing submission is not editable"). Re-run the failed
 Store jobs of run 44231420200 only after v1.4.127 certification finishes (or the owner cancels it in Partner Center).
+New owner request (18 November 2026, "pakipush sa Microsoft"): publish v1.5.0 (User and Admin) the same way after
+its Windows CI passes; it supersedes the blocked v1.4.129 upload. Later versions again need a new explicit request.
 
 ## Version numbers (18 November 2026)
 
