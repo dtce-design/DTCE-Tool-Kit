@@ -1,0 +1,18 @@
+DTCE Tool Kit v1.8.0 test build (18 November 2026)
+
+Finishing Works, simplified (owner: "sa Start mag-assign lang ng Finishing ID,
+description, tapos anong group siya sa BOQ"; "sa wall/ceiling/floor may Finish ID
+doon na ise-select; sa Start i-consolidate niya lahat per group")
+1. Start > Finish Schedule: Finish ID, Description and "BOQ pay item / group".
+   Click the third column to choose the BACKUP pay item (when a BACKUP
+   workbook is linked); the group takes the pay item's name and its areas go
+   straight to that item in Bill of Quantities - no separate mapping step.
+   Before linking, a group name can still be typed.
+2. Wall / Ceiling / Floor Finishes: choose the Finish ID on each measured
+   row (v1.7.0).
+3. Start > lower table is now TOTALS PER GROUP: one line per group with its
+   Finish IDs, the measured entries (Wall / Ceiling / Floor and their IDs),
+   the total area and the BOQ item it goes to ("Not mapped yet" otherwise).
+   It replaces the Assign Finishes list.
+
+Includes v1.6.0-1.7.0. Not a Microsoft Store release (v1.5.0 is the Store build).

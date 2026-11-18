@@ -4492,7 +4492,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			AddGrid("Door & Window Schedule", wood, "Overall opening dimensions in metres, INCLUDING jamb/frame. Leaf size = opening less jamb thickness. Paint: leaf faces/edges + exposed jamb. Window includes sill. Door thickness is fixed at 45mm. Door hinges/locksets are automatic; set Swing/Sliding/Fixed and leaves/unit. Select deductions in CHB Openings.");
 			AddGrid("Aluminum Doors & Windows", aluminum, "Opening dimensions include the full rough opening/frame for CHB deduction. No aluminum painting is included. Select this schedule and quantity in CHB Openings to deduct it from a wall.");
 			AddGrid("CHB Estimate", walls, "Enter Width x Height x Qty OR Gross Area (leave the other method blank), then choose 100 or 150 mm thickness. Add / edit openings to deduct up to 3 door/window schedules. Pale-yellow cells are inputs; net areas are automatic.");
-			finishSchedule = FinishScheduleGrid();
+			finishSchedule = FinishScheduleGrid();InstallFinishPayItemPicker();
 			AddGrid("Finish Schedule", finishSchedule, "GUIDE: Type a Group name for each Finish ID (example: Porcelain Glazed Tiles and Trims). Reuse the same spelling to combine areas across floors, walls and ceilings. Prescribed names use fixed Excel cells; custom names appear in POW Finish Types.");
 			wallFinishes = FinishGrid(true);
 			ceilingFinishes = FinishGrid(false);
@@ -6931,7 +6931,7 @@ worksExcelTimer.Tick += async delegate
 					errors.Add(item3.Id + ": Wall ID " + item3.Wall + " has no CHB row; not deducted.");
 				}
 				RecalculateFinishes();
-				RefreshFinishAssignments();
+				RefreshFinishAssignments();RefreshFinishGroupTotals();
 				RecalculateRoofing();
 				RecalculateGravel();
 				RecalculateEarthworks();
@@ -8477,10 +8477,10 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 					}
 				}
 			};
-			splitContainer.Panel2.Controls.Add(finishAssignments);
+			splitContainer.Panel2.Controls.Add(FinishGroupTotalsGrid()); /* owner, 18 November 2026: consolidated per group; Finish IDs are chosen on the measurement sheets */
 			splitContainer.Panel2.Controls.Add(new Label
 			{
-				Text = "ASSIGN FINISHES | Every measured area from Wall / Ceiling / Floor Finishes is listed here. Choose its Finish ID here, or in the Finish ID column of that sheet (same value). Empty until areas are measured.",
+				Text = "TOTALS PER GROUP | Choose the Finish ID of each measured area in Wall / Ceiling / Floor Finishes. Areas with the same group are added together here and go to the BOQ pay item chosen above.",
 				Dock = DockStyle.Top,
 				Height = 65,
 				Padding = new Padding(10),

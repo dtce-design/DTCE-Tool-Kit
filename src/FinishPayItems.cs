@@ -1,0 +1,45 @@
+using System;using System.Collections.Generic;using System.Drawing;using System.Linq;using System.Windows.Forms;
+namespace BeamScheduleFormatter {
+// Finish Schedule: Finish ID, Description and the BOQ pay item it belongs to (owner, 18 November 2026: "sa Start mag
+// assign lang ng Finishing ID tapos description tapos anong group siya sa BOQ"). Clicking the third column opens the
+// BACKUP pay-item picker; the chosen item's description becomes the group name and the group's quantity is mapped to
+// that pay item at once (no separate mapping step). Typing a name is still allowed before a BACKUP workbook is linked.
+partial class ProgramOfWorksForm {
+ internal const string FinishGroupSection="Finish material breakdown";
+ static string FinishGroupKey(string group){return FinishGroupSection+"|"+group+"|"+BackupMapping.Unit("m2");}
+ void InstallFinishPayItemPicker(){if(finishSchedule==null)return;var g=finishSchedule;
+  g.Columns[2].HeaderText="BOQ pay item / group (click to choose)";
+  g.Columns[2].ToolTipText="Click to choose the BOQ pay item for this finish; its measured areas go straight to that item. Before a BACKUP workbook is linked you can type a group name.";
+  g.CellClick+=(s,e)=>{if(e.RowIndex<0||e.ColumnIndex!=2||backupBill==null||backupBill.Count==0||g.Rows[e.RowIndex].IsNewRow&&Cell(g.Rows[e.RowIndex],0)=="")return;ChooseFinishPayItem(g.Rows[e.RowIndex]);};
+  g.CellPainting+=(s,e)=>{if(e.RowIndex<0||e.ColumnIndex!=2||backupBill==null||backupBill.Count==0)return;e.Paint(e.ClipBounds,DataGridViewPaintParts.All);int w=22;var box=new Rectangle(e.CellBounds.Right-w-2,e.CellBounds.Top+2,w,e.CellBounds.Height-5);
+   using(var fill=new SolidBrush(Color.FromArgb(236,239,243)))e.Graphics.FillRectangle(fill,box);using(var pen=new Pen(Color.FromArgb(190,196,204)))e.Graphics.DrawRectangle(pen,box);int cx=box.Left+box.Width/2,cy=box.Top+box.Height/2;
+   using(var brush=new SolidBrush(Color.FromArgb(60,70,82)))e.Graphics.FillPolygon(brush,new[]{new Point(cx-4,cy-2),new Point(cx+4,cy-2),new Point(cx,cy+3)});e.Handled=true;};}
+ void ChooseFinishPayItem(DataGridViewRow row){try{if(!finishSchedule.EndEdit())return;
+   var targets=backupBill.Select(b=>b.Target).Where(t=>t!=null&&(BackupMapping.Unit(t.Unit)==BackupMapping.Unit("m2")||BackupMapping.Unit(t.Unit)=="ls")).ToList();
+   string current=Cell(row,2);string slot;backupBillRoutes.TryGetValue(FinishGroupKey(current),out slot);var selected=slot==null?null:targets.FirstOrDefault(t=>t.SlotId==slot);
+   using(var picker=new BackupTargetPicker((Cell(row,0)+" "+Cell(row,1)).Trim(),targets,selected)){if(picker.ShowDialog(this)!=DialogResult.OK||picker.Selected==null)return;
+    var target=picker.Selected;string group=FinishTypeRegistry.Clean(target.Description);row.Cells[2].Value=group;SetBoqRoute(FinishGroupKey(group),target.SlotId);Recalculate();}}
+  catch(Exception ex){MessageBox.Show(this,ex.Message,"Finish pay item");}}
+}
+}
+namespace BeamScheduleFormatter {
+// Start, lower table (owner, 18 November 2026: "sa Start i-consolidate niya lahat per group"): one line per BOQ group with
+// the Finish IDs in it, the measured entries (wall / ceiling / floor), the total area and the BOQ pay item it goes to.
+// Measured areas without a Finish ID are listed last so they are not missed.
+partial class ProgramOfWorksForm {
+ DataGridView finishGroupTotals;
+ DataGridView FinishGroupTotalsGrid(){var g=new DataGridView{Name="FinishGroupTotals",Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,SelectionMode=DataGridViewSelectionMode.FullRowSelect,BackgroundColor=Color.White,AutoSizeRowsMode=DataGridViewAutoSizeRowsMode.AllCells};
+  foreach(var h in new[]{"BOQ group / pay item","Finish IDs","Measured entries","Total area m2","BOQ item"})g.Columns.Add(h,h);
+  g.Columns[0].Width=320;g.Columns[1].Width=150;g.Columns[2].Width=420;g.Columns[3].Width=110;g.Columns[4].Width=170;g.Columns[2].DefaultCellStyle.WrapMode=DataGridViewTriState.True;g.Columns[0].DefaultCellStyle.WrapMode=DataGridViewTriState.True;g.Columns[3].DefaultCellStyle.Alignment=DataGridViewContentAlignment.MiddleRight;
+  foreach(DataGridViewColumn c in g.Columns)c.SortMode=DataGridViewColumnSortMode.NotSortable;finishGroupTotals=g;return g;}
+ void RefreshFinishGroupTotals(){var g=finishGroupTotals;if(g==null||g.IsDisposed)return;g.Rows.Clear();
+  Func<FinishItem,double> area=f=>{try{return f.Total(FindWall(f.Wall),wallOpenings,finishItems);}catch(Exception){return 0;}};
+  foreach(var total in FinishTypeRegistry.Totals(finishItems,area).OrderBy(t=>t.Name)){var items=finishItems.Where(f=>FinishTypeRegistry.Key(f.MaterialName)==total.Key).ToList();
+   string ids=string.Join(", ",items.Select(f=>f.Code).Where(c=>c!="").Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c=>c));
+   string entries=string.Join("; ",items.GroupBy(f=>f.Category).Select(c=>c.Key+": "+string.Join(", ",c.Select(f=>f.Id))));
+   string slot;string item="Not mapped yet";if(backupBillRoutes.TryGetValue(FinishGroupKey(total.Name),out slot)){var bill=backupBill.FirstOrDefault(b=>b.Slot==slot);if(bill!=null)item=bill.Code;}
+   int r=g.Rows.Add(total.Name,ids,entries,total.Area.ToString("N2"),item);if(item=="Not mapped yet")g.Rows[r].Cells[4].Style.ForeColor=Color.FromArgb(176,96,0);}
+  var loose=finishItems.Where(f=>FinishTypeRegistry.Key(f.MaterialName)=="").ToList();
+  if(loose.Count>0){int r=g.Rows.Add("No Finish ID / group yet","",string.Join("; ",loose.GroupBy(f=>f.Category).Select(c=>c.Key+": "+string.Join(", ",c.Select(f=>f.Id)))),loose.Sum(area).ToString("N2"),"Choose a Finish ID on the sheet");g.Rows[r].DefaultCellStyle.ForeColor=Color.FromArgb(176,96,0);}}
+}
+}
