@@ -130,3 +130,9 @@ same way after its Windows CI passes. Later versions again need a new explicit r
 Result 18 November 2026: v1.4.129 merged to main (GitHub release OK), but both Store uploads were refused because
 the v1.4.127 submissions were still in Certification ("Existing submission is not editable"). Re-run the failed
 Store jobs of run 44231420200 only after v1.4.127 certification finishes (or the owner cancels it in Partner Center).
+
+## Version numbers (18 November 2026)
+
+Owner: use MAJOR.MINOR.PATCH properly. New features or noticeable behaviour changes raise MINOR and reset PATCH
+(1.5.0 -> 1.6.0); bug-fix-only builds raise PATCH (1.5.0 -> 1.5.1); MAJOR only for incompatible changes. The next
+build after v1.4.135 is v1.5.0. Keep src/Program.cs Version, src/AssemblyInfo.cs (x.y.z.0) and docs/TEST-BUILD-*.txt in step.
