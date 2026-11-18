@@ -1,0 +1,10 @@
+DTCE Tool Kit v1.4.130 test build (18 November 2026)
+
+Sag Rods (owner: "di na kasama ang nut and washer sa sagrod")
+- Nuts and washers are no longer part of the sag rod sheet: the
+  "Nuts / rod", "Washers / rod", "Nuts pcs" and "Washers pcs" columns and the
+  "Sag rod nuts" / "Sag rod washers" BOQ quantities are removed.
+- Rod purchase weight, installed weight and painting are unchanged.
+- Older project files still open; their saved nut/washer counts are ignored.
+
+Includes v1.4.128-129. Not a Microsoft Store release.
