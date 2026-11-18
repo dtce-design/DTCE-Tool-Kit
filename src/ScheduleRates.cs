@@ -278,7 +278,7 @@ static class ScheduleRates {
   new ScheduleRate("1208(1)","Fire Alarm System","Is",0.027778d,"Foreman x1; Skilled Laborer x1; Unskilled Laborer x1")};
  static string Key(string s){return new string((s??"").ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray());}
  /* same item no.: the closest description (exact, then most shared words), else the first one */
- internal static ScheduleRate Find(string code,string description){var same=All.Where(r=>Key(r.Code)==Key(code)).ToList();if(same.Count==0)return null;string d=Key(description);var exact=same.FirstOrDefault(r=>Key(r.Description)==d);if(exact!=null)return exact;
+ internal static ScheduleRate Find(string code,string description){if(Key(code)==Key("1061(1)")&&(description??"").ToUpperInvariant().Contains("PIPELINE"))code="1601(1)";/* the catalogue writes Fill and Backfill (Pipeline) as 1061(1) */var same=All.Where(r=>Key(r.Code)==Key(code)).ToList();if(same.Count==0)return null;string d=Key(description);var exact=same.FirstOrDefault(r=>Key(r.Description)==d);if(exact!=null)return exact;
   var words=(description??"").ToUpperInvariant().Split(new[]{' ',',','(',')','/','-','.'},StringSplitOptions.RemoveEmptyEntries);return same.OrderByDescending(r=>words.Count(w=>r.Description.ToUpperInvariant().Contains(w))).First();}
 }
 }

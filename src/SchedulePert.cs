@@ -110,6 +110,10 @@ sealed class PertAoa {
   var lanes=NetRoute.Corridors(boxes.Values.ToList(),0,Height-Foot);for(float y=Head+th+2;y<Height-Foot-th-2;y+=5)lanes.Add(y);/* labels must stay inside the drawing */
   float collector=Math.Min(Height-8,(Events.Count==0?Height-Foot:Events.Max(e=>e.Y+R))+16);
   var bands=new List<RectangleF>();var texts=new List<RectangleF>();var vlines=new List<RectangleF>();
+  var groups=new List<Tuple<int,int,int,Func<float,float,float,List<RectangleF>>,float,float>>();/* line, first label, labels, label rectangles (y, centre, room), room, need */
+  /* the collector to the finish event (drawn last) is reserved first, so no arrow or label is placed on it */
+  {var cl=Arrows.Where(x=>x.Collector).ToList();if(cl.Count>0){float fx0=cl[0].Head.X-26;foreach(var grp in cl.GroupBy(x=>x.Tail.X)){float cx0=grp.Key+2*R+10;vlines.Add(new RectangleF(cx0-1.5f,grp.Min(x=>x.Tail.Y),3,collector-grp.Min(x=>x.Tail.Y)));}
+    float c0=cl.Min(x=>x.Tail.X)+2*R+10;bands.Add(new RectangleF(c0,collector-2,fx0-c0,4));vlines.Add(new RectangleF(fx0-1.5f,Math.Min(collector,cl[0].Head.Y),3,Math.Abs(collector-cl[0].Head.Y)));}}
   Func<float,float,float,float,PointF> edge=(cx,cy,px,py)=>{float vx=px-cx,vy=py-cy,len=(float)Math.Sqrt(vx*vx+vy*vy);return len<0.01f?new PointF(cx+R,cy):new PointF(cx+vx/len*R,cy+vy/len*R);};
   Func<RectangleF,IEnumerable<RectangleF>,int> hits=(r,list)=>list.Count(o=>o.IntersectsWith(r));
   foreach(var ar in Arrows.OrderBy(x=>x.Collector).ThenBy(x=>x.Activity==null).ThenBy(x=>!x.Critical).ThenBy(x=>x.Head.X-x.Tail.X)){
@@ -154,6 +158,7 @@ sealed class PertAoa {
    for(int k=0;k+1<path.Length;k++){var p=path[k];var q=path[k+1];if(Math.Abs(p.Y-q.Y)<0.01f)bands.Add(new RectangleF(Math.Min(p.X,q.X),p.Y-2,Math.Abs(q.X-p.X),4));else if(Math.Abs(p.X-q.X)<0.01f)vlines.Add(vr(p.X,p.Y,q.Y));}
    float ly=pickPlace[3];var rects=need>0?labelRects(ly,pickPlace[1],pickPlace[2]):new List<RectangleF>();texts.AddRange(rects);
    plan.Lines.Add(new KeyValuePair<PointF[],int>(path,kind));
+   if(rects.Count>0)groups.Add(Tuple.Create(plan.Lines.Count-1,plan.Labels.Count,rects.Count,labelRects,pickPlace[2],need));
    int ri=0;float rm=pickPlace[2];if(name!=null)plan.Labels.Add(new PlanLabel{Rect=rects[ri++],Text=name,Bold=true,Critical=ar.Critical,Truncated=rm<wn-0.5f});if(te!=null)plan.Labels.Add(new PlanLabel{Rect=rects[ri++],Text=te,Muted=true,Truncated=rm<wt-0.5f});if(lag!=null)plan.Labels.Add(new PlanLabel{Rect=rects[ri++],Text=lag,Critical=ar.Critical,Muted=!ar.Critical,Truncated=rm<wl-0.5f});}
   /* collector: from each last event a short dummy to the right, one vertical line per event column down to the collector
      and one collector line to the finish event, drawn once so the dashes stay readable */
@@ -161,6 +166,19 @@ sealed class PertAoa {
    foreach(var grp in coll.GroupBy(x=>x.Tail.X)){float cx0=grp.Key+2*R+10;colX.Add(cx0);foreach(var ar in grp)plan.Lines.Add(new KeyValuePair<PointF[],int>(new[]{new PointF(ar.Tail.X+2*R,ar.Tail.Y),new PointF(cx0,ar.Tail.Y)},5));
     plan.Lines.Add(new KeyValuePair<PointF[],int>(new[]{new PointF(cx0,grp.Min(x=>x.Tail.Y)),new PointF(cx0,collector)},5));}
    plan.Lines.Add(new KeyValuePair<PointF[],int>(NetRoute.Path(new[]{new PointF(colX.Min(),collector),new PointF(fx,collector),new PointF(fx,fin.Y),new PointF(fin.X,fin.Y)}),2));}
+  /* a label crossed by a line routed after it is moved along its own arrow to a place no other line, label or event
+     touches and no sheet join cuts (the text would otherwise hide part of that line) */
+  foreach(var gp in groups){int own=gp.Item1;
+   Func<List<RectangleF>,bool> crossed=rs=>rs.Any(r=>{var inner=RectangleF.Inflate(r,-1.5f,-1.5f);for(int i=0;i<plan.Lines.Count;i++){if(i==own)continue;var pl=plan.Lines[i].Key;for(int k=0;k+1<pl.Length;k++)if(ScheduleSet.Crosses(pl[k],pl[k+1],inner))return true;}return false;});
+   if(!crossed(plan.Labels.Skip(gp.Item2).Take(gp.Item3).Select(l=>l.Rect).ToList()))continue;
+   var others=plan.Labels.Where((l,i)=>i<gp.Item2||i>=gp.Item2+gp.Item3).Select(l=>l.Rect).ToList();var circles=plan.Boxes.Select(b=>RectangleF.Inflate(b,3,3)).ToList();
+   var path=plan.Lines[own].Key;List<RectangleF> found=null;
+   for(int k=0;k+1<path.Length&&found==null;k++){var p=path[k];var q=path[k+1];if(Math.Abs(p.Y-q.Y)>0.01f||q.X<p.X+1)continue;float p0=p.X+4;
+    foreach(var c in joins.Where(c=>c>p.X+4&&c<q.X-4).OrderBy(c=>c).Concat(new[]{q.X-4})){float len=c-p0,room=Math.Min(len,gp.Item6);
+     if(room>=gp.Item5-0.5f){float lo=p0+room/2,hi=c-room/2;for(float step=0;Math.Abs(step)<=(hi-lo)/2+0.01f;step=step<=0?-step+3:-step){var rs=gp.Item4(p.Y,(lo+hi)/2+step,room);
+       if(rs.Any(r=>others.Any(o=>o.IntersectsWith(r))||circles.Any(o=>o.IntersectsWith(r))||joins.Any(j=>r.Left<j&&r.Right>j))||crossed(rs))continue;found=rs;break;}}
+     if(found!=null)break;p0=c;}}
+   if(found!=null)for(int i=0;i<gp.Item3;i++)plan.Labels[gp.Item2+i].Rect=found[i];}
   return plan;}
  internal void Draw(Graphics g,float dx,float dy,Font font,Font bold,IList<float> joins=null){var smooth=g.SmoothingMode;g.SmoothingMode=SmoothingMode.AntiAlias;Color redC=Color.FromArgb(192,40,40),lineC=Color.FromArgb(110,120,132);var state=g.Save();g.TranslateTransform(dx,dy);
   var plan=MakePlan(g,font,bold,joins);LastPlan=plan;var near=new StringFormat{Alignment=StringAlignment.Center,Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap};

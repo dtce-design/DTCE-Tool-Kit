@@ -15,8 +15,8 @@ sealed class ScheduleRow {internal string Code,Description,Unit,Key,Note,Phase,C
 static class SchedulePhases {
  internal static readonly string[] Names={"Site clearing and removal","Excavation","Piling and ground improvement","Foundation and structural concrete (rebar, forms, concrete, fill)","Masonry and structural steel","Roofing, insulation, waterproofing and plumbing / electrical rough-in","Finishes, doors and windows, site works","Painting and final works"};
  internal static int Of(string code){string c=(code??"").Trim();int n=0,i=0;while(i<c.Length&&char.IsDigit(c[i])){n=n*10+(c[i]-'0');i++;}if(i==0)return 0;string rest=c.Substring(i);
-  if(n==800||n==801)return 0;if(n==802||n==803||n==1600||n==102)return 1;if(n==1052||n==808||n==1049||n==1717)return 2;
-  if(n==900||n==901||n==902||n==903||n==1000||n==103||n==804||n==1601||n==1034||n==404)return 3;if(n==1046||n==1047||n==506)return 4;
+  if(n==800||n==801||n==100||n==101)return 0;if(n==802||n==803||n==1600||n==102)return 1;if(n==1052||n==808||n==1049||n==1717)return 2;
+  if(n==900||n==901||n==902||n==903||n==1000||n==103||n==804||n==104||n==1601||n==1061||n==1034||n==404)return 3;if(n==1046||n==1047||n==506||n==507||n==511)return 4;
   if(n==1003&&(rest.StartsWith("(5)")||rest.StartsWith("(6)")))return 5;if(n==1013||n==1014||n==1038||n==1016||n==1001||n==1002||(n>=1100&&n<1200))return 5;
   if(n==1032)return 7;return 6;}
 }
@@ -96,9 +96,20 @@ partial class ProgramOfWorksForm {
    string key=ScheduleKey(item.Code,item.Description);ScheduleOverride o;scheduleOverrides.TryGetValue(key,out o);var rate=ScheduleRates.Find(item.Code,item.Description);
    var r=new ScheduleRow{Code=item.Code,Description=item.Description,Unit=item.Unit,Key=key,Quantity=pair.Value,Crews=o!=null&&o.Crews.HasValue?o.Crews.Value:1,Rate=o!=null&&o.Rate.HasValue?o.Rate.Value:rate!=null&&!lumpSum?rate.PerHour:0,Crew=rate!=null?rate.Crew??"":""};
    r.Note=o!=null&&o.Rate.HasValue?"Output per hour entered for this project":lumpSum?"Lump sum - output per hour left blank for now (not counted)":rate!=null?"DUPA: "+rate.Description+(rate.Crew==""?"":" | "+rate.Crew):"No output per hour found - enter it";
-   r.Days=r.Rate>0?(int)Math.Ceiling(r.Quantity/(r.Rate*hours*r.Crews)-1e-9):0;r.PhaseIndex=SchedulePhases.Of(item.Code);r.Phase=SchedulePhases.Names[r.PhaseIndex];r.Order=rows.Count;rows.Add(r);}
+   r.PhaseIndex=SchedulePhases.Of(item.Code);r.Phase=SchedulePhases.Names[r.PhaseIndex];
+   /* 804(7) gravel: the bedding under the footings and tie beams (automatic) goes in before the lean concrete, the gravel
+      of the other areas (manual entries: slab on fill, walks) after the backfill - two bars of the same pay item, the
+      quantity split in proportion (the Bill of Quantities is not changed) */
+   var parts=new string((item.Code??"").Where(char.IsLetterOrDigit).ToArray())=="8047"?GravelParts():null;
+   if(parts!=null&&parts[1]>1e-9){string desc=r.Description??"";if(parts[0]>1e-9){double q=r.Quantity,t=parts[0]+parts[1];
+     var r2=new ScheduleRow{Code=r.Code,Description=desc+" - slab on fill / other areas",Unit=r.Unit,Key=r.Key,Quantity=q*parts[1]/t,Crews=r.Crews,Rate=r.Rate,Crew=r.Crew,Note=r.Note,PhaseIndex=r.PhaseIndex,Phase=r.Phase};
+     r.Quantity=q*parts[0]/t;r.Description=desc+" - bedding under footings / tie beams";foreach(var x in new[]{r,r2}){x.Days=x.Rate>0?(int)Math.Ceiling(x.Quantity/(x.Rate*hours*x.Crews)-1e-9):0;x.Order=rows.Count;rows.Add(x);}continue;}
+    r.Description=desc+" - slab on fill / other areas";}
+   r.Days=r.Rate>0?(int)Math.Ceiling(r.Quantity/(r.Rate*hours*r.Crews)-1e-9):0;r.Order=rows.Count;rows.Add(r);}
   /* phases one after another; the items of a phase in parallel */
   return Plan(rows);}
+ /* installed gravel volumes: [bedding under beams and footings, other areas entered by hand] */
+ double[] GravelParts(){try{double bed=(beam!=null?beam.WorksGravel():0)+footingResults.Sum(q=>q.Gravel)+wallFootingResults.Sum(q=>q.Gravel);return new[]{Math.Max(0,bed),Math.Max(0,ManualGravelVolume())};}catch(Exception){return null;}}
  /* start / finish days from the realistic construction logic (FS / SS / FF relations), CPM and manpower levelling within
     the float (ScheduleLogic); rows stay in Bill of Quantities order (owner: "huwag i-rearrange") */
  internal static List<ScheduleRow> Plan(List<ScheduleRow> rows){ScheduleLogic.Schedule(rows);return rows;}

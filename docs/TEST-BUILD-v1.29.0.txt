@@ -14,5 +14,44 @@ yun kapag sa A3")
   milestones; PERT a/m/b, te = m and the +/-20 % note) moved into the node / event key.
 - Routing: a relation that cannot get round the labels in a crowded column now at least
   keeps clear of every event.
+- The finish collector is reserved before the arrows are routed, and a label crossed by
+  a later line is moved along its own arrow, so no line passes under a label.
+
+Construction logic - review of every pay item of the catalogue (owner: "ireview lahat ng
+pay items ko para kahit anong pay items man ang maisama tama pa din")
+All 268 DUPA items and the 266 Bill of Quantities catalogue items were checked; every
+item has a trade except 1003(17) Carpentry and Joinery (follows its work phase).
+- Foundations: survey / staking and soil investigation (B.4, B.19) before excavation and
+  piling; pile tests 7 days after the first piles and the last pile, footings / pile caps
+  after every test; 804(7) gravel bedding under footings and tie beams before the lean
+  concrete (the gravel of other areas - slab on fill, walks - is a second bar of the same
+  pay item, after the backfill, quantity split in proportion); slab-deck forms and
+  falsework separate from the footing forms; the roof deck / roof slab is the last pour.
+- Under the slab: sanitary drain, waste and vent piping with the backfill, before soil
+  poisoning, gravel bed, vapour barrier and slab on fill; the slab never before the
+  footings.
+- Superstructure: masonry from 30 % of the frame, the last walls 7 days after the last
+  frame pour; door jambs with the masonry; glass blocks after the walls; steel and
+  roofing never before the footings / walls in a building without frame concrete; roof
+  sheets on painted trusses and purlins; chemical anchors with the steel (cast-in anchor
+  bolts with the concrete); storm drainage and downspouts finish after the roofing.
+- Finishes: plaster closes the walls after the pipes, conduits, lintels and jambs;
+  ceilings after the rough-in and sprinkler piping above them; tiles and cement floor
+  finishes 7 days after their slab and under the roof; waterproofing after the plumbing;
+  painting 14 days after the plaster and after the roof, finishing after ceilings, tiles
+  and doors; wood painting after ceilings, partitions, doors and wood mouldings; metal
+  painting with the steel framing, or after doors, grilles and railings when there is no
+  steel framing (automotive finish always last); vinyl tiles and epoxy / PU floor
+  coatings on a dry slab (24 working days) after the painting; cabinets and countertops
+  before the plumbing fixtures; elevators after the hoistway, on permanent power.
+- Site and road works: roadway excavation, subgrade, subbase and pavement after the
+  building is roofed (on a road job right after clearing); signs, markings and fences
+  last; DPWH highway items 100-104, 401-415, 500-511 and 600-699 mapped; 1061(1) Fill
+  and Backfill (Pipeline) uses the DUPA output of 1601(1); a water treatment plant is
+  equipment, not pipe laying.
+- Effect: the sample building now takes 193 working days instead of 154. The painting
+  (98 days with one crew) waits for the roof and 14 days of plaster curing; more crews
+  for the painting shorten it.
+- Summary sheet notes are measured, so a long note no longer runs into the next one.
 
 Includes v1.28.1. Not tested on Windows. Not a Microsoft Store release.
