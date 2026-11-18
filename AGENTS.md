@@ -142,6 +142,11 @@ new explicit request.
 New owner request (18 November 2026, "upload sa microsoft store"): publish v1.19.4 (User and Admin) the same way after
 its Windows CI passes (publish_microsoft_store=true; replace_pending_store_submission stays false unless the owner asks).
 Owner (18 November 2026, "isama ang bago"): include the newer changes and publish v1.20.0 instead of v1.19.4.
+Result 18 November 2026: v1.20.0 merged to main (GitHub release OK, run 44271865377). Store run 44271896215: both User and
+Admin uploads were refused because the v1.5.0 submissions are still in Certification ("Existing submission is not
+editable: Certification"). Nothing was changed in Partner Center. Re-run the failed Store jobs of run 44271896215 after
+v1.5.0 certification finishes, or - only if the owner asks - with replace_pending_store_submission=true after the owner
+cancels the v1.5.0 certification in Partner Center.
 Later versions again need a new explicit request.
 
 ## Version numbers (18 November 2026)
