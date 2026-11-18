@@ -10,3 +10,13 @@ painting yung member or wala")
   (as they were all painted before).
 
 Includes v1.9.0. Not a Microsoft Store release (v1.5.0 is the Store build).
+
+Metal painting broken down (owner: "sa metal painting i-breakdown mo yung sa
+purlin, angle bar, sagrod at cross bracing")
+- Bill of Quantities now lists metal painting per member type instead of one
+  total: "Metal painting - purlins", "- angle bars", "- metal fascia",
+  "- crossbracing rods" (each with its members), plus the existing "Sag rod
+  metal painting" and "Railing metal painting" lines.
+- A project that had mapped the old "Metal painting TOTAL" line keeps that
+  pay item for the new lines automatically. The total stays in the steel
+  summary and reports for reference.

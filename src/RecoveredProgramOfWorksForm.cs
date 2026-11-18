@@ -992,7 +992,7 @@ namespace BeamScheduleFormatter
 				}
 				if (item.Section == "Structural Steel Works")
 				{
-					flag2 = new string[6] { "Purlins PURCHASE weight", "Angle bars PURCHASE weight", "Metal fascia PURCHASE weight", "Steel plates PURCHASE weight", "Crossbracing rods", SteelPaintingTotal }.Contains(item.Description) || item.Description.StartsWith("Turnbuckles dia ");
+					flag2 = new string[5] { "Purlins PURCHASE weight", "Angle bars PURCHASE weight", "Metal fascia PURCHASE weight", "Steel plates PURCHASE weight", "Crossbracing rods" }.Contains(item.Description) || item.Description.StartsWith("Metal painting - ") /* owner, 18 November 2026: painting broken down per member type */ || item.Description.StartsWith("Turnbuckles dia ");
 				}
 				if(item.Section=="Reinforced Concrete Works"&&item.Description.ToLowerInvariant().Contains("concrete"))flag2=false;
                 if(item.Section=="Canopy / Ledge"&&item.Unit=="m3")flag2=false;
