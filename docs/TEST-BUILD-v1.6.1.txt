@@ -1,0 +1,9 @@
+DTCE Tool Kit v1.6.1 test build (18 November 2026) - fix
+
+Cut & Fill IDs (owner: "yung ID niya CUT pero fill naman ang meron")
+- Automatic IDs now follow the entered areas: CUT-nnn (cut only), FILL-nnn
+  (fill only), CUTFILL-nnn (both). Existing automatic IDs such as CUT-001 are
+  relabelled when the areas show fill (e.g. CUT-001 -> FILL-001); the number
+  is kept when free. IDs typed by the user are never changed.
+
+Includes v1.6.0. Not a Microsoft Store release (v1.5.0 is the Store build).

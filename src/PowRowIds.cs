@@ -23,6 +23,18 @@ partial class ProgramOfWorksForm {
    int counter=0;
    foreach(DataGridViewRow row in grid.Rows)if(Cell(row,0)==""&&StructuralSteelIds.HasInputs(row))row.Cells[0].Value=StructuralSteelIds.Next(prefix,used,ref counter);
    if(!grid.Columns[0].HeaderText.EndsWith("(auto)"))grid.Columns[0].HeaderText+=" (auto)";
-   grid.Columns[0].ToolTipText="Left blank, an ID is assigned automatically once the row has input. An ID you typed or an existing ID is never changed.";}}
+   grid.Columns[0].ToolTipText="Left blank, an ID is assigned automatically once the row has input. An ID you typed or an existing ID is never changed.";}
+  MatchCutFillIds();}
+ /* Owner (18 November 2026, "yung ID niya CUT pero fill naman ang meron"): automatic Cut & Fill IDs follow the
+    entered areas - CUT-nnn (cut only), FILL-nnn (fill only), CUTFILL-nnn (both). Only automatic IDs of that form
+    are relabelled; an ID typed by the user is kept. */
+ static readonly System.Text.RegularExpressions.Regex AutoCutFillId=new System.Text.RegularExpressions.Regex(@"^(CUT|FILL|CUTFILL)-(\d+)$",System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+ void MatchCutFillIds(){if(cutFill==null)return;Func<DataGridViewRow,int,bool> positive=(row,c)=>{double v;return double.TryParse(Cell(row,c),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out v)&&v>0;};
+  var used=new HashSet<string>(cutFill.Rows.Cast<DataGridViewRow>().Where(r=>!r.IsNewRow).Select(r=>Cell(r,0)).Where(x=>x!=""),StringComparer.OrdinalIgnoreCase);
+  foreach(DataGridViewRow row in cutFill.Rows){if(row.IsNewRow)continue;var match=AutoCutFillId.Match(Cell(row,0));if(!match.Success)continue;
+   bool cut=positive(row,4)||positive(row,5),fill=positive(row,6)||positive(row,7);if(!cut&&!fill)continue;string prefix=cut&&fill?"CUTFILL":fill?"FILL":"CUT";
+   if(string.Equals(match.Groups[1].Value,prefix,StringComparison.OrdinalIgnoreCase))continue;
+   string id=prefix+"-"+match.Groups[2].Value;if(used.Contains(id)){int counter=0;id=StructuralSteelIds.Next(prefix,used,ref counter);}
+   used.Remove(Cell(row,0));used.Add(id);row.Cells[0].Value=id;}}
 }
 }
