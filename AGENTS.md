@@ -141,6 +141,7 @@ created and committed; Partner Center reported "accepted for processing" (PrePro
 new explicit request.
 New owner request (18 November 2026, "upload sa microsoft store"): publish v1.19.4 (User and Admin) the same way after
 its Windows CI passes (publish_microsoft_store=true; replace_pending_store_submission stays false unless the owner asks).
+Owner (18 November 2026, "isama ang bago"): include the newer changes and publish v1.20.0 instead of v1.19.4.
 Later versions again need a new explicit request.
 
 ## Version numbers (18 November 2026)

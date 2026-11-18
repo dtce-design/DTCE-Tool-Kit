@@ -36,14 +36,17 @@ partial class ProgramOfWorksForm {
   foreach(var h in new[]{"BOQ group / item no.","Finish IDs","Measured entries","Total m2"})g.Columns.Add(h,h);
   g.AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill;g.Columns[0].FillWeight=44;g.Columns[1].FillWeight=14;g.Columns[2].FillWeight=28;g.Columns[3].FillWeight=14;g.BorderStyle=BorderStyle.None;g.ScrollBars=ScrollBars.Vertical;g.Columns[2].DefaultCellStyle.WrapMode=DataGridViewTriState.True;g.Columns[0].DefaultCellStyle.WrapMode=DataGridViewTriState.True;g.Columns[3].DefaultCellStyle.Alignment=DataGridViewContentAlignment.MiddleRight;
   foreach(DataGridViewColumn c in g.Columns)c.SortMode=DataGridViewColumnSortMode.NotSortable;finishGroupTotals=g;return g;}
- void RefreshFinishGroupTotals(){var g=finishGroupTotals;if(g==null||g.IsDisposed)return;g.Rows.Clear();
+ void RefreshFinishGroupTotals(){var g=finishGroupTotals;if(g==null||g.IsDisposed)return;g.Rows.Clear();var chart=new List<KeyValuePair<string,double>>();
   Func<FinishItem,double> area=f=>{try{return f.Total(FindWall(f.Wall),wallOpenings,finishItems);}catch(Exception){return 0;}};
   foreach(var total in FinishTypeRegistry.Totals(finishItems,area).OrderBy(t=>t.Name)){var items=finishItems.Where(f=>FinishTypeRegistry.Key(f.MaterialName)==total.Key).ToList();
    string ids=string.Join(", ",items.Select(f=>f.Code).Where(c=>c!="").Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c=>c));
    string entries=string.Join("; ",items.GroupBy(f=>f.Category).Select(c=>c.Key+": "+string.Join(", ",c.Select(f=>f.Id))));
    string slot;var std=FinishStandard.Find(total.Name);string caption=std!=null?std.Caption:total.Name;if(std==null){var bill=backupBillRoutes.TryGetValue(FinishGroupKey(total.Name),out slot)?backupBill.FirstOrDefault(b=>b.Slot==slot):null;caption=bill!=null?bill.Code+" | "+total.Name:total.Name+"  (not mapped yet)";}
-   int r=g.Rows.Add(caption,ids,entries,total.Area.ToString("N2"));if(caption.EndsWith("(not mapped yet)"))g.Rows[r].Cells[0].Style.ForeColor=Color.FromArgb(176,96,0);}
+   int r=g.Rows.Add(caption,ids,entries,total.Area.ToString("N2"));chart.Add(new KeyValuePair<string,double>(caption,total.Area));if(caption.EndsWith("(not mapped yet)"))g.Rows[r].Cells[0].Style.ForeColor=Color.FromArgb(176,96,0);}
   var loose=finishItems.Where(f=>FinishTypeRegistry.Key(f.MaterialName)=="").ToList();
-  if(loose.Count>0){int r=g.Rows.Add("No Finish ID yet - choose one on the sheet","",string.Join("; ",loose.GroupBy(f=>f.Category).Select(c=>c.Key+": "+string.Join(", ",c.Select(f=>f.Id)))),loose.Sum(area).ToString("N2"));g.Rows[r].DefaultCellStyle.ForeColor=Color.FromArgb(176,96,0);}}
+  if(loose.Count>0){int r=g.Rows.Add("No Finish ID yet - choose one on the sheet","",string.Join("; ",loose.GroupBy(f=>f.Category).Select(c=>c.Key+": "+string.Join(", ",c.Select(f=>f.Id)))),loose.Sum(area).ToString("N2"));g.Rows[r].DefaultCellStyle.ForeColor=Color.FromArgb(176,96,0);}
+  /* an adjustment larger than the measured area of its group is reported; the group counts as 0 */
+  foreach(var grp in finishItems.Where(f=>FinishTypeRegistry.Key(f.MaterialName)!="").GroupBy(f=>FinishTypeRegistry.Key(f.MaterialName))){double raw=grp.Sum(area);if(raw< -1e-9)errors.Add("Finish group "+grp.First().MaterialName+": adjustment exceeds the measured area by "+(-raw).ToString("N2")+" m2; counted as 0.");}
+  if(finishGroupChart!=null&&!finishGroupChart.IsDisposed)finishGroupChart.SetData(chart);}
 }
 }

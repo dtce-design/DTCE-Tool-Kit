@@ -2612,6 +2612,9 @@ namespace BeamScheduleFormatter
 				"Alignment / zone ID", "Description", "Start station", "End station", "Cut area start m2", "Cut area end m2", "Fill area start m2", "Fill area end m2", "Suitable soil %", "Swell %",
 				"Bank shrink %", "Distance m", "Cut bank m3", "Fill compacted m3", "Status"
 			}, 11);
+			/* Owner (18 November 2026, "ang input na area is compacted, so dapat yung volume required is loose"): the sheet also
+			   shows the loose volume needed for the compacted fill: compacted / (1 - bank shrink) x (1 + swell). */
+			{ int looseColumn = cutFill.Columns.Add("FillRequiredLoose", "Fill required loose m3"); cutFill.Columns[looseColumn].ReadOnly = true; cutFill.Columns[looseColumn].ToolTipText = "Loose volume needed for the compacted fill = compacted / (1 - bank shrink %) x (1 + swell %). Embankment in Bill of Quantities uses loose volumes (from excavation first, then common borrow)."; try { cutFill.Columns[looseColumn].DisplayIndex = cutFill.Columns[13].DisplayIndex + 1; } catch (InvalidOperationException) { } }
 			AddGrid("Cut & Fill", cutFill, "Average end area: volume = (start area + end area)/2 x station distance. Areas are m2, NOT depths or volumes. Station: metres or 0+020. Same alignment intervals must not overlap. Insert zero/change-point sections. Exclude beam/footing trenches already counted separately.");
 			SetDefaults(cutFill, new Dictionary<int, string>
 			{
@@ -2850,10 +2853,11 @@ namespace BeamScheduleFormatter
 			});
 			start.Controls.Add(new Label
 			{
-				Text = "Estimating defaults: suitable soil 100%, swell 20%, bank shrink 10%. Confirm against project soil data. These factors apply automatically to cut/fill, beam trenches, footings and common borrow; individual-row overrides are disabled. Gravel has a separate purchase allowance.",
+				Text = "These factors apply to every cut / fill row, beam trench, footing and common borrow. Defaults are estimating assumptions (reusable 100%, swell 20%, shrinkage 10%); confirm them against the project soil data.",
 				Width = 1100,
 				Height = 42
 			});
+			ArrangeSoilFactors(flowLayoutPanel2);
 			start.Controls.Add(flowLayoutPanel2);
 			start.Resize += delegate
 			{
@@ -2931,6 +2935,7 @@ namespace BeamScheduleFormatter
 					{
 						item.Cells[i].Value = "";
 					}
+					if (cutFill.Columns.Contains("FillRequiredLoose")) item.Cells["FillRequiredLoose"].Value = "";
 					try
 					{
 						item.Cells[8].Value = suitableSoil.Value;
@@ -2963,6 +2968,7 @@ namespace BeamScheduleFormatter
 						item.Cells[11].Value = (cutFillInterval.End - cutFillInterval.Start).ToString("0.00");
 						item.Cells[12].Value = cutFillInterval.Cut.ToString("0.00");
 						item.Cells[13].Value = cutFillInterval.Fill.ToString("0.00");
+						if (cutFill.Columns.Contains("FillRequiredLoose")) item.Cells["FillRequiredLoose"].Value = (cutFillInterval.Fill / (1.0 - earthworkMaterial2.Shrink / 100.0) * (1.0 + earthworkMaterial2.Swell / 100.0)).ToString("0.00");
 						item.Cells[14].Value = "Estimated";
 					}
 					catch (Exception ex)
@@ -6417,6 +6423,7 @@ worksExcelTimer.Tick += async delegate
 				}
 			};
 			int material = g.Columns.Add("MaterialName", "Group (from Finish ID)");
+			AddFinishTypedAreaColumn(g, wall);
 			g.Columns[material].ReadOnly = true;
 			g.Columns[material].Width = 300;
 			g.Columns[material].DefaultCellStyle.WrapMode = DataGridViewTriState.True;
@@ -6518,7 +6525,7 @@ worksExcelTimer.Tick += async delegate
 					if (flag)
 					{
 						bool flag2 = Cell(item, 6) == "Whole wall (auto)";
-						for (int k = 7; k <= 10; k++)
+						foreach (int k in new int[5] { 7, 8, 9, 10, item.DataGridView.Columns.Contains(FinishTypedAreaColumn) ? item.DataGridView.Columns[FinishTypedAreaColumn].Index : 10 })
 						{
 							item.Cells[k].ReadOnly = flag2;
 							item.Cells[k].Style.BackColor = (flag2 ? Color.FromArgb(235, 237, 240) : ModernUi.Input);
@@ -6544,8 +6551,14 @@ worksExcelTimer.Tick += async delegate
 						};
 						if (!flag || !(finishItem.Basis == "Whole wall (auto)"))
 						{
-							finishItem.Length = Number(item, flag ? 7 : 3);
-							finishItem.Width = Number(item, flag ? 8 : 4);
+							string typed = TypedFinishArea(item);
+							if (typed != "") finishItem.TypedArea = Number(item, item.DataGridView.Columns[FinishTypedAreaColumn].Index);
+							if (typed == "" || Cell(item, flag ? 7 : 3) != "" || Cell(item, flag ? 8 : 4) != "")
+							{
+								if (typed != "") throw new Exception("Use Length x Height OR the typed area, not both.");
+								finishItem.Length = Number(item, flag ? 7 : 3);
+								finishItem.Width = Number(item, flag ? 8 : 4);
+							}
 							finishItem.Quantity = Count(item, flag ? 9 : 5);
 							finishItem.Deduction = Number(item, flag ? 10 : 6);
 						}
@@ -6568,13 +6581,15 @@ worksExcelTimer.Tick += async delegate
 						{
 							throw new Exception("Duplicate finish Entry ID across finish tabs.");
 						}
-						WallItem wallItem = (flag ? FindWall(finishItem.Wall) : null);
-						if (flag && wallItem == null)
+						/* a wall finish entry without Wall ID (owner, 18 November 2026) counts on its own, e.g. an adjustment */
+						bool linkedWall = flag && !string.IsNullOrWhiteSpace(finishItem.Wall);
+						WallItem wallItem = (linkedWall ? FindWall(finishItem.Wall) : null);
+						if (linkedWall && wallItem == null)
 						{
 							throw new Exception("Wall ID not found or wall has an error.");
 						}
 						double num3 = finishItem.PerFace(wallItem, wallOpenings);
-						if (flag && num3 > wallItem.Net(wallOpenings) + 1E-07)
+						if (linkedWall && num3 > wallItem.Net(wallOpenings) + 1E-07)
 						{
 							throw new Exception("Finish area exceeds the linked net wall area per face.");
 						}
@@ -7436,10 +7451,10 @@ worksExcelTimer.Tick += async delegate
 					switch (section)
 					{
 					case "WallFinishes":
-						return Enumerable.Range(0, 11).Concat(new int[1] { 14 }).ToArray();
+						return Enumerable.Range(0, 11).Concat(new int[2] { 14, 15 }).ToArray();
 					case "CeilingFinishes":
 					case "FloorFinishes":
-						return Enumerable.Range(0, 7).Concat(new int[1] { 10 }).ToArray();
+						return Enumerable.Range(0, 7).Concat(new int[2] { 10, 11 }).ToArray();
 					default:
 						return Enumerable.Range(0, 13).Concat(new int[4] { 20, 21, 22, 24 }).ToArray();
 					}
@@ -8562,7 +8577,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 					}
 				}
 			};
-			splitContainer.Panel2.Controls.Add(FinishGroupTotalsGrid()); /* owner, 18 November 2026: consolidated per group; Finish IDs are chosen on the measurement sheets */
+			splitContainer.Panel2.Controls.Add(FinishGroupTotalsGrid());splitContainer.Panel2.Controls.Add(FinishGroupChartControl()); /* owner, 18 November 2026: consolidated per group; Finish IDs are chosen on the measurement sheets */
 			/* Owner (18 November 2026, "ang pangit"): both panels share one heading style and their tables start at the same height. */
 			splitContainer.Panel2.Controls.Add(new Label
 			{
