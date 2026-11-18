@@ -1,0 +1,12 @@
+DTCE Tool Kit v1.25.3 test build (18 November 2026) - fix
+
+Construction Schedule print (owner: "medyo lighter watermark", "rotate mo siguro days
+sa barchart para magkasya if 3 digits na")
+- Bar chart: when the day numbers are too wide for their column (3 digits),
+  they are written vertically (read bottom to top) and the header row is made
+  tall enough; 1- and 2-digit sheets stay horizontal. Same on screen.
+- User edition watermark on the schedule sheets is lighter (55 % of the
+  opacity of the other reports), same logo size and lattice. Other reports
+  are unchanged. Admin edition: no watermark.
+
+Includes v1.25.2. Not tested on Windows. Not a Microsoft Store release.

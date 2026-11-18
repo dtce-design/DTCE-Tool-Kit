@@ -39,23 +39,29 @@ sealed class ScheduleChart:Control {
  /* a phase heading (Item == null) or an item line */
  internal sealed class Line {internal string Phase;internal ScheduleRow Item;}
  internal static List<Line> Lines(List<ScheduleRow> rows){return rows.Select(r=>new Line{Item=r}).ToList();}/* item order as in Bill of Quantities, no phase headings */
- internal void Fit(){var lines=Lines(Rows);ScreenWidths[1]=300;float h;using(var g=CreateGraphics()){FitDescription(g,Rows,Font,ScreenWidths,560,ref ScreenRow);h=Heights(g,lines,Font,ScreenWidths[1],ScreenRow).Sum();}Width=(int)(ScreenWidths.Sum()+Math.Max(1,Total)*ScreenDay+40);Height=(int)(ScreenHead+h+20);Invalidate();}
+ internal void Fit(){var lines=Lines(Rows);ScreenWidths[1]=300;float h;using(var g=CreateGraphics()){FitDescription(g,Rows,Font,ScreenWidths,560,ref ScreenRow);h=Heights(g,lines,Font,ScreenWidths[1],ScreenRow).Sum();}Width=(int)(ScreenWidths.Sum()+Math.Max(1,Total)*ScreenDay+40);Height=(int)(ScreenHead+h+40);Invalidate();}
  protected override void OnPaint(PaintEventArgs e){e.Graphics.Clear(BackColor);using(var bold=new Font(Font,FontStyle.Bold))Draw(e.Graphics,Lines(Rows),0,0,ScreenWidths,ScreenDay,ScreenRow,ScreenHead,1,Math.Max(1,Total),Font,bold);}
+ /* header height: caption row plus the day-number row; numbers too wide for their column (3 digits) are written
+    vertically (owner, 18 November 2026: "rotate mo siguro days sa barchart para magkasya if 3 digits na") */
+ internal static bool RotateDays(Graphics g,Font font,float dayW,int dayTo){return g.MeasureString(dayTo.ToString(CultureInfo.InvariantCulture),font).Width>dayW-1;}
+ internal static float HeaderHeight(Graphics g,Font font,float dayW,int dayTo,float headH){if(!RotateDays(g,font,dayW,dayTo))return headH;return headH/2+Math.Max(headH/2,g.MeasureString(dayTo.ToString(CultureInfo.InvariantCulture),font).Width+6);}
  internal static void Draw(Graphics g,List<Line> lines,float x0,float y0,float[] widths,float dayW,float rowH,float headH,int dayFrom,int dayTo,Font font,Font bold){
+  float top=headH/2;bool rotate=RotateDays(g,font,dayW,dayTo);headH=HeaderHeight(g,font,dayW,dayTo,headH);
   var cols=new float[widths.Length+1];float x=x0;for(int c=0;c<widths.Length;c++){cols[c]=x;x+=widths[c];}cols[widths.Length]=x;float left=x;int days=dayTo-dayFrom+1;var hs=Heights(g,lines,font,widths[1],rowH);var ys=new float[lines.Count+1];ys[0]=y0+headH;for(int i=0;i<lines.Count;i++)ys[i+1]=ys[i]+hs[i];float right=left+days*dayW,bottom=ys[lines.Count];
   var near=new StringFormat{Alignment=StringAlignment.Near,LineAlignment=StringAlignment.Center,Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap};var far=new StringFormat(near){Alignment=StringAlignment.Far};var mid=new StringFormat(near){Alignment=StringAlignment.Center};var wrap=new StringFormat{LineAlignment=StringAlignment.Center};
   using(var head=new SolidBrush(Color.FromArgb(236,240,244)))g.FillRectangle(head,x0,y0,right-x0,headH);
   using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted))using(var teal=new SolidBrush(PowTheme.Teal))using(var band=new SolidBrush(Color.FromArgb(244,246,248)))using(var grid=new Pen(Color.FromArgb(205,211,218),0.5f))using(var orange=new SolidBrush(Color.FromArgb(176,96,0))){
    for(int c=0;c<Captions.Length;c++)g.DrawString(Captions[c],bold,ink,new RectangleF(cols[c]+2,y0,widths[c]-4,headH),wrap);
-   g.DrawString("Working days",bold,ink,new RectangleF(left+2,y0,Math.Max(dayW*4,right-left),headH/2),near);/* days only, no week row (owner, 18 November 2026: "alisin mo yung weeks, days lang") */
-   for(int d=dayFrom;d<=dayTo;d++){float dx=left+(d-dayFrom)*dayW;g.DrawString(d.ToString(CultureInfo.InvariantCulture),font,ink,new RectangleF(dx,y0+headH/2,dayW,headH/2),mid);}
+   g.DrawString("Working days",bold,ink,new RectangleF(left+2,y0,Math.Max(dayW*4,right-left),top),near);/* days only, no week row (owner, 18 November 2026: "alisin mo yung weeks, days lang") */
+   for(int d=dayFrom;d<=dayTo;d++){float dx=left+(d-dayFrom)*dayW;string t=d.ToString(CultureInfo.InvariantCulture);if(!rotate){g.DrawString(t,font,ink,new RectangleF(dx,y0+top,dayW,headH-top),mid);continue;}
+    /* read from bottom to top, centred in the day column */var st=g.Save();g.TranslateTransform(dx+dayW/2,y0+headH-3);g.RotateTransform(-90);var sz=g.MeasureString(t,font);g.DrawString(t,font,ink,0,-sz.Height/2);g.Restore(st);}
    for(int i=0;i<lines.Count;i++){var l=lines[i];float y=ys[i];float rowH0=rowH;rowH=hs[i];
     if(l.Item==null){g.FillRectangle(band,x0,y,right-x0,rowH);g.DrawString(l.Phase,bold,ink,new RectangleF(x0+2,y,right-x0-4,rowH),near);rowH=rowH0;continue;}
     var r=l.Item;string[] cells={r.Code,r.Description,r.Quantity.ToString("N2"),r.Unit,r.Rate>0?r.Rate.ToString("0.###",CultureInfo.InvariantCulture):ScheduleRow.IsLumpSum(r.Unit)?"":"-",r.Days>0?r.Days.ToString(CultureInfo.InvariantCulture):ScheduleRow.IsLumpSum(r.Unit)?"":"-"};
     var desc=new StringFormat{LineAlignment=StringAlignment.Center,Trimming=StringTrimming.EllipsisWord};for(int c=0;c<cells.Length;c++)g.DrawString(cells[c],font,r.Rate<=0&&c==4&&!ScheduleRow.IsLumpSum(r.Unit)?(Brush)orange:ink,new RectangleF(cols[c]+2,y,widths[c]-4,rowH),c==1?desc:c==2||c==4||c==5?far:near);
     if(r.Days>0){int s=Math.Max(r.Start,dayFrom),f=Math.Min(r.Finish,dayTo);if(s<=f)g.FillRectangle(r.Critical?(Brush)Brushes.Firebrick:teal,left+(s-dayFrom)*dayW+1,y+rowH/2-rowH0/4,(f-s+1)*dayW-2,rowH0*0.5f);}rowH=rowH0;}
-   foreach(float cx in cols)g.DrawLine(grid,cx,y0,cx,bottom);for(int d=0;d<=days;d++){float dx=left+d*dayW;g.DrawLine(grid,dx,y0+headH/2,dx,bottom);}
-   g.DrawLine(grid,x0,y0,right,y0);g.DrawLine(grid,left,y0+headH/2,right,y0+headH/2);for(int i=0;i<=lines.Count;i++){float y=ys[i];g.DrawLine(grid,x0,y,right,y);}g.DrawLine(grid,right,y0,right,bottom);}}
+   foreach(float cx in cols)g.DrawLine(grid,cx,y0,cx,bottom);for(int d=0;d<=days;d++){float dx=left+d*dayW;g.DrawLine(grid,dx,y0+top,dx,bottom);}
+   g.DrawLine(grid,x0,y0,right,y0);g.DrawLine(grid,left,y0+top,right,y0+top);for(int i=0;i<=lines.Count;i++){float y=ys[i];g.DrawLine(grid,x0,y,right,y);}g.DrawLine(grid,right,y0,right,bottom);}}
 }
 partial class ProgramOfWorksForm {
  readonly Dictionary<string,ScheduleOverride> scheduleOverrides=new Dictionary<string,ScheduleOverride>(StringComparer.Ordinal);
