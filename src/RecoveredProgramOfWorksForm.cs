@@ -6820,7 +6820,7 @@ worksExcelTimer.Tick += async delegate
 								JambDepth = (woodRow ? Number(item, 7) : 0.0),
 								JambThickness = (woodRow ? Number(item, 8) : 0.0),
 								LeafThickness = (woodRow ? 0.045 : 0.0),
-								Faces = (woodRow ? Count(item, 10) : 0),
+								Faces = ((woodRow && OpeningPaint(item, PaintLeafColumn)) ? Count(item, 10) : 0), /* owner, 18 November 2026: Paint faces is only needed when the leaf is painted */
 								LocksPerUnit = ((!(Cell(item, 3) == "Door") && !(Cell(item, 11) == "")) ? Count(item, 11) : 0),
 								HingesPerUnit = ((!(Cell(item, 3) == "Door") && !(Cell(item, 12) == "")) ? Count(item, 12) : 0),
 								Leaves = ((Cell(item, 20) == "") ? 1 : Count(item, 20)),
