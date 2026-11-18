@@ -1,0 +1,15 @@
+DTCE Tool Kit v1.4.129 test build (18 November 2026)
+
+Angle bars (owner: "sa truss profile bat walang unequal angle bar?")
+- Added the unequal-leg angle bars from the Regan 2026 handbook p.9
+  (printed p.04, JIS G3192:2008): 75x50, 90x75, 100x75, 125x75, 125x90,
+  150x75, 150x90 and 150x100, 33 sizes, named e.g. "L100x75x8mm (JIS unequal)".
+  H = long leg A, B = short leg B; masses as published.
+- Also added the missing equal-leg sizes from handbook p.8 (printed p.03):
+  100x100x9/10/12, 125x125, 150x150, 200x200 and 250x250 (14 sizes).
+- They appear wherever angle bars are listed: Truss connection profile,
+  Structural Steel angle bars, fascia frames and painting areas.
+- Truss connection area and centroid offset use both legs (outstanding leg
+  = B). Verify the connected leg for unequal angles in the design.
+
+Includes v1.4.128. Not a Microsoft Store release.

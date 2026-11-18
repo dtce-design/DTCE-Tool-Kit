@@ -1,0 +1,12 @@
+DTCE Tool Kit v1.4.128 test build (18 November 2026)
+
+Delete key in tables (owner: "kapag mag delete ako ng cell, dapat yung value
+lang hindi yung entire row ang dedelete")
+- Delete now clears only the values of the selected cells, like Excel.
+  Dropdown and checkbox cells keep their value; read-only computed cells are
+  not touched. Ctrl+Z undoes the clear.
+- Whole rows are deleted with Ctrl+Delete, the right-click menu
+  ("Delete selected rows") or the row delete button, with the usual
+  confirmation.
+
+Not a Microsoft Store release (v1.4.127 is the Store build in progress).

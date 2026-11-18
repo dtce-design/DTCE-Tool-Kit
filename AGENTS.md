@@ -123,3 +123,7 @@ merge the development branch to main (automatic GitHub release), then run the wo
 main with publish_microsoft_store=true. Store packages stay key-free. Upload is not certification;
 report Partner Center status honestly. TestFlight and Pages remain unauthorized. Later versions need
 a new explicit owner request.
+Done 18 November 2026: v1.4.127 merged to main (GitHub release) and both User and Admin uploaded;
+Partner Center reported "accepted for processing" (PreProcessing). v1.4.128 and later need a new request.
+New owner request (18 November 2026, "paki push sa Microsoft Store"): publish v1.4.129 (User and Admin) the
+same way after its Windows CI passes. Later versions again need a new explicit request.
