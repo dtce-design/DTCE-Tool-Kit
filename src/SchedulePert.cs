@@ -66,7 +66,10 @@ sealed class PertAoa {
  static void Event(Graphics g,RectangleF c,string no,string te,string tl,bool crit,Font font,Font bold,Pen ring,Pen critRing,Brush ink,Brush red,Brush white){var mid=new StringFormat{Alignment=StringAlignment.Center,LineAlignment=StringAlignment.Center,FormatFlags=StringFormatFlags.NoWrap};
   g.FillEllipse(white,c);var pen=crit?critRing:ring;g.DrawEllipse(pen,c);float cy=c.Y+c.Height/2;g.DrawLine(pen,c.X,cy,c.Right,cy);g.DrawLine(pen,c.X+c.Width/2,cy,c.X+c.Width/2,c.Bottom);
   g.DrawString(no,bold,crit?red:ink,new RectangleF(c.X-4,c.Y+2,c.Width+8,c.Height/2-2),mid);g.DrawString(te,font,ink,new RectangleF(c.X+1,cy,c.Width/2-1,c.Height/2-4),mid);g.DrawString(tl,font,ink,new RectangleF(c.X+c.Width/2,cy,c.Width/2-1,c.Height/2-4),mid);}
- internal void Draw(Graphics g,float dx,float dy,Font font,Font bold){var smooth=g.SmoothingMode;g.SmoothingMode=SmoothingMode.AntiAlias;Color redC=Color.FromArgb(192,40,40),lineC=Color.FromArgb(110,120,132);
+ static bool InPage(AoaEvent e,float from,float to){return e.X+R>=from&&e.X+R<to;}
+ /* pageFrom / pageTo: the part of the network on this sheet (layout x); an arrow to or from another sheet ends at the sheet
+    edge with the event no. and sheet no. it continues to (owner, 18 November 2026: "yung continuity per page magulo") */
+ internal void Draw(Graphics g,float dx,float dy,Font font,Font bold,float pageFrom=float.MinValue/4,float pageTo=float.MaxValue/4,Func<float,int> sheetAt=null,float edgeFrom=float.NaN,float edgeTo=float.NaN){if(float.IsNaN(edgeFrom)){edgeFrom=pageFrom;edgeTo=pageTo;}var smooth=g.SmoothingMode;g.SmoothingMode=SmoothingMode.AntiAlias;Color redC=Color.FromArgb(192,40,40),lineC=Color.FromArgb(110,120,132);
   var mid=new StringFormat{Alignment=StringAlignment.Center,LineAlignment=StringAlignment.Far,Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap};var below=new StringFormat(mid){LineAlignment=StringAlignment.Near};
   using(var ink=new SolidBrush(PowTheme.Ink))using(var red=new SolidBrush(redC))using(var muted=new SolidBrush(PowTheme.Muted))using(var white=new SolidBrush(Color.White))
   using(var act=new Pen(lineC,1f){CustomEndCap=new AdjustableArrowCap(3.5f,4.5f)})using(var critAct=new Pen(redC,1.7f){CustomEndCap=new AdjustableArrowCap(3.5f,4.5f)})
@@ -80,23 +83,36 @@ sealed class PertAoa {
     bool isAct=ar.Activity!=null;var obs=boxes.Where(b=>b.Key!=ar.Tail&&b.Key!=ar.Head).Select(b=>b.Value).Concat(used).ToList();
     float lane=NetRoute.Lane(ty,hy,xa,xb,obs,grid,!isAct);route[ar]=new[]{xa,xb,lane};
     bool lab=ar.Lag!=0||ar.Type!="FS";used.Add(isAct?new RectangleF(xa,lane-17,xb-xa,33):new RectangleF(xa,lane-(lab?14:5),xb-xa,lab?28:10));}
-   foreach(var ar in Arrows.OrderBy(x=>x.Critical)){float tx=dx+ar.Tail.X+R,ty=dy+ar.Tail.Y,hx=dx+ar.Head.X+R,hy=dy+ar.Head.Y;float xa=route[ar][0],xb=route[ar][1],lane=route[ar][2];
+   float left=dx+edgeFrom+3,right=dx+edgeTo-3;var ghosts=new Dictionary<AoaEvent,int>();
+   foreach(var ar in Arrows.OrderBy(x=>x.Critical)){bool tin=InPage(ar.Tail,pageFrom,pageTo),hin=InPage(ar.Head,pageFrom,pageTo);if(!tin&&!hin)continue;
+    float tx=dx+ar.Tail.X+R,ty=dy+ar.Tail.Y,hx=dx+ar.Head.X+R,hy=dy+ar.Head.Y;float xa=route[ar][0],xb=route[ar][1],lane=route[ar][2];
     Func<float,float,float,float,PointF> edge=(cx,cy,px,py)=>{float vx=px-cx,vy=py-cy,len=(float)Math.Sqrt(vx*vx+vy*vy);return len<0.01f?new PointF(cx+R,cy):new PointF(cx+vx/len*R,cy+vy/len*R);};
-    var pts=NetRoute.Path(new[]{edge(tx,ty,xa,lane),new PointF(xa,lane),new PointF(xb,lane),edge(hx,hy,xb,lane)});
-    bool isAct=ar.Activity!=null;g.DrawLines(isAct?(ar.Critical?critAct:act):(ar.Critical?critDummy:dummy),pts);
-    float w=xb-xa,ly=lane;if(isAct){var pa=ar.Activity;var nd=pa.Node;labels.Add(()=>{g.DrawString(nd.Id+"  "+nd.Row.Code,bold,ar.Critical?(Brush)red:ink,new RectangleF(xa,ly-15,w,14),mid);
-      g.DrawString("te "+pa.Te.ToString("0.#",IC)+"  ("+pa.A.ToString("0.0",IC)+" / "+pa.M.ToString("0.#",IC)+" / "+pa.B.ToString("0.0",IC)+")",font,muted,new RectangleF(xa,ly+1,w,13),below);});}
-    else if(ar.Lag!=0||ar.Type!="FS"){string t=ar.Type+(ar.Lag>0?" +"+ar.Lag:ar.Lag<0?" "+ar.Lag:"");labels.Add(()=>{var sz=g.MeasureString(t,font);var r=new RectangleF(xa+(w-sz.Width)/2,ly-sz.Height-1,sz.Width,sz.Height-2);g.FillRectangle(white,r);g.DrawString(t,font,ar.Critical?(Brush)red:muted,r.X,r.Y);});}}
+    bool isAct=ar.Activity!=null;var pen=isAct?(ar.Critical?critAct:act):(ar.Critical?critDummy:dummy);Brush tagInk=ar.Critical?(Brush)red:muted;
+    string lag=isAct||(ar.Lag==0&&ar.Type=="FS")?"":ar.Type+(ar.Lag>0?" +"+ar.Lag:ar.Lag<0?" "+ar.Lag:"");float ly=lane;
+    if(tin&&hin)g.DrawLines(pen,NetRoute.Path(new[]{edge(tx,ty,xa,lane),new PointF(xa,lane),new PointF(xb,lane),edge(hx,hy,xb,lane)}));
+    else if(tin){/* continues on a later sheet: short run to the edge, named with the head event and its sheet; the activity
+                    labels are written on the sheet where the arrow is drawn in full */
+     g.DrawLines(pen,NetRoute.Path(new[]{edge(tx,ty,xa,lane),new PointF(xa,lane),new PointF(right,lane)}));string t=(lag==""?"":lag+"  ")+"to "+ar.Head.No+(sheetAt==null?"":" (sheet "+sheetAt(ar.Head.X+R)+")");
+     labels.Add(()=>PdmNetwork.Tag(g,t,font,tagInk,white,right-2,ly,true));continue;}
+    else{/* comes from an earlier sheet: the tail event is repeated at the left edge (dashed, with its sheet no.) and the
+            arrow is drawn in full from it */
+     float gx=left+6+R;ghosts[ar.Tail]=sheetAt==null?0:sheetAt(ar.Tail.X+R);xa=gx+R+14;if(xb<xa+10)xb=xa+10;
+     g.DrawLines(pen,NetRoute.Path(new[]{edge(gx,ty,xa,lane),new PointF(xa,lane),new PointF(xb,lane),edge(hx,hy,xb,lane)}));}
+    float w=xb-xa;if(isAct){var pa=ar.Activity;var nd=pa.Node;float x1=xa;labels.Add(()=>{g.DrawString(nd.Id+"  "+nd.Row.Code,bold,ar.Critical?(Brush)red:ink,new RectangleF(x1,ly-15,w,14),mid);
+      g.DrawString("te "+pa.Te.ToString("0.#",IC)+"  ("+pa.A.ToString("0.0",IC)+" / "+pa.M.ToString("0.#",IC)+" / "+pa.B.ToString("0.0",IC)+")",font,muted,new RectangleF(x1,ly+1,w,13),below);});}
+    else if(lag!=""){string t=lag;float x1=xa;labels.Add(()=>{var sz=g.MeasureString(t,font);var r=new RectangleF(x1+(w-sz.Width)/2,ly-sz.Height-1,sz.Width,sz.Height-2);g.FillRectangle(white,r);g.DrawString(t,font,ar.Critical?(Brush)red:muted,r.X,r.Y);});}}
    foreach(var l in labels)l();
    var fin=Finish;
-   foreach(var e in Events.Where(x=>x.ToFinish)){float x0=dx+e.X+2*R,y0=dy+e.Y;g.DrawLine(dummy,x0,y0,x0+34,y0);g.DrawString("to "+(fin==null?"FINISH":fin.No.ToString(IC)),font,muted,x0+36,y0-7);}
-   foreach(var e in Events)Event(g,new RectangleF(dx+e.X,dy+e.Y-R,2*R,2*R),e.No.ToString(IC),e.TE.ToString(IC),e.TL.ToString(IC),e.Critical,font,bold,ring,critRing,ink,red,white);}
+   foreach(var e in Events.Where(x=>x.ToFinish&&InPage(x,pageFrom,pageTo))){float x0=dx+e.X+2*R,y0=dy+e.Y;g.DrawLine(dummy,x0,y0,x0+34,y0);g.DrawString("to "+(fin==null?"FINISH":fin.No.ToString(IC)),font,muted,x0+36,y0-7);}
+   foreach(var gh in ghosts){var c=new RectangleF(left+6,dy+gh.Key.Y-R,2*R,2*R);using(var dash=new Pen(PowTheme.Ink,0.9f){DashStyle=DashStyle.Dash}){g.FillEllipse(white,c);g.DrawEllipse(dash,c);}
+    g.DrawString(gh.Key.No.ToString(IC),bold,ink,new RectangleF(c.X-6,c.Y,c.Width+12,c.Height),new StringFormat{Alignment=StringAlignment.Center,LineAlignment=StringAlignment.Center});if(gh.Value>0)g.DrawString("sheet "+gh.Value,font,muted,new RectangleF(c.X-14,c.Bottom+1,c.Width+28,12),new StringFormat{Alignment=StringAlignment.Center});}
+   foreach(var e in Events.Where(x=>InPage(x,pageFrom,pageTo)))Event(g,new RectangleF(dx+e.X,dy+e.Y-R,2*R,2*R),e.No.ToString(IC),e.TE.ToString(IC),e.TL.ToString(IC),e.Critical,font,bold,ring,critRing,ink,red,white);}
   g.SmoothingMode=smooth;}
  internal const string LegendText="PERT-CPM, activity on arrow: te = (a + 4m + b) / 6 with a = 0.8 m, b = 1.2 m (working days). Dashed = dummy / lag arrow: FS = after the finish, SS = after the start, FF = finish after the finish, + lag in days. Red = critical path.";
  internal static void DrawKey(Graphics g,float x,float y,Font font,Font bold){using(var ink=new SolidBrush(PowTheme.Ink))using(var red=new SolidBrush(Color.FromArgb(192,40,40)))using(var white=new SolidBrush(Color.White))using(var ring=new Pen(PowTheme.Ink,1f))using(var crit=new Pen(Color.FromArgb(192,40,40),1.6f))using(var act=new Pen(Color.FromArgb(110,120,132),1f){CustomEndCap=new AdjustableArrowCap(3.5f,4.5f)})using(var dummy=new Pen(Color.FromArgb(110,120,132),0.9f){DashStyle=DashStyle.Dash,CustomEndCap=new AdjustableArrowCap(3.5f,4.5f)}){
   g.DrawString("EVENT KEY",bold,ink,x,y);Event(g,new RectangleF(x+76,y,2*R,2*R),"i","TE","TL",false,font,bold,ring,crit,ink,red,white);
   string[] k={"i = event no. (each arrow runs from a lower to a higher no.)","TE = earliest event time, TL = latest event time (working days); TE = TL: critical"};for(int i=0;i<k.Length;i++)g.DrawString(k[i],font,ink,x+76+2*R+12,y+4+i*15);
-  float ax=x+560;g.DrawLine(act,ax,y+12,ax+90,y+12);g.DrawString("activity: no. and item no. above, te (a / m / b) below; \"to n\" = connector to the finish event n",font,ink,ax+100,y+5);g.DrawLine(dummy,ax,y+34,ax+90,y+34);g.DrawString("dummy / lag arrow (e.g. \"SS +3\"), no work",font,ink,ax+100,y+27);}}
+  float ax=x+560;g.DrawLine(act,ax,y+12,ax+90,y+12);g.DrawString("activity: no. and item no. above, te (a / m / b) below; \"to n\" = connector to the finish event n",font,ink,ax+100,y+5);g.DrawLine(dummy,ax,y+34,ax+90,y+34);g.DrawString("dummy / lag arrow (e.g. \"SS +3\"), no work; dashed circle = event repeated from the sheet named under it",font,ink,ax+100,y+27);}}
 }
 sealed class PertView:Control {internal PertAoa Diagram;internal PertResult Pert;internal PertView(){DoubleBuffered=true;BackColor=Color.White;Font=new Font("Segoe UI",8f);}
  internal void Fit(){if(Diagram==null)return;var size=Diagram.Layout(Math.Max(500,(Parent==null?700:Parent.ClientSize.Height)-60-PertAoa.KeyH));Width=Math.Max(900,(int)size.Width+20);Height=(int)(size.Height+34+PertAoa.KeyH);Invalidate();}

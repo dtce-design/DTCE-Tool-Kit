@@ -27,19 +27,30 @@ sealed class ScheduleSet {
   /* PDM: split between node columns */
   if(Network.Nodes.Count>0){float legendH=16+PdmNetwork.KeyH;
    /* the widest column gap that needs the fewest sheets */
-   Func<List<KeyValuePair<float,float>>> pdmRanges=()=>{Network.Layout(c.Height-legendH);var cols=Network.Nodes.Select(n=>new KeyValuePair<float,float>(n.X,PdmNetwork.NodeW)).Concat(Network.Milestones.Select(m=>new KeyValuePair<float,float>(m.X,PdmNetwork.MileD))).OrderBy(k=>k.Key).ToList();return Split(cols,c.Width);};
-   float bestGap=120;int fewest=int.MaxValue;foreach(var gap in new float[]{120,106,94,84,78}){Network.LinkGap=gap;int count=pdmRanges().Count;if(count<fewest){fewest=count;bestGap=gap;}}Network.LinkGap=bestGap;var ranges=pdmRanges();
-   for(int i=0;i<ranges.Count;i++){var range=ranges[i];Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PRECEDENCE DIAGRAM (PDM)"+(ranges.Count>1?" - "+(i+1)+" OF "+ranges.Count:""),(g,r,f,b)=>{using(var ink=new SolidBrush(PowTheme.Muted))g.DrawString(PdmNetwork.LegendText,f,ink,r.X,r.Y);PdmNetwork.DrawKey(g,r.X,r.Y+16,f,b);var st=g.Save();g.SetClip(new RectangleF(r.X,r.Y+legendH,Math.Min(r.Width,range.Value-range.Key),r.Height-legendH));Network.Draw(g,r.X-range.Key,r.Y+legendH,f,b);g.Restore(st);}));}
+   Func<List<SheetRange>> pdmRanges=()=>{Network.Layout(c.Height-legendH);var cols=Network.Nodes.Select(n=>new KeyValuePair<float,float>(n.X,PdmNetwork.NodeW)).Concat(Network.Milestones.Select(m=>new KeyValuePair<float,float>(m.X,PdmNetwork.MileD))).OrderBy(k=>k.Key).ToList();return Split(cols,c.Width);};
+   float bestGap=120;int fewest=int.MaxValue;foreach(var gap in new float[]{120,106,94,84,78,72}){Network.LinkGap=gap;int count=pdmRanges().Count;if(count<fewest){fewest=count;bestGap=gap;}}Network.LinkGap=bestGap;var ranges=pdmRanges();
+   int pdmFirst=Sheets.Count+1;Func<float,int> pdmSheet=x=>{for(int j=0;j<ranges.Count;j++)if(x+PdmNetwork.NodeW/2>=ranges[j].CoreFrom&&x+PdmNetwork.NodeW/2<ranges[j].CoreTo)return pdmFirst+j;return pdmFirst;};
+   for(int i=0;i<ranges.Count;i++){var range=ranges[i];Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PRECEDENCE DIAGRAM (PDM)"+(ranges.Count>1?" - "+(i+1)+" OF "+ranges.Count:""),(g,r,f,b)=>{using(var ink=new SolidBrush(PowTheme.Muted))g.DrawString(PdmNetwork.LegendText,f,ink,r.X,r.Y);PdmNetwork.DrawKey(g,r.X,r.Y+16,f,b);var st=g.Save();g.SetClip(new RectangleF(r.X,r.Y+legendH,Math.Min(r.Width,range.Value-range.Key),r.Height-legendH));Network.Draw(g,r.X-range.Key,r.Y+legendH,f,b,null,range.CoreFrom,range.CoreTo,pdmSheet,range.Key,range.Value);g.Restore(st);}));}
   /* PERT table */
    int perRows=Math.Max(5,(int)((c.Height-60)/15));for(int i=0;i<Pert.Activities.Count;i+=perRows){int s=i,n=Math.Min(Pert.Activities.Count,i+perRows)-i;Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PERT TIME ESTIMATES",(g,r,f,b)=>DrawPertTable(g,r,f,b,s,n)));}
   /* PERT-CPM network: activity on arrow, split between event columns */
    var aoa=PertAoa.Build(Network,Pert);float aoaH=16+PertAoa.KeyH;
-   Func<List<KeyValuePair<float,float>>> aoaRanges=()=>{aoa.Layout(c.Height-aoaH);return Split(aoa.Events.Select(e=>new KeyValuePair<float,float>(e.X-6,2*PertAoa.R+12)).OrderBy(k=>k.Key).ToList(),c.Width);};
+   Func<List<SheetRange>> aoaRanges=()=>{aoa.Layout(c.Height-aoaH);return Split(aoa.Events.Select(e=>new KeyValuePair<float,float>(e.X-6,2*PertAoa.R+12)).OrderBy(k=>k.Key).ToList(),c.Width,aoa.LevelW-2*PertAoa.R+30,124);};
    float bestW=250;int fewestP=int.MaxValue;foreach(var w in new float[]{250,230,212,196,180}){aoa.LevelW=w;int count=aoaRanges().Count;if(count<fewestP){fewestP=count;bestW=w;}}aoa.LevelW=bestW;var pr=aoaRanges();
-   for(int i=0;i<pr.Count;i++){var range=pr[i];Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PERT-CPM NETWORK"+(pr.Count>1?" - "+(i+1)+" OF "+pr.Count:""),(g,r,f,b)=>{using(var ink=new SolidBrush(PowTheme.Muted))g.DrawString(PertAoa.LegendText,f,ink,r.X,r.Y);PertAoa.DrawKey(g,r.X,r.Y+16,f,b);var st=g.Save();g.SetClip(new RectangleF(r.X,r.Y+aoaH,Math.Min(r.Width,range.Value-range.Key),r.Height-aoaH));aoa.Draw(g,r.X-range.Key,r.Y+aoaH,f,b);g.Restore(st);}));}}}
+   int pertFirst=Sheets.Count+1;Func<float,int> pertSheet=x=>{for(int j=0;j<pr.Count;j++)if(x>=pr[j].CoreFrom&&x<pr[j].CoreTo)return pertFirst+j;return pertFirst;};
+   for(int i=0;i<pr.Count;i++){var range=pr[i];Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PERT-CPM NETWORK"+(pr.Count>1?" - "+(i+1)+" OF "+pr.Count:""),(g,r,f,b)=>{using(var ink=new SolidBrush(PowTheme.Muted))g.DrawString(PertAoa.LegendText,f,ink,r.X,r.Y);PertAoa.DrawKey(g,r.X,r.Y+16,f,b);var st=g.Save();g.SetClip(new RectangleF(r.X,r.Y+aoaH,Math.Min(r.Width,range.Value-range.Key),r.Height-aoaH));aoa.Draw(g,r.X-range.Key,r.Y+aoaH,f,b,range.CoreFrom,range.CoreTo,pertSheet,range.Key,range.Value);g.Restore(st);}));}}}
  /* consecutive x ranges no wider than a sheet, split between columns */
- static List<KeyValuePair<float,float>> Split(List<KeyValuePair<float,float>> cols,float width){var ranges=new List<KeyValuePair<float,float>>();int k=0;
-  while(k<cols.Count){float start=cols[k].Key-4,end=cols[k].Key+cols[k].Value;k++;while(k<cols.Count&&cols[k].Key+cols[k].Value-start<=width){end=Math.Max(end,cols[k].Key+cols[k].Value);k++;}ranges.Add(new KeyValuePair<float,float>(start,end+4));}return ranges;}
+ /* each sheet keeps a margin at both sides for the "from n (sheet s)" / "to n (sheet s)" connectors of relations that
+    continue on another sheet */
+ internal const float Margin2=116;
+ /* sheet ranges: Key / Value = drawn extent (with the margins), Core = the columns that belong to the sheet */
+ internal sealed class SheetRange {internal float Key,Value,CoreFrom,CoreTo;}
+ static List<SheetRange> Split(List<KeyValuePair<float,float>> cols,float width,float leftMargin=Margin2,float rightMargin=Margin2){var ranges=new List<SheetRange>();int k=0;
+  while(k<cols.Count){float lm=ranges.Count==0?4:leftMargin;float start=cols[k].Key-4,end=cols[k].Key+cols[k].Value;k++;while(k<cols.Count&&cols[k].Key+cols[k].Value-start<=width-lm-rightMargin){end=Math.Max(end,cols[k].Key+cols[k].Value);k++;}
+   ranges.Add(new SheetRange{Key=start-lm,Value=end+4+rightMargin,CoreFrom=start,CoreTo=end+4});}
+  /* cores meet half way so that every column belongs to exactly one sheet */
+  for(int i=0;i+1<ranges.Count;i++){float m=(ranges[i].CoreTo+ranges[i+1].CoreFrom)/2;ranges[i].CoreTo=m;ranges[i+1].CoreFrom=m;}if(ranges.Count>0){ranges[0].CoreFrom=float.MinValue/4;ranges[ranges.Count-1].CoreTo=float.MaxValue/4;}
+  return ranges;}
  void DrawSummary(Graphics g,RectangleF r,Font f,Font b){using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted))using(var red=new SolidBrush(Color.FromArgb(192,40,40)))using(var big=new Font("Segoe UI",14f,FontStyle.Bold))using(var mid=new Font("Segoe UI",9.5f,FontStyle.Bold))using(var grid=new Pen(Color.FromArgb(190,198,206),0.6f)){
   float y=r.Y;g.DrawString("CONSTRUCTION SCHEDULE",big,ink,r.X,y);y+=30;
   string[,] facts={{"Project duration (CPM)",Total+" working days"},{"Working time","8 hours per day; working days only (no Sundays, holidays or unworkable days)"},{"Scheduled pay items",Network.Nodes.Count+" activities, "+Network.Links.Count+" relations (FS / SS / FF with lags)"},

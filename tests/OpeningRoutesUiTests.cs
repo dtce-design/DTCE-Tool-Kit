@@ -40,6 +40,14 @@ class OpeningRoutesUiTests {
    var lnet=PdmNetwork.Build(lr);var lpert=PertResult.Build(lnet);var aoa=PertAoa.Build(lnet,lpert);aoa.Layout(800);
    Check(aoa.Arrows.Count(x=>x.Activity!=null)==lnet.Nodes.Count&&aoa.Arrows.All(x=>x.Tail.No<x.Head.No)&&aoa.Events.Count(e=>!aoa.Arrows.Any(x=>x.Head==e))==1&&aoa.Finish.Level==aoa.Events.Max(e=>e.Level),"PERT activity on arrow: one arrow per activity, events numbered tail < head, one start event, FINISH last");
    Check(aoa.Arrows.Where(x=>x.Activity!=null).All(x=>x.Tail.TE<=x.Activity.Node.ES&&x.Head.TE>=x.Activity.Node.EF)&&aoa.Finish.TE==lnet.Total&&aoa.Finish.TL==lnet.Total,"PERT event times agree with the CPM times");
+   /* every pay item of the DUPA catalogue (owner: "kahit anong pay items man ang mailagay tama pa din") */
+   Check(!ScheduleLogic.RuleProblems().Any(),"construction logic rules refer only to earlier trades");
+   var cat=ScheduleRates.All.Select(x=>new ScheduleRow{Code=x.Code,Description=x.Description,Unit=x.Unit,Crew=x.Crew,Crews=1,Days=ScheduleRow.IsLumpSum(x.Unit)||x.Unit=="mo"||x.Unit=="veh-mo"?0:1+(int)(Math.Abs(x.Code.GetHashCode())%9)}).ToList();
+   Check(cat.Count(x=>ScheduleLogic.Trade(x)=="OTHER")<=1,"every catalogue pay item has a trade ("+string.Join(", ",cat.Where(x=>ScheduleLogic.Trade(x)=="OTHER").Select(x=>x.Code))+")");
+   ScheduleLogic.Schedule(cat);var cnet=PdmNetwork.Build(cat);var cpert=PertResult.Build(cnet);var caoa=PertAoa.Build(cnet,cpert);caoa.Layout(900);
+   Check(cnet.Nodes.All(n=>n.TF>=0&&n.EF==n.ES+n.Row.Days&&n.Row.Start-1>=n.ES&&n.Row.Start-1<=n.LS)&&cnet.Nodes.Any(n=>n.Critical),"whole catalogue: CPM and levelling consistent");
+   Check(caoa.Arrows.All(x=>x.Tail.No<x.Head.No)&&caoa.Events.Count(e=>!caoa.Arrows.Any(x=>x.Head==e))==1&&caoa.Arrows.Count(x=>x.Activity!=null)==cnet.Nodes.Count,"whole catalogue: PERT activity-on-arrow network valid");
+   var cset=new ScheduleSet(cat,null);Check(cset.Sheets.Count>5,"whole catalogue: issue set builds");
    var tr=ScheduleManpower.Trades(mr);Check(tr.First(t=>ScheduleManpower.IsForeman(t.Trade)).Peak==1&&tr.Sum(t=>t.ManDays)==md.Sum(),"manpower per trade adds up to the daily totals");
    var set=new ScheduleSet(rows,null);Check(set.Sheets.Count>=4&&ScheduleSet.PageW==1654&&ScheduleSet.PageH==1169&&set.Sheets.Any(k=>k.Key=="MANPOWER LOADING")&&set.Sheets.Any(k=>k.Key=="MANPOWER SCHEDULE"),"issue set on A3 landscape with the manpower sheets");}}
   Console.WriteLine("PASS: "+checks+" automatic door / window BOQ mapping checks");}
