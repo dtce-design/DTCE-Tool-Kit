@@ -17,4 +17,8 @@ mapping.
 New opening material "Steel" (owner: "additional type Steel Window"): Steel
 doors and windows behave like Aluminum / PVC (no wood jamb, leaf or paint inputs).
 
+Operation column removed (owner: "huwag mo na ilagay yung operation"): every
+opening is counted as Swing. Doors get their hinges automatically; window
+hardware follows Locksets/unit and Hinges/unit (enter 0 for sliding or fixed).
+
 Includes v1.16.1. Not a Microsoft Store release (v1.5.0 is the Store build).

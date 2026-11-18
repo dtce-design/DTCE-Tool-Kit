@@ -5416,6 +5416,9 @@ worksExcelTimer.Tick += async delegate
 			};
 			dataGridViewComboBoxColumn2.Items.AddRange("Swing", "Sliding", "Fixed");
 			g.Columns.Add(dataGridViewComboBoxColumn2);
+			/* Owner (18 November 2026, "huwag mo na ilagay yung operation"): the Operation column is hidden and every opening is
+			   counted as Swing; window hardware follows Locksets/unit and Hinges/unit (enter 0 for sliding or fixed). */
+			dataGridViewComboBoxColumn2.Visible = false;
 			AddMouldingColumns(g);
 			AddOpeningMaterialColumn(g, isWood ? "Wood" : "Aluminum");
 			AddOpeningPaintColumns(g);
@@ -6824,7 +6827,7 @@ worksExcelTimer.Tick += async delegate
 								LocksPerUnit = ((!(Cell(item, 3) == "Door") && !(Cell(item, 11) == "")) ? Count(item, 11) : 0),
 								HingesPerUnit = ((!(Cell(item, 3) == "Door") && !(Cell(item, 12) == "")) ? Count(item, 12) : 0),
 								Leaves = ((Cell(item, 20) == "") ? 1 : Count(item, 20)),
-								Operation = ((Cell(item, 21) == "") ? "Swing" : Cell(item, 21)),
+								Operation = "Swing", /* Operation column removed (owner, 18 November 2026) */
 								MouldingProfile = Cell(item, 24),
 								Exterior = (dataGridView != manualOpeningsGrid && Cell(item, 22) != "" && bool.Parse(Cell(item, 22))),
 								PaintLeaf = OpeningPaint(item, PaintLeafColumn),
