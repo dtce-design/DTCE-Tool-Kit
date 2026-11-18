@@ -127,3 +127,6 @@ Done 18 November 2026: v1.4.127 merged to main (GitHub release) and both User an
 Partner Center reported "accepted for processing" (PreProcessing). v1.4.128 and later need a new request.
 New owner request (18 November 2026, "paki push sa Microsoft Store"): publish v1.4.129 (User and Admin) the
 same way after its Windows CI passes. Later versions again need a new explicit request.
+Result 18 November 2026: v1.4.129 merged to main (GitHub release OK), but both Store uploads were refused because
+the v1.4.127 submissions were still in Certification ("Existing submission is not editable"). Re-run the failed
+Store jobs of run 44231420200 only after v1.4.127 certification finishes (or the owner cancels it in Partner Center).
