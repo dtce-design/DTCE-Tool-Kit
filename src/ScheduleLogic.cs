@@ -80,10 +80,20 @@ static class ScheduleLogic {
    foreach(var rule in rules){var hit=rule.FirstOrDefault(c=>byTrade.ContainsKey(c.Trade));if(hit==null)continue;foreach(var p in byTrade[hit.Trade])if(p!=nd)links.Add(new ScheduleLink{From=p,To=nd,Type=hit.Type,Lag=LagDays(hit,p.Row.Days)});}}
   /* network order: trade order, then Bill of Quantities order */
   nodes=nodes.OrderBy(n=>Array.IndexOf(Order,n.Trade)).ThenBy(n=>n.Id).ToList();
+  /* drop relations already implied by other relations (every type is "start of s >= start of p + c", c = D(p) + lag for FS,
+     lag for SS, D(p) + lag - D(s) for FF; a link is implied when another path from p to s gives at least the same c), so the
+     PDM and the PERT network show only the relations that matter; the schedule is not changed by this */
+  Reduce(nodes,links);
   foreach(var nd in nodes){int d=nd.Row.Days,es=0;foreach(var l in links.Where(x=>x.To==nd))es=Math.Max(es,Bound(l,d));nd.ES=es;nd.EF=es+d;}
   int total=nodes.Count==0?0:nodes.Max(n=>n.EF);
   for(int i=nodes.Count-1;i>=0;i--){var nd=nodes[i];int d=nd.Row.Days,lf=total;foreach(var l in links.Where(x=>x.From==nd)){var s=l.To;int c=l.Type=="FS"?s.LS-l.Lag:l.Type=="SS"?s.LS-l.Lag+d:s.LF-l.Lag;lf=Math.Min(lf,c);}nd.LF=lf;nd.LS=lf-d;nd.TF=nd.LS-nd.ES;}
   return links;}
+ static int Offset(ScheduleLink l){int dp=l.From.Row.Days,ds=l.To.Row.Days;return l.Type=="FS"?dp+l.Lag:l.Type=="SS"?l.Lag:dp+l.Lag-ds;}
+ static void Reduce(List<PdmNode> nodes,List<ScheduleLink> links){var rank=new Dictionary<PdmNode,int>();for(int i=0;i<nodes.Count;i++)rank[nodes[i]]=i;
+  foreach(var l in links.OrderByDescending(x=>rank[x.To]-rank[x.From]).ToList()){int c=Offset(l);
+   /* longest path from l.From to l.To without l (network order is topological) */
+   var best=new Dictionary<PdmNode,int>{{l.From,0}};foreach(var nd in nodes.Where(n=>rank[n]>rank[l.From]&&rank[n]<=rank[l.To])){int v=int.MinValue;foreach(var k in links)if(k!=l&&k.To==nd){int b;if(best.TryGetValue(k.From,out b))v=Math.Max(v,b+Offset(k));}if(v>int.MinValue)best[nd]=v;}
+   int via;if(best.TryGetValue(l.To,out via)&&via>=c)links.Remove(l);}}
  /* earliest start of the successor allowed by one link (predecessor at its ES / EF) */
  static int Bound(ScheduleLink l,int d){var p=l.From;return l.Type=="FS"?p.EF+l.Lag:l.Type=="SS"?p.ES+l.Lag:p.EF+l.Lag-d;}
  static int Bound(ScheduleLink l,int d,Dictionary<PdmNode,int> start){var p=l.From;int s=start[p],f=s+p.Row.Days;return l.Type=="FS"?f+l.Lag:l.Type=="SS"?s+l.Lag:f+l.Lag-d;}

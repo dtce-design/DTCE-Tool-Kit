@@ -37,6 +37,9 @@ class OpeningRoutesUiTests {
    Check(lk.Any(l=>l.From.Row==L(5)&&l.To.Row==L(7)&&l.Type=="FS"&&l.Lag==7)&&L(7).Start>=L(5).Finish+8,"trusses wait 7 working days after the frame is poured");
    Check(L(5).Finish>=L(3).Finish+1&&L(4).Start>=L(1).Start&&L(6).Start>L(5).Start&&L(8).Start>L(7).Finish&&L(9).Start>L(6).Start&&L(10).Finish>=L(9).Finish+3,"trade sequence and finish-to-finish lags");
    int sum=lr.Sum(r=>r.Days),dur=lr.Max(r=>r.Finish);Check(dur<sum&&dur==ln.Max(n=>n.EF)&&ln.All(n=>n.Row.Start-1>=n.ES&&n.Row.Start-1<=n.LS),"overlapped duration shorter than end-to-end; levelled starts stay within the float");
+   var lnet=PdmNetwork.Build(lr);var lpert=PertResult.Build(lnet);var aoa=PertAoa.Build(lnet,lpert);aoa.Layout(800);
+   Check(aoa.Arrows.Count(x=>x.Activity!=null)==lnet.Nodes.Count&&aoa.Arrows.All(x=>x.Tail.No<x.Head.No)&&aoa.Events.Count(e=>!aoa.Arrows.Any(x=>x.Head==e))==1&&aoa.Finish.Level==aoa.Events.Max(e=>e.Level),"PERT activity on arrow: one arrow per activity, events numbered tail < head, one start event, FINISH last");
+   Check(aoa.Arrows.Where(x=>x.Activity!=null).All(x=>x.Tail.TE<=x.Activity.Node.ES&&x.Head.TE>=x.Activity.Node.EF)&&aoa.Finish.TE==lnet.Total&&aoa.Finish.TL==lnet.Total,"PERT event times agree with the CPM times");
    var tr=ScheduleManpower.Trades(mr);Check(tr.First(t=>ScheduleManpower.IsForeman(t.Trade)).Peak==1&&tr.Sum(t=>t.ManDays)==md.Sum(),"manpower per trade adds up to the daily totals");
    var set=new ScheduleSet(rows,null);Check(set.Sheets.Count>=4&&ScheduleSet.PageW==1654&&ScheduleSet.PageH==1169&&set.Sheets.Any(k=>k.Key=="MANPOWER LOADING")&&set.Sheets.Any(k=>k.Key=="MANPOWER SCHEDULE"),"issue set on A3 landscape with the manpower sheets");}}
   Console.WriteLine("PASS: "+checks+" automatic door / window BOQ mapping checks");}

@@ -12,14 +12,21 @@ sealed class PdmNode {internal ScheduleRow Row;internal string Trade;internal in
 sealed class PdmMilestone {internal string Name,Caption;internal int Day;internal float X,Y;}
 sealed class PdmNetwork {
  internal readonly List<PdmNode> Nodes=new List<PdmNode>();internal readonly List<PdmMilestone> Milestones=new List<PdmMilestone>();internal List<ScheduleLink> Links=new List<ScheduleLink>();internal int Total;internal float Height;
- internal const float NodeW=190,NodeH=84,RowGap=26,ColGap=40,MileD=NodeW,Head=10,LinkGap=96;
+ internal const float NodeW=190,NodeH=84,RowGap=30,ColGap=50,MileD=NodeW,Head=10;internal float LinkGap=120;/* gap between columns; narrowed on paper to save sheets */
  internal static PdmNetwork Build(List<ScheduleRow> rows){var n=new PdmNetwork();List<PdmNode> nodes;n.Links=ScheduleLogic.Network(rows,out nodes);n.Nodes.AddRange(nodes);n.Total=nodes.Count==0?0:nodes.Max(x=>x.EF);
   foreach(var nd in nodes){int lv=1;foreach(var l in n.Links.Where(x=>x.To==nd))lv=Math.Max(lv,l.From.Level+1);nd.Level=lv;}
   n.Milestones.Add(new PdmMilestone{Name="START",Caption="Start of project",Day=0});n.Milestones.Add(new PdmMilestone{Name="FINISH",Caption="Project completion",Day=n.Total});return n;}
  internal bool Driving(ScheduleLink l){var p=l.From;int d=l.To.Row.Days;int b=l.Type=="FS"?p.EF+l.Lag:l.Type=="SS"?p.ES+l.Lag:p.EF+l.Lag-d;return p.Critical&&l.To.Critical&&b==l.To.ES;}
+ /* nodes of each level ordered by the average position of their predecessors / successors (fewer crossings) */
+ internal static void Order<T>(List<List<T>> levels,Func<T,IEnumerable<T>> preds,Func<T,IEnumerable<T>> succs,Func<T,int> id){
+  var pos=new Dictionary<T,double>();Action number=()=>{foreach(var lv in levels)for(int i=0;i<lv.Count;i++)pos[lv[i]]=(i+0.5)/lv.Count;};number();
+  for(int sweep=0;sweep<4;sweep++){for(int k=1;k<levels.Count;k++){var lv=levels[k];var key=lv.ToDictionary(n=>n,n=>{var ps=preds(n).Where(pos.ContainsKey).ToList();return ps.Count==0?pos[n]:ps.Average(x=>pos[x]);});levels[k]=lv.OrderBy(n=>key[n]).ThenBy(id).ToList();number();}
+   for(int k=levels.Count-2;k>=0;k--){var lv=levels[k];var key=lv.ToDictionary(n=>n,n=>{var ss=succs(n).Where(pos.ContainsKey).ToList();return ss.Count==0?pos[n]:ss.Average(x=>pos[x]);});levels[k]=lv.OrderBy(n=>key[n]).ThenBy(id).ToList();number();}}}
  internal SizeF Layout(float height){Height=height;float step=NodeH+RowGap;int perCol=Math.Max(1,(int)((height-Head-10)/step));float mid=Head+(height-Head)/2;float x=6;
   Milestones[0].X=x;Milestones[0].Y=mid-NodeH/2;x+=NodeW+LinkGap;int levels=Nodes.Count==0?0:Nodes.Max(nd=>nd.Level);
-  for(int lv=1;lv<=levels;lv++){var list=Nodes.Where(nd=>nd.Level==lv).OrderBy(nd=>nd.Id).ToList();if(list.Count==0)continue;int cols=(int)Math.Ceiling(list.Count/(double)perCol);int rows=Math.Min(list.Count,perCol);
+  var lists=new List<List<PdmNode>>();for(int lv=1;lv<=levels;lv++){var list=Nodes.Where(nd=>nd.Level==lv).OrderBy(nd=>nd.Id).ToList();if(list.Count>0)lists.Add(list);}
+  Order(lists,nd=>Links.Where(l=>l.To==nd).Select(l=>l.From),nd=>Links.Where(l=>l.From==nd).Select(l=>l.To),nd=>nd.Id);
+  foreach(var list in lists){int cols=(int)Math.Ceiling(list.Count/(double)perCol);int rows=Math.Min(list.Count,perCol);
    float blockH=rows*step-RowGap+(cols>1?step/2:0);float top=Math.Max(Head+6,mid-blockH/2);
    for(int i=0;i<list.Count;i++){int c=i/perCol,r=i%perCol;list[i].X=x+c*(NodeW+ColGap);list[i].Y=top+r*step+(c%2==1?step/2:0);}x+=cols*(NodeW+ColGap)-ColGap+LinkGap;}
   Milestones[1].X=x;Milestones[1].Y=mid-NodeH/2;return new SizeF(x+NodeW+6,height);}
@@ -39,12 +46,24 @@ sealed class PdmNetwork {
    var outs=Nodes.ToDictionary(nd=>nd,nd=>Links.Where(l=>l.From==nd).OrderBy(l=>l.To.Y).ToList());var ins=Nodes.ToDictionary(nd=>nd,nd=>Links.Where(l=>l.To==nd).OrderBy(l=>l.From.Y).ToList());
    var start=Milestones[0];var finish=Milestones[1];var roots=Nodes.Where(nd=>ins[nd].Count==0).ToList();var sinks=Nodes.Where(nd=>outs[nd].Count==0).ToList();
    Func<int,int,float> spread=(i,n)=>NodeH*(i+1)/(n+1);
-   foreach(var nd in roots){int k=ins[nd].Count;float sy=dy+nd.Y+NodeH/2,ay=dy+start.Y+NodeH/2,xv=dx+nd.X-LinkGap/2;bool c=nd.Critical&&nd.ES==0;g.DrawLines(c?critArrow:arrow,new[]{new PointF(dx+start.X+NodeW,ay),new PointF(xv,ay),new PointF(xv,sy),new PointF(dx+nd.X,sy)});}
-   foreach(var nd in sinks){float sy=dy+nd.Y+NodeH/2,fy=dy+finish.Y+NodeH/2,xv=dx+finish.X-LinkGap/2;bool c=nd.Critical&&nd.EF==Total;g.DrawLines(c?critArrow:arrow,new[]{new PointF(dx+nd.X+NodeW,sy),new PointF(xv,sy),new PointF(xv,fy),new PointF(dx+finish.X,fy)});}
-   foreach(var l in Links.OrderBy(l=>Driving(l))){var p=l.From;var s=l.To;int oi=outs[p].IndexOf(l),ii=ins[s].IndexOf(l);float py=dy+p.Y+spread(oi,outs[p].Count),sy=dy+s.Y+spread(ii,ins[s].Count);
-    float xv=dx+s.X-LinkGap+10+ii*Math.Min(10,(LinkGap-50)/Math.Max(1,ins[s].Count));bool c=Driving(l);g.DrawLines(c?critArrow:arrow,new[]{new PointF(dx+p.X+NodeW,py),new PointF(xv,py),new PointF(xv,sy),new PointF(dx+s.X,sy)});}
+   foreach(var nd in roots){float sy=dy+nd.Y+NodeH/2,ay=dy+start.Y+NodeH/2,xv=dx+nd.X-LinkGap/2;bool c=nd.Critical&&nd.ES==0;g.DrawLines(c?critArrow:arrow,NetRoute.Path(new[]{new PointF(dx+start.X+NodeW,ay),new PointF(xv,ay),new PointF(xv,sy),new PointF(dx+nd.X,sy)}));}
+   var sinkObs=Nodes.Select(o=>new KeyValuePair<PdmNode,RectangleF>(o,new RectangleF(dx+o.X-6,dy+o.Y-6,NodeW+12,NodeH+12))).ToList();var sinkLanes=NetRoute.Corridors(sinkObs.Select(k=>k.Value).ToList(),dy,dy+Height);
+   /* a non-critical last activity gets a short "FINISH" connector instead of a line across the whole diagram */
+   foreach(var nd in sinks.Where(x=>!(x.Critical&&x.EF==Total))){float sy=dy+nd.Y+NodeH/2,x0=dx+nd.X+NodeW;g.DrawLine(arrow,x0,sy,x0+16,sy);var fs=g.MeasureString("FINISH",font);var st0=g.Save();g.TranslateTransform(x0+18,sy-fs.Width/2);g.RotateTransform(90);g.DrawString("FINISH",font,labelInk,0,-fs.Height);g.Restore(st0);}/* written downwards so it needs little room */
+   foreach(var nd in sinks.Where(x=>x.Critical&&x.EF==Total)){float sy=dy+nd.Y+NodeH/2,fy=dy+finish.Y+NodeH/2,xa=dx+nd.X+NodeW+12,xv=dx+finish.X-LinkGap/2;bool c=true;
+    float lane=NetRoute.Lane(sy,fy,xa,xv,sinkObs.Where(k=>k.Key!=nd).Select(k=>k.Value),sinkLanes);
+    g.DrawLines(c?critArrow:arrow,NetRoute.Path(new[]{new PointF(dx+nd.X+NodeW,sy),new PointF(xa,sy),new PointF(xa,lane),new PointF(xv,lane),new PointF(xv,fy),new PointF(dx+finish.X,fy)}));}
+   /* each relation leaves its predecessor in the middle of the right side and runs in a free lane (between the nodes of
+      the columns it crosses) to its own entry point on the left side of the successor */
+   var boxes=Nodes.Select(nd=>new KeyValuePair<object,RectangleF>(nd,new RectangleF(dx+nd.X-6,dy+nd.Y-6,NodeW+12,NodeH+12))).Concat(new[]{start,finish}.Select(m=>new KeyValuePair<object,RectangleF>(m,new RectangleF(dx+m.X-6,dy+m.Y-6,NodeW+12,NodeH+12)))).ToList();
+   var lanes=NetRoute.Corridors(boxes.Select(k=>k.Value).ToList(),dy,dy+Height);
+   foreach(var l in Links.OrderBy(l=>Driving(l))){var p=l.From;var s=l.To;int oi=outs[p].IndexOf(l),ii=ins[s].IndexOf(l);float py=dy+p.Y+NodeH/2,sy=dy+s.Y+spread(ii,ins[s].Count);
+    float xa=dx+p.X+NodeW+12+Math.Min(oi,6)*5,xb=dx+s.X-18-Math.Min(ii,6)*7;if(xb<xa+4)xb=xa+4;
+    float lane=NetRoute.Lane(py,sy,xa,xb,boxes.Where(k=>k.Key!=p&&k.Key!=s).Select(k=>k.Value),lanes);
+    bool c=Driving(l);g.DrawLines(c?critArrow:arrow,NetRoute.Path(new[]{new PointF(dx+p.X+NodeW,py),new PointF(xa,py),new PointF(xa,lane),new PointF(xb,lane),new PointF(xb,sy),new PointF(dx+s.X,sy)}));}
    /* relation labels on top of the lines */
-   foreach(var l in Links){var s=l.To;int ii=ins[s].IndexOf(l);float sy=dy+s.Y+spread(ii,ins[s].Count);g.DrawString(l.From.Id+" "+l.Label,font,Driving(l)?(Brush)red:labelInk,new RectangleF(dx+s.X-LinkGap/2-6,sy-12,LinkGap/2+3,12),far);}
+   foreach(var l in Links){var s=l.To;int ii=ins[s].IndexOf(l);float sy=dy+s.Y+spread(ii,ins[s].Count);string t=l.From.Id+" "+l.Label;var sz=g.MeasureString(t,font);var lr=new RectangleF(dx+s.X-sz.Width-3,sy-sz.Height-1,sz.Width,sz.Height-1);
+    g.FillRectangle(white,lr);g.DrawString(t,font,Driving(l)?(Brush)red:labelInk,lr.X,lr.Y);}
    foreach(var m in new[]{start,finish}){string d=m.Day.ToString(IC);Box(g,new RectangleF(dx+m.X,dy+m.Y,NodeW,NodeH),new[]{d,"0",d},m.Name+"  (milestone)",m.Caption,new[]{d,"0",d},true,red,font,bold,ink,muted,cellCrit,white,grid,critEdge);}
    foreach(var nd in Nodes){string[] top,bottom;if(pert==null){top=new[]{nd.ES.ToString(IC),nd.Row.Days.ToString(IC),nd.EF.ToString(IC)};bottom=new[]{nd.LS.ToString(IC),nd.TF.ToString(IC),nd.LF.ToString(IC)};}
     else{var a=pert.Activities.First(x=>x.Node==nd);top=new[]{a.A.ToString("0.0",IC),a.M.ToString("0.#",IC),a.B.ToString("0.0",IC)};bottom=new[]{nd.ES.ToString(IC),a.Te.ToString("0.#",IC),nd.EF.ToString(IC)};}
@@ -67,4 +86,20 @@ sealed class PdmView:Control {internal PdmNetwork Network;internal PertResult Pe
  protected override void OnPaint(PaintEventArgs e){e.Graphics.Clear(BackColor);if(Network==null||Network.Nodes.Count==0){TextRenderer.DrawText(e.Graphics,"No activities yet.",Font,new Point(10,10),PowTheme.Muted);return;}
   using(var bold=new Font(Font,FontStyle.Bold)){string legend=Pert==null?PdmNetwork.LegendText:"PERT: Te = "+Pert.Te.ToString("0.0",CultureInfo.InvariantCulture)+" working days, s = "+Pert.Sigma.ToString("0.00",CultureInfo.InvariantCulture)+"; 90%: "+Pert.P90+" days; 95%: "+Pert.P95+" days.   "+PdmNetwork.PertLegendText;
    TextRenderer.DrawText(e.Graphics,legend,Font,new Point(8,4),PowTheme.Muted);PdmNetwork.DrawKey(e.Graphics,8,24,Font,bold,Pert!=null);Network.Draw(e.Graphics,0,24+PdmNetwork.KeyH,Font,bold,Pert);}}}
+}
+namespace BeamScheduleFormatter {
+/* orthogonal routing helpers shared by the PDM and the PERT network: a horizontal run is placed in the free lane nearest to
+   its two ends, so lines go between the boxes / events of the columns they cross instead of behind them */
+static class NetRoute {
+ internal static List<float> Corridors(List<RectangleF> boxes,float top,float bottom){var ys=new List<float>{top+4,bottom-4};
+  foreach(var col in boxes.GroupBy(b=>Math.Round(b.X))){var list=col.OrderBy(b=>b.Y).ToList();for(int i=0;i+1<list.Count;i++)if(list[i+1].Y>list[i].Bottom)ys.Add((list[i].Bottom+list[i+1].Y)/2);if(list.Count>0){ys.Add(Math.Max(top+4,list[0].Y-6));ys.Add(Math.Min(bottom-4,list[list.Count-1].Bottom+6));}}
+  return ys.Distinct().ToList();}
+ static bool Free(float y,float x0,float x1,IEnumerable<RectangleF> obstacles){foreach(var b in obstacles)if(b.Right>x0&&b.X<x1&&y>b.Y&&y<b.Bottom)return false;return true;}
+ internal static float Lane(float y0,float y1,float x0,float x1,IEnumerable<RectangleF> obstacles,List<float> corridors,bool startSide=false){var obs=obstacles.Where(b=>b.Right>x0&&b.X<x1).ToList();
+  if(startSide&&Free(y0,x0,x1,obs))return y0;if(Free(y1,x0,x1,obs))return y1;if(Free(y0,x0,x1,obs))return y0;float best=y1,cost=float.MaxValue;foreach(var y in corridors){if(!Free(y,x0,x1,obs))continue;float c=Math.Abs(y-y0)+Math.Abs(y-y1);if(c<cost){cost=c;best=y;}}return best;}
+ /* drop repeated / collinear points */
+ internal static PointF[] Path(PointF[] pts){var list=new List<PointF>();foreach(var p in pts){if(list.Count>0&&Math.Abs(list[list.Count-1].X-p.X)<0.01f&&Math.Abs(list[list.Count-1].Y-p.Y)<0.01f)continue;
+   if(list.Count>=2){var a=list[list.Count-2];var b=list[list.Count-1];if((Math.Abs(a.X-b.X)<0.01f&&Math.Abs(b.X-p.X)<0.01f)||(Math.Abs(a.Y-b.Y)<0.01f&&Math.Abs(b.Y-p.Y)<0.01f)){list[list.Count-1]=p;continue;}}list.Add(p);}
+  if(list.Count<2)list.Add(list.Count==0?new PointF(0,0):list[0]);return list.ToArray();}
+}
 }

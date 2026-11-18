@@ -70,7 +70,7 @@ sealed class ScheduleChart:Control {
 }
 partial class ProgramOfWorksForm {
  readonly Dictionary<string,ScheduleOverride> scheduleOverrides=new Dictionary<string,ScheduleOverride>(StringComparer.Ordinal);
- ScheduleChart scheduleChart;Label scheduleSummary;TabControl scheduleViews;PdmView pdmView;PdmView pertView;ManpowerView manpowerView;
+ ScheduleChart scheduleChart;Label scheduleSummary;TabControl scheduleViews;PdmView pdmView;PertView pertView;ManpowerView manpowerView;
  static string ScheduleKey(string code,string description){return code+"|"+description;}
  const double ScheduleHoursPerDay=8;/* fixed (owner, 18 November 2026: "fix at 8 hrs/day") */
  void AddConstructionSchedule(){var page=new TabPage("Construction Schedule");
@@ -81,7 +81,7 @@ partial class ProgramOfWorksForm {
   Button(bar,"Print preview",()=>PrintSchedule(true));Button(bar,"Print",()=>PrintSchedule(false));bar.Controls.Add(new Label{AutoSize=true,Padding=new Padding(10,10,0,0),ForeColor=PowTheme.Muted,Text="Prints the complete set for issue: summary, bar chart with manpower per day, manpower loading and schedule, PDM, PERT table and PERT-CPM network (A3 landscape, title block). Red = critical path."});
   /* Bar Chart and Precedence Diagram (PDM) views (owner, 18 November 2026) */
   scheduleViews=new TabControl{Dock=DockStyle.Fill};var barPage=new TabPage("Bar Chart");barPage.Controls.Add(host);var pdmPage=new TabPage("Precedence Diagram (PDM)");
-  pdmView=new PdmView{Width=800,Height=400};var pdmHost=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};pdmHost.Controls.Add(pdmView);pdmPage.Controls.Add(pdmHost);var pertPage=new TabPage("PERT-CPM");pertView=new PdmView{Width=800,Height=400};var pertHost=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};pertHost.Controls.Add(pertView);pertPage.Controls.Add(pertHost);
+  pdmView=new PdmView{Width=800,Height=400};var pdmHost=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};pdmHost.Controls.Add(pdmView);pdmPage.Controls.Add(pdmHost);var pertPage=new TabPage("PERT-CPM");pertView=new PertView{Width=800,Height=400};var pertHost=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};pertHost.Controls.Add(pertView);pertPage.Controls.Add(pertHost);
   var manPage=new TabPage("Manpower");manpowerView=new ManpowerView{Width=1000,Height=600};var manHost=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};manHost.Controls.Add(manpowerView);manPage.Controls.Add(manHost);
   scheduleViews.TabPages.Add(barPage);scheduleViews.TabPages.Add(pdmPage);scheduleViews.TabPages.Add(pertPage);scheduleViews.TabPages.Add(manPage);
   page.Controls.Add(scheduleViews);page.Controls.Add(note);page.Controls.Add(scheduleSummary);page.Controls.Add(bar);tabs.TabPages.Add(page);}
@@ -105,7 +105,7 @@ partial class ProgramOfWorksForm {
  void RefreshSchedule(){if(scheduleChart==null||scheduleChart.IsDisposed)return;var rows=ScheduleRows();int total=rows.Where(r=>r.Days>0).Select(r=>r.Finish).DefaultIfEmpty(0).Max();
   scheduleSummary.Text=rows.Count==0?"No pay item quantities yet. Map the Tool Kit quantities to the BACKUP pay items first.":"Total: "+total+" working days"+(rows.Any(r=>r.Rate<=0&&!ScheduleRow.IsLumpSum(r.Unit))?"  |  "+rows.Count(r=>r.Rate<=0&&!ScheduleRow.IsLumpSum(r.Unit))+" item(s) without output per hour (not counted)":"")+(rows.Any(r=>r.Rate<=0&&ScheduleRow.IsLumpSum(r.Unit))?"  |  "+rows.Count(r=>r.Rate<=0&&ScheduleRow.IsLumpSum(r.Unit))+" LS item(s) listed, output per hour left blank":"");
   var network=PdmNetwork.Build(rows);
-  scheduleChart.Rows=rows;scheduleChart.Total=total;scheduleChart.Fit();if(pdmView!=null){pdmView.Network=network;pdmView.Fit();}if(pertView!=null){var pertNet=PdmNetwork.Build(rows);pertView.Network=pertNet;pertView.Pert=PertResult.Build(pertNet);pertView.Fit();}if(manpowerView!=null){manpowerView.Rows=rows;manpowerView.Fit();}
+  scheduleChart.Rows=rows;scheduleChart.Total=total;scheduleChart.Fit();if(pdmView!=null){pdmView.Network=network;pdmView.Fit();}if(pertView!=null){var pertNet=PdmNetwork.Build(rows);pertView.Pert=PertResult.Build(pertNet);pertView.Diagram=PertAoa.Build(pertNet,pertView.Pert);pertView.Fit();}if(manpowerView!=null){manpowerView.Rows=rows;manpowerView.Fit();}
   if(rows.Count>0)scheduleSummary.Text+="  |  "+ScheduleManpower.Summary(rows).Split(';')[0];}
  void WriteSchedule(XmlElement root){var e=root.OwnerDocument.CreateElement("ConstructionSchedule");root.AppendChild(e);
   foreach(var pair in scheduleOverrides.OrderBy(p=>p.Key,StringComparer.Ordinal)){var i=root.OwnerDocument.CreateElement("Item");i.SetAttribute("key",pair.Key);if(pair.Value.Rate.HasValue)i.SetAttribute("rate",pair.Value.Rate.Value.ToString("R",CultureInfo.InvariantCulture));if(pair.Value.Crews.HasValue)i.SetAttribute("crews",pair.Value.Crews.Value.ToString(CultureInfo.InvariantCulture));if(pair.Value.Start.HasValue)i.SetAttribute("start",pair.Value.Start.Value.ToString(CultureInfo.InvariantCulture));e.AppendChild(i);}}
