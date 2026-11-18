@@ -10,6 +10,7 @@ partial class ProgramOfWorksForm {
  internal const string BoqIncludeColumn="BoqInclude",LsIncludePrefix="LS include|";
  readonly Dictionary<string,bool> boqIncludes=new Dictionary<string,bool>(StringComparer.Ordinal);readonly HashSet<string> lsAutoSlots=new HashSet<string>(StringComparer.Ordinal);
  /* Owner (17 November 2026): every mapped / linked quantity is included by default; unchecking subtracts it from the total. */
+readonly Dictionary<string,double> boqExcludedQuantities=new Dictionary<string,double>(StringComparer.Ordinal);
  bool BoqIncluded(string key,BackupBillItem item){bool v;return !boqIncludes.TryGetValue(key,out v)||v;}
  internal const string BoqStatusColumn="BoqStatus";
  void EnsureBoqIncludeColumn(){if(boqGrid==null||boqGrid.Columns.Contains(BoqIncludeColumn))return;
@@ -43,7 +44,7 @@ partial class ProgramOfWorksForm {
  void AddBoqDemandRows(DataGridViewRow parent,string branch,BackupBillItem item,List<BackupDemand> sources,List<DataGridViewRow> pending){EnsureBoqIncludeColumn();
   var keys=sources.Where(d=>!d.ManualOverride&&!d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal)).Select(d=>d.Key).ToArray();if(keys.Length>0&&parent.Cells.Count>4){var p=parent.Cells[4];p.Tag=keys;p.Value=keys.All(k=>BoqIncluded(k,item));p.ToolTipText="Check: all mapped quantities of this item are included. Dash: only some are included (unchecked ones are not in the total). Click to include all, or exclude all when all are included; expand the item to choose each one.";}
   NoteBoqStatus(item,sources);
-  foreach(var d in sources){bool manual=d.ManualOverride||d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal);var head=new DataGridViewRow();head.CreateCells(boqGrid,"","    "+d.Description,d.Quantity.ToString("0.########",CultureInfo.InvariantCulture),d.Unit,null);head.Tag=d;if(!manual)head.Cells[1].ToolTipText="Right-click to change the BACKUP item, leave it unmapped or include / exclude it.";head.DefaultCellStyle.ForeColor=PowTheme.Muted;foreach(DataGridViewCell cell in head.Cells)cell.ReadOnly=true;
+  foreach(var d in sources){bool manual=d.ManualOverride||d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal);var head=new DataGridViewRow();double shownQuantity;if(!boqExcludedQuantities.TryGetValue(d.Key,out shownQuantity))shownQuantity=d.Quantity;head.CreateCells(boqGrid,"","    "+d.Description,shownQuantity.ToString("0.########",CultureInfo.InvariantCulture),d.Unit,null);if(boqExcludedQuantities.ContainsKey(d.Key)){head.DefaultCellStyle.Font=new Font(boqGrid.Font,FontStyle.Strikeout);head.Cells[1].ToolTipText="Not counted in the total (unchecked). It stays mapped; check it again to include it.";}head.Tag=d;if(!manual)head.Cells[1].ToolTipText="Right-click to change the BACKUP item, leave it unmapped or include / exclude it.";head.DefaultCellStyle.ForeColor=PowTheme.Muted;foreach(DataGridViewCell cell in head.Cells)cell.ReadOnly=true;
    var include=head.Cells[4];if(!manual){include.Value=BoqIncluded(d.Key,item);include.Tag=d.Key;include.Style.BackColor=ModernUi.Input;include.ToolTipText="Click to include or exclude this quantity from the item total.";}
    BoqDisclosure.Parent(parent,branch);BoqDisclosure.Detail(head,branch);pending.Add(head);
    bool same=d.Sources.Count==1&&d.Sources[0].Description==d.Description;if(same)continue;
@@ -52,7 +53,9 @@ partial class ProgramOfWorksForm {
  // Runs at the end of BackupQuantities: excluded mapped quantities count as 0; LS items get their 1 LS control.
  void ApplyBoqIncludes(List<BackupDemand> list){list.RemoveAll(d=>d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal));if(backupBill==null||backupBill.Count==0)return;
   var items=backupBill.GroupBy(b=>b.Slot).ToDictionary(g=>g.Key,g=>g.First());
-  foreach(var d in list){if(d.ManualOverride)continue;string slot;if(!backupBillRoutes.TryGetValue(d.Key,out slot))continue;BackupBillItem item;if(!items.TryGetValue(slot,out item))continue;if(!BoqIncluded(d.Key,item))d.Quantity=0;}
+  /* Owner (18 November 2026): an unchecked quantity stays mapped and listed under its pay item with its own quantity;
+     it is only left out of the total. This applies to saved and automatically suggested mappings alike. */
+  boqExcludedQuantities.Clear();foreach(var d in list){if(d.ManualOverride||BoqIncluded(d.Key,null))continue;boqExcludedQuantities[d.Key]=d.Quantity;d.Quantity=0;}
   foreach(var item in items.Values){if(BackupMapping.Unit(item.Unit)!="ls"||item.ManualQuantity.HasValue)continue;var mapped=list.Where(d=>!d.ManualOverride&&BackupMapping.Unit(d.Unit)!="ls"&&BoqSlotOf(d)==item.Slot).ToList();if(mapped.Count==0)continue;
    if(list.Any(d=>!d.ManualOverride&&BackupMapping.Unit(d.Unit)=="ls"&&d.Quantity>0&&BoqSlotOf(d)==item.Slot))continue;
    bool any=mapped.Any(d=>d.Quantity>1e-10&&BoqIncluded(d.Key,item));if(!any&&!lsAutoSlots.Contains(item.Slot))continue;if(any)lsAutoSlots.Add(item.Slot);
