@@ -1372,9 +1372,9 @@ namespace BeamScheduleFormatter
 							throw new Exception("Structure ID not found or structure has invalid dimensions.");
 						}
 						int num = Count(row, 3);
-						if (num < 6 || num > 50)
+						if (!RebarDiameters.IsSupported(num))
 						{
-							throw new Exception("Enter a Grade40 diameter from 6 to 50mm.");
+							throw new Exception(RebarDiameters.Message(num.ToString(CultureInfo.InvariantCulture)));
 						}
 						double num2 = Number(row, 4);
 						double num3 = Number(row, 6);
@@ -2612,15 +2612,15 @@ namespace BeamScheduleFormatter
 				{ 10, "10" }
 			});
 			cutFill.Columns[8].ToolTipText = "Percentage of cut material suitable for reuse; 0 means all unsuitable. Subject to material approval.";
-			List<string> list = new List<string> { "Footing ID", "Description", "L m (X)", "B m (Y)", "T m", "Qty", "Excavation depth m (actual)", "Cover mm" };
-			string[] array = new string[4] { "Bottom X", "Bottom Y", "Top X", "Top Y" };
+			List<string> list = new List<string> { "Footing ID", "Description", "L (m)", "B (m)", "D (m)", "Qty", "Excavation depth m (actual)", "Cover mm" };
+			string[] array = new string[4] { "Bottom bars parallel to L", "Bottom bars parallel to B", "Top bars parallel to L", "Top bars parallel to B" }; /* owner, 18 November 2026: L, B, D and "parallel to" captions */
 			foreach (string text in array)
 			{
 				list.AddRange(new string[3]
 				{
 					text + " dia mm",
 					text + " spacing mm",
-					text + " pcs/footing"
+					text + " no. of bars/footing"
 				});
 			}
 			list.AddRange(new string[13]
@@ -2653,7 +2653,7 @@ namespace BeamScheduleFormatter
 				{ 26, "40" },
 				{ 27, "60" }
 			});
-			AddGrid("Footing Estimate", footings, "Rectangular flat footings; dimensions in m, cover in mm. X bars run along L; Y bars run along B. For EACH bar group enter spacing OR pieces; blank diameter = unused group. Cut = run - 2 cover + specified total end allowance. Top mat optional. Excavation allowance 0.30m each side, gravel 0.10m under footprint. Count shared pits only once.");
+			AddGrid("Footing Estimate", footings, "Rectangular flat footings; L = length, B = width, D = depth (m); cover in mm. Bars parallel to L run along the length; bars parallel to B run along the width. For EACH bar group enter spacing OR no. of bars; blank diameter = unused group. Cut = run - 2 cover + specified total end allowance. Top mat optional. Excavation allowance 0.30m each side, gravel 0.10m under footprint. Count shared pits only once.");
 			footings.Columns[20].ToolTipText = "Total extra length at BOTH ends of each bar, from approved hook/development detail. 0 = straight cut. Not a structural anchorage check. Commercial splices use saved material configuration.";
 			FlowLayoutPanel flowLayoutPanel = tabs.TabPages.Cast<TabPage>().First((TabPage p) => p.Text == "Footing Estimate").Controls.OfType<FlowLayoutPanel>().First();
 			Button(flowLayoutPanel, "New footing", delegate
@@ -3278,7 +3278,7 @@ namespace BeamScheduleFormatter
 			}
 			tables.Add(new WorksExcelTable("POW Footings", new string[12]
 			{
-				"ID", "Description", "L m", "B m", "T m", "Qty", "Concrete m3", "Forms m2", "Rebar BUY kg", "Excavation bank m3",
+				"ID", "Description", "L m", "B m", "D m", "Qty", "Concrete m3", "Forms m2", "Rebar BUY kg", "Excavation bank m3",
 				"Gravel m3", "Compacted space m3"
 			}, list));
 		}
