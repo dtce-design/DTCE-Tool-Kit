@@ -16,7 +16,6 @@ partial class ProgramOfWorksForm {
   /* Owner (18 November 2026): INCLUDE only as wide as its checkbox; STATUS on the right shows the mapping / link. */
   var c=new DataGridViewCheckBoxColumn{Name=BoqIncludeColumn,HeaderText="INCLUDE",AutoSizeMode=DataGridViewAutoSizeColumnMode.None,Width=76,MinimumWidth=60,Resizable=DataGridViewTriState.False,ToolTipText="Checked: this mapped quantity counts in the pay item total. Unchecked: it stays mapped but is not counted. LS item: 1 LS when at least one mapped quantity is included (a manual LS quantity takes precedence)."};
   boqGrid.Columns.Add(c);c.ReadOnly=true;c.DefaultCellStyle.Alignment=DataGridViewContentAlignment.MiddleCenter;
-  var st=new DataGridViewTextBoxColumn{Name=BoqStatusColumn,HeaderText="STATUS",FillWeight=18,MinimumWidth=170,ReadOnly=true,ToolTipText="Mapping / link status. Click the status of a quantity to change its BACKUP item; right-click for more."};boqGrid.Columns.Add(st);
   BoqRemapSetup();
   /* The column stays read-only for editing; a click toggles the value directly (it was not clickable in v1.4.110). */
   boqGrid.CellContentClick+=(s,e)=>{if(paintingBackupBill||e.RowIndex<0||e.ColumnIndex<0||boqGrid.Columns[e.ColumnIndex].Name!=BoqIncludeColumn)return;ToggleInclude(boqGrid.Rows[e.RowIndex].Cells[e.ColumnIndex]);};
@@ -29,12 +28,12 @@ partial class ProgramOfWorksForm {
  // Called by the BOQ rebuild: one row per mapped quantity (with INCLUDE), its measurement sources indented below.
  void AddBoqDemandRows(DataGridViewRow parent,string branch,BackupBillItem item,List<BackupDemand> sources,List<DataGridViewRow> pending){EnsureBoqIncludeColumn();
   var keys=sources.Where(d=>!d.ManualOverride&&!d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal)).Select(d=>d.Key).ToArray();if(keys.Length>0&&parent.Cells.Count>4){var p=parent.Cells[4];p.Tag=keys;p.Value=keys.Any(k=>BoqIncluded(k,item));p.ToolTipText="Checked when at least one mapped quantity of this item is included. Click to include or exclude all of them; expand the item to choose each one.";}
-  if(parent.Cells.Count>5)parent.Cells[5].Value=ItemStatus(item,sources);
-  foreach(var d in sources){bool manual=d.ManualOverride||d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal);var head=new DataGridViewRow();head.CreateCells(boqGrid,"","    "+d.Description,d.Quantity.ToString("0.########",CultureInfo.InvariantCulture),d.Unit,null,DemandStatus(d,item));head.Cells[5].Tag=d;StyleStatusLink(head.Cells[5],!manual);head.DefaultCellStyle.ForeColor=PowTheme.Muted;foreach(DataGridViewCell cell in head.Cells)cell.ReadOnly=true;
+  NoteBoqStatus(item,sources);
+  foreach(var d in sources){bool manual=d.ManualOverride||d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal);var head=new DataGridViewRow();head.CreateCells(boqGrid,"","    "+d.Description,d.Quantity.ToString("0.########",CultureInfo.InvariantCulture),d.Unit,null);head.Tag=d;if(!manual)head.Cells[1].ToolTipText="Right-click to change the BACKUP item, leave it unmapped or include / exclude it.";head.DefaultCellStyle.ForeColor=PowTheme.Muted;foreach(DataGridViewCell cell in head.Cells)cell.ReadOnly=true;
    var include=head.Cells[4];if(!manual){include.Value=BoqIncluded(d.Key,item);include.Tag=d.Key;include.Style.BackColor=ModernUi.Input;include.ToolTipText="Click to include or exclude this quantity from the item total.";}
    BoqDisclosure.Parent(parent,branch);BoqDisclosure.Detail(head,branch);pending.Add(head);
    bool same=d.Sources.Count==1&&d.Sources[0].Description==d.Description;if(same)continue;
-   foreach(var source in d.Sources){var detail=new DataGridViewRow();detail.CreateCells(boqGrid,"","        "+source.Description,source.Quantity.ToString("0.########",CultureInfo.InvariantCulture),source.Unit,null,"");detail.ReadOnly=true;detail.DefaultCellStyle.ForeColor=PowTheme.Muted;BoqDisclosure.Detail(detail,branch);pending.Add(detail);}}}
+   foreach(var source in d.Sources){var detail=new DataGridViewRow();detail.CreateCells(boqGrid,"","        "+source.Description,source.Quantity.ToString("0.########",CultureInfo.InvariantCulture),source.Unit,null);detail.ReadOnly=true;detail.DefaultCellStyle.ForeColor=PowTheme.Muted;BoqDisclosure.Detail(detail,branch);pending.Add(detail);}}}
  string BoqSlotOf(BackupDemand d){if(d.TargetSlotId!=null)return d.TargetSlotId;string slot;return backupBillRoutes.TryGetValue(d.Key,out slot)?slot:null;}
  // Runs at the end of BackupQuantities: excluded mapped quantities count as 0; LS items get their 1 LS control.
  void ApplyBoqIncludes(List<BackupDemand> list){list.RemoveAll(d=>d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal));if(backupBill==null||backupBill.Count==0)return;

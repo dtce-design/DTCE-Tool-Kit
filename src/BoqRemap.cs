@@ -1,6 +1,7 @@
 using System;using System.Collections.Generic;using System.Drawing;using System.Globalization;using System.Linq;using System.Windows.Forms;using System.Xml;
 namespace BeamScheduleFormatter {
-// BOQ STATUS column and changing a mapping directly in Bill of Quantities (owner, 18 November 2026).
+// BOQ status notes and changing a mapping directly in Bill of Quantities (owner, 18 November 2026). The status is a
+// separate panel under the table (not a column): errors, unmapped quantities, excluded quantities, automatic LS.
 // - STATUS shows, per pay item: manual quantity / linked quantities (n mapped, m excluded) / Excel value; per mapped
 //   quantity: mapped / auto-matched / excluded / manual / automatic LS; per unmapped quantity: not mapped.
 // - Click the STATUS of a quantity (or right-click it) to choose another BACKUP item; right-click also offers
@@ -8,20 +9,19 @@ namespace BeamScheduleFormatter {
 //   on the next Excel update (routes are written to BACKUP then).
 partial class ProgramOfWorksForm {
  readonly Dictionary<string,string> boqRouteOverrides=new Dictionary<string,string>(StringComparer.Ordinal);readonly HashSet<string> boqUnmapped=new HashSet<string>(StringComparer.Ordinal);
- static readonly Color StatusLink=Color.FromArgb(28,98,170);
- string DemandStatus(BackupDemand d,BackupBillItem item){if(d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal))return d.Quantity>0?"Automatic 1 LS":"Automatic 0 LS";if(d.ManualOverride)return"Manual quantity";
-  string state=backupBillRoutes.ContainsKey(d.Key)||d.TargetSlotId!=null?"Mapped":"Auto-matched";return (BoqIncluded(d.Key,item)?state:state+" · excluded")+"  ✎";}
- string ItemStatus(BackupBillItem item,List<BackupDemand> sources){if(item.ManualInputText!=null)return"Manual (invalid - review)";if(item.ManualQuantity.HasValue)return"Manual quantity";
-  var mapped=sources.Where(d=>!d.ManualOverride&&!d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal)).ToList();if(mapped.Count>0){int excluded=mapped.Count(d=>!BoqIncluded(d.Key,item));return"Linked: "+mapped.Count+" mapped"+(excluded>0?", "+excluded+" excluded":"");}
-  return item.WorkbookQuantity.HasValue?"Excel value":"";}
- static void StyleStatusLink(DataGridViewCell cell,bool link){if(!link)return;cell.Style.ForeColor=StatusLink;cell.Style.SelectionForeColor=StatusLink;cell.ToolTipText="Click to change the BACKUP item. Right-click for more.";}
+ internal sealed class BoqStatusNote {internal string Kind,Text;internal BackupDemand Demand;internal BackupBillItem Item;}
+ readonly List<BoqStatusNote> boqStatusNotes=new List<BoqStatusNote>();
+ // Collected while the BOQ is rebuilt; shown in the status panel under the table.
+ void NoteBoqStatus(BackupBillItem item,List<BackupDemand> sources){string head=item.Code+" "+item.Description;
+  if(item.ManualInputText!=null)boqStatusNotes.Add(new BoqStatusNote{Kind="Error",Text=head+": invalid manual quantity \""+item.ManualInputText+"\"",Item=item});
+  foreach(var d in sources){if(d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal)){boqStatusNotes.Add(new BoqStatusNote{Kind="Automatic LS",Text=head+": "+(d.Quantity>0?"1 LS from included mapped quantities":"0 LS - no mapped quantity included"),Item=item});continue;}
+   if(d.ManualOverride)continue;if(!BoqIncluded(d.Key,item))boqStatusNotes.Add(new BoqStatusNote{Kind="Excluded",Text=d.Description+" — mapped to "+head+" but not counted (double-click to include)",Demand=d,Item=item});}}
  void BoqRemapSetup(){
-  boqGrid.CellClick+=(s,e)=>{if(e.RowIndex<0||e.ColumnIndex<0||boqGrid.Columns[e.ColumnIndex].Name!=BoqStatusColumn)return;var d=boqGrid.Rows[e.RowIndex].Cells[e.ColumnIndex].Tag as BackupDemand;if(d!=null&&!d.ManualOverride&&!d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal))ChangeBoqMapping(d);};
   var menu=new ContextMenuStrip();BackupDemand target=null;var change=new ToolStripMenuItem("Change BACKUP item…");var unmap=new ToolStripMenuItem("Leave unmapped");var include=new ToolStripMenuItem("Include in total");
   change.Click+=(s,e)=>{if(target!=null)ChangeBoqMapping(target);};unmap.Click+=(s,e)=>{if(target!=null)SetBoqRoute(target.Key,null);};
   include.Click+=(s,e)=>{if(target==null)return;boqIncludes[target.Key]=!include.Checked;dashboardDirty=reportPreviewDirty=true;RefreshVisibleWorksViews();ScheduleWorksExcel();};
   menu.Items.AddRange(new ToolStripItem[]{change,unmap,new ToolStripSeparator(),include});
-  boqGrid.CellMouseDown+=(s,e)=>{if(e.Button!=MouseButtons.Right||e.RowIndex<0)return;var row=boqGrid.Rows[e.RowIndex];target=row.Cells.Count>5?row.Cells[5].Tag as BackupDemand:null;if(target==null||target.ManualOverride||target.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal))return;
+  boqGrid.CellMouseDown+=(s,e)=>{if(e.Button!=MouseButtons.Right||e.RowIndex<0)return;var row=boqGrid.Rows[e.RowIndex];target=row.Tag as BackupDemand;if(target==null||target.ManualOverride||target.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal))return;
    bool mapped=backupBillRoutes.ContainsKey(target.Key)||SlotForDemand(target)!=null;unmap.Enabled=mapped;include.Enabled=mapped;var item=backupBill.FirstOrDefault(b=>b.Slot==SlotForDemand(target));include.Checked=mapped&&BoqIncluded(target.Key,item);change.Text=mapped?"Change BACKUP item…":"Map to BACKUP item…";
    menu.Show(boqGrid,boqGrid.PointToClient(Cursor.Position));};
   Disposed+=(s,e)=>menu.Dispose();}

@@ -4551,6 +4551,8 @@ worksExcelTimer.Tick += async delegate
             AddRebarSummaryTabs();
             ConfigureAngleQuantityView();
             InstallRecovery();
+            /* closing the Program of Works ends its project: the next one starts with blank project information */
+            FormClosed += (s0, e0) => { if (!Automated) ProjectInfoStore.ClearProject(); };
             PlaceSteelSetColumns();
             if (wood != null) PlaceOpeningPaintColumns(wood);
 			tabs.Multiline = true;
@@ -7767,6 +7769,7 @@ worksExcelTimer.Tick += async delegate
             PowTiming.Mark("fill sheets");ReadExtraProject(xmlDocument.DocumentElement);ReadRoofingSpecification(xmlDocument.DocumentElement);PowTiming.Mark("fill additional sheets");
             if(worksExcel!=null){string workbook=Path.GetFileName(worksExcel.PathName);savedSourceFiles.AddRange(ProjectSources().Files.Where(f=>f.Kind=="Excel workbook (imported original)"&&f.Name.Equals(workbook,StringComparison.OrdinalIgnoreCase)));}
             projectSourceFiles.Replace(savedSourceFiles);
+            if(savedProjectInformation==null&&!Automated)ProjectInfoStore.ClearProject();
             if(savedProjectInformation!=null)ProjectInfoStore.Save(savedProjectInformation.Name,savedProjectInformation.Location,savedProjectInformation.Office,savedProjectInformation.OfficeAddress);
 			PowTiming.Mark("project info / sources");
 			Recalculate();
@@ -7996,6 +7999,7 @@ worksExcelTimer.Tick += async delegate
 				return;
 			}
 			boqGrid.Rows.Clear();
+			boqStatusNotes.Clear();
 			List<string> list = WorksValidationIssues();
 			UpdateIssuePanel(list);
 			if (list.Count > 0)
