@@ -9,13 +9,16 @@ namespace BeamScheduleFormatter {
 //   on the next Excel update (routes are written to BACKUP then).
 partial class ProgramOfWorksForm {
  readonly Dictionary<string,string> boqRouteOverrides=new Dictionary<string,string>(StringComparer.Ordinal);readonly HashSet<string> boqUnmapped=new HashSet<string>(StringComparer.Ordinal);
- internal sealed class BoqStatusNote {internal string Kind,Text;internal BackupDemand Demand;internal BackupBillItem Item;}
+ internal sealed class BoqStatusNote {internal string Kind,Text;internal BackupDemand Demand;internal BackupBillItem Item;internal List<BackupDemand> Demands;}
  readonly List<BoqStatusNote> boqStatusNotes=new List<BoqStatusNote>();
  // Collected while the BOQ is rebuilt; shown in the status panel under the table.
  void NoteBoqStatus(BackupBillItem item,List<BackupDemand> sources){string head=item.Code+" "+item.Description;
   if(item.ManualInputText!=null)boqStatusNotes.Add(new BoqStatusNote{Kind="Error",Text=head+": invalid manual quantity \""+item.ManualInputText+"\"",Item=item});
   foreach(var d in sources){if(d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal)){boqStatusNotes.Add(new BoqStatusNote{Kind="Automatic LS",Text=head+": "+(d.Quantity>0?"1 LS from included mapped quantities":"0 LS - no mapped quantity included"),Item=item});continue;}
-   if(d.ManualOverride)continue;if(!BoqIncluded(d.Key,item))boqStatusNotes.Add(new BoqStatusNote{Kind="Excluded",Text=d.Description+" — mapped to "+head+" but not counted (double-click to include)",Demand=d,Item=item});}}
+   }
+  /* Owner (18 November 2026, "huwag na isa-isahin, yung parent item no. lang ilagay"): one Excluded line per pay item. */
+  var excluded=sources.Where(d=>!d.ManualOverride&&!d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal)&&!BoqIncluded(d.Key,item)).ToList();
+  if(excluded.Count>0)boqStatusNotes.Add(new BoqStatusNote{Kind="Excluded",Text=head+" — "+excluded.Count+" mapped quantit"+(excluded.Count==1?"y":"ies")+" not counted (double-click to include)",Demand=excluded[0],Demands=excluded,Item=item});}
  void BoqRemapSetup(){
   var menu=new ContextMenuStrip();BackupDemand target=null;var change=new ToolStripMenuItem("Change BACKUP item…");var unmap=new ToolStripMenuItem("Leave unmapped");var include=new ToolStripMenuItem("Include in total");
   change.Click+=(s,e)=>{if(target!=null)ChangeBoqMapping(target);};unmap.Click+=(s,e)=>{if(target!=null)SetBoqRoute(target.Key,null);};
