@@ -18,10 +18,20 @@ partial class ProgramOfWorksForm {
   boqGrid.Columns.Add(c);c.ReadOnly=true;c.DefaultCellStyle.Alignment=DataGridViewContentAlignment.MiddleCenter;c.MinimumWidth=30;c.Width=34;c.HeaderCell.ToolTipText=c.ToolTipText;
   BoqRemapSetup();
   /* The column stays read-only for editing; a click toggles the value directly (it was not clickable in v1.4.110). */
-  boqGrid.CellContentClick+=(s,e)=>{if(paintingBackupBill||e.RowIndex<0||e.ColumnIndex<0||boqGrid.Columns[e.ColumnIndex].Name!=BoqIncludeColumn)return;ToggleInclude(boqGrid.Rows[e.RowIndex].Cells[e.ColumnIndex]);};
+  /* one toggle per click: see CellMouseClick below (the box is custom-painted, so the whole cell is the target) */
   boqGrid.KeyDown+=(s,e)=>{if(e.KeyCode!=Keys.Space||boqGrid.CurrentCell==null||boqGrid.CurrentCell.OwningColumn.Name!=BoqIncludeColumn||boqGrid.CurrentCell.Tag==null)return;e.Handled=e.SuppressKeyPress=true;ToggleInclude(boqGrid.CurrentCell);};
   /* Rows without a mapped quantity show no checkbox at all. */
-  boqGrid.CellPainting+=(s,e)=>{if(e.RowIndex<0||e.ColumnIndex<0||boqGrid.Columns[e.ColumnIndex].Name!=BoqIncludeColumn||boqGrid.Rows[e.RowIndex].Cells[e.ColumnIndex].Tag!=null)return;e.PaintBackground(e.ClipBounds,(e.State&DataGridViewElementStates.Selected)!=0);e.Handled=true;};}
+  /* Owner (18 November 2026: "no check box"): the default checkbox glyph did not show in the BOQ on Windows, so the
+     include box is drawn here: an outlined square, filled with a check mark when the quantity counts in the total. */
+  boqGrid.CellPainting+=(s,e)=>{if(e.RowIndex<0||e.ColumnIndex<0||boqGrid.Columns[e.ColumnIndex].Name!=BoqIncludeColumn)return;var cell=boqGrid.Rows[e.RowIndex].Cells[e.ColumnIndex];
+   e.PaintBackground(e.ClipBounds,(e.State&DataGridViewElementStates.Selected)!=0);e.Handled=true;if(cell.Tag==null)return;
+   bool on=cell.Value is bool?(bool)cell.Value:string.Equals(Convert.ToString(cell.Value),"True",StringComparison.OrdinalIgnoreCase);
+   int size=Math.Max(12,Math.Min(16,e.CellBounds.Height-10));var box=new Rectangle(e.CellBounds.Left+(e.CellBounds.Width-size)/2,e.CellBounds.Top+(e.CellBounds.Height-size)/2,size,size);
+   var g=e.Graphics;var mode=g.SmoothingMode;g.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+   try{Color accent=WorksheetColors.Focus;using(var fill=new SolidBrush(on?accent:ModernUi.Input))g.FillRectangle(fill,box);using(var pen=new Pen(on?accent:PowTheme.Muted,1.4f))g.DrawRectangle(pen,box);
+    if(on)using(var tick=new Pen(Color.White,2f){StartCap=System.Drawing.Drawing2D.LineCap.Round,EndCap=System.Drawing.Drawing2D.LineCap.Round,LineJoin=System.Drawing.Drawing2D.LineJoin.Round})g.DrawLines(tick,new[]{new PointF(box.Left+size*.22f,box.Top+size*.52f),new PointF(box.Left+size*.43f,box.Top+size*.72f),new PointF(box.Left+size*.78f,box.Top+size*.3f)});}
+   finally{g.SmoothingMode=mode;}};
+  boqGrid.CellMouseClick+=(s,e)=>{if(paintingBackupBill||e.RowIndex<0||e.ColumnIndex<0||e.Button!=MouseButtons.Left||boqGrid.Columns[e.ColumnIndex].Name!=BoqIncludeColumn)return;var cell=boqGrid.Rows[e.RowIndex].Cells[e.ColumnIndex];if(cell.Tag!=null)ToggleInclude(cell);};}
  // A mapped-quantity row toggles itself; a pay item row toggles all of its mapped quantities.
  void ToggleInclude(DataGridViewCell cell){var keys=cell.Tag as string[];var key=cell.Tag as string;if(key!=null)keys=new[]{key};if(keys==null||keys.Length==0)return;bool now=!(cell.Value is bool&&(bool)cell.Value);cell.Value=now;foreach(string k in keys)boqIncludes[k]=now;
   dashboardDirty=reportPreviewDirty=true;try{BeginInvoke((Action)(()=>{RefreshVisibleWorksViews();ScheduleWorksExcel();}));}catch(InvalidOperationException){}}
