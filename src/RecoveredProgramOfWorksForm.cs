@@ -4497,9 +4497,9 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			wallFinishes = FinishGrid(true);
 			ceilingFinishes = FinishGrid(false);
 			floorFinishes = FinishGrid(false);
-			AddGrid("Wall Finishes", wallFinishes, "Wall ID links the finish to CHB. Side A/B identify the two wall faces. Assign Finish IDs and groups in Finishing Works > Start; its Group controls all summarized areas. Tiles deduct from plaster on selected faces only. Whole wall (auto) uses net CHB area; Dimensions requires the actual opening overlap as deduction per face.");
-			AddGrid("Ceiling Finishes", ceilingFinishes, "Enter measurement ID, dimensions and quantity. Deduction is total openings/voids for this entry in m2; it is deducted once. Assign Finish IDs and groups in Finishing Works > Start.");
-			AddGrid("Floor Finishes", floorFinishes, "Enter finish code, dimensions and quantity. Deduction is total excluded area for this entry in m2; it is deducted once. Assign Finish IDs and groups in Finishing Works > Start; its schedule Group controls area totals. No percentage factor is added.");
+			AddGrid("Wall Finishes", wallFinishes, "Wall ID links the finish to CHB. Side A/B identify the two wall faces. Choose the Finish ID in the Finish ID column (defined in Finishing Works > Start); its Group controls all summarized areas. Tiles deduct from plaster on selected faces only. Whole wall (auto) uses net CHB area; Dimensions requires the actual opening overlap as deduction per face.");
+			AddGrid("Ceiling Finishes", ceilingFinishes, "Enter measurement ID, dimensions and quantity. Deduction is total openings/voids for this entry in m2; it is deducted once. Choose the Finish ID in the Finish ID column (defined in Finishing Works > Start).");
+			AddGrid("Floor Finishes", floorFinishes, "Enter finish code, dimensions and quantity. Deduction is total excluded area for this entry in m2; it is deducted once. Choose the Finish ID in the Finish ID column (defined in Finishing Works > Start); its schedule Group controls area totals. No percentage factor is added.");
 			AddMasonryMaterials();
 			AddStructuralSteel();
 			AddRoofing();
@@ -8480,7 +8480,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 			splitContainer.Panel2.Controls.Add(finishAssignments);
 			splitContainer.Panel2.Controls.Add(new Label
 			{
-				Text = "ASSIGN FINISHES | Add measurement entries in Wall/Ceiling/Floor Finishes, then assign their Finish IDs here. Those working sheets contain measurements only.",
+				Text = "ASSIGN FINISHES | Every measured area from Wall / Ceiling / Floor Finishes is listed here. Choose its Finish ID here, or in the Finish ID column of that sheet (same value). Empty until areas are measured.",
 				Dock = DockStyle.Top,
 				Height = 65,
 				Padding = new Padding(10),
@@ -8490,7 +8490,10 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 			DataGridView[] array2 = new DataGridView[3] { wallFinishes, ceilingFinishes, floorFinishes };
 			foreach (DataGridView dataGridView in array2)
 			{
-				dataGridView.Columns[2].Visible = false;
+				/* Owner (18 November 2026, "pano ko i-assign yung mga na-measure kong area sa Finish ID"): the Finish ID can be
+				   chosen directly on each measurement row; the Assign Finishes table at Start shows and edits the same value. */
+				dataGridView.Columns[2].Visible = true;
+				dataGridView.Columns[2].ToolTipText = "Choose the Finish ID from the Finish Schedule (Finishing Works > Start). The same choice appears in Assign Finishes.";
 				dataGridView.Columns[(dataGridView == wallFinishes) ? 14 : 10].Visible = false;
 			}
 		}

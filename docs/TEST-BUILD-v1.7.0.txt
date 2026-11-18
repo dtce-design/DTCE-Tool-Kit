@@ -1,0 +1,12 @@
+DTCE Tool Kit v1.7.0 test build (18 November 2026)
+
+Finish ID on the measurement sheets (owner: "pano ko i-assign yung mga
+na-measure kong area sa Finish ID")
+- Wall Finishes, Ceiling Finishes and Floor Finishes now show a Finish ID
+  dropdown on every row: measure the area and pick its Finish ID (from the
+  Finish Schedule in Finishing Works > Start) on the same row.
+- The Assign Finishes table at Finishing Works > Start still lists every
+  measured area and edits the same value; its note now explains that it is
+  empty until areas are measured.
+
+Includes v1.6.0-1.6.1. Not a Microsoft Store release (v1.5.0 is the Store build).
