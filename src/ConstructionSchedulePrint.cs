@@ -14,7 +14,7 @@ sealed class ScheduleSet {
   var crit=new HashSet<ScheduleRow>(Network.Nodes.Where(n=>n.Critical).Select(n=>n.Row));foreach(var r in rows)r.Critical=crit.Contains(r);
   var c=Content;Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("SCHEDULE SUMMARY",DrawSummary));
   /* bar chart: days side by side, lines top to bottom */
-  float[] widths={62,228,62,36,52,42};float dayW=17,headH=34;var lines0=ScheduleChart.Lines(rows);float rowH=Math.Max(15,Math.Min(22,(c.Height-headH-4)/Math.Max(1,lines0.Count)));int perDays=Math.Max(6,(int)((c.Width-widths.Sum())/dayW)/6*6);int perLines=Math.Max(5,(int)((c.Height-headH-4)/rowH));var lines=ScheduleChart.Lines(rows);
+  float[] widths={62,228,62,36,52,42};float dayW=17,headH=34;var lines0=ScheduleChart.Lines(rows);float rowH=Math.Max(15,Math.Min(22,(c.Height-headH-4)/Math.Max(1,lines0.Count)));int perDays=Math.Max(5,(int)((c.Width-widths.Sum())/dayW));int perLines=Math.Max(5,(int)((c.Height-headH-4)/rowH));var lines=ScheduleChart.Lines(rows);
   for(int d=1;d<=Math.Max(1,Total);d+=perDays)for(int i=0;i<Math.Max(1,lines.Count);i+=perLines){int from=d,to=Math.Min(Math.Max(1,Total),d+perDays-1),li=i,ln=Math.Min(lines.Count,i+perLines)-i;
    Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("BAR CHART - DAYS "+from+" TO "+to,(g,r,f,b)=>ScheduleChart.Draw(g,lines.GetRange(li,ln),r.X,r.Y,widths,dayW,rowH,headH,from,to,f,b)));}
   /* PDM: split between node columns */
@@ -37,7 +37,7 @@ sealed class ScheduleSet {
   string[] notes={"1. Durations: quantity from the Bill of Quantities / (output per hour from the DUPA x 8 hours), rounded up to whole working days; one crew per activity.",
    "2. Sequence: activities grouped by work phase (DPWH item no.); activities of a phase run in parallel; each phase starts after the previous phase is finished (Finish-to-Start).",
    "3. PERT: optimistic a = 0.8 m, most likely m = activity duration, pessimistic b = 1.2 m; te = (a + 4m + b) / 6; variance = ((b - a) / 6)^2; normal distribution for the confidence levels.",
-   "4. Lump-sum (LS) pay items are listed in the bar chart with the output per hour left blank (no duration yet); time-based (per month) pay items are not scheduled. Calendar days, Sundays, holidays and unworkable days are not included; bar chart weeks = 6 working days.",
+   "4. Lump-sum (LS) pay items are listed in the bar chart with the output per hour left blank (no duration yet); time-based (per month) pay items are not scheduled. Calendar days, Sundays, holidays and unworkable days are not included.",
    "5. PDM / CPM times follow the standard convention: ES of the first activity = 0, EF = ES + D, LS = LF - D, TF = LS - ES; bar chart day n = the n-th working day (activity runs from day ES + 1 to day EF)."};
   foreach(var n in notes){g.DrawString(n,f,muted,new RectangleF(r.X,y,r.Width,26));y+=17;}}}
  void DrawPertTable(Graphics g,RectangleF r,Font f,Font b,int start,int count){float[] w={36,80,380,60,60,60,64,64,52,52,60};string[] h={"No.","Item no.","Description","a (opt.)","m (likely)","b (pess.)","te","Variance","ES","EF","Critical"};

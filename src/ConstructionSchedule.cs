@@ -39,15 +39,14 @@ sealed class ScheduleChart:Control {
   using(var head=new SolidBrush(Color.FromArgb(236,240,244)))g.FillRectangle(head,x0,y0,right-x0,headH);
   using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted))using(var teal=new SolidBrush(PowTheme.Teal))using(var band=new SolidBrush(Color.FromArgb(244,246,248)))using(var grid=new Pen(Color.FromArgb(205,211,218),0.5f))using(var orange=new SolidBrush(Color.FromArgb(176,96,0))){
    for(int c=0;c<Captions.Length;c++)g.DrawString(Captions[c],bold,ink,new RectangleF(cols[c]+2,y0,widths[c]-4,headH),wrap);
-   /* standard time scale: week row (6 working days per week, Sundays not counted) over the numbered working days */
-   for(int w=(dayFrom-1)/6;w*6+1<=dayTo;w++){int a=Math.Max(dayFrom,w*6+1),b=Math.Min(dayTo,w*6+6);float wx=left+(a-dayFrom)*dayW,ww=(b-a+1)*dayW;g.DrawString((ww>=dayW*4?"Week ":"W")+(w+1),bold,ink,new RectangleF(wx,y0,ww,headH/2),mid);}
+   g.DrawString("Working days",bold,ink,new RectangleF(left+2,y0,Math.Max(dayW*4,right-left),headH/2),near);/* days only, no week row (owner, 18 November 2026: "alisin mo yung weeks, days lang") */
    for(int d=dayFrom;d<=dayTo;d++){float dx=left+(d-dayFrom)*dayW;g.DrawString(d.ToString(CultureInfo.InvariantCulture),font,ink,new RectangleF(dx,y0+headH/2,dayW,headH/2),mid);}
    for(int i=0;i<lines.Count;i++){var l=lines[i];float y=y0+headH+i*rowH;
     if(l.Item==null){g.FillRectangle(band,x0,y,right-x0,rowH);g.DrawString(l.Phase,bold,ink,new RectangleF(x0+2,y,right-x0-4,rowH),near);continue;}
     var r=l.Item;string[] cells={r.Code,r.Description,r.Quantity.ToString("N2"),r.Unit,r.Rate>0?r.Rate.ToString("0.###",CultureInfo.InvariantCulture):ScheduleRow.IsLumpSum(r.Unit)?"":"-",r.Days>0?r.Days.ToString(CultureInfo.InvariantCulture):ScheduleRow.IsLumpSum(r.Unit)?"":"-"};
     for(int c=0;c<cells.Length;c++)g.DrawString(cells[c],font,r.Rate<=0&&c==4&&!ScheduleRow.IsLumpSum(r.Unit)?(Brush)orange:ink,new RectangleF(cols[c]+2,y,widths[c]-4,rowH),c==2||c==4||c==5?far:near);
     if(r.Days>0){int s=Math.Max(r.Start,dayFrom),f=Math.Min(r.Finish,dayTo);if(s<=f)g.FillRectangle(r.Critical?(Brush)Brushes.Firebrick:teal,left+(s-dayFrom)*dayW+1,y+rowH*0.25f,(f-s+1)*dayW-2,rowH*0.5f);}}
-   foreach(float cx in cols)g.DrawLine(grid,cx,y0,cx,bottom);for(int d=0;d<=days;d++){float dx=left+d*dayW;g.DrawLine(grid,dx,y0+headH/2,dx,bottom);}using(var week=new Pen(Color.FromArgb(120,130,142),0.9f))for(int d=dayFrom;d<=dayTo+1;d++)if((d-1)%6==0&&d>dayFrom&&d<=dayTo)g.DrawLine(week,left+(d-dayFrom)*dayW,y0,left+(d-dayFrom)*dayW,bottom);
+   foreach(float cx in cols)g.DrawLine(grid,cx,y0,cx,bottom);for(int d=0;d<=days;d++){float dx=left+d*dayW;g.DrawLine(grid,dx,y0+headH/2,dx,bottom);}
    g.DrawLine(grid,x0,y0,right,y0);g.DrawLine(grid,left,y0+headH/2,right,y0+headH/2);for(int i=0;i<=lines.Count;i++){float y=y0+headH+i*rowH;g.DrawLine(grid,x0,y,right,y);}g.DrawLine(grid,right,y0,right,bottom);}}
 }
 partial class ProgramOfWorksForm {

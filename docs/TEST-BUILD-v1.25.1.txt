@@ -1,0 +1,8 @@
+DTCE Tool Kit v1.25.1 test build (18 November 2026) - fix
+
+Construction Schedule bar chart (owner: "alisin mo yung weeks, days lang ilagay mo")
+- The week row is removed; the time scale shows the numbered working days only
+  (header "Working days"), on screen and on the A3 issue set.
+- Each bar chart sheet again fits as many days as the A3 width allows.
+
+Includes v1.25.0. Not tested on Windows. Not a Microsoft Store release.
