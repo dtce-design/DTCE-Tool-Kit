@@ -15,3 +15,10 @@ Map BACKUP items window (owner: "fix window")
   start into view instead of its end (regression from v1.4.125).
 
 Includes v1.4.130-133. Not a Microsoft Store release.
+
+RC Start cards empty on Windows (owner screenshot: only "Member settings" and
+"Cover and foundation defaults" headings showed)
+- Each card now makes sure its contents are at least as tall as they need at
+  the current width, so the buttons and cover fields cannot collapse to zero
+  height. A Windows UI test now measures the three cards and saves a preview
+  (ui-RC-Start.png in the CI "DTCE-Workspace-Previews" artifact).
