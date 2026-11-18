@@ -1,0 +1,12 @@
+DTCE Tool Kit v1.10.0 test build (18 November 2026)
+
+Railing painting per member (owner: "lagyan ng check box sa railing if with
+painting yung member or wala")
+- New "With painting?" checkbox on every Railing Estimate row (checked for
+  new rows). Unchecked members get 0 m2 painting and are left out of
+  "Railing metal painting - installed" and its breakdown; steel pieces and
+  weights are unchanged.
+- Projects saved before this version open with every railing row checked
+  (as they were all painted before).
+
+Includes v1.9.0. Not a Microsoft Store release (v1.5.0 is the Store build).
