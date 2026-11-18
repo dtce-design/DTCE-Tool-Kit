@@ -9,4 +9,10 @@ dito" and "sa search bar dapat kasama lahat if kasama ang parent item")
   Painting Works), its measurement sources are shown with it.
 - The arrow shows open (down) while the search shows the rows of an item.
 
+Railing (owner: "include installed weight")
+- Each section / size line under "Railing pieces to buy" also shows the
+  installed weight of that size, e.g. "Pipe (light gauge) | Pipe 2in light gauge
+  OD60.3x2.9mm (6 m pieces) | installed weight 45.20 kg". The BOQ quantity stays
+  the number of 6 m pieces.
+
 Includes v1.19.2. Not a Microsoft Store release (v1.5.0 is the Store build).

@@ -57,7 +57,8 @@ partial class ProgramOfWorksForm {
   /* Breakdown per section, then per size (owner, 18 November 2026: "per size per section"). */
   foreach(var group in railingStocks.GroupBy(x=>x.Specification).Select(g=>new{Stocks=g,Rows=railings.Where(r=>r.Profile==g.Key).ToList()}).OrderBy(x=>x.Rows.Count>0?x.Rows[0].Section:"").ThenBy(x=>x.Stocks.Key)){
    string section=group.Rows.Count>0?group.Rows[0].Section:"";
-   pieces.Sources.Add(new BillQuantity{Description=(section==""?"":section+" | ")+group.Stocks.Key+" (6 m pieces)",/* summary only, no member list (owner, 18 November 2026) */Quantity=group.Stocks.Count(),Unit="pcs"});}
+   /* installed weight shown on the line (owner, 18 November 2026: "include installed weight") */double installedKg=group.Rows.Sum(r=>r.InstalledKg);
+   pieces.Sources.Add(new BillQuantity{Description=(section==""?"":section+" | ")+group.Stocks.Key+" (6 m pieces) | installed weight "+installedKg.ToString("0.00",CultureInfo.InvariantCulture)+" kg",/* summary only, no member list (owner, 18 November 2026) */Quantity=group.Stocks.Count(),Unit="pcs"});}
   list.Add(pieces);
   var paint=new BillQuantity{Section="Railing",Description="Railing metal painting - installed",Unit="m2",Quantity=railings.Sum(r=>r.Paint)};
   foreach(var r in railings)if(r.Painted)paint.Sources.Add(new BillQuantity{Description=r.Id+" | "+r.Member+" | "+r.Profile+": "+r.Installed.ToString("0.###",CultureInfo.InvariantCulture)+" m x "+r.PaintPerMetre.ToString("0.####",CultureInfo.InvariantCulture)+" m2/m",Quantity=r.Paint,Unit="m2"});
