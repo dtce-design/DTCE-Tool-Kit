@@ -8425,6 +8425,40 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 				Panel1MinSize = 320,
 				Panel2MinSize = 320
 			};
+			/* Owner (18 November 2026, "hindi napapansin yung division"): a visible divider between the two panels and an
+			   outline around each panel. */
+			splitContainer.SplitterWidth = 14;
+			splitContainer.Panel1.Padding = new Padding(1);
+			splitContainer.Panel2.Padding = new Padding(1);
+			PaintEventHandler outline = delegate(object s, PaintEventArgs e)
+			{
+				Control c = (Control)s;
+				using (Pen pen = new Pen(PowTheme.Muted))
+				{
+					e.Graphics.DrawRectangle(pen, 0, 0, c.Width - 1, c.Height - 1);
+				}
+			};
+			splitContainer.Panel1.Paint += outline;
+			splitContainer.Panel2.Paint += outline;
+			splitContainer.Paint += delegate(object s, PaintEventArgs e)
+			{
+				Rectangle r = splitContainer.SplitterRectangle;
+				int x = r.Left + r.Width / 2;
+				using (Pen pen = new Pen(PowTheme.Teal, 3f))
+				{
+					e.Graphics.DrawLine(pen, x, r.Top + 6, x, r.Bottom - 6);
+				}
+				using (SolidBrush brush = new SolidBrush(PowTheme.Teal))
+				{
+					int mid = r.Top + r.Height / 2;
+					for (int i = -1; i <= 1; i++)
+					{
+						e.Graphics.FillEllipse(brush, x - 4, mid + i * 10 - 4, 8, 8);
+					}
+				}
+			};
+			splitContainer.SplitterMoved += delegate { splitContainer.Invalidate(); };
+			splitContainer.Resize += delegate { splitContainer.Invalidate(); };
 			bool finishSplitPlaced = false;
 			splitContainer.SizeChanged += delegate
 			{

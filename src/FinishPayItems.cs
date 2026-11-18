@@ -34,7 +34,7 @@ partial class ProgramOfWorksForm {
  DataGridView finishGroupTotals;
  DataGridView FinishGroupTotalsGrid(){var g=new DataGridView{Name="FinishGroupTotals",Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,SelectionMode=DataGridViewSelectionMode.FullRowSelect,BackgroundColor=Color.White,AutoSizeRowsMode=DataGridViewAutoSizeRowsMode.AllCells};
   foreach(var h in new[]{"BOQ group / item no.","Finish IDs","Measured entries","Total m2"})g.Columns.Add(h,h);
-  g.AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill;g.Columns[0].FillWeight=44;g.Columns[1].FillWeight=14;g.Columns[2].FillWeight=28;g.Columns[3].FillWeight=14;g.BorderStyle=BorderStyle.None;g.Columns[2].DefaultCellStyle.WrapMode=DataGridViewTriState.True;g.Columns[0].DefaultCellStyle.WrapMode=DataGridViewTriState.True;g.Columns[3].DefaultCellStyle.Alignment=DataGridViewContentAlignment.MiddleRight;
+  g.AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill;g.Columns[0].FillWeight=44;g.Columns[1].FillWeight=14;g.Columns[2].FillWeight=28;g.Columns[3].FillWeight=14;g.BorderStyle=BorderStyle.None;g.ScrollBars=ScrollBars.Vertical;g.Columns[2].DefaultCellStyle.WrapMode=DataGridViewTriState.True;g.Columns[0].DefaultCellStyle.WrapMode=DataGridViewTriState.True;g.Columns[3].DefaultCellStyle.Alignment=DataGridViewContentAlignment.MiddleRight;
   foreach(DataGridViewColumn c in g.Columns)c.SortMode=DataGridViewColumnSortMode.NotSortable;finishGroupTotals=g;return g;}
  void RefreshFinishGroupTotals(){var g=finishGroupTotals;if(g==null||g.IsDisposed)return;g.Rows.Clear();
   Func<FinishItem,double> area=f=>{try{return f.Total(FindWall(f.Wall),wallOpenings,finishItems);}catch(Exception){return 0;}};
