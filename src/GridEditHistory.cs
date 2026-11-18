@@ -32,7 +32,9 @@ sealed class GridEditHistory {
   grid.ColumnAdded+=(s,e)=>Clear();grid.ColumnRemoved+=(s,e)=>Clear();
   grid.UserDeletingRow+=(s,e)=>{e.Cancel=true;if(grid.IsHandleCreated)grid.BeginInvoke((Action)DeleteSelected);};
   grid.Enter+=(s,e)=>EnsureMenu();grid.MouseDown+=(s,e)=>{if(e.Button==MouseButtons.Right)EnsureMenu();};
-  grid.KeyDown+=(s,e)=>{if(e.KeyCode==Keys.Delete&&!grid.IsCurrentCellInEditMode){e.Handled=e.SuppressKeyPress=true;DeleteSelected();}};
+  /* Owner (18 November 2026): Delete clears only the selected cell values, like Excel; whole rows are deleted with
+     Ctrl+Delete, the right-click menu or the row delete button. */
+  grid.KeyDown+=(s,e)=>{if(e.KeyCode==Keys.Delete&&!e.Control&&!grid.IsCurrentCellInEditMode){e.Handled=e.SuppressKeyPress=true;ClearSelectedCells();}};
  }
  bool menuPrepared;
  void EnsureMenu(){if(menuPrepared||grid.ContextMenuStrip!=null)return;menuPrepared=true;
@@ -53,6 +55,8 @@ sealed class GridEditHistory {
  void Apply(Action action){bool was=busy();var original=Snapshot();restoring=true;before=null;grid.SuspendLayout();setBusy(true);try{try{action();}catch{Restore(original);throw;}finally{setBusy(was);grid.ResumeLayout(false);}changed();}finally{restoring=false;Notify();}}
  internal void DeleteRow(int index){if(index<0||index>=grid.Rows.Count||grid.Rows[index].IsNewRow)return;foreach(DataGridViewRow row in grid.Rows)row.Selected=false;grid.Rows[index].Selected=true;DeleteSelected();}
  internal void DeleteSelected(){DeleteRows(SelectedRows());}
+ internal void ClearSelectedCells(){if(grid.ReadOnly||!Commit())return;var cells=grid.SelectedCells.Cast<DataGridViewCell>().Where(c=>!c.ReadOnly&&!c.OwningRow.IsNewRow&&c.Visible&&!(c is DataGridViewComboBoxCell)&&!(c is DataGridViewCheckBoxCell)&&!(c is DataGridViewButtonCell)&&c.Value!=null&&Convert.ToString(c.Value)!="").ToList();if(cells.Count==0)return;
+  var old=Snapshot();Apply(()=>{foreach(var cell in cells)cell.Value="";Record(new GridEditAction{Before=old,After=Snapshot(),Description="Clear cells"});});}
  internal void DeleteRows(System.Collections.Generic.IEnumerable<DataGridViewRow> selection,Action afterDelete=null){if(!grid.AllowUserToDeleteRows||!Commit())return;var rows=selection.Where(row=>row.DataGridView==grid&&!row.IsNewRow&&row.Visible&&!row.ReadOnly&&row.Cells.Cast<DataGridViewCell>().Any(cell=>!cell.ReadOnly)).Distinct().ToList();if(rows.Count==0)return;if(!ConfirmDelete(grid.FindForm(),rows.Count))return;var old=Snapshot();Apply(()=>{foreach(var row in rows.OrderByDescending(r=>r.Index))grid.Rows.Remove(row);if(afterDelete!=null)afterDelete();Record(new GridEditAction{Before=old,After=Snapshot(),Description="Delete rows",Deleted=rows.Count});});}
  internal void Undo(){if(commandTarget!=null){commandTarget.Undo();return;}if(!Commit()||!history.CanUndo)return;Apply(()=>history.Undo(action=>Restore(action.Before)));}
  internal void Redo(){if(commandTarget!=null){commandTarget.Redo();return;}if(!Commit()||!history.CanRedo)return;if(history.NextRedo.Deleted>0&&!ConfirmDelete(grid.FindForm(),history.NextRedo.Deleted))return;Apply(()=>history.Redo(action=>Restore(action.After)));}
