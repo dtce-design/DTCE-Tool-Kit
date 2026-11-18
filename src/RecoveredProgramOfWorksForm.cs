@@ -7535,7 +7535,7 @@ worksExcelTimer.Tick += async delegate
 		{
 			Guard();
 			string contents = BuildWorksProjectXml(false);
-            ApplyDeferredSources();PowBackups.Backup(path);PowProjectFileWriter.WriteWithSources(path,contents,ProjectSources());
+            ApplyDeferredSources();PowProjectFileWriter.Save(path,contents,ProjectSources(),true);
 			beam.WorksSaved();
 			slab.WorksSaved();
             currentPowPath=Path.GetFullPath(path);
