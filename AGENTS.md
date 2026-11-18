@@ -117,7 +117,7 @@ columns; the unused TieCount/TieCut input fields may remain as they are.
 ## Store release authorization (17 November 2026)
 
 Owner explicitly asked to publish to the Microsoft Store: both User and Admin editions of the current
-build (requested as v1.4.67; renumbered v1.4.68, now v1.4.118, at the owner's request after further fixes), after the Windows
+build (requested as v1.4.67; renumbered v1.4.68, now v1.4.119, at the owner's request after further fixes), after the Windows
 CI build passes and the owner has checked the test build. This lifts the 16 November release hold for that build only:
 merge the development branch to main (automatic GitHub release), then run the workflow manually on
 main with publish_microsoft_store=true. Store packages stay key-free. Upload is not certification;

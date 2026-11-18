@@ -7,7 +7,7 @@ partial class ProgramOfWorksForm {
  void AddBoqSearch(FlowLayoutPanel toolbar){
   /* Same 38 px row height as the toolbar buttons: the text box is centred vertically in a bordered box and the clear
      action is a small link-style label, so the search lines up with the buttons beside it. */
-  var box=new Panel{Width=330,Height=38,Margin=new Padding(14,2,7,2),Padding=new Padding(8,0,4,0),BackColor=ModernUi.Input,BorderStyle=BorderStyle.FixedSingle};
+  var box=new Panel{Width=340,Height=38,Margin=new Padding(14,2,7,2),Padding=new Padding(30,0,4,0),BackColor=ModernUi.Input,BorderStyle=BorderStyle.None};
   boqSearch=new TextBox{Name="BoqSearch",AccessibleName="Search Bill of Quantities",BorderStyle=BorderStyle.None,Font=ModernUi.Body,BackColor=ModernUi.Input,Anchor=AnchorStyles.Left|AnchorStyles.Right};
   /* Owner (17 November 2026): the plain "✕" glyph looked rough. The clear button is now a small painted round chip,
      shown only while there is search text, darker on hover. */
@@ -22,6 +22,16 @@ partial class ProgramOfWorksForm {
   boqSearch.TextChanged+=(s,e)=>{clear.Visible=boqSearch.Text.Length>0;if(boqDisclosure==null)return;boqDisclosure.Filter=boqSearch.Text;boqDisclosure.Apply();};
   boqSearch.KeyDown+=(s,e)=>{if(e.KeyCode==Keys.Escape){boqSearch.Clear();e.Handled=e.SuppressKeyPress=true;}};
   clear.Click+=(s,e)=>{boqSearch.Clear();boqSearch.Focus();};
+  /* Owner (18 November 2026: "yung search bar di nagbago"): the app theme re-styled the embedded text box with its
+     own border and recoloured the container afterwards, so the earlier fix never showed. The search keeps its own
+     look: one rounded border painted by the box (accent while typing), a magnifier icon, borderless text inside. */
+  Action keep=()=>{if(boqSearch.BorderStyle!=BorderStyle.None)boqSearch.BorderStyle=BorderStyle.None;if(box.BackColor!=ModernUi.Input)box.BackColor=ModernUi.Input;if(boqSearch.BackColor!=ModernUi.Input)boqSearch.BackColor=ModernUi.Input;if(clear.BackColor!=ModernUi.Input)clear.BackColor=ModernUi.Input;};
+  boqSearch.BorderStyleChanged+=(s,e)=>keep();box.BackColorChanged+=(s,e)=>keep();boqSearch.BackColorChanged+=(s,e)=>keep();clear.BackColorChanged+=(s,e)=>keep();box.ParentChanged+=(s,e)=>keep();
+  boqSearch.GotFocus+=(s,e)=>box.Invalidate();boqSearch.LostFocus+=(s,e)=>box.Invalidate();
+  box.Paint+=(s,e)=>{keep();var g=e.Graphics;g.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+   using(var path=ModernUi.Rounded(new RectangleF(.5f,.5f,box.Width-1,box.Height-1),4))using(var pen=new Pen(boqSearch.Focused?WorksheetColors.Focus:PowTheme.Line,boqSearch.Focused?1.6f:1f))g.DrawPath(pen,path);
+   int cy=box.Height/2;using(var lens=new Pen(PowTheme.Muted,1.7f){EndCap=System.Drawing.Drawing2D.LineCap.Round}){g.DrawEllipse(lens,10,cy-7,10,10);g.DrawLine(lens,18.5f,cy+1.5f,23,cy+6);}};
+  box.Click+=(s,e)=>boqSearch.Focus();
   box.Controls.Add(clear);box.Controls.Add(boqSearch);toolbar.Controls.Add(box);boqSearch.Location=new Point(box.Padding.Left,(box.ClientSize.Height-boqSearch.Height)/2);boqSearch.Width=box.ClientSize.Width-box.Padding.Left-clear.Width-6;}
 }
 }

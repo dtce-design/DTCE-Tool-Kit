@@ -1,0 +1,16 @@
+DTCE Tool Kit v1.4.119 test build (18 November 2026)
+
+Bill of Quantities
+- Status panel ("asan na yung status sa boq?"): now always visible on the
+  right side of the BOQ table (resizable with the divider). It shows OK when
+  every computed quantity is mapped and included; otherwise it lists input
+  errors, Not mapped (double-click to map), Excluded (double-click to
+  include) and Automatic LS lines. Previously it was hidden under the table
+  whenever there was nothing to report.
+- Search bar ("yung search bar di nagbago"): the app theme was re-styling
+  the search text with a second border and recolouring its box, so the
+  earlier fix never showed. The search now keeps its own look: one rounded
+  border (accent colour while typing), a magnifier icon, borderless text and
+  the round clear button.
+
+Includes v1.4.118 dialog button formatting. Not a Microsoft Store release.
