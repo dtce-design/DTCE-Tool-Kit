@@ -1,0 +1,9 @@
+DTCE Tool Kit v1.15.0 test build (18 November 2026) - behaviour change
+
+Door & Window Schedule (owner: "i-combine na lang yung paint ng leaf at jamb")
+- One checkbox, "Paint (leaf and jamb)", now controls painting of both the
+  wooden leaf and its jamb. The separate "Paint jamb" column is removed.
+- Unticked: no leaf or jamb paint, and Paint faces is not required (v1.14.1).
+- Older projects open with the combined box following their saved leaf setting.
+
+Includes v1.14.1. Not a Microsoft Store release (v1.5.0 is the Store build).

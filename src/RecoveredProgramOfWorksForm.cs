@@ -6828,7 +6828,7 @@ worksExcelTimer.Tick += async delegate
 								MouldingProfile = Cell(item, 24),
 								Exterior = (dataGridView != manualOpeningsGrid && Cell(item, 22) != "" && bool.Parse(Cell(item, 22))),
 								PaintLeaf = OpeningPaint(item, PaintLeafColumn),
-								PaintJamb = OpeningPaint(item, PaintJambColumn)
+								PaintJamb = OpeningPaint(item, PaintLeafColumn) /* one combined paint checkbox (owner, 18 November 2026) */
 							};
 							openingItem.Validate();
 							if (!ids.Add(openingItem.Id))

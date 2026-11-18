@@ -53,8 +53,9 @@ partial class ProgramOfWorksForm {
  // Saved as entry attributes pl / pj ("0" when unchecked) so older files keep their paint quantities.
  internal const string PaintLeafColumn="OpeningPaintLeaf",PaintJambColumn="OpeningPaintJamb";
  void AddOpeningPaintColumns(DataGridView g){
-  foreach(var spec in new[]{new[]{PaintLeafColumn,"Paint door / window leaf","Include painting of the wooden leaf (both faces as set in Paint faces, plus edges)."},new[]{PaintJambColumn,"Paint jamb","Include painting of the wooden jamb."}}){
+  foreach(var spec in new[]{new[]{PaintLeafColumn,"Paint (leaf and jamb)","Include painting of the wooden leaf (faces as set in Paint faces, plus edges) and its jamb."},new[]{PaintJambColumn,"Paint jamb","Include painting of the wooden jamb."}}){
    var c=new DataGridViewCheckBoxColumn{Name=spec[0],HeaderText=spec[1],ToolTipText=spec[2],Width=95};c.DefaultCellStyle.BackColor=ModernUi.Input;g.Columns.Add(c);}
+  /* Owner (18 November 2026, "i-combine na lang yung paint ng leaf at jamb"): one checkbox paints both; the jamb column stays hidden for older files. */g.Columns[PaintJambColumn].Visible=false;
   g.DefaultValuesNeeded+=(s,e)=>{foreach(string n in new[]{PaintLeafColumn,PaintJambColumn})if(e.Row.Cells[n].Value==null)e.Row.Cells[n].Value=true;};
   g.RowsAdded+=(s,e)=>{for(int i=e.RowIndex;i<e.RowIndex+e.RowCount&&i<g.Rows.Count;i++){var row=g.Rows[i];if(row.IsNewRow)continue;foreach(string n in new[]{PaintLeafColumn,PaintJambColumn})if(row.Cells[n].Value==null)row.Cells[n].Value=true;}};
   g.CurrentCellDirtyStateChanged+=(s,e)=>{if(g.IsCurrentCellDirty&&g.CurrentCell!=null&&IsOpeningPaintColumn(g.Columns[g.CurrentCell.ColumnIndex]))g.CommitEdit(DataGridViewDataErrorContexts.Commit);};
@@ -62,7 +63,7 @@ partial class ProgramOfWorksForm {
  static bool IsOpeningPaintColumn(DataGridViewColumn c){return c.Name==PaintLeafColumn||c.Name==PaintJambColumn;}
  static void PlaceOpeningPaintColumns(DataGridView g){if(!g.Columns.Contains(PaintLeafColumn))return;g.Columns[PaintLeafColumn].DisplayIndex=Math.Min(g.Columns.Count-1,g.Columns[10].DisplayIndex+1);g.Columns[PaintJambColumn].DisplayIndex=Math.Min(g.Columns.Count-1,g.Columns[PaintLeafColumn].DisplayIndex+1);}
  static bool OpeningPaint(DataGridViewRow row,string name){if(row.DataGridView==null||!row.DataGridView.Columns.Contains(name))return true;var v=row.Cells[name].Value;return !(v is bool)||(bool)v;}
- static void WriteOpeningPaint(string section,DataGridViewRow row,System.Xml.XmlElement entry){if(section!="Wood"&&section!="Aluminum")return;if(!OpeningPaint(row,PaintLeafColumn))entry.SetAttribute("pl","0");if(!OpeningPaint(row,PaintJambColumn))entry.SetAttribute("pj","0");}
+ static void WriteOpeningPaint(string section,DataGridViewRow row,System.Xml.XmlElement entry){if(section!="Wood"&&section!="Aluminum")return;if(!OpeningPaint(row,PaintLeafColumn))entry.SetAttribute("pl","0");if(!OpeningPaint(row,PaintLeafColumn))entry.SetAttribute("pj","0");}
  static void ReadOpeningPaint(string section,DataGridViewRow row,System.Xml.XmlElement entry){if((section!="Wood"&&section!="Aluminum")||!row.DataGridView.Columns.Contains(PaintLeafColumn))return;row.Cells[PaintLeafColumn].Value=entry.GetAttribute("pl")!="0";row.Cells[PaintJambColumn].Value=entry.GetAttribute("pj")!="0";}
 }
 }
