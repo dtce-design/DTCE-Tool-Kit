@@ -1,0 +1,17 @@
+DTCE Tool Kit v1.24.0 test build (18 November 2026) - new feature
+
+Construction Schedule - Precedence Diagram Method (owner: "bar chart or precedence
+diagram method" - "idagdag ang PDM")
+- Two views: "Bar Chart" and "Precedence Diagram (PDM)".
+- Activities = the scheduled pay items (activity no. = Bill of Quantities
+  order). Relations are Finish-to-Start through a milestone at the end of each
+  work phase (the same automatic sequence as the bar chart, parallel works
+  inside a phase).
+- CPM forward / backward pass: ES, EF, LS, LF and total float per activity.
+  Node: ES | Duration | EF (top), activity no. and item no. (middle),
+  LS | Total float | LF (bottom). Zero-float activities = critical path, red in
+  the PDM and in the bar chart.
+- Print preview / Print print the view shown: PDM on A4 landscape, 7.5 pt,
+  split between node columns over pages side by side.
+
+Includes v1.23.0. Not a Microsoft Store release.

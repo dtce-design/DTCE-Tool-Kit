@@ -7,7 +7,7 @@ namespace BeamScheduleFormatter {
 // working days only (owner: "fix at 8 hrs/day, working days lang"). LS items are left out for now (owner: "hayaan mo muna
 // yung mga LS"). Output per hour, crews and start day can be changed per item and are saved with the project.
 sealed class ScheduleOverride {internal double? Rate;internal int? Crews;internal int? Start;}
-sealed class ScheduleRow {internal string Code,Description,Unit,Key,Note,Phase;internal double Quantity,Rate;internal int Crews,Days,Start,Finish,PhaseIndex,Order;}
+sealed class ScheduleRow {internal string Code,Description,Unit,Key,Note,Phase;internal double Quantity,Rate;internal int Crews,Days,Start,Finish,PhaseIndex,Order;internal bool Critical;}
 // Automatic sequence with parallel works (owner, 18 November 2026: "automate na yung pagkakasunod-sunod, yung pwedeng
 // mag-parallel works"): each pay item belongs to a work phase by its DPWH item no.; the items of one phase run at the same
 // time (they start together) and a phase starts the day after the previous phase is finished.
@@ -44,13 +44,13 @@ sealed class ScheduleChart:Control {
     if(l.Item==null){g.FillRectangle(band,x0,y,right-x0,rowH);g.DrawString(l.Phase,bold,ink,new RectangleF(x0+2,y,right-x0-4,rowH),near);continue;}
     var r=l.Item;string[] cells={r.Code,r.Description,r.Quantity.ToString("N2"),r.Unit,r.Rate>0?r.Rate.ToString("0.###",CultureInfo.InvariantCulture):"-",r.Days>0?r.Days.ToString(CultureInfo.InvariantCulture):"-"};
     for(int c=0;c<cells.Length;c++)g.DrawString(cells[c],font,r.Rate<=0&&c==4?(Brush)orange:ink,new RectangleF(cols[c]+2,y,widths[c]-4,rowH),c==2||c==4||c==5?far:near);
-    if(r.Days>0){int s=Math.Max(r.Start,dayFrom),f=Math.Min(r.Finish,dayTo);if(s<=f)g.FillRectangle(teal,left+(s-dayFrom)*dayW+1,y+rowH*0.25f,(f-s+1)*dayW-2,rowH*0.5f);}}
+    if(r.Days>0){int s=Math.Max(r.Start,dayFrom),f=Math.Min(r.Finish,dayTo);if(s<=f)g.FillRectangle(r.Critical?(Brush)Brushes.Firebrick:teal,left+(s-dayFrom)*dayW+1,y+rowH*0.25f,(f-s+1)*dayW-2,rowH*0.5f);}}
    foreach(float cx in cols)g.DrawLine(grid,cx,y0,cx,bottom);for(int d=0;d<=days;d++){float dx=left+d*dayW;g.DrawLine(grid,dx,y0+headH/2,dx,bottom);}
    g.DrawLine(grid,x0,y0,right,y0);g.DrawLine(grid,left,y0+headH/2,right,y0+headH/2);for(int i=0;i<=lines.Count;i++){float y=y0+headH+i*rowH;g.DrawLine(grid,x0,y,right,y);}g.DrawLine(grid,right,y0,right,bottom);}}
 }
 partial class ProgramOfWorksForm {
  readonly Dictionary<string,ScheduleOverride> scheduleOverrides=new Dictionary<string,ScheduleOverride>(StringComparer.Ordinal);
- ScheduleChart scheduleChart;Label scheduleSummary;
+ ScheduleChart scheduleChart;Label scheduleSummary;TabControl scheduleViews;PdmView pdmView;
  static string ScheduleKey(string code,string description){return code+"|"+description;}
  const double ScheduleHoursPerDay=8;/* fixed (owner, 18 November 2026: "fix at 8 hrs/day") */
  void AddConstructionSchedule(){var page=new TabPage("Construction Schedule");
@@ -58,8 +58,11 @@ partial class ProgramOfWorksForm {
   var note=new Label{Dock=DockStyle.Top,Height=28,Padding=new Padding(14,2,14,2),ForeColor=PowTheme.Muted,Text="No. of days = quantity / (output per hour x 8 hours), rounded up; working days only. Items keep the Bill of Quantities order; works of the same phase run at the same time and each phase starts after the one before it. LS items are not included."};
   scheduleChart=new ScheduleChart{Height=200,Width=1200};var host=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};host.Controls.Add(scheduleChart);
   var bar=new FlowLayoutPanel{Dock=DockStyle.Top,Height=44,Padding=new Padding(10,4,10,0)};
-  Button(bar,"Print preview",()=>PrintSchedule(true));Button(bar,"Print",()=>PrintSchedule(false));
-  page.Controls.Add(host);page.Controls.Add(note);page.Controls.Add(scheduleSummary);page.Controls.Add(bar);tabs.TabPages.Add(page);}
+  Button(bar,"Print preview",()=>PrintSchedule(true));Button(bar,"Print",()=>PrintSchedule(false));bar.Controls.Add(new Label{AutoSize=true,Padding=new Padding(10,10,0,0),ForeColor=PowTheme.Muted,Text="Prints the view shown below (Bar Chart or PDM). Red = critical path."});
+  /* Bar Chart and Precedence Diagram (PDM) views (owner, 18 November 2026) */
+  scheduleViews=new TabControl{Dock=DockStyle.Fill};var barPage=new TabPage("Bar Chart");barPage.Controls.Add(host);var pdmPage=new TabPage("Precedence Diagram (PDM)");
+  pdmView=new PdmView{Width=800,Height=400};var pdmHost=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};pdmHost.Controls.Add(pdmView);pdmPage.Controls.Add(pdmHost);scheduleViews.TabPages.Add(barPage);scheduleViews.TabPages.Add(pdmPage);
+  page.Controls.Add(scheduleViews);page.Controls.Add(note);page.Controls.Add(scheduleSummary);page.Controls.Add(bar);tabs.TabPages.Add(page);}
  /* Quantity of each pay item as shown in Bill of Quantities */
  List<KeyValuePair<BackupBillItem,double>> SchedulePayQuantities(){var result=new List<KeyValuePair<BackupBillItem,double>>();if(backupBill==null||backupBill.Count==0)return result;
   var demands=BackupQuantities(false).Where(d=>d.Quantity>1e-10||d.ManualOverride||backupBillRoutes.ContainsKey(d.Key)).ToList();List<BackupDemand> unmapped;var grouped=SourcesByItem(demands,out unmapped);
@@ -82,7 +85,8 @@ partial class ProgramOfWorksForm {
   return rows;}
  void RefreshSchedule(){if(scheduleChart==null||scheduleChart.IsDisposed)return;var rows=ScheduleRows();int total=rows.Where(r=>r.Days>0).Select(r=>r.Finish).DefaultIfEmpty(0).Max();
   scheduleSummary.Text=rows.Count==0?"No pay item quantities yet (LS items are not included). Map the Tool Kit quantities to the BACKUP pay items first.":"Total: "+total+" working days"+(rows.Any(r=>r.Rate<=0)?"  |  "+rows.Count(r=>r.Rate<=0)+" item(s) without output per hour (not counted)":"");
-  scheduleChart.Rows=rows;scheduleChart.Total=total;scheduleChart.Fit();}
+  var network=PdmNetwork.Build(rows);var critical=new HashSet<ScheduleRow>(network.Nodes.Where(x=>x.Critical).Select(x=>x.Row));foreach(var r in rows)r.Critical=critical.Contains(r);
+  scheduleChart.Rows=rows;scheduleChart.Total=total;scheduleChart.Fit();if(pdmView!=null){pdmView.Network=network;pdmView.Fit();}}
  void WriteSchedule(XmlElement root){var e=root.OwnerDocument.CreateElement("ConstructionSchedule");root.AppendChild(e);
   foreach(var pair in scheduleOverrides.OrderBy(p=>p.Key,StringComparer.Ordinal)){var i=root.OwnerDocument.CreateElement("Item");i.SetAttribute("key",pair.Key);if(pair.Value.Rate.HasValue)i.SetAttribute("rate",pair.Value.Rate.Value.ToString("R",CultureInfo.InvariantCulture));if(pair.Value.Crews.HasValue)i.SetAttribute("crews",pair.Value.Crews.Value.ToString(CultureInfo.InvariantCulture));if(pair.Value.Start.HasValue)i.SetAttribute("start",pair.Value.Start.Value.ToString(CultureInfo.InvariantCulture));e.AppendChild(i);}}
  void ReadSchedule(XmlElement root){scheduleOverrides.Clear();var e=root["ConstructionSchedule"];if(e==null)return;
