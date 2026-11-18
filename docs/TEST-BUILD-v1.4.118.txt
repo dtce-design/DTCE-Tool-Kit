@@ -1,0 +1,14 @@
+DTCE Tool Kit v1.4.118 test build (18 November 2026)
+
+Button formatting (owner: "ayusin lahat ng formatting ng buttons")
+- Restore backup dialog now uses the app theme: rounded DTCE buttons with
+  consistent height and icons. "Open selected copy" is the highlighted main
+  action, Close sits at the far right, and Enter opens the selected copy.
+- Add manual beam schedule dialog now uses the same themed buttons.
+- All bottom command bars in dialogs are tall enough for the styled buttons,
+  so captions and rounded edges are no longer clipped (Map BACKUP items,
+  Choose BACKUP item, Beam deflection, Remove DXF and others).
+- Main actions are highlighted: Select, Apply mapping, Add schedule.
+  Cancel/Close is consistently at the far right.
+
+Not a Microsoft Store release.

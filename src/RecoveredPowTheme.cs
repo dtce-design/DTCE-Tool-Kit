@@ -28,6 +28,13 @@ internal static partial class PowTheme {
     flow.AutoSize=true;flow.AutoSizeMode=AutoSizeMode.GrowAndShrink;flow.WrapContents=true;
     flow.MinimumSize=new Size(0,40);flow.Padding=new Padding(12,4,12,4);flow.BackColor=ModernUi.Surface;
    }
+   // Dialog command bars (owner, 18 November 2026: button formatting): tall enough for the 38 px styled buttons
+   // plus margins so captions and rounded edges are never clipped.
+   if(flow!=null&&flow.Dock==DockStyle.Bottom&&flow.FlowDirection!=FlowDirection.TopDown){
+    flow.Padding=new Padding(Math.Max(flow.Padding.Left,10),6,Math.Max(flow.Padding.Right,10),6);
+    flow.Height=Math.Max(flow.Height,56);flow.MinimumSize=new Size(0,56);flow.WrapContents=false;
+    if(flow.BackColor==SystemColors.Control||flow.BackColor==Color.White)flow.BackColor=ModernUi.Surface;
+   }
    var tab=root as TabControl;if(tab!=null)StyleTabs(tab);
    var button=root as Button;if(button!=null&&!(button is ToolModuleButton))PremiumControls.StyleButton(button);
    var grid=root as DataGridView;if(grid!=null)StyleGrid(grid);

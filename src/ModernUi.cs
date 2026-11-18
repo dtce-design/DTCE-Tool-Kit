@@ -43,7 +43,9 @@ static class ModernUi {
  internal static bool Primary(string text) {
   return text=="Add entry" || text=="Apply" || text=="Apply deductions" || text=="Build preview" ||
    text=="Save project information" || text=="Save footing" || text=="Open / Link Excel" ||
-   text=="Save Program of Works" || text=="Calculate";
+   text=="Save Program of Works" || text=="Calculate" ||
+   // Main action of each dialog (owner, 18 November 2026: button formatting).
+   text=="Open selected copy" || text=="Select" || text=="Apply mapping" || text=="Add schedule";
  }
  static readonly Dictionary<string,int> headerWords=new Dictionary<string,int>(StringComparer.Ordinal);
  internal static int HeaderMinimum(string header){int width=60;foreach(string word in (header??"").Split(new[]{' ','\r','\n'},StringSplitOptions.RemoveEmptyEntries)){int measured;if(!headerWords.TryGetValue(word,out measured)){measured=TextRenderer.MeasureText(word,Strong).Width;headerWords.Add(word,measured);}width=Math.Max(width,measured);}return Math.Min(180,width+24);}

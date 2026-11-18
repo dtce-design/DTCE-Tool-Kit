@@ -136,8 +136,8 @@ namespace BeamScheduleFormatter
 				Height = 32,
 				DialogResult = DialogResult.Cancel
 			};
+			flowLayoutPanel.Controls.Add(button2); /* Cancel at the far right, main action beside it */
 			flowLayoutPanel.Controls.Add(button);
-			flowLayoutPanel.Controls.Add(button2);
 			button.Click += delegate
 			{
 				try
