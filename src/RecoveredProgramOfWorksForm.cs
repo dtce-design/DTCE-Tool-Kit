@@ -6879,6 +6879,12 @@ worksExcelTimer.Tick += async delegate
 							throw new Exception("Enter both Width and Height, or Gross Area only.");
 						}
 						NormalizeMasonryRow(item2);
+						/* Owner (18 November 2026): a wall without a selected thickness is not "Ready" (it used to fall back to
+						   150 mm silently). */
+						if (Cell(item2, 18) == "")
+						{
+							throw new Exception("Select the CHB / block thickness (mm).");
+						}
 						WallItem wallItem = new WallItem
 						{
 							Material = WallMaterial(item2),

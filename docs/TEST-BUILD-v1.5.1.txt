@@ -1,0 +1,9 @@
+DTCE Tool Kit v1.5.1 test build (18 November 2026) - bug fix
+
+CHB Estimate (owner: "naka Ready kahit wala naman CHB thickness")
+- A wall row without a selected CHB / block thickness was silently counted
+  as 150 mm and shown as Ready. It now shows "Select the CHB / block
+  thickness (mm)." and is not counted until a thickness is chosen.
+- AAC block rows keep their 100 mm default.
+
+Not a Microsoft Store release (v1.5.0 is the Store build).
