@@ -51,9 +51,13 @@ partial class ProgramOfWorksForm {
  internal List<BillQuantity> RailingQuantities(){var list=new List<BillQuantity>();if(railings.Count==0)return list;
   var buy=new BillQuantity{Section="Railing",Description="Railing steel PURCHASE weight (6 m stock, offcuts reused)",Unit="kg",Quantity=railingStocks.Sum(s=>s.Length*s.KgM)};
   foreach(var group in railingStocks.GroupBy(s=>s.Specification))buy.Sources.Add(new BillQuantity{Description=group.Key+": "+group.Count()+" stock(s) of 6 m; installed "+group.Sum(s=>s.Net).ToString("0.###",CultureInfo.InvariantCulture)+" m; final reusable offcut "+group.Sum(s=>s.Remaining).ToString("0.###",CultureInfo.InvariantCulture)+" m",Quantity=group.Sum(s=>s.Length*s.KgM),Unit="kg"});
+  /* Owner (18 November 2026): "sa railings no. of pieces ang kailangan ko sa BOQ" - number of 6 m stock lengths to buy,
+     per profile (offcuts reused across railing rows of the same profile). */
+  var pieces=new BillQuantity{Section="Railing",Description="Railing pieces to buy (6 m stock lengths)",Unit="pcs",Quantity=railingStocks.Count};
+  foreach(var group in railingStocks.GroupBy(s=>s.Specification).OrderBy(g=>g.Key)){var rows=railings.Where(r=>r.Profile==group.Key||group.Key.StartsWith(r.Profile)).ToList();pieces.Sources.Add(new BillQuantity{Description=group.Key+": "+group.Count()+" pcs x 6 m"+(rows.Count>0?" (for "+string.Join(", ",rows.Select(r=>r.Id+" "+r.Pieces+" pcs x "+r.PieceLength.ToString("0.###",CultureInfo.InvariantCulture)+" m"))+")":""),Quantity=group.Count(),Unit="pcs"});}
   var installed=new BillQuantity{Section="Railing",Description="Railing steel installed weight (reference)",Unit="kg",Quantity=railings.Sum(r=>r.InstalledKg)};
   var paint=new BillQuantity{Section="Railing",Description="Railing metal painting - installed",Unit="m2",Quantity=railings.Sum(r=>r.Paint)};
   foreach(var r in railings){paint.Sources.Add(new BillQuantity{Description=r.Id+" | "+r.Member+" | "+r.Profile+": "+r.Installed.ToString("0.###",CultureInfo.InvariantCulture)+" m x "+r.PaintPerMetre.ToString("0.####",CultureInfo.InvariantCulture)+" m2/m",Quantity=r.Paint,Unit="m2"});installed.Sources.Add(new BillQuantity{Description=r.Id+" | "+r.Member+" | "+r.Profile+": "+r.Pieces+" pcs x "+r.PieceLength.ToString("0.###",CultureInfo.InvariantCulture)+" m",Quantity=r.InstalledKg,Unit="kg"});}
-  list.Add(buy);list.Add(installed);list.Add(paint);return list;}
+  list.Add(pieces);list.Add(buy);list.Add(installed);list.Add(paint);return list;}
 }
 }

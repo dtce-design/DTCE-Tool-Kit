@@ -1,0 +1,12 @@
+DTCE Tool Kit v1.9.0 test build (18 November 2026)
+
+Railings in Bill of Quantities (owner: "sa railings no. of pieces ang kailangan ko
+sa BOQ")
+- New BOQ quantity "Railing pieces to buy (6 m stock lengths)" in pcs, with a
+  breakdown per profile: number of 6 m pieces and the railing rows they cover
+  (row ID, pieces x cut length). Offcuts are reused between rows of the same
+  profile, as before.
+- Purchase weight, installed weight (reference) and painting stay available;
+  map whichever the BACKUP item needs (pcs or kg).
+
+Includes v1.8.0-1.8.1. Not a Microsoft Store release (v1.5.0 is the Store build).
