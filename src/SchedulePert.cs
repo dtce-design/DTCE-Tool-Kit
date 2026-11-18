@@ -28,6 +28,7 @@ sealed class AoaArrow {internal AoaEvent Tail,Head;internal PertActivity Activit
 sealed class PertAoa {
  internal readonly List<AoaEvent> Events=new List<AoaEvent>();internal readonly List<AoaArrow> Arrows=new List<AoaArrow>();internal float Height;internal AoaEvent Finish;
  internal const float R=21,Head=8,KeyH=60,Foot=30;internal float LevelW=250;/* narrowed on paper to save sheets */
+ internal readonly List<float[]> Groups=new List<float[]>();/* x extent of every event column group */
  internal readonly List<float> Cuts=new List<float>();internal float Right;/* x positions where a sheet may end (between event columns), right end */
  static readonly CultureInfo IC=CultureInfo.InvariantCulture;
  internal static PertAoa Build(PdmNetwork n,PertResult pert){var a=new PertAoa();int count=2+2*n.Nodes.Count;var parent=Enumerable.Range(0,count).ToArray();
@@ -85,11 +86,11 @@ sealed class PertAoa {
   PdmNetwork.Order(lists,e=>Arrows.Where(x=>x.Head==e&&!x.Collector).Select(x=>x.Tail),e=>Arrows.Where(x=>x.Tail==e&&!x.Collector).Select(x=>x.Head),e=>order[e]);
   /* a level with more events than fit one above the other (each needs room for the labels of its arrows) is split into
      staggered sub-columns; the next level starts after the last sub-column */
-  int no=1;float mid=Head+(usable-Head)/2;Cuts.Clear();const float minStep=64;int perCol=Math.Max(1,(int)((usable-Head-2*R-10)/minStep)+1);float cx=20,sub=2*R+(LevelW-2*R)*0.5f;
+  int no=1;float mid=Head+(usable-Head)/2;Cuts.Clear();Groups.Clear();const float minStep=64;int perCol=Math.Max(1,(int)((usable-Head-2*R-10)/minStep)+1);float cx=20,sub=2*R+(LevelW-2*R)*0.5f;
   for(int lv=0;lv<lists.Count;lv++){var list=lists[lv];int cols=Math.Max(1,(int)Math.Ceiling(list.Count/(double)perCol));
    for(int c=0;c<cols;c++){var part=list.Skip(c*perCol).Take(perCol).ToList();float step=part.Count<=1?0:Math.Min(78,(usable-Head-2*R-10)/(part.Count-1));float top=mid-step*(part.Count-1)/2;
     for(int i=0;i<part.Count;i++){var e=part[i];e.No=no++;e.X=cx+c*sub;e.Y=top+i*step+(cols>1&&c%2==1?Math.Min(step,78)/2:0);}}
-   float last=cx+(cols-1)*sub;Cuts.Add(last+2*R+40);cx=last+LevelW;}
+   float last=cx+(cols-1)*sub;Groups.Add(new[]{cx,last+2*R});Cuts.Add(last+2*R+40);cx=last+LevelW;}
   Right=cx-LevelW+2*R+20;return new SizeF(Right,height);}
 
  static void Event(Graphics g,RectangleF c,string no,string te,string tl,bool crit,Font font,Font bold,Pen ring,Pen critRing,Brush ink,Brush red,Brush white){var mid=new StringFormat{Alignment=StringAlignment.Center,LineAlignment=StringAlignment.Center,FormatFlags=StringFormatFlags.NoWrap};
@@ -142,7 +143,7 @@ sealed class PertAoa {
     int h=bh+(int)pl[0];if(h==0){pick=y;pickHits=0;pickPlace=pl;break;}float cost=Math.Abs(y-ty)+Math.Abs(y-hy);if(h<pickHits||(h==pickHits&&cost<pickCost)){pickHits=h;pickCost=cost;pick=y;pickPlace=pl;}}
    List<PointF> route=new List<PointF>{new PointF(tx+R,ty),new PointF(xa,ty),new PointF(xa,pick),new PointF(xb,pick),new PointF(xb,hy),new PointF(hx-R,hy)};
    if(pickHits>=4){/* no free single height: step between free heights (NetRoute.Sweep) and keep it if it touches less */int cost;var hard=obsEvents.Concat(texts.Select(t=>RectangleF.Inflate(t,1,1))).ToList();
-    var alt=NetRoute.Sweep(tx+R,ty,xa,xb,hx-R,hy,hard,bands,joins,0,Height-Foot,out cost,lanes);var ap=NetRoute.Path(alt.ToArray());var runs=new List<float[]>();int score=0;
+    var alt=NetRoute.Sweep(tx+R,ty,xa,xb,hx-R,hy,hard,bands,joins,0,Height-Foot,out cost,lanes);if(cost>=100){/* no way round the labels: keep clear of the events at least */alt=NetRoute.Sweep(tx+R,ty,xa,xb,hx-R,hy,obsEvents,bands.Concat(texts).ToList(),joins,0,Height-Foot,out cost,lanes);}var ap=NetRoute.Path(alt.ToArray());var runs=new List<float[]>();int score=0;
     for(int k=0;k+1<ap.Length;k++){var p=ap[k];var q=ap[k+1];if(Math.Abs(p.Y-q.Y)<0.01f){var rr=new RectangleF(Math.Min(p.X,q.X),p.Y-2,Math.Abs(q.X-p.X),4);score+=hits(rr,obsEvents)*20+hits(rr,texts)*4+hits(rr,bands)*2;if(k>0&&k+2<ap.Length&&q.X>p.X)runs.Add(new[]{p.Y,p.X,q.X});}
      else{var rr=vr(p.X,p.Y,q.Y);score+=hits(rr,obsEvents)*20+hits(rr,texts)*4;}}
     if(runs.Count==0)runs.Add(new[]{ty,xa,xb});var pl=place(runs);score+=(int)pl[0]+2;
@@ -171,11 +172,11 @@ sealed class PertAoa {
    foreach(var l in plan.Labels){g.FillRectangle(white,l.Rect);g.DrawString(l.Text,l.Bold?bold:font,l.Critical?(Brush)red:l.Muted?muted:ink,l.Rect,near);}
    foreach(var e in Events)Event(g,new RectangleF(e.X,e.Y-R,2*R,2*R),e.No.ToString(IC),e.TE.ToString(IC),e.TL.ToString(IC),e.Critical,font,bold,ring,critRing,ink,red,white);}
   g.Restore(state);g.SmoothingMode=smooth;}
- internal const string LegendText="PERT-CPM, activity on arrow (working days). a = 0.8 m, b = 1.2 m, so te = (a + 4m + b) / 6 = m and the PERT duration equals the CPM duration; the standard deviation and the 90 % / 95 % completion rest on this assumed +/-20 % spread. Red = critical path. The sheets join at the match lines (trim along a match line and butt the next sheet to it).";
+ internal const string LegendText="PERT-CPM, activity on arrow, working days. Red = critical path. Shaded column on a continuation sheet = the last event column of the sheet before, repeated; the lines carry on from it.";
  internal static void DrawKey(Graphics g,float x,float y,Font font,Font bold){using(var ink=new SolidBrush(PowTheme.Ink))using(var red=new SolidBrush(Color.FromArgb(192,40,40)))using(var white=new SolidBrush(Color.White))using(var ring=new Pen(PowTheme.Ink,1f))using(var crit=new Pen(Color.FromArgb(192,40,40),1.6f))using(var act=new Pen(Color.FromArgb(110,120,132),1f){CustomEndCap=new AdjustableArrowCap(3.5f,4.5f)})using(var dummy=new Pen(Color.FromArgb(110,120,132),0.9f){DashStyle=DashStyle.Dash,CustomEndCap=new AdjustableArrowCap(3.5f,4.5f)}){
   g.DrawString("EVENT KEY",bold,ink,x,y);Event(g,new RectangleF(x+76,y,2*R,2*R),"i","TE","TL",false,font,bold,ring,crit,ink,red,white);
-  string[] k={"i = event no. (each arrow runs from a lower to a higher no.)","TE = earliest event time, TL = latest event time (working days); TE = TL: critical"};for(int i=0;i<k.Length;i++)g.DrawString(k[i],font,ink,x+76+2*R+12,y+4+i*15);
-  float ax=x+560;g.DrawLine(act,ax,y+8,ax+90,y+8);g.DrawString("activity: no. and item no. above, te (a / m / b) below",font,ink,ax+100,y+1);g.DrawLine(dummy,ax,y+24,ax+90,y+24);g.DrawString("dummy: logic only, no time",font,ink,ax+100,y+17);
+  string[] k={"i = event no. (each arrow runs from a lower to a higher no.)","TE = earliest event time, TL = latest event time; TE = TL: critical","a = 0.8 m, b = 1.2 m, so te = (a + 4m + b) / 6 = m: PERT duration = CPM duration;","the standard deviation and the 90 % / 95 % completion rest on that assumed +/-20 % spread"};for(int i=0;i<k.Length;i++)g.DrawString(k[i],font,ink,x+76+2*R+12,y+i*14);
+  float ax=x+600;g.DrawLine(act,ax,y+8,ax+90,y+8);g.DrawString("activity: no. and item no. above, te (a / m / b) below",font,ink,ax+100,y+1);g.DrawLine(dummy,ax,y+24,ax+90,y+24);g.DrawString("dummy: logic only, no time",font,ink,ax+100,y+17);
   using(var lag=new Pen(Color.FromArgb(110,120,132),0.9f){DashStyle=DashStyle.DashDot,CustomEndCap=new AdjustableArrowCap(3.5f,4.5f)}){g.DrawLine(lag,ax,y+40,ax+90,y+40);}g.DrawString("lag arrow: time, no work - SS +3 = 3 days after the start of the tail activity, FF +1 = finish 1 day after its finish, FS +7 = 7 days after its finish",font,ink,ax+100,y+33);}}
 }
 sealed class PertView:Control {internal PertAoa Diagram;internal PertResult Pert;internal PertView(){DoubleBuffered=true;BackColor=Color.White;Font=new Font("Segoe UI",8f);}

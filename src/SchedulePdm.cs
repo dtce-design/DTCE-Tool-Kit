@@ -20,7 +20,8 @@ sealed class PdmNetwork {
  internal readonly List<float> Cuts=new List<float>();internal float Right;/* x positions where a sheet may end (in the gaps between columns), right end of the drawing */
  /* gaps (0 = after START) that hold a sheet join: they are made wider so that only horizontal lines cross the join, clear
     of the bends next to the columns and of the relation labels at the arrowheads */
- internal HashSet<int> Widen=new HashSet<int>();internal const float JoinRoom=80,JoinAt=52;
+ internal HashSet<int> Widen=new HashSet<int>();internal const float JoinRoom=50,JoinAt=50;
+ internal readonly List<float[]> Groups=new List<float[]>();/* x extent of every column group (START, each level, FINISH) */
  internal static PdmNetwork Build(List<ScheduleRow> rows){var n=new PdmNetwork();List<PdmNode> nodes;n.Links=ScheduleLogic.Network(rows,out nodes,true);n.Nodes.AddRange(nodes);n.Total=nodes.Count==0?0:nodes.Max(x=>x.EF);
   foreach(var nd in nodes){int lv=1;foreach(var l in n.Links.Where(x=>x.To==nd))lv=Math.Max(lv,l.From.Level+1);nd.Level=lv;}
   n.Milestones.Add(new PdmMilestone{Name="START",Caption="Start of project",Day=0});n.Milestones.Add(new PdmMilestone{Name="FINISH",Caption="Project completion",Day=n.Total});return n;}
@@ -32,13 +33,13 @@ sealed class PdmNetwork {
    for(int k=levels.Count-2;k>=0;k--){var lv=levels[k];var key=lv.ToDictionary(n=>n,n=>{var ss=succs(n).Where(pos.ContainsKey).ToList();return ss.Count==0?pos[n]:ss.Average(x=>pos[x]);});levels[k]=lv.OrderBy(n=>key[n]).ThenBy(id).ToList();number();}}}
  internal SizeF Layout(float height){Height=height;float step=NodeH+RowGap;float usable=height-Foot;int perCol=Math.Max(1,(int)((usable-Head-10)/step));float mid=Head+(usable-Head)/2;float x=6;Cuts.Clear();
   int gap=0;Func<float> gw=()=>LinkGap+(Widen.Contains(gap)?JoinRoom:0);
-  Milestones[0].X=x;Milestones[0].Y=mid-NodeH/2;x+=NodeW;Cuts.Add(x+JoinAt);x+=gw();gap++;int levels=Nodes.Count==0?0:Nodes.Max(nd=>nd.Level);
+  Groups.Clear();Milestones[0].X=x;Milestones[0].Y=mid-NodeH/2;Groups.Add(new[]{x,x+NodeW});x+=NodeW;Cuts.Add(x+JoinAt);x+=gw();gap++;int levels=Nodes.Count==0?0:Nodes.Max(nd=>nd.Level);
   var lists=new List<List<PdmNode>>();for(int lv=1;lv<=levels;lv++){var list=Nodes.Where(nd=>nd.Level==lv).OrderBy(nd=>nd.Id).ToList();if(list.Count>0)lists.Add(list);}
   Order(lists,nd=>Links.Where(l=>l.To==nd).Select(l=>l.From),nd=>Links.Where(l=>l.From==nd).Select(l=>l.To),nd=>nd.Id);
   foreach(var list in lists){int cols=(int)Math.Ceiling(list.Count/(double)perCol);int rows=Math.Min(list.Count,perCol);
    float blockH=rows*step-RowGap+(cols>1?step/2:0);float top=Math.Max(Head+6,mid-blockH/2);
-   for(int i=0;i<list.Count;i++){int c=i/perCol,r=i%perCol;list[i].X=x+c*(NodeW+LinkGap);list[i].Y=top+r*step+(c%2==1?step/2:0);}x+=cols*(NodeW+LinkGap)-LinkGap;Cuts.Add(x+JoinAt);x+=gw();gap++;}
-  Milestones[1].X=x;Milestones[1].Y=mid-NodeH/2;Right=x+NodeW+6;return new SizeF(Right,height);}
+   float gx0=x;for(int i=0;i<list.Count;i++){int c=i/perCol,r=i%perCol;list[i].X=x+c*(NodeW+LinkGap);list[i].Y=top+r*step+(c%2==1?step/2:0);}x+=cols*(NodeW+LinkGap)-LinkGap;Groups.Add(new[]{gx0,x});Cuts.Add(x+JoinAt);x+=gw();gap++;}
+  Milestones[1].X=x;Milestones[1].Y=mid-NodeH/2;Groups.Add(new[]{x,x+NodeW});Right=x+NodeW+6;return new SizeF(Right,height);}
  static void Box(Graphics g,RectangleF r,string[] top,string title,string text,string[] bottom,bool crit,Brush titleInk,Font font,Font bold,Brush ink,Brush muted,Brush fill,Brush white,Pen grid,Pen edge){
   var mid=new StringFormat{Alignment=StringAlignment.Center,LineAlignment=StringAlignment.Center,Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap};var left=new StringFormat(mid){Alignment=StringAlignment.Near};var wrap=new StringFormat{LineAlignment=StringAlignment.Center,Trimming=StringTrimming.EllipsisWord};
   float rh=r.Height/5,cw=r.Width/3;g.FillRectangle(white,r);g.FillRectangle(fill,r.X,r.Y,r.Width,rh);g.FillRectangle(fill,r.X,r.Bottom-rh,r.Width,rh);
@@ -100,7 +101,7 @@ sealed class PdmNetwork {
     else{var a=pert.Activities.First(x=>x.Node==nd);top=new[]{a.A.ToString("0.0",IC),a.M.ToString("0.#",IC),a.B.ToString("0.0",IC)};bottom=new[]{nd.ES.ToString(IC),a.Te.ToString("0.#",IC),nd.EF.ToString(IC)};}
     Box(g,new RectangleF(nd.X,nd.Y,NodeW,NodeH),top,nd.Name+"   "+nd.Row.Code,nd.Row.Description,bottom,nd.Critical,nd.Critical?(Brush)red:ink,font,bold,ink,muted,nd.Critical?cellCrit:cell,white,grid,nd.Critical?critEdge:edge);}}
   g.Restore(state);g.SmoothingMode=smooth;}
- internal const string LegendText="Precedence diagram (activity on node). FS = finish-to-start, SS = start-to-start (overlap), FF = finish-to-finish; the label at the arrowhead gives the type and lag in working days (FS without lag is not labelled). M1, M2 ... = milestones (D = 0) where the items of one trade meet. ES of the first activity = 0; EF = ES + D; LS = LF - D; TF = LS - ES. Red = critical path (TF = 0). The sheets join at the match lines (trim along a match line and butt the next sheet to it).";
+ internal const string LegendText="Precedence diagram (activity on node), working days. Red = critical path (TF = 0). Shaded column on a continuation sheet = the last column of the sheet before, repeated; the lines carry on from it.";
  internal const string PertLegendText="PERT-CPM on the same network: a = 0.8 m (optimistic), m = most likely, b = 1.2 m (pessimistic); te = (a + 4m + b) / 6; ES / EF with te. Labels at the arrowheads = predecessor no., relation and lag. Red = critical path.";
  internal const float KeyH=NodeH+14;
  /* standard node key, drawn once at the top of each sheet */
@@ -109,7 +110,7 @@ sealed class PdmNetwork {
    g.DrawString("NODE KEY",bold,ink,x,y);var r=new RectangleF(x+70,y,NodeW,NodeH);
    Box(g,r,pert?new[]{"a","m","b"}:new[]{"ES","D","EF"},"Activity no.   Item no.","Description (up to two lines)",pert?new[]{"ES","te","EF"}:new[]{"LS","TF","LF"},false,ink,bold,bold,ink,muted,cell,white,grid,edge);
    string[] k=pert?new[]{"a / m / b = optimistic / most likely / pessimistic duration","te = expected duration = (a + 4m + b) / 6","ES / EF = early start / finish with te (working days)","\"SS +3\" = starts 3 days after the predecessor starts"}
-    :new[]{"ES = early start, EF = early finish","LS = late start, LF = late finish","D = duration, TF = total float = LS - ES (working days)","\"SS +3\" = starts 3 days after the predecessor starts; FS = after it finishes; FF = finishes after it finishes"};
+    :new[]{"ES = early start, EF = early finish; LS = late start, LF = late finish; D = duration; TF = total float = LS - ES","ES of the first activity = 0; EF = ES + D; LS = LF - D","FS = finish-to-start, SS = start-to-start (overlap), FF = finish-to-finish; the label at the arrowhead is the type and lag","(\"SS +3\" = starts 3 days after the predecessor starts); FS without lag is not labelled","M1, M2 ... = milestones (D = 0) where the items of one trade meet the next trade"};
    for(int i=0;i<k.Length;i++)g.DrawString(k[i],font,ink,r.Right+14,y+2+i*15);}}
 }
 sealed class PdmView:Control {internal PdmNetwork Network;internal PertResult Pert;internal PdmView(){DoubleBuffered=true;BackColor=Color.White;Font=new Font("Segoe UI",8f);}

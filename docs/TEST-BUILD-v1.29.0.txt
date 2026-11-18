@@ -1,0 +1,18 @@
+DTCE Tool Kit v1.29.0 test build (18 November 2026) - new behaviour
+
+Construction Schedule diagrams - continuation sheets (owner: "alisin mo na yung sheet sa
+continuation", "baka mas okay yung last box sa previous sheet uulitin sa next page",
+"yung madaling maiintindihan yung layout", "huwag isang drawing, masyadong maliit na
+yun kapag sa A3")
+- The PDM and the PERT-CPM network keep their full, readable size and are printed
+  column by column on A3 sheets. Each continuation sheet starts with the last column
+  of boxes (PDM) or events (PERT) of the sheet before it, on a light shaded band, and
+  the lines carry on from those boxes / events - no "sheet" tags, no match lines, no
+  joining of sheets needed. The sheet edges still fall where only straight horizontal
+  lines run: no box, event, bend or text is cut by an edge.
+- Legends shortened to one line; the definitions (ES/EF/LS/LF/TF, FS/SS/FF and lags,
+  milestones; PERT a/m/b, te = m and the +/-20 % note) moved into the node / event key.
+- Routing: a relation that cannot get round the labels in a crowded column now at least
+  keeps clear of every event.
+
+Includes v1.28.1. Not tested on Windows. Not a Microsoft Store release.
