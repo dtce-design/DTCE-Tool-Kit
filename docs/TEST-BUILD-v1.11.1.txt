@@ -1,0 +1,14 @@
+DTCE Tool Kit v1.11.1 test build (18 November 2026) - formatting
+
+Bill of Quantities readability (owner: "mas maayos na formatting, nakakahilo yung
+sub items"; "sa quantity nakakalito"; "dapat naka-tab din sa right")
+- Three clear levels:
+  1. Pay item (e.g. 903(2) Formworks and Falseworks): bold, quantity at the
+     right edge.
+  2. Mapped quantity (e.g. Beam forms): semibold on a light band, quantity
+     stepped in from the right.
+  3. Measurement source (e.g. Beam GB-3 | STAGE): smaller muted text with
+     "›", quantity stepped in further.
+- Quantities no longer line up as one column of look-alike totals.
+
+Includes v1.11.0. Not a Microsoft Store release (v1.5.0 is the Store build).
