@@ -33,17 +33,17 @@ namespace BeamScheduleFormatter {
 partial class ProgramOfWorksForm {
  DataGridView finishGroupTotals;
  DataGridView FinishGroupTotalsGrid(){var g=new DataGridView{Name="FinishGroupTotals",Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,SelectionMode=DataGridViewSelectionMode.FullRowSelect,BackgroundColor=Color.White,AutoSizeRowsMode=DataGridViewAutoSizeRowsMode.AllCells};
-  foreach(var h in new[]{"BOQ group / pay item","Finish IDs","Measured entries","Total area m2","BOQ item"})g.Columns.Add(h,h);
-  g.Columns[0].Width=250;g.Columns[1].Width=90;g.Columns[2].Width=220;g.Columns[3].Width=90;g.Columns[4].Width=90;g.Columns[2].DefaultCellStyle.WrapMode=DataGridViewTriState.True;g.Columns[0].DefaultCellStyle.WrapMode=DataGridViewTriState.True;g.Columns[3].DefaultCellStyle.Alignment=DataGridViewContentAlignment.MiddleRight;
+  foreach(var h in new[]{"BOQ group / item no.","Finish IDs","Measured entries","Total m2"})g.Columns.Add(h,h);
+  g.AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill;g.Columns[0].FillWeight=44;g.Columns[1].FillWeight=14;g.Columns[2].FillWeight=28;g.Columns[3].FillWeight=14;g.BorderStyle=BorderStyle.None;g.Columns[2].DefaultCellStyle.WrapMode=DataGridViewTriState.True;g.Columns[0].DefaultCellStyle.WrapMode=DataGridViewTriState.True;g.Columns[3].DefaultCellStyle.Alignment=DataGridViewContentAlignment.MiddleRight;
   foreach(DataGridViewColumn c in g.Columns)c.SortMode=DataGridViewColumnSortMode.NotSortable;finishGroupTotals=g;return g;}
  void RefreshFinishGroupTotals(){var g=finishGroupTotals;if(g==null||g.IsDisposed)return;g.Rows.Clear();
   Func<FinishItem,double> area=f=>{try{return f.Total(FindWall(f.Wall),wallOpenings,finishItems);}catch(Exception){return 0;}};
   foreach(var total in FinishTypeRegistry.Totals(finishItems,area).OrderBy(t=>t.Name)){var items=finishItems.Where(f=>FinishTypeRegistry.Key(f.MaterialName)==total.Key).ToList();
    string ids=string.Join(", ",items.Select(f=>f.Code).Where(c=>c!="").Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c=>c));
    string entries=string.Join("; ",items.GroupBy(f=>f.Category).Select(c=>c.Key+": "+string.Join(", ",c.Select(f=>f.Id))));
-   string slot;string item="Not mapped yet";var std=FinishStandard.Find(total.Name);if(std!=null)item=std.Code;else if(backupBillRoutes.TryGetValue(FinishGroupKey(total.Name),out slot)){var bill=backupBill.FirstOrDefault(b=>b.Slot==slot);if(bill!=null)item=bill.Code;}
-   int r=g.Rows.Add(std!=null?std.Caption:total.Name,ids,entries,total.Area.ToString("N2"),item);if(item=="Not mapped yet")g.Rows[r].Cells[4].Style.ForeColor=Color.FromArgb(176,96,0);}
+   string slot;var std=FinishStandard.Find(total.Name);string caption=std!=null?std.Caption:total.Name;if(std==null){var bill=backupBillRoutes.TryGetValue(FinishGroupKey(total.Name),out slot)?backupBill.FirstOrDefault(b=>b.Slot==slot):null;caption=bill!=null?bill.Code+" | "+total.Name:total.Name+"  (not mapped yet)";}
+   int r=g.Rows.Add(caption,ids,entries,total.Area.ToString("N2"));if(caption.EndsWith("(not mapped yet)"))g.Rows[r].Cells[0].Style.ForeColor=Color.FromArgb(176,96,0);}
   var loose=finishItems.Where(f=>FinishTypeRegistry.Key(f.MaterialName)=="").ToList();
-  if(loose.Count>0){int r=g.Rows.Add("No Finish ID / group yet","",string.Join("; ",loose.GroupBy(f=>f.Category).Select(c=>c.Key+": "+string.Join(", ",c.Select(f=>f.Id)))),loose.Sum(area).ToString("N2"),"Choose a Finish ID on the sheet");g.Rows[r].DefaultCellStyle.ForeColor=Color.FromArgb(176,96,0);}}
+  if(loose.Count>0){int r=g.Rows.Add("No Finish ID yet - choose one on the sheet","",string.Join("; ",loose.GroupBy(f=>f.Category).Select(c=>c.Key+": "+string.Join(", ",c.Select(f=>f.Id)))),loose.Sum(area).ToString("N2"));g.Rows[r].DefaultCellStyle.ForeColor=Color.FromArgb(176,96,0);}}
 }
 }

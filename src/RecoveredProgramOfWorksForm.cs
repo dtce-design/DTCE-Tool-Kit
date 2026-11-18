@@ -5813,6 +5813,7 @@ worksExcelTimer.Tick += async delegate
 		{
 			DataGridView dataGridView = Grid(new string[4] { "Finish ID", "Description", "Group (type a name)", "Status" }, 3);
 			dataGridView.Columns[2].Width = 330;
+			dataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill; dataGridView.Columns[0].FillWeight = 16; dataGridView.Columns[1].FillWeight = 34; dataGridView.Columns[2].FillWeight = 50; dataGridView.Columns[3].FillWeight = 14;
 			dataGridView.Columns[2].DefaultCellStyle.WrapMode = DataGridViewTriState.True;
 			dataGridView.Columns[2].ToolTipText = "Type a group name. Matching names combine across all finish IDs. Use the exact prescribed name when linking to a fixed Excel finish group; other names appear in POW Finish Types.";
 			dataGridView.CellEndEdit += delegate
@@ -8433,7 +8434,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 			};
 			Label value = new Label
 			{
-				Text = "FINISH SCHEDULE | Define Finish IDs, descriptions and material groups here",
+				Text = "FINISH SCHEDULE",
 				Dock = DockStyle.Top,
 				Height = 42,
 				Padding = new Padding(10),
@@ -8485,13 +8486,23 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 				}
 			};
 			splitContainer.Panel2.Controls.Add(FinishGroupTotalsGrid()); /* owner, 18 November 2026: consolidated per group; Finish IDs are chosen on the measurement sheets */
+			/* Owner (18 November 2026, "ang pangit"): both panels share one heading style and their tables start at the same height. */
 			splitContainer.Panel2.Controls.Add(new Label
 			{
-				Text = "TOTALS PER GROUP | Choose the Finish ID of each measured area in Wall / Ceiling / Floor Finishes. Areas with the same group are added together here and go to the BOQ item chosen in the Finish Schedule on the left.",
+				Text = "Areas with the same group are added together and go to that BOQ item. Pick each area's Finish ID in Wall / Ceiling / Floor Finishes.",
 				Dock = DockStyle.Top,
-				Height = 65,
+				Height = 44,
+				Padding = new Padding(10, 4, 10, 4),
+				ForeColor = PowTheme.Muted,
+				TextAlign = ContentAlignment.MiddleLeft
+			});
+			splitContainer.Panel2.Controls.Add(new Label
+			{
+				Text = "TOTALS PER GROUP",
+				Dock = DockStyle.Top,
+				Height = 42,
 				Padding = new Padding(10),
-				ForeColor = PowTheme.Muted
+				Font = new Font("Segoe UI", 11f, FontStyle.Bold)
 			});
 			tabPage.Controls.Add(splitContainer);
 			DataGridView[] array2 = new DataGridView[3] { wallFinishes, ceilingFinishes, floorFinishes };
