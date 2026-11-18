@@ -18,7 +18,7 @@ static class RebarSummary {
 }
 partial class ProgramOfWorksForm {
  Dictionary<string,TabPage> sheetPages=new Dictionary<string,TabPage>();readonly Dictionary<string,DataGridView> rebarSummaries=new Dictionary<string,DataGridView>(StringComparer.Ordinal);
- static readonly string[] RebarSummaryPages={"Column Estimate","Footing Estimate","Wall Footing Estimate","Canopy / Ledge Estimate","RC Wall Estimate","Miscellaneous Structures"};
+ static readonly string[] RebarSummaryPages={"Column Estimate","Footing Estimate","Wall Footing Estimate","RC Wall Estimate","Miscellaneous Structures"};
  // Wraps each RC sheet as "Measurements" + "Rebar by grade and diameter", like the beam estimate workspace.
  void AddRebarSummaryTabs(){foreach(string name in RebarSummaryPages){TabPage page;if(!sheetPages.TryGetValue(name,out page)||page==null||rebarSummaries.ContainsKey(name))continue;
    var content=page.Controls.Cast<Control>().ToArray();page.SuspendLayout();page.Controls.Clear();var navigation=new NavigationTabs{Dock=DockStyle.Fill,AccessibleName=name+" workspace tabs"};
@@ -29,7 +29,7 @@ partial class ProgramOfWorksForm {
    navigation.SelectedIndexChanged+=(s,e)=>{if(navigation.SelectedTab==summaryPage)RefreshRebarSummaries();};}}
  IEnumerable<StockAllocation> RebarPlanFor(string name){switch(name){
   case "Footing Estimate":return footingPlan;case "Wall Footing Estimate":return wallFootingPlan;case "Canopy / Ledge Estimate":return canopyPlan;case "RC Wall Estimate":return rcWallPlan;
-  default:{TabPage page;if(!sheetPages.TryGetValue(name,out page))return Enumerable.Empty<StockAllocation>();var steel=new HashSet<EstimateInput>(GridsIn(page).SelectMany(g=>g.Rows.Cast<DataGridViewRow>()).Select(r=>r.Tag as MiscStructureQuantity).Where(q=>q!=null&&q.Steel!=null).Select(q=>q.Steel));return miscPlan.Where(a=>steel.Contains(a.Entry));}}}
+  default:{TabPage page;if(!sheetPages.TryGetValue(name,out page))return Enumerable.Empty<StockAllocation>();var steel=new HashSet<EstimateInput>(GridsIn(page).SelectMany(g=>g.Rows.Cast<DataGridViewRow>()).Select(r=>r.Tag as MiscStructureQuantity).Where(q=>q!=null&&q.Steel!=null).Select(q=>q.Steel));var misc=miscPlan.Where(a=>steel.Contains(a.Entry));return name=="Miscellaneous Structures"?misc.Concat(canopyPlan):misc;}}}
  static IEnumerable<DataGridView> GridsIn(Control root){foreach(Control c in root.Controls){var g=c as DataGridView;if(g!=null)yield return g;else foreach(var inner in GridsIn(c))yield return inner;}}
  void RefreshRebarSummaries(){foreach(var item in rebarSummaries){if(item.Value.IsDisposed)continue;try{RebarSummary.Fill(item.Value,RebarPlanFor(item.Key));}catch(Exception){}}}
 }

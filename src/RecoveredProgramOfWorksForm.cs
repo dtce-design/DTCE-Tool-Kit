@@ -3415,7 +3415,16 @@ namespace BeamScheduleFormatter
 				roofProfiles.EndEdit();
 				Recalculate();
 			}
-			if (savedRoofProfiles.Count <= 0 || roofProfiles.Rows.Cast<DataGridViewRow>().Any((DataGridViewRow row) => !row.IsNewRow && !Empty(row) && Cell(row, 5) != "Saved in project"))
+			/* Owner (18 November 2026: profile sizes kept disappearing in new projects). The auto-save ran before the
+			   edited row was re-validated, and one incomplete row blocked saving every other profile. Re-read the rows
+			   now and save every valid profile; incomplete rows are simply left out until they are complete. */
+			if (!explicitSave)
+			{
+				int before = errors.Count;
+				RefreshRoofProfiles();
+				if (errors.Count > before) errors.RemoveRange(before, errors.Count - before);
+			}
+			if (savedRoofProfiles.Count <= 0 || explicitSave && roofProfiles.Rows.Cast<DataGridViewRow>().Any((DataGridViewRow row) => !row.IsNewRow && !Empty(row) && Cell(row, 5) != "Saved in project"))
 			{
 				roofLibraryStatus.Text = "Complete valid profile rows before saving to the app library.";
 				if (explicitSave)
@@ -4097,13 +4106,10 @@ namespace BeamScheduleFormatter
 			roofSheets.Columns[7].ToolTipText = "Reference: Hi-Corr 1.5 lap = 0.970m, 2.5 lap = 0.890m. Hi-Rib: 1-rib lap = 1.030m; 2-rib lap = 0.750m.";
 			Action<DataGridViewRow> roofDefaults = delegate(DataGridViewRow r)
 			{
-				r.Cells[17].Value = "1 rib";
-				r.Cells[18].Value = "1 rib";
-				r.Cells[2].Value = "Longspan Rib";
+				/* Owner (18 November 2026, "alisin default values"): a new roofing row starts blank. Profile, side lap,
+				   Insulation? and insulation type are chosen by the user; only the hidden end lap keeps its 0. */
 				if (!QuantityInputDefaults.IsMultiplier(r.DataGridView.Columns[5].HeaderText)) r.Cells[5].Value = "1";
 				r.Cells[9].Value = "0";
-				r.Cells[10].Value = "True";
-				r.Cells[11].Value = InsulationTypes[0];
 			};
 			roofSheets.DefaultValuesNeeded += delegate(object s, DataGridViewRowEventArgs e)
 			{
@@ -4553,6 +4559,7 @@ worksExcelTimer.Tick += async delegate
             InstallRecovery();
             /* closing the Program of Works ends its project: the next one starts with blank project information */
             FormClosed += (s0, e0) => { if (!Automated) ProjectInfoStore.ClearProject(); };
+            InstallStandardSettings();
             PlaceSteelSetColumns();
             if (wood != null) PlaceOpeningPaintColumns(wood);
 			tabs.Multiline = true;
@@ -4582,7 +4589,7 @@ worksExcelTimer.Tick += async delegate
 			tabs.TabPages.Clear();
 			tabs.TabPages.Add(pages["Bill of Quantities"]);
 			pages["Reinforced Concrete Start"].Text = "Start";
-			AddSection("Reinforced Concrete Works", new TabPage[9]
+			AddSection("Reinforced Concrete Works", new TabPage[8]
 			{
 				pages["Reinforced Concrete Start"],
 				pages["Beam Estimate"],
@@ -4590,10 +4597,18 @@ worksExcelTimer.Tick += async delegate
 				pages["Slab Estimate"],
 				pages["Footing Estimate"],
                 pages["Wall Footing Estimate"],
-				pages["Canopy / Ledge Estimate"],
 				pages["RC Wall Estimate"],
                 pages["Miscellaneous Structures"]
 			});
+            /* Owner (18 November 2026): Canopy / Ledge belongs under Miscellaneous Structures (first nested tab). */
+            {
+                /* Rebuild the order (TabPages.Insert is ignored before the tab control has a window handle). */
+                var miscTabs = pages["Miscellaneous Structures"].Controls.OfType<TabControl>().Single();
+                var existing = miscTabs.TabPages.Cast<TabPage>().ToList();
+                miscTabs.TabPages.Clear();
+                miscTabs.TabPages.Add(pages["Canopy / Ledge Estimate"]);
+                foreach (var tab in existing) miscTabs.TabPages.Add(tab);
+            }
 			pages["Earthworks Start"].Text = "Start";
 			AddSection("Earthworks", new TabPage[5]
 			{

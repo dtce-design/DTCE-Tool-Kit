@@ -51,6 +51,13 @@ namespace BeamScheduleFormatter
 			grid.Columns[0].Width = 300;
 			grid.Columns[1].Width = 100;
 			grid.Columns[2].Width = 65;
+			/* Owner (18 November 2026, "fix window"): the pay-item column fills the remaining width and wraps, so the
+			   dialog needs no horizontal scrolling and the first column is never cut off. */
+			grid.Columns[0].DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+			grid.Columns[3].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+			grid.Columns[3].MinimumWidth = 380;
+			grid.Columns[3].DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+			grid.Columns[3].HeaderText = "BACKUP pay item / specification / green total cell (click to choose; Delete = leave unmapped)";
 			for (int i = 0; i < 3; i++)
 			{
 				grid.Columns[i].ReadOnly = true;

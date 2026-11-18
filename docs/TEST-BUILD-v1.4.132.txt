@@ -1,0 +1,19 @@
+DTCE Tool Kit v1.4.132 test build (18 November 2026)
+
+Standard values remembered for new projects (owner: "may mga standard values ako
+na hindi nasasave lagi, kailangan input ulet"; profile sizes kept disappearing)
+- Roofing profile sizes: the automatic library save ran before the edited row
+  was re-checked, and one incomplete row blocked saving all the others. Every
+  valid profile is now saved to Documents > DTCE Tool Kit > Profiles right
+  after editing; incomplete rows are left out until complete.
+- Every successful Save Program of Works and every close now also stores the
+  standard values automatically (no need to press Save Defaults):
+  - Reinforced Concrete defaults: covers, member concrete strength, steel
+    grades, commercial lengths, ready mix, lean concrete, canopy / RC wall /
+    footing settings (Documents > DTCE Tool Kit > Defaults).
+  - Earthworks and material standards: suitable soil, borrow swell /
+    shrink, gravel allowance, jamb defaults, flashing / gutter / ridge laps.
+- A new Program of Works starts from these values. An opened project still
+  uses its own saved values.
+
+Includes v1.4.130-131. Not a Microsoft Store release.

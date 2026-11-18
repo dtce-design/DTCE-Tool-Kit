@@ -136,7 +136,21 @@ def main():
         state = request(url + '/status', headers=headers)['status']
         print('Existing submission status: ' + state)
         if state not in ('PendingCommit', 'CommitFailed', 'PreProcessingFailed', 'CertificationFailed'):
-            raise ValueError('Existing submission is not editable: ' + state + '. It was not changed.')
+            if os.environ.get('STORE_REPLACE_PENDING', '').strip().lower() != 'true':
+                raise ValueError('Existing submission is not editable: ' + state + '. It was not changed.')
+            # Owner request (18 November 2026): cancel the submission still in review and submit the new build.
+            # Validate the new package first so nothing is cancelled for a package that would be rejected.
+            prepare(request(base + '/submissions/' + pending['id'], headers=headers), package.name, version, notes)
+            print('Cancelling existing submission ' + pending['id'] + ' (' + state + ') as requested by the owner', flush=True)
+            try: request(url, 'DELETE', headers)
+            except RuntimeError as error:
+                raise ValueError('The Store did not allow cancelling the submission in ' + state + ' (' + str(error) + '). Cancel it in Partner Center, then run the upload again.')
+            app = request(base, headers=headers)
+            if app.get('pendingApplicationSubmission'):
+                raise ValueError('The previous submission is still pending after the cancel request. Cancel it in Partner Center, then run the upload again.')
+            print('Previous submission cancelled.')
+            pending = None
+    if pending:
         submission = request(url, headers=headers)
         # Validate before any PUT; preserve the same submission and Store settings.
         prepare(json.loads(json.dumps(submission)), package.name, version, notes)

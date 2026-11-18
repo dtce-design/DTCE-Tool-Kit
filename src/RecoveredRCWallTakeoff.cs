@@ -51,7 +51,9 @@ namespace BeamScheduleFormatter
 			cfg.Validate();
 			if (2.0 * coverMm + (double)(layers * (vertical.Diameter + horizontal.Diameter)) > thicknessMm)
 			{
-				throw new Exception("Wall thickness must fit cover and the crossing bars in the selected layers.");
+				double need = 2.0 * coverMm + (double)(layers * (vertical.Diameter + horizontal.Diameter));
+				/* Owner (18 November 2026): say which numbers do not fit, and where the cover comes from. */
+				throw new Exception(string.Format(System.Globalization.CultureInfo.InvariantCulture, "Wall {0:0.#} mm is less than 2 x {1:0.#} mm cover + {2} layer(s) x ({3} + {4} mm bars) = {5:0.#} mm. Set a smaller RC wall cover in Reinforced Concrete Works > Start, then Apply covers to existing entries (NSCP 2015 Table 420.6.1.3.1: 20 mm for walls not exposed to weather or ground), or use a thicker wall.", thicknessMm, coverMm, layers, vertical.Diameter, horizontal.Diameter, need));
 			}
 			RCWallTakeoff rCWallTakeoff = new RCWallTakeoff
 			{

@@ -117,7 +117,7 @@ columns; the unused TieCount/TieCut input fields may remain as they are.
 ## Store release authorization (17 November 2026)
 
 Owner explicitly asked to publish to the Microsoft Store: both User and Admin editions of the current
-build (requested as v1.4.67; renumbered v1.4.68, now v1.4.127, at the owner's request after further fixes), after the Windows
+build (requested as v1.4.67; renumbered v1.4.68, now v1.5.0, at the owner's request after further fixes), after the Windows
 CI build passes and the owner has checked the test build. This lifts the 16 November release hold for that build only:
 merge the development branch to main (automatic GitHub release), then run the workflow manually on
 main with publish_microsoft_store=true. Store packages stay key-free. Upload is not certification;
@@ -127,3 +127,17 @@ Done 18 November 2026: v1.4.127 merged to main (GitHub release) and both User an
 Partner Center reported "accepted for processing" (PreProcessing). v1.4.128 and later need a new request.
 New owner request (18 November 2026, "paki push sa Microsoft Store"): publish v1.4.129 (User and Admin) the
 same way after its Windows CI passes. Later versions again need a new explicit request.
+Result 18 November 2026: v1.4.129 merged to main (GitHub release OK), but both Store uploads were refused because
+the v1.4.127 submissions were still in Certification ("Existing submission is not editable"). Re-run the failed
+Store jobs of run 44231420200 only after v1.4.127 certification finishes (or the owner cancels it in Partner Center).
+New owner request (18 November 2026, "pakipush sa Microsoft"): publish v1.5.0 (User and Admin) the same way after
+its Windows CI passes; it supersedes the blocked v1.4.129 upload. Later versions again need a new explicit request.
+Owner (18 November 2026, "icancel mo tapos ulitin", "cancel certification"): cancel the v1.4.127 submissions still
+in certification and submit v1.5.0 instead. Run the workflow with publish_microsoft_store=true and
+replace_pending_store_submission=true for this release only; that input stays false by default.
+
+## Version numbers (18 November 2026)
+
+Owner: use MAJOR.MINOR.PATCH properly. New features or noticeable behaviour changes raise MINOR and reset PATCH
+(1.5.0 -> 1.6.0); bug-fix-only builds raise PATCH (1.5.0 -> 1.5.1); MAJOR only for incompatible changes. The next
+build after v1.4.135 is v1.5.0. Keep src/Program.cs Version, src/AssemblyInfo.cs (x.y.z.0) and docs/TEST-BUILD-*.txt in step.

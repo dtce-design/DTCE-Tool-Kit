@@ -37,6 +37,10 @@ partial class ProgramOfWorksForm {
 class RCSettingsCard:PowCard {
  readonly Label heading,description;readonly Control body;bool arranging;
  public RCSettingsCard(string title,string detail,Control content){heading=new Label{Text=title,AutoSize=true,Font=new Font("Segoe UI Semibold",12),Margin=Padding.Empty};description=new Label{Text=detail,AutoSize=true,ForeColor=PowTheme.Muted};body=content;Padding=new Padding(18);Margin=new Padding(0,0,0,14);Controls.Add(body);Controls.Add(description);Controls.Add(heading);body.SizeChanged+=(s,e)=>Arrange();SizeChanged+=(s,e)=>Arrange();}
- public void Arrange(){if(arranging||IsDisposed)return;arranging=true;try{int width=Math.Max(200,ClientSize.Width-Padding.Horizontal);heading.Location=new Point(Padding.Left,Padding.Top);heading.MaximumSize=new Size(width,0);description.Location=new Point(Padding.Left,heading.Bottom+5);description.MaximumSize=new Size(width,0);body.Location=new Point(Padding.Left,description.Bottom+14);body.Width=width;body.MaximumSize=new Size(width,0);body.PerformLayout();Height=body.Bottom+Padding.Bottom;}finally{arranging=false;}}
+ public void Arrange(){if(arranging||IsDisposed)return;arranging=true;try{int width=Math.Max(200,ClientSize.Width-Padding.Horizontal);heading.Location=new Point(Padding.Left,Padding.Top);heading.MaximumSize=new Size(width,0);description.Location=new Point(Padding.Left,heading.Bottom+5);description.MaximumSize=new Size(width,0);body.Location=new Point(Padding.Left,description.Bottom+14);body.Width=width;body.MaximumSize=new Size(width,0);body.PerformLayout();
+  /* Owner (18 November 2026): on Windows the RC Start cards showed only their headings (body height 0). The body is
+     never shorter than the height its contents need at this width. */
+  if(!body.AutoSize){int needed=body.GetPreferredSize(new Size(width,0)).Height;if(needed>body.Height)body.Height=needed;}if(body.Height<8)body.Height=Math.Max(8,body.PreferredSize.Height);
+  Height=body.Bottom+Padding.Bottom;}finally{arranging=false;}}
 }
 }

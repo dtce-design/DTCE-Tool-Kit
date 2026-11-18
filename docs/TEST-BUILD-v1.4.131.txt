@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.4.131 test build (18 November 2026)
+
+Roofing Sheets & Insulation (owner: "alisin default values")
+- A new row now starts blank: no preselected Profile, Side lap, Insulation?
+  checkbox or Insulation type. Choose them per row.
+- A row without a profile asks you to choose a saved profile from Roofing
+  Start; a blank side lap uses the first lap of the chosen profile;
+  Insulation? unchecked means no insulation.
+- Existing rows and saved projects keep their values.
+
+Includes v1.4.130. Not a Microsoft Store release.
