@@ -6922,7 +6922,7 @@ worksExcelTimer.Tick += async delegate
 							Description = Cell(item2, 1),
 							Length = ((Cell(item2, 19) == "") ? Number(item2, 2) : 1.0),
 							Height = ((Cell(item2, 19) == "") ? Number(item2, 3) : 1.0),
-							Quantity = ((!(Cell(item2, 19) == "")) ? 1 : Count(item2, 4)),
+							Quantity = ((Cell(item2, 19) != "" && Cell(item2, 4) == "") ? 1 : Count(item2, 4)), /* Wall Qty also multiplies a gross area input */
 							BlockWidth = ((Cell(item2, 5) == "") ? 0.4 : Number(item2, 5)),
 							BlockHeight = ((Cell(item2, 6) == "") ? 0.2 : Number(item2, 6)),
 							Plaster = ((Cell(item2, 12) == "") ? "2 sides" : Cell(item2, 12)),
@@ -7023,7 +7023,7 @@ worksExcelTimer.Tick += async delegate
 			foreach (WallItem w in wallItems)
 			{
 				stringBuilder.AppendLine(w.Id + " | " + w.Description + " | CHB " + w.ThicknessMm.ToString("0.00") + "mm");
-				stringBuilder.AppendLine(string.Format(CultureInfo.InvariantCulture, w.EnteredArea.HasValue ? "  Gross wall area: {3:0.00} m2" : "  Wall: {0:0.00} x {1:0.00} m x {2} = {3:0.00} m2", w.Length, w.Height, w.Quantity, w.Gross));
+				stringBuilder.AppendLine(string.Format(CultureInfo.InvariantCulture, w.EnteredArea.HasValue ? "  Gross wall area: " + w.EnteredArea.Value.ToString("0.00", CultureInfo.InvariantCulture) + " m2 x {2} = {3:0.00} m2" : "  Wall: {0:0.00} x {1:0.00} m x {2} = {3:0.00} m2", w.Length, w.Height, w.Quantity, w.Gross));
 				foreach (OpeningItem item in wallOpenings.Where((OpeningItem o) => string.Equals(o.Wall, w.Id, StringComparison.OrdinalIgnoreCase)))
 				{
 					stringBuilder.AppendLine("    Less " + item.Id + " / " + item.Description + ": " + item.Area.ToString("0.00") + " m2");
