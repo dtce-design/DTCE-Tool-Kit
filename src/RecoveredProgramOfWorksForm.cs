@@ -5812,7 +5812,7 @@ worksExcelTimer.Tick += async delegate
 		private DataGridView FinishScheduleGrid()
 		{
 			DataGridView dataGridView = Grid(new string[4] { "Finish ID", "Description", "Group (type a name)", "Status" }, 3);
-			dataGridView.Columns[2].Width = 480;
+			dataGridView.Columns[2].Width = 330;
 			dataGridView.Columns[2].DefaultCellStyle.WrapMode = DataGridViewTriState.True;
 			dataGridView.Columns[2].ToolTipText = "Type a group name. Matching names combine across all finish IDs. Use the exact prescribed name when linking to a fixed Excel finish group; other names appear in POW Finish Types.";
 			dataGridView.CellEndEdit += delegate
@@ -8419,10 +8419,17 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 			{
 				Dock = DockStyle.Fill,
 				Size = new Size(1100, 650),
-				Orientation = Orientation.Horizontal,
-				SplitterDistance = 250,
-				Panel1MinSize = 140,
-				Panel2MinSize = 140
+				Orientation = Orientation.Vertical, /* owner, 18 November 2026: Finish Schedule and Totals per Group side by side */
+				SplitterDistance = 560,
+				Panel1MinSize = 320,
+				Panel2MinSize = 320
+			};
+			bool finishSplitPlaced = false;
+			splitContainer.SizeChanged += delegate
+			{
+				if (finishSplitPlaced || splitContainer.Width < 700) return;
+				finishSplitPlaced = true;
+				try { splitContainer.SplitterDistance = (int)(splitContainer.Width * 0.48); } catch (InvalidOperationException) { }
 			};
 			Label value = new Label
 			{
@@ -8480,7 +8487,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 			splitContainer.Panel2.Controls.Add(FinishGroupTotalsGrid()); /* owner, 18 November 2026: consolidated per group; Finish IDs are chosen on the measurement sheets */
 			splitContainer.Panel2.Controls.Add(new Label
 			{
-				Text = "TOTALS PER GROUP | Choose the Finish ID of each measured area in Wall / Ceiling / Floor Finishes. Areas with the same group are added together here and go to the BOQ pay item chosen above.",
+				Text = "TOTALS PER GROUP | Choose the Finish ID of each measured area in Wall / Ceiling / Floor Finishes. Areas with the same group are added together here and go to the BOQ item chosen in the Finish Schedule on the left.",
 				Dock = DockStyle.Top,
 				Height = 65,
 				Padding = new Padding(10),
