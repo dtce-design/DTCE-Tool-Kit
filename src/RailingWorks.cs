@@ -50,13 +50,13 @@ partial class ProgramOfWorksForm {
    catch(Exception ex){row.Cells[g.Columns.Count-1].Value=ex.Message;errors.Add("Railing "+Cell(row,0)+": "+ex.Message);}}
   if(demands.Count==0)return;try{railingStocks=SteelCutPlanner.Allocate(demands);foreach(DataGridViewRow row in g.Rows){var t=row.Tag as RailingTakeoff;if(t!=null)Measure(row,15,SteelCutPlanner.PurchaseKg(railingStocks,t.Demand));}}catch(Exception ex){errors.Add("Railing cutting: "+ex.Message);}}
  internal List<BillQuantity> RailingQuantities(){var list=new List<BillQuantity>();if(railings.Count==0)return list;
-  /* Owner (18 November 2026): no railing weights in Bill of Quantities; number of 6 m pieces to buy per material
-     (profile / size), not per member type ("sa railing per material hindi per member"). Members of the same material
-     share stock lengths and offcuts; the breakdown lists each railing row (member, pieces x cut length). */
+  /* Owner (18 November 2026): no railing weights in Bill of Quantities; one BOQ line to map ("isang map lang") with the
+     6 m pieces to buy broken down per material (profile / size), not per member type. Members of the same material share
+     stock lengths and offcuts; each material line names the railing rows it covers. */
+  var pieces=new BillQuantity{Section="Railing",Description="Railing pieces to buy (6 m stock lengths)",Unit="pcs",Quantity=railingStocks.Count};
   foreach(var group in railingStocks.GroupBy(x=>x.Specification).OrderBy(x=>x.Key)){var rows=railings.Where(r=>r.Profile==group.Key).ToList();
-   var pieces=new BillQuantity{Section="Railing",Description="Railing "+group.Key+" - pieces to buy (6 m stock lengths)",Unit="pcs",Quantity=group.Count()};
-   foreach(var r in rows)pieces.Sources.Add(new BillQuantity{Description=r.Id+" | "+r.Member+" | "+r.Description+": "+r.Pieces+" pcs x "+r.PieceLength.ToString("0.###",CultureInfo.InvariantCulture)+" m",Quantity=r.Pieces,Unit="cut pcs"});
-   list.Add(pieces);}
+   pieces.Sources.Add(new BillQuantity{Description=group.Key+": "+group.Count()+" pcs x 6 m (for "+string.Join("; ",rows.Select(r=>r.Id+" "+r.Member+" "+r.Pieces+" pcs x "+r.PieceLength.ToString("0.###",CultureInfo.InvariantCulture)+" m"))+")",Quantity=group.Count(),Unit="pcs"});}
+  list.Add(pieces);
   var paint=new BillQuantity{Section="Railing",Description="Railing metal painting - installed",Unit="m2",Quantity=railings.Sum(r=>r.Paint)};
   foreach(var r in railings)if(r.Painted)paint.Sources.Add(new BillQuantity{Description=r.Id+" | "+r.Member+" | "+r.Profile+": "+r.Installed.ToString("0.###",CultureInfo.InvariantCulture)+" m x "+r.PaintPerMetre.ToString("0.####",CultureInfo.InvariantCulture)+" m2/m",Quantity=r.Paint,Unit="m2"});
   list.Add(paint);return list;}
