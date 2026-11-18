@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Imaging;using System.Drawing.Printing;using System.Globalization;using System.Linq;using System.Windows.Forms;
+using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Drawing.Imaging;using System.Drawing.Printing;using System.Globalization;using System.Linq;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 // Construction schedule set for issue (owner, 18 November 2026: "printable", "ready to issue sa construction"): A3 landscape (owner, 18 November 2026: "sa A3 iprint")
 // sheets with a border and a title block (project, location, office, sheet title, prepared / checked / approved lines left
@@ -24,40 +24,68 @@ sealed class ScheduleSet {
    float th=(ScheduleManpower.Trades(rows).Count+2)*16+6;float hh2=Math.Max(260,r.Height-50-th-30);ScheduleManpower.DrawHistogram(g,new RectangleF(r.X,r.Y+46,r.Width,hh2),rows,f,b);ScheduleManpower.DrawTrades(g,r.X,r.Y+46+hh2+20,rows,f,b);}));
   int perItems=Math.Max(5,(int)((c.Height-ScheduleManpower.ItemHead-ScheduleManpower.ItemRow-4)/ScheduleManpower.ItemRow));for(int i=0;i<Math.Max(1,rows.Count);i+=perItems){int s0=i,n0=Math.Min(rows.Count,i+perItems)-i;bool last=i+perItems>=rows.Count;
    Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("MANPOWER SCHEDULE",(g,r,f,b)=>ScheduleManpower.DrawItems(g,r.X,r.Y,rows,s0,n0,f,b,last)));}
-  /* PDM: split between node columns */
+  /* PDM: one continuous drawing cut into sheets that join edge to edge in the gaps between columns */
   if(Network.Nodes.Count>0){float legendH=16+PdmNetwork.KeyH;
    /* the widest column gap that needs the fewest sheets */
-   Func<List<SheetRange>> pdmRanges=()=>{Network.Layout(c.Height-legendH);var cols=Network.Nodes.Select(n=>new KeyValuePair<float,float>(n.X,PdmNetwork.NodeW)).Concat(Network.Milestones.Select(m=>new KeyValuePair<float,float>(m.X,PdmNetwork.MileD))).OrderBy(k=>k.Key).ToList();return Split(cols,c.Width);};
-   float bestGap=120;int fewest=int.MaxValue;foreach(var gap in new float[]{120,106,94,84,78,72}){Network.LinkGap=gap;int count=pdmRanges().Count;if(count<fewest){fewest=count;bestGap=gap;}}Network.LinkGap=bestGap;var ranges=pdmRanges();
-   int pdmFirst=Sheets.Count+1;Func<float,int> pdmSheet=x=>{for(int j=0;j<ranges.Count;j++)if(x+PdmNetwork.NodeW/2>=ranges[j].CoreFrom&&x+PdmNetwork.NodeW/2<ranges[j].CoreTo)return pdmFirst+j;return pdmFirst;};
-   for(int i=0;i<ranges.Count;i++){var range=ranges[i];Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PRECEDENCE DIAGRAM (PDM)"+(ranges.Count>1?" - "+(i+1)+" OF "+ranges.Count:""),(g,r,f,b)=>{using(var ink=new SolidBrush(PowTheme.Muted))g.DrawString(PdmNetwork.LegendText,f,ink,r.X,r.Y);PdmNetwork.DrawKey(g,r.X,r.Y+16,f,b);var st=g.Save();g.SetClip(new RectangleF(r.X,r.Y+legendH,Math.Min(r.Width,range.Value-range.Key),r.Height-legendH));Network.Draw(g,r.X-range.Key,r.Y+legendH,f,b,null,range.CoreFrom,range.CoreTo,pdmSheet,range.Key,range.Value);g.Restore(st);}));}
+   Func<List<float>> pdmJoins=()=>{Network.Widen=new HashSet<int>();List<float> j=null;
+    for(int it=0;it<6;it++){Network.Layout(c.Height-legendH);j=Joins(Network.Cuts,2,Network.Right,c.Width);var at=j.Skip(1).Take(Math.Max(0,j.Count-2)).Select(x=>Network.Cuts.IndexOf(x)).Where(i=>i>=0).ToList();if(at.All(Network.Widen.Contains))break;foreach(var i in at)Network.Widen.Add(i);}
+    return j;};
+   float bestGap=130;int fewest=int.MaxValue;foreach(var gap in new float[]{140,130,122,116,110,104}){Network.LinkGap=gap;int count=pdmJoins().Count-1;if(count<fewest){fewest=count;bestGap=gap;}}Network.LinkGap=bestGap;var pdmEdges=pdmJoins();
+   var pdmInner=pdmEdges.Skip(1).Take(Math.Max(0,pdmEdges.Count-2)).ToList();
+   for(int i=0;i+1<pdmEdges.Count;i++){float x0=pdmEdges[i],x1=pdmEdges[i+1];bool first=i==0,last=i+2==pdmEdges.Count;int n=pdmEdges.Count-1;
+    Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PRECEDENCE DIAGRAM (PDM)"+(n>1?" - "+(i+1)+" OF "+n:""),(g,r,f,b)=>{using(var ink=new SolidBrush(PowTheme.Muted))g.DrawString(PdmNetwork.LegendText,f,ink,r.X,r.Y);PdmNetwork.DrawKey(g,r.X,r.Y+16,f,b);
+     var area=new RectangleF(r.X,r.Y+legendH,Math.Min(r.Width,x1-x0),r.Height-legendH);var st=g.Save();g.SetClip(area);Network.Draw(g,r.X-x0,area.Y,f,b,null,pdmInner);g.Restore(st);MatchLines(g,area,!first,!last);}));}
   /* PERT table */
    int perRows=Math.Max(5,(int)((c.Height-60)/15));for(int i=0;i<Pert.Activities.Count;i+=perRows){int s=i,n=Math.Min(Pert.Activities.Count,i+perRows)-i;Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PERT TIME ESTIMATES",(g,r,f,b)=>DrawPertTable(g,r,f,b,s,n)));}
-  /* PERT-CPM network: activity on arrow, split between event columns */
+  /* PERT-CPM network: activity on arrow, one continuous drawing cut between event columns */
    var aoa=PertAoa.Build(Network,Pert);float aoaH=16+PertAoa.KeyH;
-   Func<List<SheetRange>> aoaRanges=()=>{aoa.Layout(c.Height-aoaH);return Split(aoa.Events.Select(e=>new KeyValuePair<float,float>(e.X-6,2*PertAoa.R+12)).OrderBy(k=>k.Key).ToList(),c.Width,aoa.LevelW-2*PertAoa.R+30,124);};
-   float bestW=250;int fewestP=int.MaxValue;foreach(var w in new float[]{250,230,212,196,180}){aoa.LevelW=w;int count=aoaRanges().Count;if(count<fewestP){fewestP=count;bestW=w;}}aoa.LevelW=bestW;var pr=aoaRanges();
-   int pertFirst=Sheets.Count+1;Func<float,int> pertSheet=x=>{for(int j=0;j<pr.Count;j++)if(x>=pr[j].CoreFrom&&x<pr[j].CoreTo)return pertFirst+j;return pertFirst;};
-   for(int i=0;i<pr.Count;i++){var range=pr[i];Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PERT-CPM NETWORK"+(pr.Count>1?" - "+(i+1)+" OF "+pr.Count:""),(g,r,f,b)=>{using(var ink=new SolidBrush(PowTheme.Muted))g.DrawString(PertAoa.LegendText,f,ink,r.X,r.Y);PertAoa.DrawKey(g,r.X,r.Y+16,f,b);var st=g.Save();g.SetClip(new RectangleF(r.X,r.Y+aoaH,Math.Min(r.Width,range.Value-range.Key),r.Height-aoaH));aoa.Draw(g,r.X-range.Key,r.Y+aoaH,f,b,range.CoreFrom,range.CoreTo,pertSheet,range.Key,range.Value);g.Restore(st);}));}}}
- /* consecutive x ranges no wider than a sheet, split between columns */
- /* each sheet keeps a margin at both sides for the "from n (sheet s)" / "to n (sheet s)" connectors of relations that
-    continue on another sheet */
- internal const float Margin2=116;
- /* sheet ranges: Key / Value = drawn extent (with the margins), Core = the columns that belong to the sheet */
- internal sealed class SheetRange {internal float Key,Value,CoreFrom,CoreTo;}
- static List<SheetRange> Split(List<KeyValuePair<float,float>> cols,float width,float leftMargin=Margin2,float rightMargin=Margin2){var ranges=new List<SheetRange>();int k=0;
-  while(k<cols.Count){float lm=ranges.Count==0?4:leftMargin;float start=cols[k].Key-4,end=cols[k].Key+cols[k].Value;k++;while(k<cols.Count&&cols[k].Key+cols[k].Value-start<=width-lm-rightMargin){end=Math.Max(end,cols[k].Key+cols[k].Value);k++;}
-   ranges.Add(new SheetRange{Key=start-lm,Value=end+4+rightMargin,CoreFrom=start,CoreTo=end+4});}
-  /* cores meet half way so that every column belongs to exactly one sheet */
-  for(int i=0;i+1<ranges.Count;i++){float m=(ranges[i].CoreTo+ranges[i+1].CoreFrom)/2;ranges[i].CoreTo=m;ranges[i+1].CoreFrom=m;}if(ranges.Count>0){ranges[0].CoreFrom=float.MinValue/4;ranges[ranges.Count-1].CoreTo=float.MaxValue/4;}
-  return ranges;}
+   Func<List<float>> aoaJoins=()=>{aoa.Layout(c.Height-aoaH);return Joins(aoa.Cuts,2,aoa.Right,c.Width);};
+   float bestW=250;int fewestP=int.MaxValue;foreach(var w in new float[]{260,250,236,224,212}){aoa.LevelW=w;int count=aoaJoins().Count-1;if(count<fewestP){fewestP=count;bestW=w;}}aoa.LevelW=bestW;var pertEdges=aoaJoins();
+   var inner=pertEdges.Skip(1).Take(Math.Max(0,pertEdges.Count-2)).ToList();
+   for(int i=0;i+1<pertEdges.Count;i++){float x0=pertEdges[i],x1=pertEdges[i+1];bool first=i==0,last=i+2==pertEdges.Count;int n=pertEdges.Count-1;
+    Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PERT-CPM NETWORK"+(n>1?" - "+(i+1)+" OF "+n:""),(g,r,f,b)=>{using(var ink=new SolidBrush(PowTheme.Muted))g.DrawString(PertAoa.LegendText,f,ink,r.X,r.Y);PertAoa.DrawKey(g,r.X,r.Y+16,f,b);
+     var area=new RectangleF(r.X,r.Y+aoaH,Math.Min(r.Width,x1-x0),r.Height-aoaH);var st=g.Save();g.SetClip(area);aoa.Draw(g,r.X-x0,area.Y,f,b,inner);g.Restore(st);MatchLines(g,area,!first,!last);}));}
+   Aoa=aoa;PdmJoins=pdmEdges;PertJoins=pertEdges;}}
+ /* drawing checks (owner, 18 November 2026: "nagkaroon na ng overlapping ng text", "yung diagram continuity ang need ko"):
+    no label overlaps another label or a node / event, no label is split by a sheet join, and every line crosses a join
+    horizontally (a bend never falls on a join), so the sheets laid side by side read as one continuous diagram */
+ internal List<string> DrawingProblems(){var problems=new List<string>();
+  using(var bmp=new Bitmap(1,1)){bmp.SetResolution(100,100);using(var g=Graphics.FromImage(bmp))using(var f=new Font("Segoe UI",7.5f))using(var b=new Font("Segoe UI",7.5f,FontStyle.Bold)){
+   if(Network.Nodes.Count>0){var inner=PdmJoins.Skip(1).Take(Math.Max(0,PdmJoins.Count-2)).ToList();var plan=Network.MakePlan(g,f,inner);
+    Check("PDM",plan.Labels.Select(k=>k.Rect).ToList(),plan.Boxes,plan.Lines.Select(k=>k.Key).ToList(),inner,problems,false);}
+   if(Aoa!=null){var inner=PertJoins.Skip(1).Take(Math.Max(0,PertJoins.Count-2)).ToList();var plan=Aoa.MakePlan(g,f,b,inner);
+    foreach(var l in plan.Labels.Where(k=>k.Truncated))problems.Add("PERT: label cut short: "+l.Text);
+    Check("PERT",plan.Labels.Select(k=>k.Rect).ToList(),plan.Boxes,plan.Lines.Select(k=>k.Key).ToList(),inner,problems,true);}}}
+  return problems;}
+ static bool Crosses(PointF p,PointF q,RectangleF r){if(Math.Abs(p.Y-q.Y)<0.01f){return p.Y>r.Top&&p.Y<r.Bottom&&Math.Max(p.X,q.X)>r.Left&&Math.Min(p.X,q.X)<r.Right;}if(Math.Abs(p.X-q.X)<0.01f){return p.X>r.Left&&p.X<r.Right&&Math.Max(p.Y,q.Y)>r.Top&&Math.Min(p.Y,q.Y)<r.Bottom;}
+  for(int k=0;k<=20;k++){float t=k/20f;var x=p.X+(q.X-p.X)*t;var y=p.Y+(q.Y-p.Y)*t;if(r.Contains(x,y))return true;}return false;}
+ static bool CrossesCircle(PointF p,PointF q,RectangleF c){float cx=c.X+c.Width/2,cy=c.Y+c.Height/2,r=c.Width/2-2;float vx=q.X-p.X,vy=q.Y-p.Y;float len2=vx*vx+vy*vy;float t=len2<1e-6f?0:Math.Max(0,Math.Min(1,((cx-p.X)*vx+(cy-p.Y)*vy)/len2));float dx=p.X+vx*t-cx,dy=p.Y+vy*t-cy;return dx*dx+dy*dy<r*r;}
+ static void Check(string what,List<RectangleF> labels,List<RectangleF> boxes,List<PointF[]> lines,List<float> joins,List<string> problems,bool circles){
+  for(int i=0;i<labels.Count;i++){var a=RectangleF.Inflate(labels[i],-0.5f,-0.5f);for(int j=i+1;j<labels.Count;j++)if(a.IntersectsWith(labels[j]))problems.Add(what+": labels overlap at x "+(int)a.X+", y "+(int)a.Y);
+   foreach(var bx in boxes)if(a.IntersectsWith(bx))problems.Add(what+": label over a node at x "+(int)a.X+", y "+(int)a.Y);
+   foreach(var x in joins)if(a.Left<x&&a.Right>x)problems.Add(what+": label split by the sheet join at x "+(int)x);
+   var inner=RectangleF.Inflate(labels[i],-1.5f,-1.5f);foreach(var pl in lines)for(int k=0;k+1<pl.Length;k++)if(Crosses(pl[k],pl[k+1],inner)){problems.Add(what+": line through a label at x "+(int)a.X+", y "+(int)a.Y);goto nextLabel;}
+   nextLabel:;}
+  foreach(var bx in boxes){var inner=RectangleF.Inflate(bx,-2,-2);foreach(var pl in lines)for(int k=0;k+1<pl.Length;k++)if(circles?CrossesCircle(pl[k],pl[k+1],bx):Crosses(pl[k],pl[k+1],inner)){problems.Add(what+": line through a node at x "+(int)bx.X+", y "+(int)bx.Y);goto nextBox;}
+   nextBox:;}
+  foreach(var x in joins){foreach(var bx in boxes)if(bx.Left<x&&bx.Right>x)problems.Add(what+": node split by the sheet join at x "+(int)x);
+   foreach(var pl in lines)for(int k=0;k+1<pl.Length;k++){var p=pl[k];var q=pl[k+1];if(Math.Min(p.X,q.X)<=x+8&&Math.Max(p.X,q.X)>=x-8&&Math.Abs(p.Y-q.Y)>0.5f)problems.Add(what+": line bends at the sheet join at x "+(int)x);}}}
+ /* the drawing and its sheet joins, kept for the tests */
+ internal PertAoa Aoa;internal List<float> PdmJoins=new List<float>(),PertJoins=new List<float>();
+ /* sheet edges (first = left end, last = right end): each sheet ends at the last allowed cut that still fits its width */
+ static List<float> Joins(List<float> cuts,float left,float right,float width){var edges=new List<float>{left};var sorted=cuts.Where(x=>x>left&&x<right).OrderBy(x=>x).ToList();
+  while(right-edges[edges.Count-1]>width){float from=edges[edges.Count-1];var fit=sorted.Where(x=>x>from+1&&x-from<=width).ToList();edges.Add(fit.Count>0?fit.Max():Math.Min(right,from+width));}
+  edges.Add(right);return edges;}
+ /* the joins between consecutive sheets: a thin dash-dot match line; the lines of the diagram cross it at the same height on
+    both sheets, so the sheets laid side by side give one continuous diagram */
+ static void MatchLines(Graphics g,RectangleF area,bool left,bool right){using(var pen=new Pen(Color.FromArgb(150,158,168),0.8f){DashStyle=DashStyle.DashDot}){if(left)g.DrawLine(pen,area.X,area.Y,area.X,area.Bottom);if(right)g.DrawLine(pen,area.Right,area.Y,area.Right,area.Bottom);}}
  void DrawSummary(Graphics g,RectangleF r,Font f,Font b){using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted))using(var red=new SolidBrush(Color.FromArgb(192,40,40)))using(var big=new Font("Segoe UI",14f,FontStyle.Bold))using(var mid=new Font("Segoe UI",9.5f,FontStyle.Bold))using(var grid=new Pen(Color.FromArgb(190,198,206),0.6f)){
   float y=r.Y;g.DrawString("CONSTRUCTION SCHEDULE",big,ink,r.X,y);y+=30;
-  string[,] facts={{"Project duration (CPM)",Total+" working days"},{"Working time","8 hours per day; working days only (no Sundays, holidays or unworkable days)"},{"Scheduled pay items",Network.Nodes.Count+" activities, "+Network.Links.Count+" relations (FS / SS / FF with lags)"},
+  string[,] facts={{"Project duration (CPM)",Total+" working days"},{"Working time","8 hours per day; working days only (no Sundays, holidays or unworkable days)"},{"Scheduled pay items",Network.Nodes.Count(n=>!n.IsMilestone)+" activities, "+Network.Links.Count+" relations (FS / SS / FF with lags)"+(Network.Nodes.Any(n=>n.IsMilestone)?", "+Network.Nodes.Count(n=>n.IsMilestone)+" trade milestones":"")},
    {"PERT expected time Te",Pert.Te.ToString("0.0",CultureInfo.InvariantCulture)+" working days  (standard deviation "+Pert.Sigma.ToString("0.00",CultureInfo.InvariantCulture)+" days)"},{"Completion at 90% confidence",Pert.P90+" working days"},{"Completion at 95% confidence",Pert.P95+" working days"},{"Manpower (DUPA crews)",ScheduleManpower.Summary(Rows)}};
   for(int i=0;i<facts.GetLength(0);i++){g.DrawString(facts[i,0],b,ink,r.X,y);g.DrawString(facts[i,1],f,ink,r.X+210,y);y+=16;}y+=10;
   g.DrawString("CRITICAL PATH",mid,red,r.X,y);y+=18;float[] w={40,80,420,60,60,60};string[] h={"No.","Item no.","Description","Days","Start day","Finish day"};float x=r.X;for(int i=0;i<h.Length;i++){g.DrawString(h[i],b,ink,x,y);x+=w[i];}y+=15;g.DrawLine(grid,r.X,y,r.X+w.Sum(),y);y+=2;
-  foreach(var nd in Network.Nodes.Where(n=>n.Critical)){if(y>r.Bottom-140)break;x=r.X;string[] v={nd.Id.ToString(CultureInfo.InvariantCulture),nd.Row.Code,nd.Row.Description,nd.Row.Days.ToString(CultureInfo.InvariantCulture),nd.Row.Start.ToString(CultureInfo.InvariantCulture),nd.Row.Finish.ToString(CultureInfo.InvariantCulture)};for(int i=0;i<v.Length;i++){g.DrawString(v[i],f,ink,new RectangleF(x,y,w[i]-6,14),new StringFormat{Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap});x+=w[i];}y+=14;}
+  foreach(var nd in Network.Nodes.Where(n=>n.Critical&&!n.IsMilestone)){if(y>r.Bottom-140)break;x=r.X;string[] v={nd.Id.ToString(CultureInfo.InvariantCulture),nd.Row.Code,nd.Row.Description,nd.Row.Days.ToString(CultureInfo.InvariantCulture),nd.Row.Start.ToString(CultureInfo.InvariantCulture),nd.Row.Finish.ToString(CultureInfo.InvariantCulture)};for(int i=0;i<v.Length;i++){g.DrawString(v[i],f,ink,new RectangleF(x,y,w[i]-6,14),new StringFormat{Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap});x+=w[i];}y+=14;}
   y=Math.Max(y+12,r.Bottom-130);g.DrawString("BASIS AND NOTES",mid,ink,r.X,y);y+=18;
   string[] notes={"1. Durations: quantity from the Bill of Quantities / (output per hour from the DUPA x 8 hours x crews), rounded up to whole working days.",
    "2. Logic: each item follows the trades it depends on - clearing, excavation, lean concrete, rebar, formworks (overlapping the rebar), footing and frame concrete, backfill, soil poisoning, gravel, slab on fill, masonry, steel (7 days after the frame: curing), roofing, plaster, ceiling, tiles, doors, painting - with FS / SS / FF relations and lags (see PDM). Non-critical items start within their float on the day that keeps the daily manpower level; the duration is not changed.",

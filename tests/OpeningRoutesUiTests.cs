@@ -38,17 +38,27 @@ class OpeningRoutesUiTests {
    Check(L(5).Finish>=L(3).Finish+1&&L(4).Start>=L(1).Start&&L(6).Start>L(5).Start&&L(8).Start>L(7).Finish&&L(9).Start>L(6).Start&&L(10).Finish>=L(9).Finish+3,"trade sequence and finish-to-finish lags");
    int sum=lr.Sum(r=>r.Days),dur=lr.Max(r=>r.Finish);Check(dur<sum&&dur==ln.Max(n=>n.EF)&&ln.All(n=>n.Row.Start-1>=n.ES&&n.Row.Start-1<=n.LS),"overlapped duration shorter than end-to-end; levelled starts stay within the float");
    var lnet=PdmNetwork.Build(lr);var lpert=PertResult.Build(lnet);var aoa=PertAoa.Build(lnet,lpert);aoa.Layout(800);
-   Check(aoa.Arrows.Count(x=>x.Activity!=null)==lnet.Nodes.Count&&aoa.Arrows.All(x=>x.Tail.No<x.Head.No)&&aoa.Events.Count(e=>!aoa.Arrows.Any(x=>x.Head==e))==1&&aoa.Finish.Level==aoa.Events.Max(e=>e.Level),"PERT activity on arrow: one arrow per activity, events numbered tail < head, one start event, FINISH last");
+   Check(aoa.Arrows.Count(x=>x.Activity!=null)==lnet.Nodes.Count(n=>!n.IsMilestone)&&aoa.Arrows.All(x=>x.Tail.No<x.Head.No)&&aoa.Events.Count(e=>!aoa.Arrows.Any(x=>x.Head==e))==1&&aoa.Finish.Level==aoa.Events.Max(e=>e.Level),"PERT activity on arrow: one arrow per activity, events numbered tail < head, one start event, FINISH last");
    Check(aoa.Arrows.Where(x=>x.Activity!=null).All(x=>x.Tail.TE<=x.Activity.Node.ES&&x.Head.TE>=x.Activity.Node.EF)&&aoa.Finish.TE==lnet.Total&&aoa.Finish.TL==lnet.Total,"PERT event times agree with the CPM times");
+   /* forward pass on the arrow network as drawn: activity = te, lag arrow = its lag (SS between start events, FF between
+      end events, FS from an end to a start), dummy = 0; it must give the event times printed in the circles */
+   foreach(var net2 in new[]{lnet}){var te=new Dictionary<AoaEvent,double>();foreach(var e in aoa.Events)te[e]=0;for(bool ch=true;ch;){ch=false;foreach(var x in aoa.Arrows){double d=x.Activity!=null?x.Activity.M:x.Lag;if(te[x.Tail]+d>te[x.Head]+1e-9){te[x.Head]=te[x.Tail]+d;ch=true;}}}
+    Check(aoa.Events.All(e=>Math.Abs(te[e]-e.TE)<1e-6),"PERT forward pass on the drawn arrows gives the printed TE");}
    /* every pay item of the DUPA catalogue (owner: "kahit anong pay items man ang mailagay tama pa din") */
    Check(!ScheduleLogic.RuleProblems().Any(),"construction logic rules refer only to earlier trades");
    var cat=ScheduleRates.All.Select(x=>new ScheduleRow{Code=x.Code,Description=x.Description,Unit=x.Unit,Crew=x.Crew,Crews=1,Days=ScheduleRow.IsLumpSum(x.Unit)||x.Unit=="mo"||x.Unit=="veh-mo"?0:1+(int)(Math.Abs(x.Code.GetHashCode())%9)}).ToList();
    Check(cat.Count(x=>ScheduleLogic.Trade(x)=="OTHER")<=1,"every catalogue pay item has a trade ("+string.Join(", ",cat.Where(x=>ScheduleLogic.Trade(x)=="OTHER").Select(x=>x.Code))+")");
    ScheduleLogic.Schedule(cat);var cnet=PdmNetwork.Build(cat);var cpert=PertResult.Build(cnet);var caoa=PertAoa.Build(cnet,cpert);caoa.Layout(900);
-   Check(cnet.Nodes.All(n=>n.TF>=0&&n.EF==n.ES+n.Row.Days&&n.Row.Start-1>=n.ES&&n.Row.Start-1<=n.LS)&&cnet.Nodes.Any(n=>n.Critical),"whole catalogue: CPM and levelling consistent");
-   Check(caoa.Arrows.All(x=>x.Tail.No<x.Head.No)&&caoa.Events.Count(e=>!caoa.Arrows.Any(x=>x.Head==e))==1&&caoa.Arrows.Count(x=>x.Activity!=null)==cnet.Nodes.Count,"whole catalogue: PERT activity-on-arrow network valid");
-   var cset=new ScheduleSet(cat,null);Check(cset.Sheets.Count>5,"whole catalogue: issue set builds");
+   Check(cnet.Nodes.All(n=>n.TF>=0&&n.EF==n.ES+n.Row.Days&&(n.IsMilestone||n.Row.Start-1>=n.ES&&n.Row.Start-1<=n.LS))&&cnet.Nodes.Any(n=>n.Critical),"whole catalogue: CPM and levelling consistent");
+   /* trade milestones change only the drawing: the CPM times are the same as with every pair of items linked */
+   List<PdmNode> plain;ScheduleLogic.Network(cat,out plain,false);var byRow=plain.ToDictionary(n=>n.Row);Check(cnet.Nodes.Count(n=>n.IsMilestone)>0&&cnet.Nodes.Where(n=>!n.IsMilestone).All(n=>byRow[n.Row].ES==n.ES&&byRow[n.Row].LF==n.LF),"trade milestones keep every ES / LF");
+   Check(caoa.Arrows.All(x=>x.Tail.No<x.Head.No)&&caoa.Events.Count(e=>!caoa.Arrows.Any(x=>x.Head==e))==1&&caoa.Arrows.Count(x=>x.Activity!=null)==cnet.Nodes.Count(n=>!n.IsMilestone)&&!caoa.Arrows.Where(x=>x.Activity!=null).GroupBy(x=>x.Tail.No+"-"+x.Head.No).Any(ij=>ij.Count()>1),"whole catalogue: PERT activity-on-arrow network valid (no two activities share i-j)");
+   var cset=new ScheduleSet(cat,null);var cprob=cset.DrawingProblems();Check(cset.Sheets.Count>5&&!cprob.Any(x=>x.Contains("sheet join")),"whole catalogue: issue set builds, nothing split or bent at a sheet join ("+string.Join("; ",cprob.Where(x=>x.Contains("sheet join")).Take(3))+")");
+   /* drawings of realistic size (every 2nd / 3rd catalogue item, and this project): no overlapping text at all */
+   foreach(int k in new[]{2,3}){var sub=ScheduleRates.All.Where((x,i)=>i%k==0).Select(x=>new ScheduleRow{Code=x.Code,Description=x.Description,Unit=x.Unit,Crew=x.Crew,Crews=1,Days=ScheduleRow.IsLumpSum(x.Unit)||x.Unit=="mo"||x.Unit=="veh-mo"?0:1+(int)(Math.Abs(x.Code.GetHashCode())%9)}).ToList();
+    ScheduleLogic.Schedule(sub);var sp=new ScheduleSet(sub,null).DrawingProblems().Where(x=>!x.Contains("line through a label")).ToList();Check(sp.Count==0,"diagrams of every "+k+"th catalogue item: no overlapping text, no line through a node, nothing split or bent at a sheet join ("+string.Join("; ",sp.Take(3))+")");}
    var tr=ScheduleManpower.Trades(mr);Check(tr.First(t=>ScheduleManpower.IsForeman(t.Trade)).Peak==1&&tr.Sum(t=>t.ManDays)==md.Sum(),"manpower per trade adds up to the daily totals");
-   var set=new ScheduleSet(rows,null);Check(set.Sheets.Count>=4&&ScheduleSet.PageW==1654&&ScheduleSet.PageH==1169&&set.Sheets.Any(k=>k.Key=="MANPOWER LOADING")&&set.Sheets.Any(k=>k.Key=="MANPOWER SCHEDULE"),"issue set on A3 landscape with the manpower sheets");}}
+   var set=new ScheduleSet(rows,null);Check(set.Sheets.Count>=4&&ScheduleSet.PageW==1654&&ScheduleSet.PageH==1169&&set.Sheets.Any(k=>k.Key=="MANPOWER LOADING")&&set.Sheets.Any(k=>k.Key=="MANPOWER SCHEDULE"),"issue set on A3 landscape with the manpower sheets");
+   var pp=set.DrawingProblems();Check(pp.Count==0,"project diagrams: no overlap, no split text, continuous across sheets ("+string.Join("; ",pp.Take(3))+")");}}
   Console.WriteLine("PASS: "+checks+" automatic door / window BOQ mapping checks");}
 }

@@ -128,11 +128,25 @@ static class ScheduleLogic {
  static int LagDays(Cand c,int predDays){if(c.Type!="SS"||c.Lag>=1)return (int)Math.Round(c.Lag);return c.Lag<=0?0:Math.Max(1,(int)Math.Round(c.Lag*predDays));}
 
  /* nodes (scheduled items with a duration), links and the CPM times */
- internal static List<ScheduleLink> Network(List<ScheduleRow> rows,out List<PdmNode> nodes){nodes=new List<PdmNode>();int id=0;
+ /* milestones: when several items of one trade lead to several items of later trades by the same rule (type and lag), the
+    relations go through one zero-duration milestone ("Reinforcing steel complete" ...) instead of every pair - the usual
+    way to keep a network readable; the times are exactly the same: FS lag L: p -> M FS 0, M -> s FS L; FF lag L: p -> M
+    FF 0, M -> s FF L; SS (lag depending on the predecessor): p -> M SS l(p), M -> s SS 0 */
+ internal static List<ScheduleLink> Network(List<ScheduleRow> rows,out List<PdmNode> nodes,bool milestones=false){nodes=new List<PdmNode>();int id=0;
   foreach(var r in rows){id++;if(r.Days<=0)continue;nodes.Add(new PdmNode{Row=r,Id=id,Trade=Trade(r)});}
   var byTrade=nodes.GroupBy(n=>n.Trade).ToDictionary(g=>g.Key,g=>g.ToList());var links=new List<ScheduleLink>();
+  var uses=new Dictionary<string,KeyValuePair<Cand,List<PdmNode>>>();
   foreach(var nd in nodes){Cand[][] rules;if(nd.Trade=="OTHER"){int p=Math.Max(0,Math.Min(OtherByPhase.Length-1,SchedulePhases.Of(nd.Row.Code)));rules=new[]{OtherByPhase[p]};}else if(!Rules.TryGetValue(nd.Trade,out rules))rules=new Cand[0][];
-   foreach(var rule in rules){var hit=rule.FirstOrDefault(c=>byTrade.ContainsKey(c.Trade));if(hit==null)continue;foreach(var p in byTrade[hit.Trade])if(p!=nd)links.Add(new ScheduleLink{From=p,To=nd,Type=hit.Type,Lag=LagDays(hit,p.Row.Days)});}}
+   foreach(var rule in rules){var hit=rule.FirstOrDefault(c=>byTrade.ContainsKey(c.Trade));if(hit==null)continue;
+    string key=hit.Trade+"|"+hit.Type+"|"+hit.Lag.ToString("R",CultureInfo.InvariantCulture);KeyValuePair<Cand,List<PdmNode>> u;if(!uses.TryGetValue(key,out u)){u=new KeyValuePair<Cand,List<PdmNode>>(hit,new List<PdmNode>());uses[key]=u;}u.Value.Add(nd);}}
+  int mno=0;
+  foreach(var u in uses.Values){var hit=u.Key;var preds=byTrade[hit.Trade];var succs=u.Value.Distinct().ToList();
+   if(milestones&&preds.Count>=2&&succs.Count>=2&&preds.Count*succs.Count>preds.Count+succs.Count+1){mno++;
+    string what=Names.ContainsKey(hit.Trade)?Names[hit.Trade]:hit.Trade;string cap=hit.Type=="SS"?what+" under way":what+" complete";
+    var m=new PdmNode{Row=new ScheduleRow{Code="",Description=cap,Unit="",Days=0},Id=100000+mno,MilestoneNo=mno,Trade=hit.Trade};nodes.Add(m);
+    foreach(var p in preds)links.Add(new ScheduleLink{From=p,To=m,Type=hit.Type,Lag=hit.Type=="SS"?LagDays(hit,p.Row.Days):0});
+    foreach(var sn in succs)if(sn!=m)links.Add(new ScheduleLink{From=m,To=sn,Type=hit.Type,Lag=hit.Type=="SS"?0:LagDays(hit,0)});continue;}
+   foreach(var sn in succs)foreach(var p in preds)if(p!=sn)links.Add(new ScheduleLink{From=p,To=sn,Type=hit.Type,Lag=LagDays(hit,p.Row.Days)});}
   /* network order: trade order, then Bill of Quantities order */
   nodes=nodes.OrderBy(n=>Array.IndexOf(Order,n.Trade)).ThenBy(n=>n.Id).ToList();
   /* drop relations already implied by other relations (every type is "start of s >= start of p + c", c = D(p) + lag for FS,
@@ -154,7 +168,7 @@ static class ScheduleLogic {
  static int Bound(ScheduleLink l,int d,Dictionary<PdmNode,int> start){var p=l.From;int s=start[p],f=s+p.Row.Days;return l.Type=="FS"?f+l.Lag:l.Type=="SS"?s+l.Lag:f+l.Lag-d;}
 
  /* CPM, then manpower levelling within the float; sets Start / Finish (working days, 1-based) and Critical */
- internal static void Schedule(List<ScheduleRow> rows){List<PdmNode> nodes;var links=Network(rows,out nodes);int total=nodes.Count==0?0:nodes.Max(n=>n.EF);
+ internal static void Schedule(List<ScheduleRow> rows){List<PdmNode> nodes;var links=Network(rows,out nodes,false);int total=nodes.Count==0?0:nodes.Max(n=>n.EF);
   var load=new int[Math.Max(1,total)];var start=new Dictionary<PdmNode,int>();
   foreach(var nd in nodes){int d=nd.Row.Days,lo=0;foreach(var l in links.Where(x=>x.To==nd))lo=Math.Max(lo,Bound(l,d,start));int hi=Math.Max(lo,nd.LS);int men=ScheduleManpower.Labor(nd.Row);int best=lo;if(NoLevel.Contains(nd.Trade))hi=lo;
    if(men>0&&hi>lo){long bestKey=long.MaxValue;for(int s=lo;s<=hi;s++){int peak=0;long sq=0;for(int k=s;k<s+d&&k<load.Length;k++){int v=load[k]+men;peak=Math.Max(peak,v);sq+=(long)v*v-(long)load[k]*load[k];}
