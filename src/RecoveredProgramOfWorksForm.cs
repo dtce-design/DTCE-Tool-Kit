@@ -3585,6 +3585,7 @@ namespace BeamScheduleFormatter
 			bool readOnly = (fasciaFrame.Columns[8].ReadOnly = true);
 			dataGridViewColumn.ReadOnly = readOnly;
 			AddSteelSetColumns();
+			AddSteelPaintColumns();
 			steelCutGrid = Grid(new string[8] { "Stock no.", "Profile / specification", "Cut order", "Member ID", "Cut m", "Remaining after cut m", "Next use", "Final leftover m" }, 0);
 			steelCutGrid.ReadOnly = true;
 			steelCutGrid.AllowUserToAddRows = false;
@@ -3720,7 +3721,7 @@ namespace BeamScheduleFormatter
 					item2.Tag = null;
 					for (int i = num; i <= num2; i++)
 					{
-						if (!IsSteelSetColumn(value.Columns[i])) item2.Cells[i].Value = "";
+						if (!IsSteelSetColumn(value.Columns[i]) && value.Columns[i].Name != SteelPaintOnlyColumn) item2.Cells[i].Value = "";
 					}
 					if (Empty(item2))
 					{
@@ -3742,6 +3743,11 @@ namespace BeamScheduleFormatter
 							if (steelProfile == null || steelProfile.Kind != ((value == steelPurlins) ? "Purlin" : "Angle bar"))
 							{
 								throw new Exception("Select a matching handbook profile.");
+							}
+							if (IsSteelPaintOnly(item2))
+							{
+								AddPaintOnlyRow(item2, steelProfile.Name, Number(item2, 4), SteelQty(item2, 5));
+								continue;
 							}
 							SteelCutDemand steelCutDemand = AddSteelDemand(item2, steelProfile.Name, Cell(item2, 3), Number(item2, 4), SteelQty(item2, 5), steelProfile.KgM);
 							item2.Cells[6].Value = steelProfile.KgM;
@@ -3805,6 +3811,14 @@ namespace BeamScheduleFormatter
 							int num11 = SteelQty(item2, 6);
 							Measure(item2, 7, num9, "0.000");
 							Measure(item2, 8, num9 * (double)num11, "0.000");
+							if (IsSteelPaintOnly(item2))
+							{
+								SteelWeight.Positive(num10, num9);
+								SteelWeight.Count(num11);
+								AddRodPaint(item2, num10, num9, num11);
+								item2.Cells[num2].Value = SteelPaintOnlyStatus;
+								continue;
+							}
 							Measure(item2, 9, SteelWeight.Rod(num10, num9, num11));
 							item2.Cells[10].Value = num11;
 							item2.Cells[11].Value = num10;
@@ -3828,6 +3842,11 @@ namespace BeamScheduleFormatter
 							}
 							string name = steelProfile2.Name;
 							double kgM = steelProfile2.KgM;
+							if (IsSteelPaintOnly(item2))
+							{
+								AddPaintOnlyRow(item2, name, Number(item2, 5), SteelQty(item2, 6));
+								continue;
+							}
 							if (flag2)
 							{
 								Measure(item2, 7, steelProfile2.B, "0.###");
@@ -7450,6 +7469,7 @@ worksExcelTimer.Tick += async delegate
 							xmlElement3.SetAttribute("c" + n, Cell(item2, n));
 						}
 						WriteSteelSets(item.Key, item2, xmlElement3);
+						WriteSteelPaintOnly(item2, xmlElement3);
 						WriteOpeningPaint(item.Key, item2, xmlElement3);
 						xmlElement2.AppendChild(xmlElement3);
 					}
@@ -7759,6 +7779,7 @@ worksExcelTimer.Tick += async delegate
 							item3.Value.Rows[index].Cells[num2].Value = ((item3.Value.Columns[num2] is DataGridViewCheckBoxColumn) ? ((object)(text != "" && bool.Parse(text))) : text);
 						}
 						ReadSteelSets(item3.Key, item3.Value.Rows[index], item4);
+						ReadSteelPaintOnly(item3.Value.Rows[index], item4);
 						ReadOpeningPaint(item3.Key, item3.Value.Rows[index], item4);
 						if ((item3.Key == "Wood" || item3.Key == "Aluminum") && !item4.HasAttribute("c" + OpeningMaterialColumn)) item3.Value.Rows[index].Cells[OpeningMaterialColumn].Value = (item3.Key == "Wood") ? "Wood" : "Aluminum";
 					}
