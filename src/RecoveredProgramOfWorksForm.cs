@@ -7842,7 +7842,7 @@ worksExcelTimer.Tick += async delegate
             boqDisclosure=new BoqDisclosure(boqGrid);ConfigureBoqQuantityDisplay();BoqScrollState.Attach(boqGrid);boqGrid.ScrollBars=ScrollBars.Both;
 			boqGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 			boqGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
-			float[] array = new float[4] { 16f, 66f, 14f, 9f };
+			float[] array = new float[4] { 8f, 78f, 12f, 8f }; /* owner, 18 November 2026: wider DESCRIPTION, narrower ITEM NO. */
 			for (int num = 0; num < 4; num++)
 			{
 				boqGrid.Columns[num].FillWeight = array[num];
@@ -7854,10 +7854,10 @@ worksExcelTimer.Tick += async delegate
 					minimumWidth = 80;
 					break;
 				case 0:
-					minimumWidth = 170;
+					minimumWidth = 105;
 					break;
 				case 1:
-					minimumWidth = 300;
+					minimumWidth = 360;
 					break;
 				}
 				dataGridViewColumn.MinimumWidth = minimumWidth;

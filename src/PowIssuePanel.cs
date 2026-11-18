@@ -28,7 +28,8 @@ partial class ProgramOfWorksForm {
   foreach(var note in notes.OrderBy(x=>x.Kind=="Error"?0:x.Kind=="Not mapped"?1:x.Kind=="Excluded"?2:3)){int r=issueGrid.Rows.Add(++n,note.Text,note.Kind);issueGrid.Rows[r].Tag=note;issueGrid.Rows[r].Cells[2].Style.ForeColor=note.Kind=="Error"?Color.Firebrick:note.Kind=="Not mapped"?Color.FromArgb(176,96,0):PowTheme.Muted;}
   int unmapped=notes.Count(x=>x.Kind=="Not mapped"),excluded=notes.Count(x=>x.Kind=="Excluded"),errors=issues.Count+notes.Count(x=>x.Kind=="Error");
   var parts=new List<string>();if(errors>0)parts.Add(errors+" error(s) - entries excluded until corrected");if(unmapped>0)parts.Add(unmapped+" not mapped");if(excluded>0)parts.Add(excluded+" excluded");if(notes.Any(x=>x.Kind=="Automatic LS"))parts.Add(notes.Count(x=>x.Kind=="Automatic LS")+" automatic LS");
-  issueTitle.Text=(parts.Count==0?"OK":string.Join(" · ",parts))+(unmapped+excluded>0?"\nDouble-click a line to map / include.":"");issueTitle.ForeColor=errors>0?Color.Firebrick:unmapped>0?Color.FromArgb(176,96,0):PowTheme.Teal;
+  if(notes.Any(x=>x.Kind=="Info"))parts.Add("no mapped Tool Kit quantities");issueTitle.Text=(parts.Count==0?"OK":string.Join(" · ",parts))+(unmapped+excluded>0?"\nDouble-click a line to map / include.":"");issueTitle.ForeColor=errors>0?Color.Firebrick:unmapped>0?Color.FromArgb(176,96,0):PowTheme.Teal;
+  if(notes.Any(x=>x.Kind=="Info")&&errors==0&&unmapped==0)issueTitle.ForeColor=Color.FromArgb(176,96,0);
   if(n==0){int r=issueGrid.Rows.Add("","All computed quantities are mapped and included in the total.","OK");issueGrid.Rows[r].Cells[2].Style.ForeColor=PowTheme.Teal;}
   issuePanel.Visible=true;
  }
