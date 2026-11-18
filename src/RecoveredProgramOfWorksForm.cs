@@ -7953,6 +7953,11 @@ worksExcelTimer.Tick += async delegate
 			tabPage.Controls.Add(boqTableArea);
 			AddIssuePanel(tabPage);
 			AddBoqSearch(boqSearchStrip);
+			/* Owner (18 November 2026, "isagad hanggang sa dulo ng table"): the search bar spans the full table width. */
+			Action fitSearch = delegate { foreach (Control c in boqSearchStrip.Controls) c.Width = Math.Max(200, boqSearchStrip.ClientSize.Width - c.Margin.Horizontal - boqSearchStrip.Padding.Horizontal); };
+			boqSearchStrip.Resize += delegate { fitSearch(); };
+			boqSearchStrip.ControlAdded += delegate { fitSearch(); };
+			fitSearch();
 			tabPage.Controls.Add(boqStatus);
 			tabPage.Controls.Add(flowLayoutPanel);
 			tabPage.Controls.Add(value);
