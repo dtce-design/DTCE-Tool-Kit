@@ -27,27 +27,35 @@ sealed class ScheduleChart:Control {
  internal List<ScheduleRow> Rows=new List<ScheduleRow>();internal int Total;
  internal ScheduleChart(){DoubleBuffered=true;BackColor=Color.White;Font=new Font("Segoe UI",8.5f);}
  internal static readonly string[] Captions={"Item no.","Description","Quantity","Unit","Output / hour","No. of days"};
- static readonly float[] ScreenWidths={90,300,90,60,90,70};const float ScreenDay=24,ScreenRow=24,ScreenHead=44;
+ readonly float[] ScreenWidths={90,300,90,60,90,70};float ScreenRow=24;/* base row height; long descriptions get two lines */const float ScreenDay=24,ScreenHead=44;
+ /* description column sized to its longest text (owner, 18 November 2026: "adjust mo yung description box para magkasya"):
+    widened up to maxW; a text still longer wraps to two lines and the rows are made tall enough for them */
+ internal static void FitDescription(Graphics g,IEnumerable<ScheduleRow> rows,Font font,float[] widths,float maxW,ref float rowH){
+  float need=rows.Select(r=>g.MeasureString(r.Description??"",font).Width).DefaultIfEmpty(0).Max()+10;widths[1]=Math.Max(widths[1],Math.Min(maxW,need));
+}
+ /* row heights: one line, or two lines for a description longer than its column */
+ internal static float[] Heights(Graphics g,List<Line> lines,Font font,float descW,float rowH){float two=Math.Max(rowH,font.GetHeight(g)*2+6);
+  return lines.Select(l=>l.Item!=null&&g.MeasureString(l.Item.Description??"",font).Width>descW-6?two:rowH).ToArray();}
  /* a phase heading (Item == null) or an item line */
  internal sealed class Line {internal string Phase;internal ScheduleRow Item;}
  internal static List<Line> Lines(List<ScheduleRow> rows){return rows.Select(r=>new Line{Item=r}).ToList();}/* item order as in Bill of Quantities, no phase headings */
- internal void Fit(){var lines=Lines(Rows);Width=(int)(ScreenWidths.Sum()+Math.Max(1,Total)*ScreenDay+40);Height=(int)(ScreenHead+lines.Count*ScreenRow+20);Invalidate();}
+ internal void Fit(){var lines=Lines(Rows);ScreenWidths[1]=300;float h;using(var g=CreateGraphics()){FitDescription(g,Rows,Font,ScreenWidths,560,ref ScreenRow);h=Heights(g,lines,Font,ScreenWidths[1],ScreenRow).Sum();}Width=(int)(ScreenWidths.Sum()+Math.Max(1,Total)*ScreenDay+40);Height=(int)(ScreenHead+h+20);Invalidate();}
  protected override void OnPaint(PaintEventArgs e){e.Graphics.Clear(BackColor);using(var bold=new Font(Font,FontStyle.Bold))Draw(e.Graphics,Lines(Rows),0,0,ScreenWidths,ScreenDay,ScreenRow,ScreenHead,1,Math.Max(1,Total),Font,bold);}
  internal static void Draw(Graphics g,List<Line> lines,float x0,float y0,float[] widths,float dayW,float rowH,float headH,int dayFrom,int dayTo,Font font,Font bold){
-  var cols=new float[widths.Length+1];float x=x0;for(int c=0;c<widths.Length;c++){cols[c]=x;x+=widths[c];}cols[widths.Length]=x;float left=x;int days=dayTo-dayFrom+1;float right=left+days*dayW,bottom=y0+headH+lines.Count*rowH;
+  var cols=new float[widths.Length+1];float x=x0;for(int c=0;c<widths.Length;c++){cols[c]=x;x+=widths[c];}cols[widths.Length]=x;float left=x;int days=dayTo-dayFrom+1;var hs=Heights(g,lines,font,widths[1],rowH);var ys=new float[lines.Count+1];ys[0]=y0+headH;for(int i=0;i<lines.Count;i++)ys[i+1]=ys[i]+hs[i];float right=left+days*dayW,bottom=ys[lines.Count];
   var near=new StringFormat{Alignment=StringAlignment.Near,LineAlignment=StringAlignment.Center,Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap};var far=new StringFormat(near){Alignment=StringAlignment.Far};var mid=new StringFormat(near){Alignment=StringAlignment.Center};var wrap=new StringFormat{LineAlignment=StringAlignment.Center};
   using(var head=new SolidBrush(Color.FromArgb(236,240,244)))g.FillRectangle(head,x0,y0,right-x0,headH);
   using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted))using(var teal=new SolidBrush(PowTheme.Teal))using(var band=new SolidBrush(Color.FromArgb(244,246,248)))using(var grid=new Pen(Color.FromArgb(205,211,218),0.5f))using(var orange=new SolidBrush(Color.FromArgb(176,96,0))){
    for(int c=0;c<Captions.Length;c++)g.DrawString(Captions[c],bold,ink,new RectangleF(cols[c]+2,y0,widths[c]-4,headH),wrap);
    g.DrawString("Working days",bold,ink,new RectangleF(left+2,y0,Math.Max(dayW*4,right-left),headH/2),near);/* days only, no week row (owner, 18 November 2026: "alisin mo yung weeks, days lang") */
    for(int d=dayFrom;d<=dayTo;d++){float dx=left+(d-dayFrom)*dayW;g.DrawString(d.ToString(CultureInfo.InvariantCulture),font,ink,new RectangleF(dx,y0+headH/2,dayW,headH/2),mid);}
-   for(int i=0;i<lines.Count;i++){var l=lines[i];float y=y0+headH+i*rowH;
-    if(l.Item==null){g.FillRectangle(band,x0,y,right-x0,rowH);g.DrawString(l.Phase,bold,ink,new RectangleF(x0+2,y,right-x0-4,rowH),near);continue;}
+   for(int i=0;i<lines.Count;i++){var l=lines[i];float y=ys[i];float rowH0=rowH;rowH=hs[i];
+    if(l.Item==null){g.FillRectangle(band,x0,y,right-x0,rowH);g.DrawString(l.Phase,bold,ink,new RectangleF(x0+2,y,right-x0-4,rowH),near);rowH=rowH0;continue;}
     var r=l.Item;string[] cells={r.Code,r.Description,r.Quantity.ToString("N2"),r.Unit,r.Rate>0?r.Rate.ToString("0.###",CultureInfo.InvariantCulture):ScheduleRow.IsLumpSum(r.Unit)?"":"-",r.Days>0?r.Days.ToString(CultureInfo.InvariantCulture):ScheduleRow.IsLumpSum(r.Unit)?"":"-"};
-    for(int c=0;c<cells.Length;c++)g.DrawString(cells[c],font,r.Rate<=0&&c==4&&!ScheduleRow.IsLumpSum(r.Unit)?(Brush)orange:ink,new RectangleF(cols[c]+2,y,widths[c]-4,rowH),c==2||c==4||c==5?far:near);
-    if(r.Days>0){int s=Math.Max(r.Start,dayFrom),f=Math.Min(r.Finish,dayTo);if(s<=f)g.FillRectangle(r.Critical?(Brush)Brushes.Firebrick:teal,left+(s-dayFrom)*dayW+1,y+rowH*0.25f,(f-s+1)*dayW-2,rowH*0.5f);}}
+    var desc=new StringFormat{LineAlignment=StringAlignment.Center,Trimming=StringTrimming.EllipsisWord};for(int c=0;c<cells.Length;c++)g.DrawString(cells[c],font,r.Rate<=0&&c==4&&!ScheduleRow.IsLumpSum(r.Unit)?(Brush)orange:ink,new RectangleF(cols[c]+2,y,widths[c]-4,rowH),c==1?desc:c==2||c==4||c==5?far:near);
+    if(r.Days>0){int s=Math.Max(r.Start,dayFrom),f=Math.Min(r.Finish,dayTo);if(s<=f)g.FillRectangle(r.Critical?(Brush)Brushes.Firebrick:teal,left+(s-dayFrom)*dayW+1,y+rowH/2-rowH0/4,(f-s+1)*dayW-2,rowH0*0.5f);}rowH=rowH0;}
    foreach(float cx in cols)g.DrawLine(grid,cx,y0,cx,bottom);for(int d=0;d<=days;d++){float dx=left+d*dayW;g.DrawLine(grid,dx,y0+headH/2,dx,bottom);}
-   g.DrawLine(grid,x0,y0,right,y0);g.DrawLine(grid,left,y0+headH/2,right,y0+headH/2);for(int i=0;i<=lines.Count;i++){float y=y0+headH+i*rowH;g.DrawLine(grid,x0,y,right,y);}g.DrawLine(grid,right,y0,right,bottom);}}
+   g.DrawLine(grid,x0,y0,right,y0);g.DrawLine(grid,left,y0+headH/2,right,y0+headH/2);for(int i=0;i<=lines.Count;i++){float y=ys[i];g.DrawLine(grid,x0,y,right,y);}g.DrawLine(grid,right,y0,right,bottom);}}
 }
 partial class ProgramOfWorksForm {
  readonly Dictionary<string,ScheduleOverride> scheduleOverrides=new Dictionary<string,ScheduleOverride>(StringComparer.Ordinal);

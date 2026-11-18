@@ -14,7 +14,7 @@ sealed class PdmMilestone {internal string Name,Caption;internal int Day;interna
 sealed class PdmPhaseBox {internal string Name;internal float Left,Right,BusIn,BusOut;}
 sealed class PdmNetwork {
  internal readonly List<PdmNode> Nodes=new List<PdmNode>();internal readonly List<PdmMilestone> Milestones=new List<PdmMilestone>();internal readonly List<List<PdmNode>> Phases=new List<List<PdmNode>>();internal readonly List<PdmPhaseBox> Boxes=new List<PdmPhaseBox>();internal int Total;internal float Height;
- internal const float NodeW=170,NodeH=64,RowGap=22,ColGap=46,MileD=NodeW,Head=10,LinkGap=40;
+ internal const float NodeW=190,NodeH=84,RowGap=22,ColGap=46,MileD=NodeW,Head=10,LinkGap=40;
  internal static PdmNetwork Build(List<ScheduleRow> rows){var n=new PdmNetwork();int id=0;var nodes=new List<PdmNode>();
   foreach(var r in rows){id++;if(r.Days<=0)continue;nodes.Add(new PdmNode{Row=r,Id=id,ES=r.Start-1,EF=r.Finish});}
   foreach(var phase in nodes.GroupBy(x=>x.Row.PhaseIndex).OrderBy(p=>p.Key)){var list=phase.ToList();int finish=list.Max(x=>x.EF);foreach(var x in list){x.LF=finish;x.LS=x.LF-x.Row.Days;x.TF=x.LF-x.EF;}n.Phases.Add(list);}
@@ -28,7 +28,7 @@ sealed class PdmNetwork {
    x+=cols*(NodeW+ColGap)-ColGap;box.BusOut=x;box.Right=x;Boxes.Add(box);x+=LinkGap;Milestones[p+1].X=x;x+=NodeW+LinkGap;}
   foreach(var m in Milestones)m.Y=mid-NodeH/2;return new SizeF(x-LinkGap+6,height);}
  internal void Draw(Graphics g,float dx,float dy,Font font,Font bold){var smooth=g.SmoothingMode;g.SmoothingMode=SmoothingMode.AntiAlias;
-  var mid=new StringFormat{Alignment=StringAlignment.Center,LineAlignment=StringAlignment.Center,Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap};var left=new StringFormat(mid){Alignment=StringAlignment.Near};
+  var mid=new StringFormat{Alignment=StringAlignment.Center,LineAlignment=StringAlignment.Center,Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap};var left=new StringFormat(mid){Alignment=StringAlignment.Near};var wrap=new StringFormat{LineAlignment=StringAlignment.Center,Trimming=StringTrimming.EllipsisWord};
   Color redC=Color.FromArgb(192,40,40),line=Color.FromArgb(120,130,142);
   using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted))using(var red=new SolidBrush(redC))using(var bandA=new SolidBrush(Color.FromArgb(246,248,250)))using(var bandB=new SolidBrush(Color.FromArgb(238,242,246)))
   using(var bus=new Pen(line,1f))using(var stub=new Pen(line,1f){CustomEndCap=new AdjustableArrowCap(3.5f,4.5f)})using(var critStub=new Pen(redC,1.6f){CustomEndCap=new AdjustableArrowCap(3.5f,4.5f)})using(var edge=new Pen(Color.FromArgb(70,78,88),0.9f))using(var critEdge=new Pen(redC,1.8f))
@@ -39,18 +39,18 @@ sealed class PdmNetwork {
     foreach(var nd in Phases[p].Where(n=>!n.Critical).Concat(Phases[p].Where(n=>n.Critical))){float cy=dy+nd.Y+NodeH/2;
      g.DrawLines(nd.Critical?critEdge:bus,new[]{new PointF(dx+a.X+NodeW,ay),new PointF(dx+a.X+NodeW+LinkGap/2,ay),new PointF(dx+a.X+NodeW+LinkGap/2,cy)});link(dx+a.X+NodeW+LinkGap/2,cy,dx+nd.X,cy,nd.Critical);
      g.DrawLines(nd.Critical?critEdge:bus,new[]{new PointF(dx+nd.X+NodeW,cy),new PointF(dx+z.X-LinkGap/2,cy),new PointF(dx+z.X-LinkGap/2,zy)});link(dx+z.X-LinkGap/2,zy,dx+z.X,zy,nd.Critical);}}
-   foreach(var m in Milestones){var r=new RectangleF(dx+m.X,dy+m.Y,NodeW,NodeH);float rh=NodeH/4,cw=NodeW/3;
+   foreach(var m in Milestones){var r=new RectangleF(dx+m.X,dy+m.Y,NodeW,NodeH);float rh=NodeH/5,cw=NodeW/3;
     g.FillRectangle(white,r);g.FillRectangle(cellCrit,r.X,r.Y,r.Width,rh);g.FillRectangle(cellCrit,r.X,r.Bottom-rh,r.Width,rh);
     g.DrawLine(grid,r.X,r.Y+rh,r.Right,r.Y+rh);g.DrawLine(grid,r.X,r.Bottom-rh,r.Right,r.Bottom-rh);for(int c=1;c<3;c++){g.DrawLine(grid,r.X+c*cw,r.Y,r.X+c*cw,r.Y+rh);g.DrawLine(grid,r.X+c*cw,r.Bottom-rh,r.X+c*cw,r.Bottom);}
     string d=m.Day.ToString(CultureInfo.InvariantCulture);string[] tv={d,"0",d},bv={d,"0",d};for(int c=0;c<3;c++){g.DrawString(tv[c],font,ink,new RectangleF(r.X+c*cw,r.Y,cw,rh),mid);g.DrawString(bv[c],font,ink,new RectangleF(r.X+c*cw,r.Bottom-rh,cw,rh),mid);}
-    g.DrawString(m.Name+"  (milestone)",bold,red,new RectangleF(r.X+4,r.Y+rh,NodeW-8,rh),left);g.DrawString(m.Caption,font,muted,new RectangleF(r.X+4,r.Y+2*rh,NodeW-8,rh),left);
+    g.DrawString(m.Name+"  (milestone)",bold,red,new RectangleF(r.X+4,r.Y+rh,NodeW-8,rh),left);g.DrawString(m.Caption,font,muted,new RectangleF(r.X+4,r.Y+2*rh,NodeW-8,2*rh),wrap);
     g.DrawRectangle(critEdge,r.X,r.Y,r.Width,r.Height);}
-   foreach(var nd in Nodes){var r=new RectangleF(dx+nd.X,dy+nd.Y,NodeW,NodeH);float rh=NodeH/4,cw=NodeW/3;var fill=nd.Critical?(Brush)cellCrit:cell;
+   foreach(var nd in Nodes){var r=new RectangleF(dx+nd.X,dy+nd.Y,NodeW,NodeH);float rh=NodeH/5,cw=NodeW/3;var fill=nd.Critical?(Brush)cellCrit:cell;
     g.FillRectangle(white,r);g.FillRectangle(fill,r.X,r.Y,r.Width,rh);g.FillRectangle(fill,r.X,r.Bottom-rh,r.Width,rh);
     g.DrawLine(grid,r.X,r.Y+rh,r.Right,r.Y+rh);g.DrawLine(grid,r.X,r.Bottom-rh,r.Right,r.Bottom-rh);for(int c=1;c<3;c++){g.DrawLine(grid,r.X+c*cw,r.Y,r.X+c*cw,r.Y+rh);g.DrawLine(grid,r.X+c*cw,r.Bottom-rh,r.X+c*cw,r.Bottom);}
     string[] top={nd.ES.ToString(CultureInfo.InvariantCulture),nd.Row.Days.ToString(CultureInfo.InvariantCulture),nd.EF.ToString(CultureInfo.InvariantCulture)},bottom={nd.LS.ToString(CultureInfo.InvariantCulture),nd.TF.ToString(CultureInfo.InvariantCulture),nd.LF.ToString(CultureInfo.InvariantCulture)};
     for(int c=0;c<3;c++){g.DrawString(top[c],font,ink,new RectangleF(r.X+c*cw,r.Y,cw,rh),mid);g.DrawString(bottom[c],font,ink,new RectangleF(r.X+c*cw,r.Bottom-rh,cw,rh),mid);}
-    g.DrawString(nd.Id+"   "+nd.Row.Code,bold,nd.Critical?(Brush)red:ink,new RectangleF(r.X+4,r.Y+rh,NodeW-8,rh),left);g.DrawString(nd.Row.Description,font,muted,new RectangleF(r.X+4,r.Y+2*rh,NodeW-8,rh),left);
+    g.DrawString(nd.Id+"   "+nd.Row.Code,bold,nd.Critical?(Brush)red:ink,new RectangleF(r.X+4,r.Y+rh,NodeW-8,rh),left);g.DrawString(nd.Row.Description,font,muted,new RectangleF(r.X+4,r.Y+2*rh,NodeW-8,2*rh),wrap);
     g.DrawRectangle(nd.Critical?critEdge:edge,r.X,r.Y,r.Width,r.Height);}}
   g.SmoothingMode=smooth;}
  internal const string LegendText="Activity on node, all relations Finish-to-Start (FS), times in working days (ES of the first activity = 0; EF = ES + D; LS = LF - D; TF = LS - ES). Red = critical path (TF = 0). M1, M2, ... = end-of-phase milestones (D = 0).";
@@ -58,10 +58,10 @@ sealed class PdmNetwork {
  /* standard node key, drawn once at the top of each sheet */
  internal static void DrawKey(Graphics g,float x,float y,Font font,Font bold){var mid=new StringFormat{Alignment=StringAlignment.Center,LineAlignment=StringAlignment.Center,FormatFlags=StringFormatFlags.NoWrap};var left=new StringFormat(mid){Alignment=StringAlignment.Near};
   using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted))using(var cell=new SolidBrush(Color.FromArgb(234,238,242)))using(var grid=new Pen(Color.FromArgb(180,188,198),0.6f))using(var edge=new Pen(Color.FromArgb(70,78,88),0.9f)){
-   g.DrawString("NODE KEY",bold,ink,x,y);var r=new RectangleF(x+70,y,NodeW,NodeH);float rh=NodeH/4,cw=NodeW/3;g.FillRectangle(cell,r.X,r.Y,r.Width,rh);g.FillRectangle(cell,r.X,r.Bottom-rh,r.Width,rh);
+   g.DrawString("NODE KEY",bold,ink,x,y);var r=new RectangleF(x+70,y,NodeW,NodeH);float rh=NodeH/5,cw=NodeW/3;g.FillRectangle(cell,r.X,r.Y,r.Width,rh);g.FillRectangle(cell,r.X,r.Bottom-rh,r.Width,rh);
    g.DrawLine(grid,r.X,r.Y+rh,r.Right,r.Y+rh);g.DrawLine(grid,r.X,r.Bottom-rh,r.Right,r.Bottom-rh);for(int c=1;c<3;c++){g.DrawLine(grid,r.X+c*cw,r.Y,r.X+c*cw,r.Y+rh);g.DrawLine(grid,r.X+c*cw,r.Bottom-rh,r.X+c*cw,r.Bottom);}
    string[] t={"ES","D","EF"},b2={"LS","TF","LF"};for(int c=0;c<3;c++){g.DrawString(t[c],bold,ink,new RectangleF(r.X+c*cw,r.Y,cw,rh),mid);g.DrawString(b2[c],bold,ink,new RectangleF(r.X+c*cw,r.Bottom-rh,cw,rh),mid);}
-   g.DrawString("Activity no.   Item no.",bold,ink,new RectangleF(r.X+4,r.Y+rh,NodeW-8,rh),left);g.DrawString("Description",font,muted,new RectangleF(r.X+4,r.Y+2*rh,NodeW-8,rh),left);g.DrawRectangle(edge,r.X,r.Y,r.Width,r.Height);
+   g.DrawString("Activity no.   Item no.",bold,ink,new RectangleF(r.X+4,r.Y+rh,NodeW-8,rh),left);g.DrawString("Description (up to two lines)",font,muted,new RectangleF(r.X+4,r.Y+2*rh,NodeW-8,2*rh),left);g.DrawRectangle(edge,r.X,r.Y,r.Width,r.Height);
    string[] k={"ES = early start, EF = early finish","LS = late start, LF = late finish","D = duration (working days)","TF = total float = LS - ES"};for(int i=0;i<k.Length;i++)g.DrawString(k[i],font,ink,r.Right+14,y+2+i*15);}}
 }
 sealed class PdmView:Control {internal PdmNetwork Network;internal PdmView(){DoubleBuffered=true;BackColor=Color.White;Font=new Font("Segoe UI",8f);}
