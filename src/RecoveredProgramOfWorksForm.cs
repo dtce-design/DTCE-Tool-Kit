@@ -2098,11 +2098,19 @@ namespace BeamScheduleFormatter
 				return MergeSources(StockPurchaseSources(steelStocks).Concat(GridWeightSources(machineBolts, 7)).Concat(GridWeightSources(anchorBolts, 7)).Concat(GridWeightSources(steelPlates, 11))
 					.Concat(GridWeightSources(crossBracing, 9)));
 			}
+			if (name == SteelPaintingTotal)
+			{
+				return steelPaintDetails.ToList();
+			}
+			if (name.StartsWith("Metal painting - "))
+			{
+				return steelPaintDetails.Where((BillQuantity d) => d.Description.StartsWith(name.Substring(17).Split(' ')[0], StringComparison.OrdinalIgnoreCase)).ToList();
+			}
 			if (name.StartsWith("Turnbuckles dia "))
 			{
 				return MergeSources(from DataGridViewRow r in crossBracing.Rows
-					where !r.IsNewRow && Cell(r, 12) == "Estimated" && name == "Turnbuckles dia " + Number(r, 5).ToString("0.###", CultureInfo.InvariantCulture) + "mm"
-					select SourceQuantity(Cell(r, 0) + " | " + Cell(r, 1), Count(r, 6), "pcs"));
+					where !r.IsNewRow && Cell(r, crossBracing.Columns.Count - 1) == "Estimated" && name == "Turnbuckles dia " + Number(r, 5).ToString("0.###", CultureInfo.InvariantCulture) + "mm"
+					select SourceQuantity(Cell(r, 0) + " | " + Cell(r, 1), SteelQty(r, 6), "pcs"));
 			}
 			return new List<BillQuantity>();
 		}
@@ -3690,7 +3698,7 @@ namespace BeamScheduleFormatter
 			}
 			AssignStructuralSteelIds();
 			steelDemands.Clear();
-			steelPaintAreas.Clear();
+			steelPaintAreas.Clear();steelPaintDetails.Clear();
 			steelStocks.Clear();
 			plateStocks.Clear();
 			HashSet<string> hashSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -3800,6 +3808,7 @@ namespace BeamScheduleFormatter
 							Measure(item2, 9, SteelWeight.Rod(num10, num9, num11));
 							item2.Cells[10].Value = num11;
 							item2.Cells[11].Value = num10;
+							AddRodPaint(item2, num10, num9, num11);
 						}
 						else
 						{
@@ -3961,13 +3970,13 @@ namespace BeamScheduleFormatter
 			list.AddRange(SteelPaintingRows());
 			List<object[]> list2 = list;
 			foreach (IGrouping<double, DataGridViewRow> item in from DataGridViewRow row in crossBracing.Rows
-				where !row.IsNewRow && Cell(row, 12) == "Estimated"
+				where !row.IsNewRow && Cell(row, crossBracing.Columns.Count - 1) == "Estimated" /* Status moved to the end when QTY/Units/Sets/Multiplier were added */
 				group row by Number(row, 5))
 			{
 				list2.Add(new object[3]
 				{
 					"Turnbuckles dia " + item.Key.ToString("0.###", CultureInfo.InvariantCulture) + "mm",
-					item.Sum((DataGridViewRow row) => Count(row, 6)),
+					item.Sum((DataGridViewRow row) => SteelQty(row, 6)),
 					"pcs"
 				});
 			}

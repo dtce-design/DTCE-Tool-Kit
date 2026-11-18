@@ -1,0 +1,18 @@
+DTCE Tool Kit v1.6.0 test build (18 November 2026)
+
+Metal painting breakdown (owner: "bakit walang metal paint yung angle bar
+purlins, crossbracing" / "meron pala pero di naka breakdown")
+- The Bill of Quantities "Metal painting TOTAL - installed" line now lists
+  every painted member under it: group, ID, description, profile, pieces x
+  length x m2/m = area (purlins, angle bars, metal fascia).
+- New: crossbracing rods are painted too (pi x rod diameter x total rod
+  length) and included in the metal painting total and breakdown. The total
+  keeps its caption so existing BACKUP mappings stay valid.
+
+Bug fixes found while checking
+- Turnbuckle quantities were missing: after QTY / Units / Sets / Multiplier
+  were added, the turnbuckle count still read the old Status column. They
+  are counted again, using the full multiplied quantity (QTY x Units x Sets
+  x Multiplier), in the steel summary and in Bill of Quantities.
+
+Includes v1.5.1-1.5.4. Not a Microsoft Store release (v1.5.0 is the Store build).
