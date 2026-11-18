@@ -4595,6 +4595,7 @@ worksExcelTimer.Tick += async delegate
             FormClosed += (s0, e0) => { if (!Automated) ProjectInfoStore.ClearProject(); };
             InstallStandardSettings();
             InstallRowInclusion();
+            AddConstructionSchedule();
             PlaceSteelSetColumns();
             if (wood != null) PlaceOpeningPaintColumns(wood);
 			tabs.Multiline = true;
@@ -4813,6 +4814,10 @@ worksExcelTimer.Tick += async delegate
 				{
 					dashboardDirty = false;
 					UpdateDashboard();
+				}
+				if (text == "Construction Schedule")
+				{
+					RefreshSchedule();
 				}
 				if (text == "Reports" && reportPreviewDirty)
 				{
@@ -7503,6 +7508,7 @@ worksExcelTimer.Tick += async delegate
 			OpeningLinks.Write(xmlElement, openingAssignments);
 			BackupBill.Write(xmlElement, backupBill);
 			WriteBackupBillRoutes(xmlElement);
+			WriteSchedule(xmlElement);
 			WriteStructureConfigurations(xmlElement);
             WriteExtraProject(xmlElement);WriteRoofingSpecification(xmlElement);
             WriteSourceManifest(xmlElement);
@@ -7730,6 +7736,7 @@ worksExcelTimer.Tick += async delegate
 				projectQuantitiesKnown = xmlDocument.DocumentElement.HasAttribute("computedInputsKnown") && bool.Parse(xmlDocument.DocumentElement.GetAttribute("computedInputsKnown"));
 				backupBill = list;
 				ReadBackupBillRoutes(xmlDocument.DocumentElement);
+				ReadSchedule(xmlDocument.DocumentElement);
 				ReadStructureConfigurations(xmlDocument.DocumentElement);
 				finishTypeCells = finishTypeRegistry;
 				openingAssignments.Clear();ClearParkedWallOpenings();

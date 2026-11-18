@@ -18,6 +18,9 @@ class OpeningRoutesUiTests {
   /* "Opening" type (owner, 18 November 2026): dimensions only - no material, hardware or BOQ item */
   {var op=g.Rows[g.Rows.Add()];op.Cells[0].Value="OP-1";op.Cells[1].Value="";op.Cells[3].Value="Opening";op.Cells[4].Value="1.2";op.Cells[5].Value="1";op.Cells[6].Value="2";f.Recalculate();
    Check(Convert.ToString(op.Cells[19].Value)=="Ready"&&Convert.ToString(op.Cells[25].Value)==""&&op.Cells[25].ReadOnly,"Opening needs no material or description");Check(Convert.ToString(op.Cells[13].Value)=="2.40"&&Convert.ToString(op.Cells[17].Value)=="0"&&Convert.ToString(op.Cells[18].Value)=="0","Opening area without hardware");
-   Check(!f.BackupQuantities().Any(x=>x.Key.Contains("OP-1")),"Opening has no BOQ item");}}
+   Check(!f.BackupQuantities().Any(x=>x.Key.Contains("OP-1")),"Opening has no BOQ item");}
+  /* Construction Schedule (owner, 18 November 2026): working days = quantity / (output per hour x 8 h x crews) */
+  {var rows=(List<ScheduleRow>)typeof(ProgramOfWorksForm).GetMethod("ScheduleRows",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(f,null);var pvc=rows.FirstOrDefault(r=>r.Code=="1043(1)");
+   Check(pvc!=null&&Math.Abs(pvc.Rate-0.315)<1e-9&&pvc.Days==(int)Math.Ceiling(pvc.Quantity/(0.315*8)-1e-9),"PVC door working days from the DUPA output per hour");Check(!rows.Any(r=>r.Code=="1004(2)"),"LS items are left out of the schedule");}}
   Console.WriteLine("PASS: "+checks+" automatic door / window BOQ mapping checks");}
 }
