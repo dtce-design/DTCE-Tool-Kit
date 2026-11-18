@@ -16,8 +16,8 @@ class OpeningRoutesUiTests {
   typeof(ProgramOfWorksForm).GetMethod("SetBoqRoute",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(f,new object[]{key,other});f.BackupQuantities();Check(routes[key]==other,"A mapping changed by the user is kept");
   typeof(ProgramOfWorksForm).GetMethod("SetBoqRoute",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(f,new object[]{key,null});f.BackupQuantities();Check(!routes.ContainsKey(key),"An unmapped quantity stays unmapped");
   /* "Opening" type (owner, 18 November 2026): dimensions only - no material, hardware or BOQ item */
-  {var op=g.Rows[g.Rows.Add()];op.Cells[0].Value="OP-1";op.Cells[1].Value="Plain opening";op.Cells[3].Value="Opening";op.Cells[4].Value="1.2";op.Cells[5].Value="1";op.Cells[6].Value="2";f.Recalculate();
-   Check(Convert.ToString(op.Cells[19].Value)=="Ready"&&Convert.ToString(op.Cells[25].Value)==""&&op.Cells[25].ReadOnly,"Opening needs no material");Check(Convert.ToString(op.Cells[13].Value)=="2.40"&&Convert.ToString(op.Cells[17].Value)=="0"&&Convert.ToString(op.Cells[18].Value)=="0","Opening area without hardware");
+  {var op=g.Rows[g.Rows.Add()];op.Cells[0].Value="OP-1";op.Cells[1].Value="";op.Cells[3].Value="Opening";op.Cells[4].Value="1.2";op.Cells[5].Value="1";op.Cells[6].Value="2";f.Recalculate();
+   Check(Convert.ToString(op.Cells[19].Value)=="Ready"&&Convert.ToString(op.Cells[25].Value)==""&&op.Cells[25].ReadOnly,"Opening needs no material or description");Check(Convert.ToString(op.Cells[13].Value)=="2.40"&&Convert.ToString(op.Cells[17].Value)=="0"&&Convert.ToString(op.Cells[18].Value)=="0","Opening area without hardware");
    Check(!f.BackupQuantities().Any(x=>x.Key.Contains("OP-1")),"Opening has no BOQ item");}}
   Console.WriteLine("PASS: "+checks+" automatic door / window BOQ mapping checks");}
 }

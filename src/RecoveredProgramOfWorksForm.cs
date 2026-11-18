@@ -6815,7 +6815,7 @@ worksExcelTimer.Tick += async delegate
 							OpeningItem openingItem = new OpeningItem
 							{
 								Id = Cell(item, 0),
-								Description = Cell(item, 1),
+								Description = (plainOpening && Cell(item, 1) == "") ? "Opening" : Cell(item, 1),
 								Wall = Cell(item, 2),
 								Material = rowMaterial,
 								Kind = Cell(item, 3),

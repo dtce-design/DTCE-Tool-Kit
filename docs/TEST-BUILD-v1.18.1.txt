@@ -1,0 +1,9 @@
+DTCE Tool Kit v1.18.1 test build (18 November 2026) - bug fix
+
+Masonry "Add / edit openings" (owner: "nawawala sa masonry add opening yung opening
+sa doors and windows")
+- An "Opening" row in the Door & Window Schedule no longer needs a Description.
+  Before, an Opening without a description was an input error, so it was left
+  out of the openings list in Masonry. A blank description is shown as "Opening".
+
+Includes v1.18.0. Not a Microsoft Store release (v1.5.0 is the Store build).
