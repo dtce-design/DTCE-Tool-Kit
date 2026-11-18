@@ -56,9 +56,11 @@ sealed class PdmNetwork {
   foreach(var nd in Nodes.Where(x=>ins[x].Count==0))edges.Add(new Edge{From=start,To=nd,Critical=nd.Critical&&nd.ES==0});
   /* FS without lag is not labelled (the usual convention); other relations show their type and lag at the arrowhead */
   foreach(var l in Links)edges.Add(new Edge{From=l.From,To=l.To,Label=l.Type=="FS"&&l.Lag==0?null:l.Label,Critical=Driving(l)});
-  /* every activity whose finish has no successor (no relation, or only SS relations from its start) runs to FINISH along
-     one collector line below the network, so no finish is left open */
-  foreach(var nd in Nodes.Where(x=>!outs[x].Any(l=>l.Type!="SS")))edges.Add(new Edge{From=nd,To=finish,Critical=nd.Critical&&nd.EF==Total,Collector=true});
+  /* every activity whose finish has no successor (no relation, or only SS relations from its start) is linked to FINISH:
+     straight across when it is in one of the last two columns (owner, 18 November 2026: "very obvious naman na ito"),
+     otherwise along one collector line below the network, so no long lines cross the diagram */
+  int lastLevel=Nodes.Count==0?0:Nodes.Max(x=>x.Level);
+  foreach(var nd in Nodes.Where(x=>!outs[x].Any(l=>l.Type!="SS")))edges.Add(new Edge{From=nd,To=finish,Critical=nd.Critical&&nd.EF==Total,Collector=nd.Level<lastLevel-1&&!(nd.Critical&&nd.EF==Total)});
   foreach(var e in edges){e.FromBox=box(e.From);e.ToBox=box(e.To);}
   foreach(var grp in edges.GroupBy(e=>e.From)){var list=grp.OrderBy(e=>e.Collector).ThenBy(e=>e.ToBox.Y).ToList();for(int i=0;i<list.Count;i++){list[i].Out=i;list[i].OutN=list.Count;}}
   /* relations of the same type and lag share one arrowhead on the successor: their lines join on its entry line */
@@ -130,11 +132,11 @@ static class NetRoute {
     (x1, y1). The horizontal run keeps one height while it is free of every obstacle (node / event boxes and labels); where a
     column blocks it, it steps to the nearest free height in the gap just before that column. Bends never fall within 10 of a
     sheet join (joins), so lines cross the joins horizontally. soft = lines already drawn (avoided when possible). */
- internal static List<PointF> Sweep(float x0,float y0,float xa,float xb,float x1,float y1,List<RectangleF> hard,List<RectangleF> soft,IList<float> joins,float top,float bottom,out int cost){
+ internal static List<PointF> Sweep(float x0,float y0,float xa,float xb,float x1,float y1,List<RectangleF> hard,List<RectangleF> soft,IList<float> joins,float top,float bottom,out int cost,IList<float> extra=null){
   cost=0;joins=joins??new float[0];var obs=hard.Where(b=>b.Right>xa&&b.X<xb).ToList();var sobs=soft.Where(b=>b.Right>xa&&b.X<xb).ToList();
-  Func<float,float,float,bool> free=(y,from,to)=>{foreach(var b in obs)if(b.Right>from&&b.X<to&&y>b.Y&&y<b.Bottom)return false;return true;};
+  Func<float,float,float,bool> free=(y,from,to)=>{foreach(var b in obs)if(b.Right>from&&b.X<to&&y>b.Y-2.5f&&y<b.Bottom+2.5f)return false;return true;};/* a line keeps 2.5 clear of every box */
   Func<float,float,float,int> softHits=(y,from,to)=>sobs.Count(b=>b.Right>from&&b.X<to&&y>b.Y-0.01f&&y<b.Bottom+0.01f);
-  Func<float,float,float,float,bool> vfree=(x,ya,yb,dummy)=>{float lo=Math.Min(ya,yb),hi=Math.Max(ya,yb);foreach(var b in hard)if(x>b.X&&x<b.Right&&hi>b.Y&&lo<b.Bottom)return false;return true;};
+  Func<float,float,float,float,bool> vfree=(x,ya,yb,dummy)=>{float lo=Math.Min(ya,yb),hi=Math.Max(ya,yb);foreach(var b in hard)if(x>b.X-2.5f&&x<b.Right+2.5f&&hi>b.Y&&lo<b.Bottom)return false;return true;};
   Func<float,bool> nearJoin=x=>joins.Any(j=>Math.Abs(j-x)<10);
   var pts=new List<PointF>{new PointF(x0,y0),new PointF(xa,y0)};
   /* straight at the head height or at the tail height when the whole run is free */
@@ -142,9 +144,9 @@ static class NetRoute {
   /* candidate heights: the gaps between the boxes of every column on the way, plus the two end heights */
   var cols=obs.GroupBy(b=>Math.Round(b.X/4)).Select(g=>g.ToList()).OrderBy(g=>g.Min(b=>b.X)).ToList();
   var ys=new List<float>{y0,y1,top+4,bottom-4};foreach(var c in cols){var l=c.OrderBy(b=>b.Y).ToList();ys.Add(Math.Max(top+4,l[0].Y-3));ys.Add(Math.Min(bottom-4,l[l.Count-1].Bottom+3));for(int i=0;i+1<l.Count;i++)if(l[i+1].Y>l[i].Bottom+1)ys.Add((l[i].Bottom+l[i+1].Y)/2);}
-  ys=ys.Distinct().ToList();
+  if(extra!=null)ys.AddRange(extra.Where(y=>y>top&&y<bottom));ys=ys.Distinct().ToList();
   /* first height: the one that runs free the farthest, then nearest to the head */
-  Func<float,float,float> reach=(y,from)=>{float x=from;foreach(var b in obs.Where(b=>b.Right>from&&y>b.Y&&y<b.Bottom).OrderBy(b=>b.X)){return Math.Max(from,b.X);}return xb;};
+  Func<float,float,float> reach=(y,from)=>{foreach(var b in obs.Where(b=>b.Right>from&&y>b.Y-2.5f&&y<b.Bottom+2.5f).OrderBy(b=>b.X)){return Math.Max(from,b.X);}return xb;};
   float cur=ys.Where(y=>vfree(xa,y0,y,0)).OrderByDescending(y=>reach(y,xa)).ThenBy(y=>softHits(y,xa,reach(y,xa))).ThenBy(y=>Math.Abs(y-y1)+Math.Abs(y-y0)*0.5f).DefaultIfEmpty(y0).First();
   pts.Add(new PointF(xa,cur));float at=xa;int guard=0;
   while(guard++<200){float stop=reach(cur,at);if(stop>=xb-0.01f)break;

@@ -1,0 +1,20 @@
+DTCE Tool Kit v1.28.1 test build (18 November 2026) - fix
+
+Construction Schedule diagrams (owner, on event 75 going to the finish event 76 by a
+"to 76" detour: "very obvious naman na ito")
+- PERT-CPM: a last activity in the last two columns now ends directly in the FINISH
+  event (textbook arrow network), e.g. 37 1051(7) from event 71 straight into 72. Only
+  where two such activities would share both events, or an FF relation ends at the
+  activity, does it keep its own end event with a straight dummy to FINISH. Last
+  events farther back still join FINISH along the collector line below the network,
+  so no long lines cross the diagram; the collector now enters FINISH horizontally.
+- PDM: the same rule - activities in the last two columns are linked straight to
+  FINISH; only the ones farther back use the collector.
+- PERT event times TE and TL now come from a forward and a backward pass on the
+  arrows exactly as drawn (activity = m, lag arrow = its lag, dummy = 0), and the
+  critical arrows are the ones with zero float on that network (a wrong TL of 18 on
+  the FINISH event is gone). In the arrow network an activity followed only by SS
+  work can show float on its finish while its start is critical.
+- Routing keeps lines 2.5 clear of every event / node box.
+
+Includes v1.28.0. Not tested on Windows. Not a Microsoft Store release.

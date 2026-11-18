@@ -39,9 +39,13 @@ sealed class PertAoa {
   foreach(var nd in n.Nodes){var inc=n.Links.Where(l=>l.To==nd).ToList();if(inc.Count==0)union(S(nd),0);else if(inc.Count==1&&inc[0].Type=="FS"&&inc[0].Lag==0){union(S(nd),E(inc[0].From));merged.Add(inc[0]);}}
   var sinkDummies=new List<PdmNode>();var finishTails=new HashSet<int>();
   var ownEnd=new List<PdmNode>();
-  /* a critical last activity ends in the FINISH event; any other last activity ends in its own event, joined to FINISH by a
-     dummy that runs along one collector line below the network (no long lines across it) */
-  foreach(var nd in n.Nodes.Where(x=>!n.Links.Any(l=>l.From==x))){if(!(nd.Critical&&nd.EF==n.Total)){ownEnd.Add(nd);continue;}int t=find(S(nd));if(finishTails.Add(t))union(E(nd),1);else sinkDummies.Add(nd);}
+  /* every last activity (nothing follows its finish) ends directly in the FINISH event, as in the textbook arrow network
+     (owner, 18 November 2026: "very obvious naman na ito" - no detour); only where two such activities would share both
+     events, or an FF relation ends at the activity's finish, does it keep its own end event with a dummy to FINISH */
+  int lastLevel=n.Nodes.Count==0?0:n.Nodes.Max(x=>x.Level);
+  foreach(var nd in n.Nodes.Where(x=>!x.IsMilestone&&!n.Links.Any(l=>l.From==x&&l.Type!="SS")).OrderBy(x=>!x.Critical).ThenByDescending(x=>x.EF)){
+   bool near=(nd.Critical&&nd.EF==n.Total)||nd.Level>=lastLevel-1;/* far ones end in their own event and join FINISH along the collector below */
+   bool ffIn=n.Links.Any(l=>l.To==nd&&l.Type=="FF");int t=find(S(nd));if(near&&!ffIn&&finishTails.Add(t))union(E(nd),1);else sinkDummies.Add(nd);}
   var ev=new Dictionary<int,AoaEvent>();Func<int,AoaEvent> Ev=x=>{x=find(x);AoaEvent e;if(!ev.TryGetValue(x,out e)){e=new AoaEvent();ev[x]=e;}return e;};
   Action<int,int,int> time=(x,te,tl)=>{var e=Ev(x);e.TE=Math.Max(e.TE,te);e.TL=Math.Min(e.TL,tl);};
   time(0,0,0);time(1,n.Total,n.Total);foreach(var nd in n.Nodes){time(S(nd),nd.ES,nd.LS);time(E(nd),nd.EF,nd.LF);}
@@ -49,7 +53,7 @@ sealed class PertAoa {
   foreach(var l in n.Links.Where(l=>!merged.Contains(l))){int t=l.Type=="SS"?S(l.From):E(l.From),h=l.Type=="FF"?E(l.To):S(l.To);var tail=Ev(t);var head=Ev(h);if(tail==head)continue;
    var dup=a.Arrows.FirstOrDefault(x=>x.Activity==null&&x.Tail==tail&&x.Head==head);if(dup!=null){if(l.Lag>dup.Lag){dup.Lag=l.Lag;dup.Type=l.Type;}dup.Critical|=n.Driving(l);continue;}
    a.Arrows.Add(new AoaArrow{Tail=tail,Head=head,Type=l.Type,Lag=l.Lag,Critical=n.Driving(l)});}
-  foreach(var nd in sinkDummies)a.Arrows.Add(new AoaArrow{Tail=Ev(E(nd)),Head=Ev(1),Type="FS",Lag=0,Critical=nd.Critical&&nd.EF==n.Total});
+  foreach(var nd in sinkDummies)if(Ev(E(nd))!=Ev(1))a.Arrows.Add(new AoaArrow{Tail=Ev(E(nd)),Head=Ev(1),Type="FS",Lag=0,Collector=true});
   /* where an FF relation is what sets the start of an activity (EF(p) + lag - D(s) is more than its other relations
      give), the arrow network needs that limit on the start event too: a lag arrow from the start of p with lag
      D(p) + lag - D(s); otherwise the start event could come earlier than ES and the activity would stretch */
@@ -59,7 +63,6 @@ sealed class PertAoa {
    var st=Ev(S(nd));var tail=Ev(S(drive.From));if(tail==st)continue;int lag=drive.From.Row.Days+drive.Lag-nd.Row.Days;
    var dup=a.Arrows.FirstOrDefault(x=>x.Activity==null&&x.Tail==tail&&x.Head==st);if(dup!=null){if(dup.Type!="SS"||lag>dup.Lag){dup.Type="SS";dup.Lag=Math.Max(lag,dup.Type=="SS"?dup.Lag:lag);}continue;}
    a.Arrows.Add(new AoaArrow{Tail=tail,Head=st,Type="SS",Lag=lag,Critical=n.Driving(drive)&&nd.Critical});}
-  foreach(var nd in ownEnd)a.Arrows.Add(new AoaArrow{Tail=Ev(E(nd)),Head=Ev(1),Type="FS",Lag=0,Collector=true});
   /* every other event without a successor (the end of an activity followed only by SS work) also joins FINISH, so no
      finish is left open (standard: every activity except the start and finish has a predecessor and a successor) */
   var fin1=Ev(1);foreach(var e in ev.Values.Distinct().ToList())if(e!=fin1&&!a.Arrows.Any(x=>x.Tail==e))a.Arrows.Add(new AoaArrow{Tail=e,Head=fin1,Type="FS",Lag=0,Collector=true});
@@ -67,6 +70,15 @@ sealed class PertAoa {
   /* levels: longest path in arrows; numbering by level, top to bottom after ordering */
   foreach(var e in a.Events)e.Level=0;for(bool changed=true;changed;){changed=false;foreach(var ar in a.Arrows)if(ar.Head.Level<ar.Tail.Level+1){ar.Head.Level=ar.Tail.Level+1;changed=true;}}
   a.Finish=Ev(1);int top=a.Events.Where(e=>e!=a.Finish).Select(e=>e.Level).DefaultIfEmpty(0).Max();a.Finish.Level=Math.Max(a.Finish.Level,top+1);/* FINISH is the last event */
+  /* a dummy to FINISH from an event in the last two columns is drawn straight to it; only the ones from farther back run
+     along the collector below the network */
+  foreach(var ar in a.Arrows.Where(x=>x.Collector&&x.Tail.Level>=a.Finish.Level-2))ar.Collector=false;
+  /* event times by a forward and a backward pass on the arrows as drawn (activity = m, lag arrow = its lag, dummy = 0);
+     critical = zero float on the drawn network */
+  var order=a.Events.OrderBy(e=>e.Level).ToList();Func<AoaArrow,int> dur=x=>x.Activity!=null?(int)Math.Round(x.Activity.M):x.Lag;
+  foreach(var e in order)e.TE=0;foreach(var e in order)foreach(var x in a.Arrows.Where(z=>z.Tail==e))x.Head.TE=Math.Max(x.Head.TE,e.TE+dur(x));
+  int total=Math.Max(n.Total,a.Finish.TE);foreach(var e in order)e.TL=total;for(int i=order.Count-1;i>=0;i--){var e=order[i];foreach(var x in a.Arrows.Where(z=>z.Tail==e))e.TL=Math.Min(e.TL,x.Head.TL-dur(x));}
+  foreach(var x in a.Arrows)x.Critical=x.Tail.TE==x.Tail.TL&&x.Head.TE==x.Head.TL&&x.Head.TL-x.Tail.TE-dur(x)==0;
   return a;}
  internal SizeF Layout(float height){Height=height;float usable=height-Foot;int levels=Events.Count==0?0:Events.Max(e=>e.Level);var lists=new List<List<AoaEvent>>();for(int lv=0;lv<=levels;lv++)lists.Add(Events.Where(e=>e.Level==lv).ToList());
   var order=new Dictionary<AoaEvent,int>();int k0=0;foreach(var e in Events)order[e]=k0++;
@@ -130,10 +142,13 @@ sealed class PertAoa {
     int h=bh+(int)pl[0];if(h==0){pick=y;pickHits=0;pickPlace=pl;break;}float cost=Math.Abs(y-ty)+Math.Abs(y-hy);if(h<pickHits||(h==pickHits&&cost<pickCost)){pickHits=h;pickCost=cost;pick=y;pickPlace=pl;}}
    List<PointF> route=new List<PointF>{new PointF(tx+R,ty),new PointF(xa,ty),new PointF(xa,pick),new PointF(xb,pick),new PointF(xb,hy),new PointF(hx-R,hy)};
    if(pickHits>=4){/* no free single height: step between free heights (NetRoute.Sweep) and keep it if it touches less */int cost;var hard=obsEvents.Concat(texts.Select(t=>RectangleF.Inflate(t,1,1))).ToList();
-    var alt=NetRoute.Sweep(tx+R,ty,xa,xb,hx-R,hy,hard,bands,joins,0,Height-Foot,out cost);var ap=NetRoute.Path(alt.ToArray());var runs=new List<float[]>();int score=0;
+    var alt=NetRoute.Sweep(tx+R,ty,xa,xb,hx-R,hy,hard,bands,joins,0,Height-Foot,out cost,lanes);var ap=NetRoute.Path(alt.ToArray());var runs=new List<float[]>();int score=0;
     for(int k=0;k+1<ap.Length;k++){var p=ap[k];var q=ap[k+1];if(Math.Abs(p.Y-q.Y)<0.01f){var rr=new RectangleF(Math.Min(p.X,q.X),p.Y-2,Math.Abs(q.X-p.X),4);score+=hits(rr,obsEvents)*20+hits(rr,texts)*4+hits(rr,bands)*2;if(k>0&&k+2<ap.Length&&q.X>p.X)runs.Add(new[]{p.Y,p.X,q.X});}
      else{var rr=vr(p.X,p.Y,q.Y);score+=hits(rr,obsEvents)*20+hits(rr,texts)*4;}}
-    if(runs.Count==0)runs.Add(new[]{ty,xa,xb});var pl=place(runs);score+=(int)pl[0]+2;if(score<pickHits){route=alt;pickPlace=pl;pickHits=score;}}
+    if(runs.Count==0)runs.Add(new[]{ty,xa,xb});var pl=place(runs);score+=(int)pl[0]+2;
+    /* crossing an event is never accepted when the stepped route avoids it */
+    Func<IList<PointF>,int> eventHits=pts=>{int c=0;for(int k=0;k+1<pts.Count;k++){var p=pts[k];var q=pts[k+1];var rr=Math.Abs(p.Y-q.Y)<0.01f?new RectangleF(Math.Min(p.X,q.X),p.Y-2,Math.Abs(q.X-p.X),4):vr(p.X,p.Y,q.Y);c+=hits(rr,obsEvents);}return c;};
+    int pe=eventHits(NetRoute.Path(route.ToArray())),ae=eventHits(ap);if(ae<pe||(ae==pe&&score<pickHits)){route=alt;pickPlace=pl;pickHits=score;}}
    ar.Score=pickHits;var path=NetRoute.Path(route.ToArray());
    for(int k=0;k+1<path.Length;k++){var p=path[k];var q=path[k+1];if(Math.Abs(p.Y-q.Y)<0.01f)bands.Add(new RectangleF(Math.Min(p.X,q.X),p.Y-2,Math.Abs(q.X-p.X),4));else if(Math.Abs(p.X-q.X)<0.01f)vlines.Add(vr(p.X,p.Y,q.Y));}
    float ly=pickPlace[3];var rects=need>0?labelRects(ly,pickPlace[1],pickPlace[2]):new List<RectangleF>();texts.AddRange(rects);
@@ -141,10 +156,10 @@ sealed class PertAoa {
    int ri=0;float rm=pickPlace[2];if(name!=null)plan.Labels.Add(new PlanLabel{Rect=rects[ri++],Text=name,Bold=true,Critical=ar.Critical,Truncated=rm<wn-0.5f});if(te!=null)plan.Labels.Add(new PlanLabel{Rect=rects[ri++],Text=te,Muted=true,Truncated=rm<wt-0.5f});if(lag!=null)plan.Labels.Add(new PlanLabel{Rect=rects[ri++],Text=lag,Critical=ar.Critical,Muted=!ar.Critical,Truncated=rm<wl-0.5f});}
   /* collector: from each last event a short dummy to the right, one vertical line per event column down to the collector
      and one collector line to the finish event, drawn once so the dashes stay readable */
-  var coll=Arrows.Where(x=>x.Collector).ToList();if(coll.Count>0){var fin=coll[0].Head;float fx=fin.X+R-R-14;var colX=new List<float>();
+  var coll=Arrows.Where(x=>x.Collector).ToList();if(coll.Count>0){var fin=coll[0].Head;float fx=fin.X-26;var colX=new List<float>();
    foreach(var grp in coll.GroupBy(x=>x.Tail.X)){float cx0=grp.Key+2*R+10;colX.Add(cx0);foreach(var ar in grp)plan.Lines.Add(new KeyValuePair<PointF[],int>(new[]{new PointF(ar.Tail.X+2*R,ar.Tail.Y),new PointF(cx0,ar.Tail.Y)},5));
     plan.Lines.Add(new KeyValuePair<PointF[],int>(new[]{new PointF(cx0,grp.Min(x=>x.Tail.Y)),new PointF(cx0,collector)},5));}
-   plan.Lines.Add(new KeyValuePair<PointF[],int>(NetRoute.Path(new[]{new PointF(colX.Min(),collector),new PointF(fx,collector),edge(fin.X+R,fin.Y,fx,collector)}),2));}
+   plan.Lines.Add(new KeyValuePair<PointF[],int>(NetRoute.Path(new[]{new PointF(colX.Min(),collector),new PointF(fx,collector),new PointF(fx,fin.Y),new PointF(fin.X,fin.Y)}),2));}
   return plan;}
  internal void Draw(Graphics g,float dx,float dy,Font font,Font bold,IList<float> joins=null){var smooth=g.SmoothingMode;g.SmoothingMode=SmoothingMode.AntiAlias;Color redC=Color.FromArgb(192,40,40),lineC=Color.FromArgb(110,120,132);var state=g.Save();g.TranslateTransform(dx,dy);
   var plan=MakePlan(g,font,bold,joins);LastPlan=plan;var near=new StringFormat{Alignment=StringAlignment.Center,Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap};
@@ -160,7 +175,7 @@ sealed class PertAoa {
  internal static void DrawKey(Graphics g,float x,float y,Font font,Font bold){using(var ink=new SolidBrush(PowTheme.Ink))using(var red=new SolidBrush(Color.FromArgb(192,40,40)))using(var white=new SolidBrush(Color.White))using(var ring=new Pen(PowTheme.Ink,1f))using(var crit=new Pen(Color.FromArgb(192,40,40),1.6f))using(var act=new Pen(Color.FromArgb(110,120,132),1f){CustomEndCap=new AdjustableArrowCap(3.5f,4.5f)})using(var dummy=new Pen(Color.FromArgb(110,120,132),0.9f){DashStyle=DashStyle.Dash,CustomEndCap=new AdjustableArrowCap(3.5f,4.5f)}){
   g.DrawString("EVENT KEY",bold,ink,x,y);Event(g,new RectangleF(x+76,y,2*R,2*R),"i","TE","TL",false,font,bold,ring,crit,ink,red,white);
   string[] k={"i = event no. (each arrow runs from a lower to a higher no.)","TE = earliest event time, TL = latest event time (working days); TE = TL: critical"};for(int i=0;i<k.Length;i++)g.DrawString(k[i],font,ink,x+76+2*R+12,y+4+i*15);
-  float ax=x+560;g.DrawLine(act,ax,y+8,ax+90,y+8);g.DrawString("activity: no. and item no. above, te (a / m / b) below",font,ink,ax+100,y+1);g.DrawLine(dummy,ax,y+24,ax+90,y+24);g.DrawString("dummy: logic only, no time; ends of work join the finish event along the collector line",font,ink,ax+100,y+17);
+  float ax=x+560;g.DrawLine(act,ax,y+8,ax+90,y+8);g.DrawString("activity: no. and item no. above, te (a / m / b) below",font,ink,ax+100,y+1);g.DrawLine(dummy,ax,y+24,ax+90,y+24);g.DrawString("dummy: logic only, no time",font,ink,ax+100,y+17);
   using(var lag=new Pen(Color.FromArgb(110,120,132),0.9f){DashStyle=DashStyle.DashDot,CustomEndCap=new AdjustableArrowCap(3.5f,4.5f)}){g.DrawLine(lag,ax,y+40,ax+90,y+40);}g.DrawString("lag arrow: time, no work - SS +3 = 3 days after the start of the tail activity, FF +1 = finish 1 day after its finish, FS +7 = 7 days after its finish",font,ink,ax+100,y+33);}}
 }
 sealed class PertView:Control {internal PertAoa Diagram;internal PertResult Pert;internal PertView(){DoubleBuffered=true;BackColor=Color.White;Font=new Font("Segoe UI",8f);}
