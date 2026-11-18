@@ -4589,7 +4589,7 @@ worksExcelTimer.Tick += async delegate
 			tabs.TabPages.Clear();
 			tabs.TabPages.Add(pages["Bill of Quantities"]);
 			pages["Reinforced Concrete Start"].Text = "Start";
-			AddSection("Reinforced Concrete Works", new TabPage[9]
+			AddSection("Reinforced Concrete Works", new TabPage[8]
 			{
 				pages["Reinforced Concrete Start"],
 				pages["Beam Estimate"],
@@ -4597,10 +4597,11 @@ worksExcelTimer.Tick += async delegate
 				pages["Slab Estimate"],
 				pages["Footing Estimate"],
                 pages["Wall Footing Estimate"],
-				pages["Canopy / Ledge Estimate"],
 				pages["RC Wall Estimate"],
                 pages["Miscellaneous Structures"]
 			});
+            /* Owner (18 November 2026): Canopy / Ledge belongs under Miscellaneous Structures (first nested tab). */
+            pages["Miscellaneous Structures"].Controls.OfType<TabControl>().Single().TabPages.Insert(0, pages["Canopy / Ledge Estimate"]);
 			pages["Earthworks Start"].Text = "Start";
 			AddSection("Earthworks", new TabPage[5]
 			{

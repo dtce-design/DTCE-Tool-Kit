@@ -1,0 +1,10 @@
+DTCE Tool Kit v1.4.135 test build (18 November 2026)
+
+Canopy / Ledge moved (owner: "canopy or ledge ilipat sa miscellaneous structures")
+- Reinforced Concrete Works > Miscellaneous Structures > Canopy / Ledge
+  Estimate (first nested tab). It is no longer a separate RC subtab.
+- Canopy / ledge rebar is included in the Miscellaneous Structures
+  "Rebar by grade and diameter" summary. Quantities, BOQ items and saved
+  files are unchanged.
+
+Includes v1.4.130-134. Not a Microsoft Store release.
