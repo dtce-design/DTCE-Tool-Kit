@@ -1,48 +1,72 @@
-using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Printing;using System.Globalization;using System.Linq;using System.Windows.Forms;
+using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Imaging;using System.Drawing.Printing;using System.Globalization;using System.Linq;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
-// Printing of the Construction Schedule (owner, 18 November 2026: "printable"): A4 landscape, text at least 7 pt (AGENTS.md
-// report rule). Every page repeats the item columns; the working days are split over pages side by side when they do not
-// fit one page width (each day keeps its own numbered column), and the lines over pages top to bottom.
-/* PDM pages: the network laid out to the page height, split between columns over pages side by side */
-sealed class PdmPrintLayout {
- internal readonly PdmNetwork Network;internal readonly List<KeyValuePair<float,float>> Ranges=new List<KeyValuePair<float,float>>();const float Margin=40,TitleH=60;
- internal PdmPrintLayout(PdmNetwork network,SizeF page){Network=network;network.Layout(page.Height-2*Margin-TitleH);float avail=page.Width-2*Margin;
-  var cols=network.Nodes.Select(n=>new KeyValuePair<float,float>(n.X,PdmNetwork.NodeW)).Concat(network.Milestones.Select(m=>new KeyValuePair<float,float>(m.X,PdmNetwork.MileW))).GroupBy(c=>c.Key).Select(g=>new KeyValuePair<float,float>(g.Key,g.Max(c=>c.Value))).OrderBy(c=>c.Key).ToList();
-  int i=0;while(i<cols.Count){float start=cols[i].Key-6,end=cols[i].Key+cols[i].Value;i++;while(i<cols.Count&&cols[i].Key+cols[i].Value-start<=avail){end=cols[i].Key+cols[i].Value;i++;}Ranges.Add(new KeyValuePair<float,float>(start,end+6));}if(Ranges.Count==0)Ranges.Add(new KeyValuePair<float,float>(0,avail));}
- internal int Pages{get{return Ranges.Count;}}
- internal void DrawPage(Graphics g,int index,RectangleF bounds,string title){var range=Ranges[index];
-  using(var font=new Font("Segoe UI",7.5f))using(var bold=new Font("Segoe UI",7.5f,FontStyle.Bold))using(var big=new Font("Segoe UI",11f,FontStyle.Bold))using(var ink=new SolidBrush(PowTheme.Ink)){
-   g.DrawString("PRECEDENCE DIAGRAM (PDM)",big,ink,bounds.Left+Margin,bounds.Top+Margin-8);
-   g.DrawString(title+"   |   Project duration: "+Network.Total+" working days (8 hours per day)   |   Page "+(index+1)+" of "+Pages,font,ink,bounds.Left+Margin,bounds.Top+Margin+14);
-   PdmNetwork.Legend(g,bounds.Left+Margin,bounds.Top+Margin+28,font);
-   var state=g.Save();g.SetClip(new RectangleF(bounds.Left+Margin,bounds.Top+Margin+TitleH-6,range.Value-range.Key,bounds.Height-2*Margin-TitleH+6));Network.Draw(g,bounds.Left+Margin-range.Key,bounds.Top+Margin+TitleH,font,bold);g.Restore(state);}}
-}
-sealed class SchedulePrintLayout {
- internal const float Margin=40,TitleH=46,RowH=15,HeadH=34,DayW=17;/* hundredths of an inch */
- internal static readonly float[] Widths={62,225,58,34,52,44};
- internal readonly List<ScheduleChart.Line> Lines;internal readonly int Total;internal readonly List<KeyValuePair<int,int>> DayBlocks=new List<KeyValuePair<int,int>>();internal readonly List<KeyValuePair<int,int>> LineBlocks=new List<KeyValuePair<int,int>>();
- internal SchedulePrintLayout(List<ScheduleRow> rows,int total,SizeF page){Lines=ScheduleChart.Lines(rows);Total=Math.Max(1,total);
-  float daysWidth=page.Width-2*Margin-Widths.Sum();int perPage=Math.Max(5,(int)(daysWidth/DayW));for(int d=1;d<=Total;d+=perPage)DayBlocks.Add(new KeyValuePair<int,int>(d,Math.Min(Total,d+perPage-1)));
-  int perLines=Math.Max(5,(int)((page.Height-2*Margin-TitleH-HeadH-20)/RowH));for(int i=0;i<Math.Max(1,Lines.Count);i+=perLines)LineBlocks.Add(new KeyValuePair<int,int>(i,Math.Min(Lines.Count,i+perLines)));}
- internal int Pages{get{return DayBlocks.Count*LineBlocks.Count;}}
- internal void DrawPage(Graphics g,int index,RectangleF bounds,string title){var lines=LineBlocks[index%LineBlocks.Count];var days=DayBlocks[index/LineBlocks.Count];
-  using(var font=new Font("Segoe UI",7.5f))using(var bold=new Font("Segoe UI",7.5f,FontStyle.Bold))using(var big=new Font("Segoe UI",11f,FontStyle.Bold))using(var ink=new SolidBrush(PowTheme.Ink)){
-   g.DrawString("CONSTRUCTION SCHEDULE (BAR CHART)",big,ink,bounds.Left+Margin,bounds.Top+Margin-8);
-   g.DrawString(title+"   |   Total: "+Total+" working days (8 hours per day)   |   Days "+days.Key+" - "+days.Value+"   |   Page "+(index+1)+" of "+Pages,font,ink,bounds.Left+Margin,bounds.Top+Margin+14);
-   ScheduleChart.Draw(g,Lines.GetRange(lines.Key,lines.Value-lines.Key),bounds.Left+Margin,bounds.Top+Margin+TitleH-8,Widths,DayW,RowH,HeadH,days.Key,days.Value,font,bold);}}
+// Construction schedule set for issue (owner, 18 November 2026: "printable", "ready to issue sa construction"): A3 landscape (owner, 18 November 2026: "sa A3 iprint")
+// sheets with a border and a title block (project, location, office, sheet title, prepared / checked / approved lines left
+// blank for the engineers - nothing is signed or approved by the app, date, sheet n of N). Sheets: summary (durations,
+// PERT figures, critical path, basis), bar chart, precedence diagram (PDM), PERT table and PERT-CPM network. Text at least
+// 7.5 pt; the User edition carries the DPWH logo watermark like the other reports. Units: hundredths of an inch.
+sealed class ScheduleSet {
+ internal const float PageW=1654,PageH=1169,Margin=36,Block=84;
+ internal static RectangleF Content{get{return new RectangleF(Margin+10,Margin+10,PageW-2*Margin-20,PageH-2*Margin-Block-26);}}
+ internal readonly List<ScheduleRow> Rows;internal readonly int Total;internal readonly PdmNetwork Network;internal readonly PertResult Pert;internal readonly ProjectInformation Info;
+ internal readonly List<KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>> Sheets=new List<KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>>();
+ internal ScheduleSet(List<ScheduleRow> rows,ProjectInformation info){Rows=rows;Info=info??new ProjectInformation();Total=rows.Where(r=>r.Days>0).Select(r=>r.Finish).DefaultIfEmpty(0).Max();Network=PdmNetwork.Build(rows);Pert=PertResult.Build(Network);
+  var crit=new HashSet<ScheduleRow>(Network.Nodes.Where(n=>n.Critical).Select(n=>n.Row));foreach(var r in rows)r.Critical=crit.Contains(r);
+  var c=Content;Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("SCHEDULE SUMMARY",DrawSummary));
+  /* bar chart: days side by side, lines top to bottom */
+  float[] widths={62,228,62,36,52,42};float dayW=17,headH=34;var lines0=ScheduleChart.Lines(rows);float rowH=Math.Max(15,Math.Min(22,(c.Height-headH-4)/Math.Max(1,lines0.Count)));int perDays=Math.Max(6,(int)((c.Width-widths.Sum())/dayW)/6*6);int perLines=Math.Max(5,(int)((c.Height-headH-4)/rowH));var lines=ScheduleChart.Lines(rows);
+  for(int d=1;d<=Math.Max(1,Total);d+=perDays)for(int i=0;i<Math.Max(1,lines.Count);i+=perLines){int from=d,to=Math.Min(Math.Max(1,Total),d+perDays-1),li=i,ln=Math.Min(lines.Count,i+perLines)-i;
+   Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("BAR CHART - DAYS "+from+" TO "+to,(g,r,f,b)=>ScheduleChart.Draw(g,lines.GetRange(li,ln),r.X,r.Y,widths,dayW,rowH,headH,from,to,f,b)));}
+  /* PDM: split between node columns */
+  if(Network.Nodes.Count>0){float legendH=16+PdmNetwork.KeyH;Network.Layout(c.Height-legendH);var cols=Network.Nodes.Select(n=>new KeyValuePair<float,float>(n.X,PdmNetwork.NodeW)).Concat(Network.Milestones.Select(m=>new KeyValuePair<float,float>(m.X,PdmNetwork.MileD))).Concat(Network.Boxes.Select(bx=>new KeyValuePair<float,float>(bx.Left,bx.Right-bx.Left))).OrderBy(k=>k.Key).ToList();
+   var ranges=new List<KeyValuePair<float,float>>();int k2=0;while(k2<cols.Count){float start=cols[k2].Key-4,end=cols[k2].Key+cols[k2].Value;k2++;while(k2<cols.Count&&cols[k2].Key+cols[k2].Value-start<=c.Width){end=Math.Max(end,cols[k2].Key+cols[k2].Value);k2++;}ranges.Add(new KeyValuePair<float,float>(start,end+4));}
+   for(int i=0;i<ranges.Count;i++){var range=ranges[i];Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PRECEDENCE DIAGRAM (PDM)"+(ranges.Count>1?" - "+(i+1)+" OF "+ranges.Count:""),(g,r,f,b)=>{using(var ink=new SolidBrush(PowTheme.Muted))g.DrawString(PdmNetwork.LegendText,f,ink,r.X,r.Y);PdmNetwork.DrawKey(g,r.X,r.Y+16,f,b);var st=g.Save();g.SetClip(new RectangleF(r.X,r.Y+legendH,Math.Min(r.Width,range.Value-range.Key),r.Height-legendH));Network.Draw(g,r.X-range.Key,r.Y+legendH,f,b);g.Restore(st);}));}
+  /* PERT table */
+   int perRows=Math.Max(5,(int)((c.Height-60)/15));for(int i=0;i<Pert.Activities.Count;i+=perRows){int s=i,n=Math.Min(Pert.Activities.Count,i+perRows)-i;Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PERT TIME ESTIMATES",(g,r,f,b)=>DrawPertTable(g,r,f,b,s,n)));}
+  /* PERT-CPM network: phases per sheet */
+   var diagram=new PertDiagram(Network,Pert);int per=Math.Max(1,(int)((c.Width-60)/PertDiagram.PhaseW));for(int p=0;p<Network.Phases.Count;p+=per){int from=p,to=Math.Min(Network.Phases.Count,p+per);
+    Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PERT-CPM NETWORK"+(Network.Phases.Count>per?" - PHASES "+(from+1)+" TO "+to:""),(g,r,f,b)=>{using(var ink=new SolidBrush(PowTheme.Muted))g.DrawString(PertDiagram.LegendText,f,ink,r.X,r.Y);PertDiagram.DrawKey(g,r.X,r.Y+16,f,b);diagram.Draw(g,r.X,r.Y+16+PertDiagram.KeyH,r.Height-16-PertDiagram.KeyH,from,to,f,b);}));}}}
+ void DrawSummary(Graphics g,RectangleF r,Font f,Font b){using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted))using(var red=new SolidBrush(Color.FromArgb(192,40,40)))using(var big=new Font("Segoe UI",14f,FontStyle.Bold))using(var mid=new Font("Segoe UI",9.5f,FontStyle.Bold))using(var grid=new Pen(Color.FromArgb(190,198,206),0.6f)){
+  float y=r.Y;g.DrawString("CONSTRUCTION SCHEDULE",big,ink,r.X,y);y+=30;
+  string[,] facts={{"Project duration (CPM)",Total+" working days"},{"Working time","8 hours per day; working days only (no Sundays, holidays or unworkable days)"},{"Scheduled pay items",Network.Nodes.Count+" activities in "+Network.Phases.Count+" work phases"},
+   {"PERT expected time Te",Pert.Te.ToString("0.0",CultureInfo.InvariantCulture)+" working days  (standard deviation "+Pert.Sigma.ToString("0.00",CultureInfo.InvariantCulture)+" days)"},{"Completion at 90% confidence",Pert.P90+" working days"},{"Completion at 95% confidence",Pert.P95+" working days"}};
+  for(int i=0;i<facts.GetLength(0);i++){g.DrawString(facts[i,0],b,ink,r.X,y);g.DrawString(facts[i,1],f,ink,r.X+210,y);y+=16;}y+=10;
+  g.DrawString("CRITICAL PATH",mid,red,r.X,y);y+=18;float[] w={40,80,420,60,60,60};string[] h={"No.","Item no.","Description","Days","Start day","Finish day"};float x=r.X;for(int i=0;i<h.Length;i++){g.DrawString(h[i],b,ink,x,y);x+=w[i];}y+=15;g.DrawLine(grid,r.X,y,r.X+w.Sum(),y);y+=2;
+  foreach(var nd in Network.Nodes.Where(n=>n.Critical)){if(y>r.Bottom-110)break;x=r.X;string[] v={nd.Id.ToString(CultureInfo.InvariantCulture),nd.Row.Code,nd.Row.Description,nd.Row.Days.ToString(CultureInfo.InvariantCulture),nd.Row.Start.ToString(CultureInfo.InvariantCulture),nd.Row.Finish.ToString(CultureInfo.InvariantCulture)};for(int i=0;i<v.Length;i++){g.DrawString(v[i],f,ink,new RectangleF(x,y,w[i]-6,14),new StringFormat{Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap});x+=w[i];}y+=14;}
+  y=Math.Max(y+12,r.Bottom-100);g.DrawString("BASIS AND NOTES",mid,ink,r.X,y);y+=18;
+  string[] notes={"1. Durations: quantity from the Bill of Quantities / (output per hour from the DUPA x 8 hours), rounded up to whole working days; one crew per activity.",
+   "2. Sequence: activities grouped by work phase (DPWH item no.); activities of a phase run in parallel; each phase starts after the previous phase is finished (Finish-to-Start).",
+   "3. PERT: optimistic a = 0.8 m, most likely m = activity duration, pessimistic b = 1.2 m; te = (a + 4m + b) / 6; variance = ((b - a) / 6)^2; normal distribution for the confidence levels.",
+   "4. Lump-sum (LS) pay items are listed in the bar chart with the output per hour left blank (no duration yet); time-based (per month) pay items are not scheduled. Calendar days, Sundays, holidays and unworkable days are not included; bar chart weeks = 6 working days.",
+   "5. PDM / CPM times follow the standard convention: ES of the first activity = 0, EF = ES + D, LS = LF - D, TF = LS - ES; bar chart day n = the n-th working day (activity runs from day ES + 1 to day EF)."};
+  foreach(var n in notes){g.DrawString(n,f,muted,new RectangleF(r.X,y,r.Width,26));y+=17;}}}
+ void DrawPertTable(Graphics g,RectangleF r,Font f,Font b,int start,int count){float[] w={36,80,380,60,60,60,64,64,52,52,60};string[] h={"No.","Item no.","Description","a (opt.)","m (likely)","b (pess.)","te","Variance","ES","EF","Critical"};
+  using(var ink=new SolidBrush(PowTheme.Ink))using(var red=new SolidBrush(Color.FromArgb(192,40,40)))using(var head=new SolidBrush(Color.FromArgb(236,240,244)))using(var grid=new Pen(Color.FromArgb(205,211,218),0.5f)){var near=new StringFormat{LineAlignment=StringAlignment.Center,Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap};var far=new StringFormat(near){Alignment=StringAlignment.Far};
+   g.FillRectangle(head,r.X,r.Y,w.Sum(),22);float x=r.X;for(int i=0;i<h.Length;i++){g.DrawString(h[i],b,ink,new RectangleF(x+3,r.Y,w[i]-6,22),i>=3&&i<=9?far:near);x+=w[i];}float y=r.Y+22;
+   foreach(var a in Pert.Activities.Skip(start).Take(count)){var nd=a.Node;string[] v={nd.Id.ToString(CultureInfo.InvariantCulture),nd.Row.Code,nd.Row.Description,a.A.ToString("0.0",CultureInfo.InvariantCulture),a.M.ToString("0.0",CultureInfo.InvariantCulture),a.B.ToString("0.0",CultureInfo.InvariantCulture),a.Te.ToString("0.0",CultureInfo.InvariantCulture),a.Variance.ToString("0.00",CultureInfo.InvariantCulture),nd.ES.ToString(CultureInfo.InvariantCulture),nd.EF.ToString(CultureInfo.InvariantCulture),nd.Critical?"Yes":""};
+    x=r.X;for(int i=0;i<v.Length;i++){g.DrawString(v[i],f,nd.Critical&&i==10?(Brush)red:ink,new RectangleF(x+3,y,w[i]-6,15),i>=3&&i<=9?far:near);x+=w[i];}y+=15;g.DrawLine(grid,r.X,y,r.X+w.Sum(),y);}
+   x=r.X;for(int i=0;i<=w.Length;i++){g.DrawLine(grid,x,r.Y,x,y);if(i<w.Length)x+=w[i];}g.DrawLine(grid,r.X,r.Y,r.X+w.Sum(),r.Y);
+   if(start+count>=Pert.Activities.Count)g.DrawString("Project: Te = "+Pert.Te.ToString("0.0",CultureInfo.InvariantCulture)+" days, standard deviation = "+Pert.Sigma.ToString("0.00",CultureInfo.InvariantCulture)+" days (critical activities), 90% = "+Pert.P90+" days, 95% = "+Pert.P95+" days.",b,ink,r.X,y+8);}}
+ internal void DrawSheet(Graphics g,int index){using(var f=new Font("Segoe UI",7.5f))using(var b=new Font("Segoe UI",7.5f,FontStyle.Bold)){Watermark(g);var c=Content;Sheets[index].Value(g,c,f,b);Frame(g,index,f,b);}}
+ void Frame(Graphics g,int index,Font f,Font b){using(var pen=new Pen(PowTheme.Ink,1.2f))using(var thin=new Pen(PowTheme.Ink,0.6f))using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted))using(var head=new Font("Segoe UI",10f,FontStyle.Bold)){
+  var outer=new RectangleF(Margin,Margin,PageW-2*Margin,PageH-2*Margin);g.DrawRectangle(pen,outer.X,outer.Y,outer.Width,outer.Height);float top=outer.Bottom-Block;g.DrawLine(pen,outer.X,top,outer.Right,top);
+  float[] w={0.38f,0.24f,0.24f,0.14f};float x=outer.X;var cells=new List<RectangleF>();foreach(var k in w){var cell=new RectangleF(x,top,outer.Width*k,Block);cells.Add(cell);x+=cell.Width;if(x<outer.Right-1)g.DrawLine(thin,x,top,x,outer.Bottom);}
+  g.DrawString("PROJECT",b,muted,cells[0].X+6,top+4);g.DrawString(Info.Name==""?"(project name not set)":Info.Name,b,ink,new RectangleF(cells[0].X+6,top+16,cells[0].Width-12,30));g.DrawString("Location: "+(Info.Location==""?"-":Info.Location),f,ink,cells[0].X+6,top+46);if(Info.Office!="")g.DrawString(Info.Office,f,ink,new RectangleF(cells[0].X+6,top+58,cells[0].Width-12,14));
+  g.DrawString("SHEET TITLE",b,muted,cells[1].X+6,top+4);g.DrawString("CONSTRUCTION SCHEDULE",head,ink,cells[1].X+6,top+18);g.DrawString(Sheets[index].Key,b,ink,new RectangleF(cells[1].X+6,top+40,cells[1].Width-12,30));
+  string[] sign={"Prepared by:","Checked by:","Approved by:"};for(int i=0;i<3;i++){float y=top+6+i*22;g.DrawString(sign[i],f,ink,cells[2].X+6,y);g.DrawLine(thin,cells[2].X+70,y+12,cells[2].Right-8,y+12);}
+  g.DrawString("DATE",b,muted,cells[3].X+6,top+4);g.DrawString(DateTime.Now.ToString("dd MMMM yyyy",CultureInfo.InvariantCulture),f,ink,cells[3].X+6,top+16);g.DrawString("SHEET",b,muted,cells[3].X+6,top+36);g.DrawString((index+1)+" of "+Sheets.Count,head,ink,cells[3].X+6,top+48);}}
+ static Image logo;
+ static void Watermark(Graphics g){var tiles=ReportWatermarkPattern.Active(PageW*0.72,PageH*0.72).ToList();if(tiles.Count==0)return;if(logo==null){using(var s=typeof(ScheduleSet).Assembly.GetManifestResourceStream("DpwhLogo.png")){if(s==null)return;logo=Image.FromStream(s);}}
+  var cm=new ColorMatrix{Matrix33=(float)ReportWatermarkPattern.Opacity};using(var ia=new ImageAttributes()){ia.SetColorMatrix(cm);float k=100f/72f;foreach(var t in tiles){float x=(float)t[0]*k,y=(float)t[1]*k,s=(float)t[2]*k;if(x>PageW||y>PageH||x+s<0||y+s<0)continue;g.DrawImage(logo,new Rectangle((int)x,(int)y,(int)s,(int)s),0,0,logo.Width,logo.Height,GraphicsUnit.Pixel,ia);}}}
 }
 partial class ProgramOfWorksForm {
- void PrintSchedule(bool preview){Guard();var rows=ScheduleRows();int total=rows.Where(r=>r.Days>0).Select(r=>r.Finish).DefaultIfEmpty(0).Max();var critical=new HashSet<ScheduleRow>(PdmNetwork.Build(rows).Nodes.Where(x=>x.Critical).Select(x=>x.Row));foreach(var r in rows)r.Critical=critical.Contains(r);
-  if(rows.Count==0){MessageBox.Show(this,"No pay item quantities to schedule yet.","Construction Schedule",MessageBoxButtons.OK,MessageBoxIcon.Information);return;}
-  var info=ProjectInfoStore.Read();string title=info==null?"":string.Join(" - ",new[]{info.Name,info.Location}.Where(x=>!string.IsNullOrWhiteSpace(x)).ToArray());
-  using(var doc=new PrintDocument{DocumentName="Construction Schedule"}){doc.DefaultPageSettings.Landscape=true;var a4=doc.PrinterSettings.PaperSizes.Cast<PaperSize>().FirstOrDefault(p=>p.Kind==PaperKind.A4);if(a4!=null)doc.DefaultPageSettings.PaperSize=a4;
-   bool pdm=scheduleViews!=null&&scheduleViews.SelectedIndex==1;SchedulePrintLayout layout=null;PdmPrintLayout network=null;int page=0;
-   doc.BeginPrint+=(s,e)=>{page=0;layout=null;network=null;};
-   doc.PrintPage+=(s,e)=>{var bounds=new RectangleF(0,0,e.PageBounds.Width,e.PageBounds.Height);int pages;
-    if(pdm){if(network==null)network=new PdmPrintLayout(PdmNetwork.Build(rows),bounds.Size);network.DrawPage(e.Graphics,page,bounds,title);pages=network.Pages;}
-    else{if(layout==null)layout=new SchedulePrintLayout(rows,total,bounds.Size);layout.DrawPage(e.Graphics,page,bounds,title);pages=layout.Pages;}
-    page++;e.HasMorePages=page<pages;if(!e.HasMorePages&&pdm&&pdmView!=null)pdmView.Fit();};
+ void PrintSchedule(bool preview){Guard();var rows=ScheduleRows();if(rows.Count==0){MessageBox.Show(this,"No pay item quantities to schedule yet.","Construction Schedule",MessageBoxButtons.OK,MessageBoxIcon.Information);return;}
+  var set=new ScheduleSet(rows,ProjectInfoStore.Read());
+  using(var doc=new PrintDocument{DocumentName="Construction Schedule"}){doc.DefaultPageSettings.Landscape=true;var a3=doc.PrinterSettings.PaperSizes.Cast<PaperSize>().FirstOrDefault(p=>p.Kind==PaperKind.A3);doc.DefaultPageSettings.PaperSize=a3??new PaperSize("A3",1169,1654);doc.DefaultPageSettings.Margins=new Margins(0,0,0,0);doc.OriginAtMargins=false;
+   int page=0;doc.BeginPrint+=(s,e)=>{page=0;};
+   doc.PrintPage+=(s,e)=>{/* sheet drawn in hundredths of an inch from the paper corner, scaled to the printable page */float sx=e.PageBounds.Width/ScheduleSet.PageW,sy=e.PageBounds.Height/ScheduleSet.PageH;var st=e.Graphics.Save();e.Graphics.TranslateTransform(-e.PageSettings.HardMarginX,-e.PageSettings.HardMarginY);e.Graphics.ScaleTransform(Math.Min(sx,sy),Math.Min(sx,sy));set.DrawSheet(e.Graphics,page);e.Graphics.Restore(st);page++;e.HasMorePages=page<set.Sheets.Count;};
    if(preview){using(var dialog=new PrintPreviewDialog{Document=doc,Width=1200,Height=850,StartPosition=FormStartPosition.CenterParent}){dialog.ShowDialog(this);}}
-   else{using(var dialog=new PrintDialog{Document=doc,UseEXDialog=true}){if(dialog.ShowDialog(this)==DialogResult.OK)doc.Print();}}}}
+   else{using(var dialog=new PrintDialog{Document=doc,UseEXDialog=true}){if(dialog.ShowDialog(this)==DialogResult.OK)doc.Print();}}}
+  RefreshSchedule();}
 }
 }

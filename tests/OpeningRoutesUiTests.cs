@@ -21,6 +21,11 @@ class OpeningRoutesUiTests {
    Check(!f.BackupQuantities().Any(x=>x.Key.Contains("OP-1")),"Opening has no BOQ item");}
   /* Construction Schedule (owner, 18 November 2026): working days = quantity / (output per hour x 8 h x crews) */
   {var rows=(List<ScheduleRow>)typeof(ProgramOfWorksForm).GetMethod("ScheduleRows",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(f,null);var pvc=rows.FirstOrDefault(r=>r.Code=="1043(1)");
-   Check(pvc!=null&&Math.Abs(pvc.Rate-0.315)<1e-9&&pvc.Days==(int)Math.Ceiling(pvc.Quantity/(0.315*8)-1e-9),"PVC door working days from the DUPA output per hour");Check(!rows.Any(r=>r.Code=="1004(2)"),"LS items are left out of the schedule");}}
+   Check(pvc!=null&&Math.Abs(pvc.Rate-0.315)<1e-9&&pvc.Days==(int)Math.Ceiling(pvc.Quantity/(0.315*8)-1e-9),"PVC door working days from the DUPA output per hour");var pay=(System.Collections.IList)typeof(ProgramOfWorksForm).GetMethod("SchedulePayQuantities",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(f,null);int lsPay=pay.Cast<object>().Count(p=>ScheduleRow.IsLumpSum(((BackupBillItem)p.GetType().GetProperty("Key").GetValue(p,null)).Unit));
+   Check(rows.Count(r=>ScheduleRow.IsLumpSum(r.Unit))==lsPay&&rows.Where(r=>ScheduleRow.IsLumpSum(r.Unit)).All(r=>r.Rate==0&&r.Days==0),"LS items are listed with the output per hour left blank ("+lsPay+")");
+   var net=PdmNetwork.Build(rows);Check(net.Nodes.Count>0&&net.Nodes.Min(n=>n.ES)==0&&net.Nodes.All(n=>n.EF==n.ES+n.Row.Days&&n.TF==n.LS-n.ES&&n.LS==n.LF-n.Row.Days),"PDM uses the standard ES = 0, EF = ES + D, TF = LS - ES convention");
+   Check(!net.Nodes.Any(n=>ScheduleRow.IsLumpSum(n.Row.Unit)),"LS items without a duration stay out of the network");
+   var pert=PertResult.Build(net);Check(pert.Activities.All(a=>Math.Abs(a.A-0.8*a.M)<1e-9&&Math.Abs(a.B-1.2*a.M)<1e-9),"PERT optimistic / pessimistic = -/+20 %");
+   var set=new ScheduleSet(rows,null);Check(set.Sheets.Count>=4&&ScheduleSet.PageW==1654&&ScheduleSet.PageH==1169,"issue set on A3 landscape");}}
   Console.WriteLine("PASS: "+checks+" automatic door / window BOQ mapping checks");}
 }
