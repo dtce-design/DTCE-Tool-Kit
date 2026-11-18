@@ -9,7 +9,7 @@ namespace BeamScheduleFormatter {
 //   fields kept in step, so older projects open with the same moulding quantities.
 partial class ProgramOfWorksForm {
  internal const int OpeningMaterialColumn=25,MouldingOpeningColumn=7;
- internal static readonly string[] OpeningMaterials={"Wood","Aluminum","PVC"};
+ internal static readonly string[] OpeningMaterials={"Wood","Aluminum","PVC","Steel"};/* Steel added (owner, 18 November 2026: "additional type Steel Window") */
  readonly HashSet<string> removedMouldingOpenings=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
  void AddOpeningMaterialColumn(DataGridView g,string fallback){
   var column=new DataGridViewComboBoxColumn{Name="OpeningMaterial",HeaderText="Material",Width=110,DisplayStyle=DataGridViewComboBoxDisplayStyle.DropDownButton};column.Items.AddRange(OpeningMaterials);g.Columns.Add(column);

@@ -64,7 +64,7 @@ readonly Dictionary<string,double> boqExcludedQuantities=new Dictionary<string,d
     (owner, 18 November 2026). A project that mapped the old total keeps that pay item for the new lines. */
  void InheritSteelPaintRoutes(List<BackupDemand> list){string totalKey="Structural Steel Works|"+SteelPaintingTotal+"|"+BackupMapping.Unit("m2");string slot;if(!backupBillRoutes.TryGetValue(totalKey,out slot))return;
   foreach(var d in list){if(!d.Key.StartsWith("Structural Steel Works|Metal painting - ",StringComparison.Ordinal)||backupBillRoutes.ContainsKey(d.Key)||boqUnmapped.Contains(d.Key))continue;backupBillRoutes[d.Key]=slot;boqRouteOverrides[d.Key]=slot;}}
- void ApplyBoqIncludes(List<BackupDemand> list){InheritSteelPaintRoutes(list);list.RemoveAll(d=>d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal));if(backupBill==null||backupBill.Count==0)return;
+ void ApplyBoqIncludes(List<BackupDemand> list){InheritSteelPaintRoutes(list);DefaultOpeningRoutes(list);list.RemoveAll(d=>d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal));if(backupBill==null||backupBill.Count==0)return;
   var items=backupBill.GroupBy(b=>b.Slot).ToDictionary(g=>g.Key,g=>g.First());
   /* Owner (18 November 2026): an unchecked quantity stays mapped and listed under its pay item with its own quantity;
      it is only left out of the total. This applies to saved and automatically suggested mappings alike. */

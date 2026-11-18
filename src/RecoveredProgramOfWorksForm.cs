@@ -6992,7 +6992,7 @@ worksExcelTimer.Tick += async delegate
 			stringBuilder.AppendLine("PROGRAM OF WORKS | QUANTITY BACKUP");
 			stringBuilder.AppendLine("OPENINGS SUMMARY");
 			stringBuilder.AppendLine(string.Format("{0,-10}{1,15}{2,15}{3,13}{4,13}", "MATERIAL", "OPENING m2", "PAINT m2", "LOCKSETS", "HINGES"));
-			string[] array = new string[3] { "Wood", "Aluminum", "Manual" };
+			string[] array = new string[5] { "Wood", "Aluminum", "PVC", "Steel", "Manual" };
 			foreach (string material in array)
 			{
 				IEnumerable<OpeningItem> source = openings.Where((OpeningItem o) => o.Material == material);
