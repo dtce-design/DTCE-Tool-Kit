@@ -56,6 +56,11 @@ partial class ProgramOfWorksForm {
   row.Cells[3].Value=opening.Quantity>0?(opening.MouldingLength/opening.Quantity).ToString("0.###",System.Globalization.CultureInfo.InvariantCulture):"";row.Cells[4].Value=opening.Quantity.ToString();Measure(row,5,opening.MouldingLength);row.Cells[6].Value="From opening "+opening.Id;return true;}
  // Include checkboxes for opening painting (owner, 17 November 2026). Checked = painted; new rows start unticked (owner, 18 November 2026).
  // Saved as entry attributes pl / pj ("0" when unchecked) so older files keep their paint quantities.
+ /* A plain "Opening" (owner, 18 November 2026: "walang material, walang anything, dimension lang"): only ID, description, wall,
+    width, height and quantity are used; material, hardware and moulding are blank and locked. */
+ static void StylePlainOpeningCells(DataGridViewRow row,bool plain){foreach(int c in new[]{11,12,22,24,OpeningMaterialColumn}){if(c>=row.Cells.Count)continue;var cell=row.Cells[c];
+   if(plain){cell.ReadOnly=true;cell.Style.BackColor=Color.FromArgb(235,237,240);if(c==22){if(Convert.ToString(cell.Value)=="True")cell.Value=false;}else if(c!=11&&c!=12&&Convert.ToString(cell.Value)!="")cell.Value="";}
+   else if(c==OpeningMaterialColumn||c==22||c==24){cell.ReadOnly=false;cell.Style.BackColor=Color.Empty;}}}
  internal const string PaintLeafColumn="OpeningPaintLeaf",PaintJambColumn="OpeningPaintJamb";
  void AddOpeningPaintColumns(DataGridView g){
   foreach(var spec in new[]{new[]{PaintLeafColumn,"Paint (leaf and jamb)","Include painting of the wooden leaf (faces as set in Paint faces, plus edges) and its jamb."},new[]{PaintJambColumn,"Paint jamb","Include painting of the wooden jamb."}}){

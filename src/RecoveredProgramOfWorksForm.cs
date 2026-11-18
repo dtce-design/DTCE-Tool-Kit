@@ -1057,7 +1057,7 @@ namespace BeamScheduleFormatter
 			}
 			if (flag)
 			{
-				foreach (OpeningItem item4 in openings.Where((OpeningItem o) => o.Material != "Manual"))
+				foreach (OpeningItem item4 in openings.Where((OpeningItem o) => o.Material != "Manual" && o.Material != "Opening"))
 				{
 					BillQuantity billQuantity3 = new BillQuantity();
 					billQuantity3.Section = "Door / window schedule";
@@ -1955,7 +1955,7 @@ namespace BeamScheduleFormatter
 			if (key == "Leversets" || key == "Hinges")
 			{
 				return MergeSources(from o in openings
-					where o.Material != "Manual"
+					where o.Material != "Manual" && o.Material != "Opening"
 					select SourceQuantity(o.Id + " | " + o.Description, (key == "Hinges") ? o.Hinges : o.Locks, "pcs"));
 			}
 			if (key == "Plaster" || key == "MasonryPaint")
@@ -5384,7 +5384,7 @@ worksExcelTimer.Tick += async delegate
 				Name = "Type",
 				Width = 100
 			};
-			dataGridViewComboBoxColumn.Items.AddRange("Door", "Window");
+			dataGridViewComboBoxColumn.Items.AddRange("Door", "Window", "Opening"); /* "Opening": dimensions only, deducted from its wall (owner, 18 November 2026) */
 			g.Columns.RemoveAt(3);
 			g.Columns.Insert(3, dataGridViewComboBoxColumn);
 			for (int i = 7; i <= 10; i++)
@@ -6803,9 +6803,11 @@ worksExcelTimer.Tick += async delegate
 						}
 						try
 						{
-							string rowMaterial = (dataGridView == manualOpeningsGrid) ? "Manual" : OpeningMaterial(item, dataGridView == wood);
+							bool plainOpening = dataGridView != manualOpeningsGrid && Cell(item, 3) == "Opening";
+							string rowMaterial = (dataGridView == manualOpeningsGrid) ? "Manual" : plainOpening ? "Opening" : OpeningMaterial(item, dataGridView == wood);
 							bool woodRow = rowMaterial == "Wood";
 							if (dataGridView != manualOpeningsGrid) StyleOpeningMaterialCells(item, woodRow);
+							if (dataGridView != manualOpeningsGrid) StylePlainOpeningCells(item, plainOpening);
 							if (woodRow)
 							{
 								AutomaticWoodDimensions(item);
@@ -6829,7 +6831,7 @@ worksExcelTimer.Tick += async delegate
 								Leaves = ((Cell(item, 20) == "") ? 1 : Count(item, 20)),
 								Operation = "Swing", /* Operation column removed (owner, 18 November 2026) */
 								MouldingProfile = Cell(item, 24),
-								Exterior = (dataGridView != manualOpeningsGrid && Cell(item, 22) != "" && bool.Parse(Cell(item, 22))),
+								Exterior = (dataGridView != manualOpeningsGrid && !plainOpening && Cell(item, 22) != "" && bool.Parse(Cell(item, 22))),
 								PaintLeaf = OpeningPaint(item, PaintLeafColumn),
 								PaintJamb = OpeningPaint(item, PaintLeafColumn) /* one combined paint checkbox (owner, 18 November 2026) */
 							};
@@ -6839,7 +6841,7 @@ worksExcelTimer.Tick += async delegate
 								throw new Exception("Duplicate Opening ID (including other opening tab).");
 							}
 							openings.Add(openingItem);
-							bool flag = openingItem.Kind == "Door" || openingItem.Operation != "Swing" || openingItem.Material == "Manual";
+							bool flag = openingItem.Kind == "Door" || openingItem.Operation != "Swing" || openingItem.Material == "Manual" || openingItem.Material == "Opening";
 							int[] array2 = new int[2] { 11, 12 };
 							foreach (int index in array2)
 							{
@@ -6856,10 +6858,6 @@ worksExcelTimer.Tick += async delegate
 								item.Cells[9].Value = "45";
 								item.Cells[9].ReadOnly = true;
 								item.Cells[9].Style.BackColor = Color.FromArgb(235, 237, 240);
-							}
-							else
-							{
-								item.Cells[9].ReadOnly = false;
 							}
 							item.Cells[13].Value = openingItem.Area.ToString("0.00");
 							item.Cells[14].Value = openingItem.LeafPaint.ToString("0.00");

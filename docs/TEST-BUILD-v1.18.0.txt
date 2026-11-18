@@ -1,0 +1,14 @@
+DTCE Tool Kit v1.18.0 test build (18 November 2026) - new feature
+
+Door & Window Schedule: new Type "Opening" (owner: "add opening as type sa doors and
+windows, walang material, walang anything, dimension lang")
+- Only ID, description, wall, width, height and quantity are used. Material,
+  wood inputs, paint, locksets, hinges and exterior moulding are blank and
+  locked. The opening is deducted from its wall (CHB, plaster, paint) and has
+  no BOQ item and no hardware.
+- Switching the row back to Door or Window unlocks the material again.
+
+Fix: on PVC / Aluminum / Steel rows, Leaf thickness was unlocked again after
+each recalculation; it now stays blank and locked.
+
+Includes v1.17.3. Not a Microsoft Store release (v1.5.0 is the Store build).
