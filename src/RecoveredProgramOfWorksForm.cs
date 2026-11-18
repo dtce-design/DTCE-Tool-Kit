@@ -4588,6 +4588,7 @@ worksExcelTimer.Tick += async delegate
             /* closing the Program of Works ends its project: the next one starts with blank project information */
             FormClosed += (s0, e0) => { if (!Automated) ProjectInfoStore.ClearProject(); };
             InstallStandardSettings();
+            InstallRowInclusion();
             PlaceSteelSetColumns();
             if (wood != null) PlaceOpeningPaintColumns(wood);
 			tabs.Multiline = true;
@@ -6775,6 +6776,7 @@ worksExcelTimer.Tick += async delegate
 				{
 					beam.SetProjectSoilFactors((double)borrowSwell.Value, (double)borrowShrink.Value);
 				}
+				PruneDeletedWallLinks();
 				openings.Clear();
 				wallOpenings.Clear();
 				wallItems.Clear();
@@ -7447,6 +7449,11 @@ worksExcelTimer.Tick += async delegate
 
 		private string DataXml()
 		{
+			return WithExcludedValues(DataXmlCore);
+		}
+
+		private string DataXmlCore()
+		{
 			XmlDocument xmlDocument = new XmlDocument();
 			XmlElement xmlElement = xmlDocument.CreateElement("ProgramOfWorks");
 			xmlElement.SetAttribute("version", "21");
@@ -7472,6 +7479,7 @@ worksExcelTimer.Tick += async delegate
 						WriteSteelSets(item.Key, item2, xmlElement3);
 						WriteSteelPaintOnly(item2, xmlElement3);
 						WriteOpeningPaint(item.Key, item2, xmlElement3);
+						WriteRowExcluded(item2, xmlElement3);
 						xmlElement2.AppendChild(xmlElement3);
 					}
 				}
@@ -7709,7 +7717,7 @@ worksExcelTimer.Tick += async delegate
 				ReadBackupBillRoutes(xmlDocument.DocumentElement);
 				ReadStructureConfigurations(xmlDocument.DocumentElement);
 				finishTypeCells = finishTypeRegistry;
-				openingAssignments.Clear();
+				openingAssignments.Clear();parkedOpeningLinks.Clear();parkedManualOpenings.Clear();
 				openingAssignments.AddRange(collection);
 				foreach (KeyValuePair<string, DataGridView> item3 in Tables())
 				{
@@ -7783,6 +7791,7 @@ worksExcelTimer.Tick += async delegate
 						ReadSteelPaintOnly(item3.Value.Rows[index], item4);
 						ReadOpeningPaint(item3.Key, item3.Value.Rows[index], item4);
 						if ((item3.Key == "Wood" || item3.Key == "Aluminum") && !item4.HasAttribute("c" + OpeningMaterialColumn)) item3.Value.Rows[index].Cells[OpeningMaterialColumn].Value = (item3.Key == "Wood") ? "Wood" : "Aluminum";
+						ReadRowExcluded(item3.Value.Rows[index], item4);
 					}
 				}
 			}
@@ -7934,9 +7943,16 @@ worksExcelTimer.Tick += async delegate
 			TabPage tabPage2 = new TabPage("BACKUP quantities");
 			tabPage2.Controls.Add(boqGrid);
 			boqPages.TabPages.Add(tabPage2);
-			tabPage.Controls.Add(boqGrid);
+			/* Owner (18 November 2026): the red summary line above the table is removed (the Status panel lists the same
+			   issues), and the search bar sits on the table itself, directly above its header. */
+			boqStatus.Visible = false;
+			var boqSearchStrip = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 48, Padding = new Padding(0, 4, 0, 4), WrapContents = false };
+			var boqTableArea = new Panel { Dock = DockStyle.Fill };
+			boqTableArea.Controls.Add(boqGrid);
+			boqTableArea.Controls.Add(boqSearchStrip);
+			tabPage.Controls.Add(boqTableArea);
 			AddIssuePanel(tabPage);
-			AddBoqSearch(flowLayoutPanel);
+			AddBoqSearch(boqSearchStrip);
 			tabPage.Controls.Add(boqStatus);
 			tabPage.Controls.Add(flowLayoutPanel);
 			tabPage.Controls.Add(value);
