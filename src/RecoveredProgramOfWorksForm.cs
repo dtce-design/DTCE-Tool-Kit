@@ -3415,7 +3415,16 @@ namespace BeamScheduleFormatter
 				roofProfiles.EndEdit();
 				Recalculate();
 			}
-			if (savedRoofProfiles.Count <= 0 || roofProfiles.Rows.Cast<DataGridViewRow>().Any((DataGridViewRow row) => !row.IsNewRow && !Empty(row) && Cell(row, 5) != "Saved in project"))
+			/* Owner (18 November 2026: profile sizes kept disappearing in new projects). The auto-save ran before the
+			   edited row was re-validated, and one incomplete row blocked saving every other profile. Re-read the rows
+			   now and save every valid profile; incomplete rows are simply left out until they are complete. */
+			if (!explicitSave)
+			{
+				int before = errors.Count;
+				RefreshRoofProfiles();
+				if (errors.Count > before) errors.RemoveRange(before, errors.Count - before);
+			}
+			if (savedRoofProfiles.Count <= 0 || explicitSave && roofProfiles.Rows.Cast<DataGridViewRow>().Any((DataGridViewRow row) => !row.IsNewRow && !Empty(row) && Cell(row, 5) != "Saved in project"))
 			{
 				roofLibraryStatus.Text = "Complete valid profile rows before saving to the app library.";
 				if (explicitSave)
@@ -4550,6 +4559,7 @@ worksExcelTimer.Tick += async delegate
             InstallRecovery();
             /* closing the Program of Works ends its project: the next one starts with blank project information */
             FormClosed += (s0, e0) => { if (!Automated) ProjectInfoStore.ClearProject(); };
+            InstallStandardSettings();
             PlaceSteelSetColumns();
             if (wood != null) PlaceOpeningPaintColumns(wood);
 			tabs.Multiline = true;
