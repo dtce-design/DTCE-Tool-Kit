@@ -14,8 +14,8 @@ partial class ProgramOfWorksForm {
  internal const string BoqStatusColumn="BoqStatus";
  void EnsureBoqIncludeColumn(){if(boqGrid==null||boqGrid.Columns.Contains(BoqIncludeColumn))return;
   /* Owner (18 November 2026): INCLUDE only as wide as its checkbox; STATUS on the right shows the mapping / link. */
-  var c=new DataGridViewCheckBoxColumn{Name=BoqIncludeColumn,HeaderText="INCLUDE",AutoSizeMode=DataGridViewAutoSizeColumnMode.None,Width=76,MinimumWidth=60,Resizable=DataGridViewTriState.False,ToolTipText="Checked: this mapped quantity counts in the pay item total. Unchecked: it stays mapped but is not counted. LS item: 1 LS when at least one mapped quantity is included (a manual LS quantity takes precedence)."};
-  boqGrid.Columns.Add(c);c.ReadOnly=true;c.DefaultCellStyle.Alignment=DataGridViewContentAlignment.MiddleCenter;
+  /* owner: no caption, just the checkbox width */var c=new DataGridViewCheckBoxColumn{Name=BoqIncludeColumn,HeaderText="",AutoSizeMode=DataGridViewAutoSizeColumnMode.None,Width=34,MinimumWidth=30,Resizable=DataGridViewTriState.False,ToolTipText="Checked: this mapped quantity counts in the pay item total. Unchecked: it stays mapped but is not counted. LS item: 1 LS when at least one mapped quantity is included (a manual LS quantity takes precedence)."};
+  boqGrid.Columns.Add(c);c.ReadOnly=true;c.DefaultCellStyle.Alignment=DataGridViewContentAlignment.MiddleCenter;c.MinimumWidth=30;c.Width=34;c.HeaderCell.ToolTipText=c.ToolTipText;
   BoqRemapSetup();
   /* The column stays read-only for editing; a click toggles the value directly (it was not clickable in v1.4.110). */
   boqGrid.CellContentClick+=(s,e)=>{if(paintingBackupBill||e.RowIndex<0||e.ColumnIndex<0||boqGrid.Columns[e.ColumnIndex].Name!=BoqIncludeColumn)return;ToggleInclude(boqGrid.Rows[e.RowIndex].Cells[e.ColumnIndex]);};
