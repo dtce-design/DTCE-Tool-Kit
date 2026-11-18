@@ -53,7 +53,9 @@ sealed class GridEditHistory {
  bool Commit(){if(busy()||restoring||grid.ReadOnly)return false;if(!grid.EndEdit())return false;Complete();return true;}
  internal List<DataGridViewRow> SelectedRows(){return grid.SelectedCells.Cast<DataGridViewCell>().Select(cell=>cell.OwningRow).Concat(grid.SelectedRows.Cast<DataGridViewRow>()).Distinct().Where(row=>!row.IsNewRow&&row.Visible&&!row.ReadOnly&&row.Cells.Cast<DataGridViewCell>().Any(cell=>!cell.ReadOnly)&&grid.AllowUserToDeleteRows&&!grid.ReadOnly).OrderBy(row=>row.Index).ToList();}
  void Apply(Action action){bool was=busy();var original=Snapshot();restoring=true;before=null;grid.SuspendLayout();setBusy(true);try{try{action();}catch{Restore(original);throw;}finally{setBusy(was);grid.ResumeLayout(false);}changed();}finally{restoring=false;Notify();}}
- internal void DeleteRow(int index){if(index<0||index>=grid.Rows.Count||grid.Rows[index].IsNewRow)return;foreach(DataGridViewRow row in grid.Rows)row.Selected=false;grid.Rows[index].Selected=true;DeleteSelected();}
+ /* Owner (18 November 2026): the row whose × was clicked is deleted, never the row of a cell selected elsewhere (the
+    selected cells used to be added to the deletion). */
+ internal void DeleteRow(int index){if(index<0||index>=grid.Rows.Count||grid.Rows[index].IsNewRow)return;var target=grid.Rows[index];DeleteRows(new[]{target});}
  internal void DeleteSelected(){DeleteRows(SelectedRows());}
  internal void ClearSelectedCells(){if(grid.ReadOnly||!Commit())return;var cells=grid.SelectedCells.Cast<DataGridViewCell>().Where(c=>!c.ReadOnly&&!c.OwningRow.IsNewRow&&c.Visible&&!(c is DataGridViewComboBoxCell)&&!(c is DataGridViewCheckBoxCell)&&!(c is DataGridViewButtonCell)&&c.Value!=null&&Convert.ToString(c.Value)!="").ToList();if(cells.Count==0)return;
   var old=Snapshot();Apply(()=>{foreach(var cell in cells)cell.Value="";Record(new GridEditAction{Before=old,After=Snapshot(),Description="Clear cells"});});}
