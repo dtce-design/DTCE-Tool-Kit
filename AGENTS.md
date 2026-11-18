@@ -139,6 +139,9 @@ Done 18 November 2026: v1.5.0 merged to main (GitHub release OK). The owner had 
 certification in Partner Center; the canceled submissions were removed and new User and Admin submissions were
 created and committed; Partner Center reported "accepted for processing" (PreProcessing). v1.5.1 and later need a
 new explicit request.
+New owner request (18 November 2026, "upload sa microsoft store"): publish v1.19.4 (User and Admin) the same way after
+its Windows CI passes (publish_microsoft_store=true; replace_pending_store_submission stays false unless the owner asks).
+Later versions again need a new explicit request.
 
 ## Version numbers (18 November 2026)
 
