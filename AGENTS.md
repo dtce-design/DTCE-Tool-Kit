@@ -135,6 +135,10 @@ its Windows CI passes; it supersedes the blocked v1.4.129 upload. Later versions
 Owner (18 November 2026, "icancel mo tapos ulitin", "cancel certification"): cancel the v1.4.127 submissions still
 in certification and submit v1.5.0 instead. Run the workflow with publish_microsoft_store=true and
 replace_pending_store_submission=true for this release only; that input stays false by default.
+Done 18 November 2026: v1.5.0 merged to main (GitHub release OK). The owner had cancelled the v1.4.127
+certification in Partner Center; the canceled submissions were removed and new User and Admin submissions were
+created and committed; Partner Center reported "accepted for processing" (PreProcessing). v1.5.1 and later need a
+new explicit request.
 
 ## Version numbers (18 November 2026)
 
