@@ -1,0 +1,12 @@
+DTCE Tool Kit v1.4.133 test build (18 November 2026)
+
+RC Wall "Wall thickness must fit cover..." (owner: "tama naman inputs ko")
+- The check itself is correct: with the default 40 mm RC wall cover, a 100 mm
+  wall with one layer of 12 mm vertical and 10 mm horizontal bars needs
+  2 x 40 + 12 + 10 = 102 mm, 2 mm more than the wall.
+- The message now shows the numbers and the fix: set a smaller RC wall cover
+  in Reinforced Concrete Works > Start (NSCP 2015 Table 420.6.1.3.1: 20 mm
+  for walls not exposed to weather or in contact with ground), then press
+  Apply covers to existing entries; or use a thicker wall.
+
+Includes v1.4.130-132. Not a Microsoft Store release.
