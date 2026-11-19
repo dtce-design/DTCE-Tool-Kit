@@ -41,6 +41,12 @@ class StrapFootingTests {
   Check(list.Where(x=>x.Name.StartsWith("Footing flexure")).Count()==4,"footing flexure both directions for both footings");Check(steps.Count==list.Count&&steps.Values.All(v=>v.Count>0),"every check has its derivation");
   var punch=list.First(x=>x.Name.StartsWith("Footing punching")&&x.Node=="F1");Check(steps[punch].Any(l=>l.Contains("edge")),"the property-line column punches as an edge column");
   Check(list.First(x=>x.Name=="Strap top bars (hogging)").Demand>0,"strap needs top steel at the exterior column");
+  foreach(var name in new[]{"Footing depth above the bottom bars","Footing bar spacing","Bearing at the column base","Sliding (service), FS >= 1.5","Strap minimum stirrups","Strap top bars in one layer"})Check(list.Any(x=>x.Name==name),"NSCP check present: "+name);
+  Check(list.Count(x=>x.Name.StartsWith("Development of bars"))==4,"development length both ways for both footings");
+  var p2=list.First(x=>x.Name.StartsWith("Footing punching")&&x.Node=="F2");Check(steps[p2].Any(l=>l.Contains("interior"))&&p2.Unit=="MPa","interior column punching as a stress with the unbalanced moment");
+  /* interior punching with a column moment: Jc of the ACI formula d b1³/6 + b1 d³/6 + d b2 b1²/2 */
+  {var one=new StrapInput();one.Nodes.Add(new StrapNode{Node="1",B=3,L=3,T=.6,Cx=.4,Cz=.4,Bars="16@150"});var cs=new List<StrapCase>{StrapFooting.Solve(one,"U",Map(new SupportReaction{Node="1",Fy=1000,Mz=150}),true)};var st=new Dictionary<SupportCheck,List<string>>();var l2=StrapFooting.Check(one,cs,new List<string>(),st);var pc=l2.First(x=>x.Name.StartsWith("Footing punching"));
+   double d=.6-.075-.016,b1=.4+d;double J=d*b1*b1*b1/6+b1*d*d*d/6+d*b1*b1*b1/2;double gv=1-1/(1+2.0/3);double Vu=1000*(1-b1*b1/9);double expect=Vu/(4*b1*d)/1000+gv*150*(b1/2)/J/1000;Near(pc.Demand,expect,"punching stress with γv M c / Jc",1e-6);}
   Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);AccessCodes.Granted=true;
   using(var form=new StrapFootingForm()){form.ExampleCorner();var flags=System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance;var doc=(CalculationDocument)typeof(StrapFootingForm).GetMethod("BuildDocument",flags).Invoke(form,null);Check(doc.Sheets.Count>=4,"report pages");
    string xml=form.Snapshot();Check(xml.Contains("<Footing ")&&xml.Contains("<Strap "),"footings and straps are saved");using(var again=new StrapFootingForm()){again.Restore(xml);Check(again.Snapshot()==xml,"sheet round-trips");}}
