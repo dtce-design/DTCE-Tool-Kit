@@ -24,104 +24,76 @@ sealed class ScheduleSet {
    float th=(ScheduleManpower.Trades(rows).Count+2)*16+6;float hh2=Math.Max(260,r.Height-50-th-30);ScheduleManpower.DrawHistogram(g,new RectangleF(r.X,r.Y+46,r.Width,hh2),rows,f,b);ScheduleManpower.DrawTrades(g,r.X,r.Y+46+hh2+20,rows,f,b);}));
   int perItems=Math.Max(5,(int)((c.Height-ScheduleManpower.ItemHead-ScheduleManpower.ItemRow-4)/ScheduleManpower.ItemRow));for(int i=0;i<Math.Max(1,rows.Count);i+=perItems){int s0=i,n0=Math.Min(rows.Count,i+perItems)-i;bool last=i+perItems>=rows.Count;
    Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("MANPOWER SCHEDULE",(g,r,f,b)=>ScheduleManpower.DrawItems(g,r.X,r.Y,rows,s0,n0,f,b,last)));}
-  /* PDM sheets (owner, 18 November 2026: "alisin mo na yung sheet sa continuation", "baka mas okay yung last box sa previous
-     sheet uulitin sa next page", "huwag isang drawing, masyadong maliit kapag sa A3"): the network keeps its full size and is
-     printed column by column; each continuation sheet starts with the last column of the sheet before it (shaded), so every
-     line can be followed from a box that is on both sheets. The sheet edges fall in widened gaps where only straight
-     horizontal lines run - no bend, box or text is ever cut by an edge. */
+  /* PDM: one continuous drawing cut into sheets that join edge to edge in the gaps between columns */
   if(Network.Nodes.Count>0){float legendH=16+PdmNetwork.KeyH;
-   Func<List<Window>> pdmWindows=()=>{List<Window> w=null;Network.Widen=new HashSet<int>();
-    for(int it=0;it<8;it++){Network.Layout(c.Height-legendH);var gaps=new HashSet<int>();w=Windows(Network.Cuts,Network.Groups,Network.Right,c.Width,gaps,false);if(gaps.All(Network.Widen.Contains))break;foreach(var i in gaps)Network.Widen.Add(i);}
-    return w;};
-   float bestGap=130;int fewest=int.MaxValue;foreach(var gap in new float[]{140,130,122,116,110,104}){Network.LinkGap=gap;int count=pdmWindows().Count;if(count<fewest){fewest=count;bestGap=gap;}}Network.LinkGap=bestGap;var pw=pdmWindows();PdmWindows=pw;
-   var pdmEdges=Edges(pw);
-   for(int i=0;i<pw.Count;i++){var win=pw[i];int n=pw.Count;
+   /* the widest column gap that needs the fewest sheets */
+   Func<List<float>> pdmJoins=()=>{Network.Widen=new HashSet<int>();List<float> j=null;
+    for(int it=0;it<6;it++){Network.Layout(c.Height-legendH);j=Joins(Network.Cuts,2,Network.Right,c.Width);var at=j.Skip(1).Take(Math.Max(0,j.Count-2)).Select(x=>Network.Cuts.IndexOf(x)).Where(i=>i>=0).ToList();if(at.All(Network.Widen.Contains))break;foreach(var i in at)Network.Widen.Add(i);}
+    return j;};
+   float bestGap=130;int fewest=int.MaxValue;foreach(var gap in new float[]{140,130,122,116,110,104}){Network.LinkGap=gap;int count=pdmJoins().Count-1;if(count<fewest){fewest=count;bestGap=gap;}}Network.LinkGap=bestGap;var pdmEdges=pdmJoins();
+   var pdmInner=pdmEdges.Skip(1).Take(Math.Max(0,pdmEdges.Count-2)).ToList();
+   for(int i=0;i+1<pdmEdges.Count;i++){float x0=pdmEdges[i],x1=pdmEdges[i+1];bool first=i==0,last=i+2==pdmEdges.Count;int n=pdmEdges.Count-1;
     Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PRECEDENCE DIAGRAM (PDM)"+(n>1?" - "+(i+1)+" OF "+n:""),(g,r,f,b)=>{using(var ink=new SolidBrush(PowTheme.Muted))g.DrawString(PdmNetwork.LegendText,f,ink,r.X,r.Y);PdmNetwork.DrawKey(g,r.X,r.Y+16,f,b);
-     var area=new RectangleF(r.X,r.Y+legendH,Math.Min(r.Width,win.X1-win.X0),r.Height-legendH);Repeated(g,area,win);var st=g.Save();g.SetClip(area);Network.Draw(g,r.X-win.X0,area.Y,f,b,null,pdmEdges);g.Restore(st);}));}
+     var area=new RectangleF(r.X,r.Y+legendH,Math.Min(r.Width,x1-x0),r.Height-legendH);var st=g.Save();g.SetClip(area);Network.Draw(g,r.X-x0,area.Y,f,b,null,pdmInner);g.Restore(st);MatchLines(g,area,!first,!last);}));}
   /* PERT table */
    int perRows=Math.Max(5,(int)((c.Height-60)/15));for(int i=0;i<Pert.Activities.Count;i+=perRows){int s=i,n=Math.Min(Pert.Activities.Count,i+perRows)-i;Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PERT TIME ESTIMATES",(g,r,f,b)=>DrawPertTable(g,r,f,b,s,n)));}
-  /* PERT-CPM network: activity on arrow, printed column by column in the same way (the last event column of a sheet is
-     repeated, shaded, at the start of the next) */
+  /* PERT-CPM network: activity on arrow, one continuous drawing cut between event columns */
    var aoa=PertAoa.Build(Network,Pert);float aoaH=16+PertAoa.KeyH;
-   Func<List<Window>> aoaWindows=()=>{aoa.Layout(c.Height-aoaH);return Windows(aoa.Cuts,aoa.Groups,aoa.Right,c.Width,new HashSet<int>(),false);/* the arrow labels run across the gaps, so the sheet starts right after the event column before */};
-   float bestW=250;int fewestP=int.MaxValue;foreach(var w in new float[]{260,250,236,224,212}){aoa.LevelW=w;int count=aoaWindows().Count;if(count<fewestP){fewestP=count;bestW=w;}}aoa.LevelW=bestW;var aw=aoaWindows();PertWindows=aw;aoa.Repeats=Enumerable.Range(1,Math.Max(0,aw.Count-1)).Select(k=>new[]{aw[k].X0,aw[k-1].X1}).ToList();
-   var pertEdges=Edges(aw);
-   for(int i=0;i<aw.Count;i++){var win=aw[i];int n=aw.Count;
+   Func<List<float>> aoaJoins=()=>{aoa.Layout(c.Height-aoaH);return Joins(aoa.Cuts,2,aoa.Right,c.Width);};
+   float bestW=250;int fewestP=int.MaxValue;foreach(var w in new float[]{260,250,236,224,212}){aoa.LevelW=w;int count=aoaJoins().Count-1;if(count<fewestP){fewestP=count;bestW=w;}}aoa.LevelW=bestW;var pertEdges=aoaJoins();
+   var inner=pertEdges.Skip(1).Take(Math.Max(0,pertEdges.Count-2)).ToList();
+   for(int i=0;i+1<pertEdges.Count;i++){float x0=pertEdges[i],x1=pertEdges[i+1];bool first=i==0,last=i+2==pertEdges.Count;int n=pertEdges.Count-1;
     Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PERT-CPM NETWORK"+(n>1?" - "+(i+1)+" OF "+n:""),(g,r,f,b)=>{using(var ink=new SolidBrush(PowTheme.Muted))g.DrawString(PertAoa.LegendText,f,ink,r.X,r.Y);PertAoa.DrawKey(g,r.X,r.Y+16,f,b);
-     var area=new RectangleF(r.X,r.Y+aoaH,Math.Min(r.Width,win.X1-win.X0),r.Height-aoaH);Repeated(g,area,win);var st=g.Save();g.SetClip(area);aoa.Draw(g,r.X-win.X0,area.Y,f,b,pertEdges);g.Restore(st);}));}
-   Aoa=aoa;}}
- /* part of the drawing shown on one sheet: X0..X1; on a continuation sheet X0..Shade is the repeated last column */
- internal sealed class Window {internal float X0,X1,ShadeFrom=float.NaN,ShadeTo=float.NaN;}
- internal List<Window> PdmWindows=new List<Window>(),PertWindows=new List<Window>();
- /* sheets made of whole column groups: group k spans start(k)..end(k); a continuation sheet starts with the last group of the
-    sheet before; gaps = the gaps that hold a sheet edge (they are widened so that only straight lines cross them) */
- static List<Window> Windows(List<float> cuts,List<float[]> groupX,float right,float width,HashSet<int> gaps,bool tight=true){var list=new List<Window>();int groups=groupX.Count;if(groups<=0)return list;
-  /* a continuation sheet starts just clear of the bends in front of its repeated group (half way between the cut before it
-     and the group), so little room is spent on the repeat */
-  Func<int,float> start=k=>k==0?2:tight?Math.Max(cuts[k-1],(cuts[k-1]+groupX[k][0])/2-10):cuts[k-1];Func<int,float> end=k=>k>=groups-1?right:cuts[k];int a=0;
-  while(true){int b=Math.Min(groups-1,a+1);if(a==0&&end(0)-start(0)>width)b=0;while(b+1<=groups-1&&end(b+1)-start(a)<=width)b++;
-   var w=new Window{X0=start(a),X1=end(b)};if(a>0){w.ShadeFrom=groupX[a][0]-10;w.ShadeTo=groupX[a][1]+10;gaps.Add(a-1);gaps.Add(a);}if(b<groups-1)gaps.Add(b);list.Add(w);
-   if(b>=groups-1)break;a=Math.Max(b,a+1);}
-  return list;}
- /* every sheet edge inside the drawing (the routing keeps bends and labels away from them) */
- static List<float> Edges(List<Window> w){var e=new List<float>();for(int i=0;i<w.Count;i++){if(i>0)e.Add(w[i].X0);if(i+1<w.Count)e.Add(w[i].X1);}return e.Distinct().OrderBy(x=>x).ToList();}
- /* the repeated column of a continuation sheet: a light band, so it is clear which boxes were already on the sheet before */
- static void Repeated(Graphics g,RectangleF area,Window w){if(float.IsNaN(w.ShadeFrom))return;float x0=area.X+Math.Max(0,w.ShadeFrom-w.X0),x1=area.X+Math.Min(area.Width,w.ShadeTo-w.X0);
-  using(var band=new SolidBrush(Color.FromArgb(234,238,244)))g.FillRectangle(band,x0,area.Y,x1-x0,area.Height);}
+     var area=new RectangleF(r.X,r.Y+aoaH,Math.Min(r.Width,x1-x0),r.Height-aoaH);var st=g.Save();g.SetClip(area);aoa.Draw(g,r.X-x0,area.Y,f,b,inner);g.Restore(st);MatchLines(g,area,!first,!last);}));}
+   Aoa=aoa;PdmJoins=pdmEdges;PertJoins=pertEdges;}}
  /* drawing checks (owner, 18 November 2026: "nagkaroon na ng overlapping ng text", "yung diagram continuity ang need ko"):
     no label overlaps another label or a node / event, no label is split by a sheet join, and every line crosses a join
     horizontally (a bend never falls on a join), so the sheets laid side by side read as one continuous diagram */
  internal List<string> DrawingProblems(){var problems=new List<string>();
   using(var bmp=new Bitmap(1,1)){bmp.SetResolution(100,100);using(var g=Graphics.FromImage(bmp))using(var f=new Font("Segoe UI",7.5f))using(var b=new Font("Segoe UI",7.5f,FontStyle.Bold)){
-   if(Network.Nodes.Count>0){var inner=Edges(PdmWindows);var plan=Network.MakePlan(g,f,inner);
-    Check("PDM",plan.Labels.Select(k=>k.Rect).ToList(),plan.Boxes,plan.Lines.Select(k=>k.Key).ToList(),inner,problems,false);
-    CheckRepeats("PDM",PdmWindows,plan.Boxes,plan.Lines.Select(k=>k.Key).ToList(),plan.Labels.Select(k=>k.Rect).ToList(),null,problems);}
-   if(Aoa!=null){var inner=Edges(PertWindows);var plan=Aoa.MakePlan(g,f,b,inner);
+   if(Network.Nodes.Count>0){var inner=PdmJoins.Skip(1).Take(Math.Max(0,PdmJoins.Count-2)).ToList();var plan=Network.MakePlan(g,f,inner);
+    Check("PDM",plan.Labels.Select(k=>k.Rect).ToList(),plan.Boxes,plan.Lines.Select(k=>k.Key).ToList(),inner,problems,false);}
+   if(Aoa!=null){var inner=PertJoins.Skip(1).Take(Math.Max(0,PertJoins.Count-2)).ToList();var plan=Aoa.MakePlan(g,f,b,inner);
     foreach(var l in plan.Labels.Where(k=>k.Truncated))problems.Add("PERT: label cut short: "+l.Text);
-    Check("PERT",plan.Labels.Select(k=>k.Rect).ToList(),plan.Boxes,plan.Lines.Select(k=>k.Key).ToList(),inner,problems,true);
-    CheckRepeats("PERT",PertWindows,plan.Boxes,plan.Lines.Select(k=>k.Key).ToList(),plan.Labels.Select(k=>k.Rect).ToList(),plan.LabelLine,problems);}}}
+    Check("PERT",plan.Labels.Select(k=>k.Rect).ToList(),plan.Boxes,plan.Lines.Select(k=>k.Key).ToList(),inner,problems,true);}}}
   return problems;}
- /* the repeated column of a continuation sheet comes with the arrows in front of it (owner, 18 November 2026: "sinama mo
-    ba yung arrow before niya"): every arrow into a repeated box / event shows on that sheet over at least 20 points, with
-    its label (PDM type and lag at the arrowhead; PERT activity no. and te, or the lag) */
- static void CheckRepeats(string what,List<Window> windows,List<RectangleF> boxes,List<PointF[]> lines,List<RectangleF> labels,List<int> labelLine,List<string> problems){
-  foreach(var w in windows.Where(x=>!float.IsNaN(x.ShadeFrom)))foreach(var bx in boxes.Where(b=>b.Left>=w.ShadeFrom-0.5f&&b.Right<=w.ShadeTo+0.5f))
-   for(int i=0;i<lines.Count;i++){var pl=lines[i];if(pl.Length<2)continue;var end=pl[pl.Length-1];if(Math.Abs(end.X-bx.Left)>3||end.Y<bx.Top-1||end.Y>bx.Bottom+1)continue;
-    float vis=0;for(int k=0;k+1<pl.Length;k++){var p=pl[k];var q=pl[k+1];if(Math.Abs(p.Y-q.Y)<0.01f){float a=Math.Max(Math.Min(p.X,q.X),w.X0),b=Math.Min(Math.Max(p.X,q.X),w.X1);if(b>a)vis+=b-a;}else if(p.X>=w.X0&&p.X<=w.X1)vis+=Math.Abs(q.Y-p.Y);}
-    if(vis<20)problems.Add(what+": arrow into the repeated box at x "+(int)bx.X+", y "+(int)bx.Y+" barely shows on its continuation sheet");
-    var mine=labelLine!=null?Enumerable.Range(0,labels.Count).Where(j=>labelLine[j]==i).ToList():Enumerable.Range(0,labels.Count).Where(j=>labels[j].Right<=bx.Left+0.5f&&labels[j].Right>=bx.Left-8&&labels[j].Bottom>=bx.Top&&labels[j].Top<=bx.Bottom&&labels[j].Bottom<=end.Y+1&&labels[j].Bottom>=end.Y-labels[j].Height-3).ToList();
-    if(mine.Count>0&&!mine.Any(j=>labels[j].Left>=w.X0&&labels[j].Right<=w.X1))problems.Add(what+": the label of the arrow into the repeated box at x "+(int)bx.X+", y "+(int)bx.Y+" is only on the sheet before");}}
- internal static bool Crosses(PointF p,PointF q,RectangleF r){if(Math.Abs(p.Y-q.Y)<0.01f){return p.Y>r.Top&&p.Y<r.Bottom&&Math.Max(p.X,q.X)>r.Left&&Math.Min(p.X,q.X)<r.Right;}if(Math.Abs(p.X-q.X)<0.01f){return p.X>r.Left&&p.X<r.Right&&Math.Max(p.Y,q.Y)>r.Top&&Math.Min(p.Y,q.Y)<r.Bottom;}
+ static bool Crosses(PointF p,PointF q,RectangleF r){if(Math.Abs(p.Y-q.Y)<0.01f){return p.Y>r.Top&&p.Y<r.Bottom&&Math.Max(p.X,q.X)>r.Left&&Math.Min(p.X,q.X)<r.Right;}if(Math.Abs(p.X-q.X)<0.01f){return p.X>r.Left&&p.X<r.Right&&Math.Max(p.Y,q.Y)>r.Top&&Math.Min(p.Y,q.Y)<r.Bottom;}
   for(int k=0;k<=20;k++){float t=k/20f;var x=p.X+(q.X-p.X)*t;var y=p.Y+(q.Y-p.Y)*t;if(r.Contains(x,y))return true;}return false;}
  static bool CrossesCircle(PointF p,PointF q,RectangleF c){float cx=c.X+c.Width/2,cy=c.Y+c.Height/2,r=c.Width/2-2;float vx=q.X-p.X,vy=q.Y-p.Y;float len2=vx*vx+vy*vy;float t=len2<1e-6f?0:Math.Max(0,Math.Min(1,((cx-p.X)*vx+(cy-p.Y)*vy)/len2));float dx=p.X+vx*t-cx,dy=p.Y+vy*t-cy;return dx*dx+dy*dy<r*r;}
  static void Check(string what,List<RectangleF> labels,List<RectangleF> boxes,List<PointF[]> lines,List<float> joins,List<string> problems,bool circles){
   for(int i=0;i<labels.Count;i++){var a=RectangleF.Inflate(labels[i],-0.5f,-0.5f);for(int j=i+1;j<labels.Count;j++)if(a.IntersectsWith(labels[j]))problems.Add(what+": labels overlap at x "+(int)a.X+", y "+(int)a.Y);
    foreach(var bx in boxes)if(a.IntersectsWith(bx))problems.Add(what+": label over a node at x "+(int)a.X+", y "+(int)a.Y);
-   foreach(var x in joins)if(a.Left<x&&a.Right>x)problems.Add(what+": label cut by a sheet edge at x "+(int)x);
+   foreach(var x in joins)if(a.Left<x&&a.Right>x)problems.Add(what+": label split by the sheet join at x "+(int)x);
    var inner=RectangleF.Inflate(labels[i],-1.5f,-1.5f);foreach(var pl in lines)for(int k=0;k+1<pl.Length;k++)if(Crosses(pl[k],pl[k+1],inner)){problems.Add(what+": line through a label at x "+(int)a.X+", y "+(int)a.Y);goto nextLabel;}
    nextLabel:;}
   foreach(var bx in boxes){var inner=RectangleF.Inflate(bx,-2,-2);foreach(var pl in lines)for(int k=0;k+1<pl.Length;k++)if(circles?CrossesCircle(pl[k],pl[k+1],bx):Crosses(pl[k],pl[k+1],inner)){problems.Add(what+": line through a node at x "+(int)bx.X+", y "+(int)bx.Y);goto nextBox;}
    nextBox:;}
-  foreach(var x in joins){foreach(var bx in boxes)if(bx.Left<x&&bx.Right>x)problems.Add(what+": node cut by a sheet edge at x "+(int)x);
-   foreach(var pl in lines)for(int k=0;k+1<pl.Length;k++){var p=pl[k];var q=pl[k+1];if(Math.Min(p.X,q.X)<=x+8&&Math.Max(p.X,q.X)>=x-8&&Math.Abs(p.Y-q.Y)>0.5f)problems.Add(what+": line bends at a sheet edge at x "+(int)x);}}}
- /* the arrow drawing, kept for the tests */
- internal PertAoa Aoa;
+  foreach(var x in joins){foreach(var bx in boxes)if(bx.Left<x&&bx.Right>x)problems.Add(what+": node split by the sheet join at x "+(int)x);
+   foreach(var pl in lines)for(int k=0;k+1<pl.Length;k++){var p=pl[k];var q=pl[k+1];if(Math.Min(p.X,q.X)<=x+8&&Math.Max(p.X,q.X)>=x-8&&Math.Abs(p.Y-q.Y)>0.5f)problems.Add(what+": line bends at the sheet join at x "+(int)x);}}}
+ /* the drawing and its sheet joins, kept for the tests */
+ internal PertAoa Aoa;internal List<float> PdmJoins=new List<float>(),PertJoins=new List<float>();
+ /* sheet edges (first = left end, last = right end): each sheet ends at the last allowed cut that still fits its width */
+ static List<float> Joins(List<float> cuts,float left,float right,float width){var edges=new List<float>{left};var sorted=cuts.Where(x=>x>left&&x<right).OrderBy(x=>x).ToList();
+  while(right-edges[edges.Count-1]>width){float from=edges[edges.Count-1];var fit=sorted.Where(x=>x>from+1&&x-from<=width).ToList();edges.Add(fit.Count>0?fit.Max():Math.Min(right,from+width));}
+  edges.Add(right);return edges;}
+ /* the joins between consecutive sheets: a thin dash-dot match line; the lines of the diagram cross it at the same height on
+    both sheets, so the sheets laid side by side give one continuous diagram */
+ static void MatchLines(Graphics g,RectangleF area,bool left,bool right){using(var pen=new Pen(Color.FromArgb(150,158,168),0.8f){DashStyle=DashStyle.DashDot}){if(left)g.DrawLine(pen,area.X,area.Y,area.X,area.Bottom);if(right)g.DrawLine(pen,area.Right,area.Y,area.Right,area.Bottom);}}
  void DrawSummary(Graphics g,RectangleF r,Font f,Font b){using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted))using(var red=new SolidBrush(Color.FromArgb(192,40,40)))using(var big=new Font("Segoe UI",14f,FontStyle.Bold))using(var mid=new Font("Segoe UI",9.5f,FontStyle.Bold))using(var grid=new Pen(Color.FromArgb(190,198,206),0.6f)){
   float y=r.Y;g.DrawString("CONSTRUCTION SCHEDULE",big,ink,r.X,y);y+=30;
   string[,] facts={{"Project duration (CPM)",Total+" working days"},{"Working time","8 hours per day; working days only (no Sundays, holidays or unworkable days)"},{"Scheduled pay items",Network.Nodes.Count(n=>!n.IsMilestone)+" activities, "+Network.Links.Count+" relations (FS / SS / FF with lags)"+(Network.Nodes.Any(n=>n.IsMilestone)?", "+Network.Nodes.Count(n=>n.IsMilestone)+" trade milestones":"")},
    {"PERT expected time Te",Pert.Te.ToString("0.0",CultureInfo.InvariantCulture)+" working days  (standard deviation "+Pert.Sigma.ToString("0.00",CultureInfo.InvariantCulture)+" days)"},{"Completion at 90% confidence",Pert.P90+" working days"},{"Completion at 95% confidence",Pert.P95+" working days"},{"Manpower (DUPA crews)",ScheduleManpower.Summary(Rows)}};
   for(int i=0;i<facts.GetLength(0);i++){g.DrawString(facts[i,0],b,ink,r.X,y);g.DrawString(facts[i,1],f,ink,r.X+210,y);y+=16;}y+=10;
   g.DrawString("CRITICAL PATH",mid,red,r.X,y);y+=18;float[] w={40,80,420,60,60,60};string[] h={"No.","Item no.","Description","Days","Start day","Finish day"};float x=r.X;for(int i=0;i<h.Length;i++){g.DrawString(h[i],b,ink,x,y);x+=w[i];}y+=15;g.DrawLine(grid,r.X,y,r.X+w.Sum(),y);y+=2;
-  foreach(var nd in Network.Nodes.Where(n=>n.Critical&&!n.IsMilestone)){if(y>r.Bottom-170)break;x=r.X;string[] v={nd.Id.ToString(CultureInfo.InvariantCulture),nd.Row.Code,nd.Row.Description,nd.Row.Days.ToString(CultureInfo.InvariantCulture),nd.Row.Start.ToString(CultureInfo.InvariantCulture),nd.Row.Finish.ToString(CultureInfo.InvariantCulture)};for(int i=0;i<v.Length;i++){g.DrawString(v[i],f,ink,new RectangleF(x,y,w[i]-6,14),new StringFormat{Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap});x+=w[i];}y+=14;}
+  foreach(var nd in Network.Nodes.Where(n=>n.Critical&&!n.IsMilestone)){if(y>r.Bottom-140)break;x=r.X;string[] v={nd.Id.ToString(CultureInfo.InvariantCulture),nd.Row.Code,nd.Row.Description,nd.Row.Days.ToString(CultureInfo.InvariantCulture),nd.Row.Start.ToString(CultureInfo.InvariantCulture),nd.Row.Finish.ToString(CultureInfo.InvariantCulture)};for(int i=0;i<v.Length;i++){g.DrawString(v[i],f,ink,new RectangleF(x,y,w[i]-6,14),new StringFormat{Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap});x+=w[i];}y+=14;}
+  y=Math.Max(y+12,r.Bottom-130);g.DrawString("BASIS AND NOTES",mid,ink,r.X,y);y+=18;
   string[] notes={"1. Durations: quantity from the Bill of Quantities / (output per hour from the DUPA x 8 hours x crews), rounded up to whole working days.",
-   "2. Logic: each item follows the trades it depends on (bedding, lean, rebar, forms, footings after pile tests, frame, roof deck last; backfill, under-slab pipes, poisoning, gravel, slab on fill; masonry, steel 7 days after the frame, roofing; rough-in before plaster; tiles 7 days after their slab; painting 14 days after plaster) with FS / SS / FF lags (see PDM). Non-critical items start within their float on the day that keeps the daily manpower level.",
+   "2. Logic: each item follows the trades it depends on - clearing, excavation, lean concrete, rebar, formworks (overlapping the rebar), footing and frame concrete, backfill, soil poisoning, gravel, slab on fill, masonry, steel (7 days after the frame: curing), roofing, plaster, ceiling, tiles, doors, painting - with FS / SS / FF relations and lags (see PDM). Non-critical items start within their float on the day that keeps the daily manpower level; the duration is not changed.",
    "3. PERT: optimistic a = 0.8 m, most likely m = activity duration, pessimistic b = 1.2 m; te = (a + 4m + b) / 6; variance = ((b - a) / 6)^2; normal distribution for the confidence levels.",
    "4. Lump-sum (LS) pay items are listed in the bar chart with the output per hour left blank (no duration yet); time-based (per month) pay items are not scheduled. Calendar days, Sundays, holidays and unworkable days are not included.",
    "5. PDM / CPM times follow the standard convention: ES of the first activity = 0, EF = ES + D, LS = LF - D, TF = LS - ES; bar chart day n = the n-th working day; the bar chart shows the levelled start (between ES + 1 and LS + 1).",
    "6. Manpower: "+ScheduleManpower.Basis};
-  /* each note as tall as its wrapped text, the block kept above the title block */
-  var heights=notes.Select(n=>g.MeasureString(n,f,(int)r.Width).Height).ToArray();y=Math.Max(y+12,r.Bottom-18-heights.Sum(nh=>Math.Max(17,nh+4))-4);g.DrawString("BASIS AND NOTES",mid,ink,r.X,y);y+=18;
-  for(int i=0;i<notes.Length;i++){g.DrawString(notes[i],f,muted,new RectangleF(r.X,y,r.Width,heights[i]+2));y+=Math.Max(17,heights[i]+4);}}}
+  foreach(var n in notes){g.DrawString(n,f,muted,new RectangleF(r.X,y,r.Width,26));y+=17;}}}
  void DrawPertTable(Graphics g,RectangleF r,Font f,Font b,int start,int count){float[] w={36,80,330,250,56,60,56,52,60,44,44,52};string[] h={"No.","Item no.","Description","Predecessors","a (opt.)","m (likely)","b (pess.)","te","Variance","ES","EF","Critical"};
   using(var ink=new SolidBrush(PowTheme.Ink))using(var red=new SolidBrush(Color.FromArgb(192,40,40)))using(var head=new SolidBrush(Color.FromArgb(236,240,244)))using(var grid=new Pen(Color.FromArgb(205,211,218),0.5f)){var near=new StringFormat{LineAlignment=StringAlignment.Center,Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap};var far=new StringFormat(near){Alignment=StringAlignment.Far};
    g.FillRectangle(head,r.X,r.Y,w.Sum(),22);float x=r.X;for(int i=0;i<h.Length;i++){g.DrawString(h[i],b,ink,new RectangleF(x+3,r.Y,w[i]-6,22),i>=4&&i<=10?far:near);x+=w[i];}float y=r.Y+22;
