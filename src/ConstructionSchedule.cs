@@ -6,7 +6,7 @@ namespace BeamScheduleFormatter {
 // previous one unless a start day is entered (to run items at the same time). Total working days = latest finish; 8 hours per day,
 // working days only (owner: "fix at 8 hrs/day, working days lang"). LS items are left out for now (owner: "hayaan mo muna
 // yung mga LS"). Output per hour, crews and start day can be changed per item and are saved with the project.
-sealed class ScheduleOverride {internal double? Rate;internal int? Crews;internal int? Start;/* duration in working days of an LS item that is scheduled (permits, mobilization, demobilization) */internal int? Days;}
+sealed class ScheduleOverride {internal double? Rate;internal int? Crews;internal int? Start;/* duration in working days of an LS item that is scheduled (permits, mobilization, demobilization) */internal int? Days;/* working hours of an LS item entered by the owner (19 November 2026) */internal double? Hours;}
 sealed class ScheduleRow {/* Part A / B item spanning the whole project (owner, 19 November 2026); not an activity of the network */internal bool Span;internal string Code,Description,Unit,Key,Note,Phase,Crew="",Predecessors="";internal double Quantity,Rate;internal int Crews,Days,Start,Finish,PhaseIndex,Order;internal bool Critical;
  internal static bool IsLumpSum(string unit){return BackupMapping.Unit(unit)=="ls";}}
 // Automatic sequence with parallel works (owner, 18 November 2026: "automate na yung pagkakasunod-sunod, yung pwedeng
@@ -111,7 +111,7 @@ scheduleChart=new ScheduleChart{Height=200,Width=1200,Cursor=Cursors.Hand};sched
   scheduleViews.TabPages.Add(barPage);scheduleViews.TabPages.Add(pdmPage);scheduleViews.TabPages.Add(pertPage);scheduleViews.TabPages.Add(manPage);
   page.Controls.Add(scheduleViews);page.Controls.Add(bar);tabs.TabPages.Add(page);}
  /* crews and output per hour of one item (saved with the Program of Works); more crews shorten the item and add to the daily manpower */
- void EditScheduleItem(ScheduleRow row){if(row==null||row.Span)return;if(ScheduleRow.IsLumpSum(row.Unit)){EditScheduleDuration(row);return;}string key=row.Key??ScheduleKey(row.Code,row.Description);ScheduleOverride o;scheduleOverrides.TryGetValue(key,out o);
+ void EditScheduleItem(ScheduleRow row){if(row==null||row.Span)return;if(ScheduleRow.IsLumpSum(row.Unit)){EditScheduleDuration(row,!(row.Description??"").EndsWith("mobilization"));return;}string key=row.Key??ScheduleKey(row.Code,row.Description);ScheduleOverride o;scheduleOverrides.TryGetValue(key,out o);
   var standard=ScheduleRates.Find(row.Code,row.Description);
   using(var f=new Form{Text="Schedule - "+row.Code,FormBorderStyle=FormBorderStyle.FixedDialog,MinimizeBox=false,MaximizeBox=false,StartPosition=FormStartPosition.CenterParent,ClientSize=new Size(520,250),Font=Font}){AppBrand.Apply(f);
    var info=new Label{Left=14,Top=12,Width=490,Height=40,Text=row.Code+"  "+row.Description+"\r\nQuantity "+row.Quantity.ToString("N2")+" "+row.Unit+" - now "+row.Days+" working day(s)"};
@@ -128,12 +128,12 @@ scheduleChart=new ScheduleChart{Height=200,Width=1200,Cursor=Cursors.Hand};sched
    if(!next.Crews.HasValue&&!next.Start.HasValue)scheduleOverrides.Remove(key);else scheduleOverrides[key]=next;
    dashboardDirty=reportPreviewDirty=true;RefreshSchedule();}}
  /* duration of a scheduled LS item (permits and clearances, mobilization, demobilization) */
- void EditScheduleDuration(ScheduleRow row){string key=row.Key??ScheduleKey(row.Code,row.Description);ScheduleOverride o;scheduleOverrides.TryGetValue(key,out o);
+ void EditScheduleDuration(ScheduleRow row,bool hoursInput){string key=row.Key??ScheduleKey(row.Code,row.Description);ScheduleOverride o;scheduleOverrides.TryGetValue(key,out o);
   using(var f=new Form{Text="Schedule - "+row.Code,FormBorderStyle=FormBorderStyle.FixedDialog,MinimizeBox=false,MaximizeBox=false,StartPosition=FormStartPosition.CenterParent,ClientSize=new Size(460,150),Font=Font}){AppBrand.Apply(f);
-   var days=new NumericUpDown{Left=300,Top=58,Width=90,Minimum=0,Maximum=1000,Value=Math.Max(0,Math.Min(1000,row.Days))};
+   var days=new NumericUpDown{Left=300,Top=58,Width=90,Minimum=0,Maximum=hoursInput?100000:1000,DecimalPlaces=hoursInput?1:0,Value=hoursInput?(decimal)Math.Max(0,Math.Min(100000,o!=null&&o.Hours.HasValue?o.Hours.Value:0)):Math.Max(0,Math.Min(1000,row.Days))};
    var ok=new Button{Text="Apply",Left=240,Top=104,Width=100,DialogResult=DialogResult.OK};var cancel=new Button{Text="Cancel",Left=348,Top=104,Width=100,DialogResult=DialogResult.Cancel};
-   f.Controls.AddRange(new Control[]{new Label{Left=14,Top=12,Width=430,Height=40,Text=row.Code+"  "+row.Description},new Label{Left=14,Top=61,Width=280,Text="Duration (working days; 0 = no bar)"},days,ok,cancel});f.AcceptButton=ok;f.CancelButton=cancel;
-   if(f.ShowDialog(this)!=DialogResult.OK)return;var next=o??new ScheduleOverride();next.Days=days.Value>0?(int?)(int)days.Value:null;if(!next.Days.HasValue&&!next.Crews.HasValue&&!next.Start.HasValue&&!next.Rate.HasValue)scheduleOverrides.Remove(key);else scheduleOverrides[key]=next;dashboardDirty=reportPreviewDirty=true;RefreshSchedule();}}
+   f.Controls.AddRange(new Control[]{new Label{Left=14,Top=12,Width=430,Height=40,Text=row.Code+"  "+row.Description},new Label{Left=14,Top=61,Width=280,Text=hoursInput?"Working hours (8 hours = 1 day; 0 = no bar)":"Duration (working days)"},days,ok,cancel});f.AcceptButton=ok;f.CancelButton=cancel;
+   if(f.ShowDialog(this)!=DialogResult.OK)return;var next=o??new ScheduleOverride();if(hoursInput){next.Hours=days.Value>0?(double?)(double)days.Value:null;next.Days=null;}else next.Days=days.Value>0?(int?)(int)days.Value:null;if(!next.Days.HasValue&&!next.Hours.HasValue&&!next.Crews.HasValue&&!next.Start.HasValue&&!next.Rate.HasValue)scheduleOverrides.Remove(key);else scheduleOverrides[key]=next;dashboardDirty=reportPreviewDirty=true;RefreshSchedule();}}
  /* Quantity of each pay item as shown in Bill of Quantities */
  List<KeyValuePair<BackupBillItem,double>> SchedulePayQuantities(){var result=new List<KeyValuePair<BackupBillItem,double>>();if(backupBill==null||backupBill.Count==0)return result;
   var demands=BackupQuantities(false).Where(d=>d.Quantity>1e-10||d.ManualOverride||backupBillRoutes.ContainsKey(d.Key)).ToList();List<BackupDemand> unmapped;var grouped=SourcesByItem(demands,out unmapped);
@@ -160,7 +160,11 @@ scheduleChart=new ScheduleChart{Height=200,Width=1200,Cursor=Cursors.Hand};sched
    /* other LS items (finishing hardware, doors and windows, fixtures, electrical ... in LS): no DUPA output per hour, so the
       owner enters their working days (double-click); the construction logic then places them with their trade
       ("ee yung mga iba nga doon pano iquantify", 19 November 2026) */
-   if(lumpSum){r.Days=o!=null&&o.Days.HasValue?o.Days.Value:0;r.Note=r.Days>0?"LS - working days entered":"LS - double-click to enter the working days";r.Order=rows.Count;rows.Add(r);continue;}
+   /* owner (19 November 2026): "yung sa finishing hardware wala kasi siyang installation kasama na siya sa wooden doors and
+      windows" - shown with the door and window rows, not an activity of its own; "yung iba ... input ko na lang if ilang
+      hours" - the other LS items take the working hours entered by the owner (days = hours / 8, rounded up) */
+   if(lumpSum&&general.StartsWith("1004(")){r.Span=true;r.Days=0;r.Note="Included in the installation of the doors and windows";r.Order=rows.Count;rows.Add(r);continue;}
+   if(lumpSum){double hrs=o!=null&&o.Hours.HasValue?o.Hours.Value:0;r.Days=hrs>0?(int)Math.Ceiling(hrs/(hours*Math.Max(1,r.Crews))-1e-9):0;r.Note=r.Days>0?"LS - "+hrs.ToString("0.##",CultureInfo.InvariantCulture)+" working hours entered":"LS - double-click to enter the working hours";r.Order=rows.Count;rows.Add(r);continue;}
    /* 804(7) gravel: the bedding under the footings and tie beams (automatic) goes in before the lean concrete, the gravel
       of the other areas (manual entries: slab on fill, walks) after the backfill - two bars of the same pay item, the
       quantity split in proportion (the Bill of Quantities is not changed) */
@@ -171,7 +175,7 @@ scheduleChart=new ScheduleChart{Height=200,Width=1200,Cursor=Cursors.Hand};sched
     r.Description=desc+" - slab on fill / other areas";}
    r.Days=r.Rate>0?(int)Math.Ceiling(r.Quantity/(r.Rate*hours*r.Crews)-1e-9):0;r.Order=rows.Count;rows.Add(r);}
   /* phases one after another; the items of a phase in parallel */
-  Plan(rows);int end=rows.Where(x=>x.Days>0&&!x.Span).Select(x=>x.Finish).DefaultIfEmpty(0).Max();foreach(var x in rows.Where(x=>x.Span)){x.Start=1;x.Finish=end;x.Days=end;x.Critical=false;x.Predecessors="";}return rows;}
+  Plan(rows);int end=rows.Where(x=>x.Days>0&&!x.Span).Select(x=>x.Finish).DefaultIfEmpty(0).Max();var doors=rows.Where(x=>!x.Span&&x.Days>0&&ScheduleLogic.Trade(x)=="DOOR").ToList();foreach(var x in rows.Where(x=>x.Span)){bool hardware=new string((x.Code??"").Where(char.IsLetterOrDigit).ToArray()).StartsWith("1004");if(hardware){if(doors.Count==0){x.Start=1;x.Finish=0;x.Days=0;}else{x.Start=doors.Min(d=>d.Start);x.Finish=doors.Max(d=>d.Finish);x.Days=x.Finish-x.Start+1;}}else{x.Start=1;x.Finish=end;x.Days=end;}x.Critical=false;x.Predecessors="";}return rows;}
  /* installed gravel volumes: [bedding under beams and footings, other areas entered by hand] */
  double[] GravelParts(){try{double bed=(beam!=null?beam.WorksGravel():0)+footingResults.Sum(q=>q.Gravel)+wallFootingResults.Sum(q=>q.Gravel);return new[]{Math.Max(0,bed),Math.Max(0,ManualGravelVolume())};}catch(Exception){return null;}}
  /* start / finish days from the realistic construction logic (FS / SS / FF relations), CPM and manpower levelling within
@@ -183,8 +187,8 @@ scheduleChart=new ScheduleChart{Height=200,Width=1200,Cursor=Cursors.Hand};sched
   scheduleChart.Rows=rows;scheduleChart.Total=total;scheduleChart.Fit();if(pdmView!=null){pdmView.Network=network;pdmView.Fit();}if(pertView!=null){var pertNet=PdmNetwork.Build(rows);pertView.Pert=PertResult.Build(pertNet);pertView.Diagram=PertAoa.Build(pertNet,pertView.Pert);pertView.Fit();}if(manpowerView!=null){manpowerView.Rows=rows;manpowerView.Fit();}
   if(rows.Count>0)scheduleSummary.Text+="  |  "+ScheduleManpower.Summary(rows).Split(';')[0];}
  void WriteSchedule(XmlElement root){var e=root.OwnerDocument.CreateElement("ConstructionSchedule");root.AppendChild(e);
-  foreach(var pair in scheduleOverrides.OrderBy(p=>p.Key,StringComparer.Ordinal)){var i=root.OwnerDocument.CreateElement("Item");i.SetAttribute("key",pair.Key);if(pair.Value.Rate.HasValue)i.SetAttribute("rate",pair.Value.Rate.Value.ToString("R",CultureInfo.InvariantCulture));if(pair.Value.Crews.HasValue)i.SetAttribute("crews",pair.Value.Crews.Value.ToString(CultureInfo.InvariantCulture));if(pair.Value.Days.HasValue)i.SetAttribute("days",pair.Value.Days.Value.ToString(CultureInfo.InvariantCulture));if(pair.Value.Start.HasValue)i.SetAttribute("start",pair.Value.Start.Value.ToString(CultureInfo.InvariantCulture));e.AppendChild(i);}WriteContractDuration(e);}
+  foreach(var pair in scheduleOverrides.OrderBy(p=>p.Key,StringComparer.Ordinal)){var i=root.OwnerDocument.CreateElement("Item");i.SetAttribute("key",pair.Key);if(pair.Value.Rate.HasValue)i.SetAttribute("rate",pair.Value.Rate.Value.ToString("R",CultureInfo.InvariantCulture));if(pair.Value.Crews.HasValue)i.SetAttribute("crews",pair.Value.Crews.Value.ToString(CultureInfo.InvariantCulture));if(pair.Value.Hours.HasValue)i.SetAttribute("hours",pair.Value.Hours.Value.ToString("R",CultureInfo.InvariantCulture));if(pair.Value.Days.HasValue)i.SetAttribute("days",pair.Value.Days.Value.ToString(CultureInfo.InvariantCulture));if(pair.Value.Start.HasValue)i.SetAttribute("start",pair.Value.Start.Value.ToString(CultureInfo.InvariantCulture));e.AppendChild(i);}WriteContractDuration(e);}
  void ReadSchedule(XmlElement root){scheduleOverrides.Clear();var e=root["ConstructionSchedule"];ReadContractDuration(e);if(e==null)return;
-  foreach(XmlElement i in e.SelectNodes("Item")){string key=i.GetAttribute("key");if(key=="")continue;double r;int c,st,dd;scheduleOverrides[key]=new ScheduleOverride{Days=int.TryParse(i.GetAttribute("days"),out dd)&&dd>=1?(int?)dd:null,Rate=double.TryParse(i.GetAttribute("rate"),NumberStyles.Float,CultureInfo.InvariantCulture,out r)&&r>0?(double?)r:null,Crews=int.TryParse(i.GetAttribute("crews"),out c)&&c>=1?(int?)c:null,Start=int.TryParse(i.GetAttribute("start"),out st)&&st>=1?(int?)st:null};}}
+  foreach(XmlElement i in e.SelectNodes("Item")){string key=i.GetAttribute("key");if(key=="")continue;double r;int c,st,dd;double hh;scheduleOverrides[key]=new ScheduleOverride{Hours=double.TryParse(i.GetAttribute("hours"),NumberStyles.Float,CultureInfo.InvariantCulture,out hh)&&hh>0?(double?)hh:null,Days=int.TryParse(i.GetAttribute("days"),out dd)&&dd>=1?(int?)dd:null,Rate=double.TryParse(i.GetAttribute("rate"),NumberStyles.Float,CultureInfo.InvariantCulture,out r)&&r>0?(double?)r:null,Crews=int.TryParse(i.GetAttribute("crews"),out c)&&c>=1?(int?)c:null,Start=int.TryParse(i.GetAttribute("start"),out st)&&st>=1?(int?)st:null};}}
 }
 }
