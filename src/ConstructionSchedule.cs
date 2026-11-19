@@ -43,8 +43,17 @@ sealed class ScheduleChart:Control {
  /* a phase heading (Item == null) or an item line */
  internal sealed class Line {internal string Phase;internal ScheduleRow Item;}
  internal static List<Line> Lines(List<ScheduleRow> rows){return rows.Select(r=>new Line{Item=r}).ToList();}/* item order as in Bill of Quantities, no phase headings */
- internal void Fit(){var lines=Lines(Rows);ScreenWidths[1]=300;float h;using(var g=CreateGraphics()){FitDescription(g,Rows,Font,ScreenWidths,560,ref ScreenRow);h=Heights(g,lines,Font,ScreenWidths[1],ScreenRow).Sum();}Width=(int)(ScreenWidths.Sum()+Math.Max(1,Total)*ScreenDay+40);Height=(int)(ScreenHead+h+40+ScreenRow+10);Invalidate();}
- protected override void OnPaint(PaintEventArgs e){e.Graphics.Clear(BackColor);using(var bold=new Font(Font,FontStyle.Bold))Draw(e.Graphics,Lines(Rows),0,0,ScreenWidths,ScreenDay,ScreenRow,ScreenHead,1,Math.Max(1,Total),Font,bold,ScheduleManpower.Daily(Rows));}
+ /* owner (19 November 2026, "ifix mo yung left side tapos scrollable yung working days"): the item columns stay in place and only
+    the working days scroll (scroll bar under the chart, or Shift + mouse wheel) */
+ internal int FirstDay=1;internal ScrollBar DayScroll;
+ internal int VisibleDays{get{return Math.Max(1,(int)((Width-ScreenWidths.Sum()-24)/ScreenDay));}}
+ internal void SyncDays(){int total=Math.Max(1,Total),vis=VisibleDays;FirstDay=Math.Max(1,Math.Min(FirstDay,Math.Max(1,total-vis+1)));
+  if(DayScroll!=null){DayScroll.Minimum=1;DayScroll.SmallChange=1;DayScroll.LargeChange=Math.Max(1,Math.Min(vis,total));DayScroll.Maximum=total;DayScroll.Enabled=total>vis;DayScroll.Value=Math.Max(1,Math.Min(FirstDay,DayScroll.Maximum-DayScroll.LargeChange+1));}Invalidate();}
+ internal void ScrollDays(int day){FirstDay=day;SyncDays();}
+ protected override void OnMouseWheel(MouseEventArgs e){if((ModifierKeys&Keys.Shift)!=0){ScrollDays(FirstDay-Math.Sign(e.Delta)*Math.Max(1,VisibleDays/4));((HandledMouseEventArgs)e).Handled=true;return;}base.OnMouseWheel(e);}
+ internal void Fit(){var lines=Lines(Rows);ScreenWidths[1]=300;float h;using(var g=CreateGraphics()){FitDescription(g,Rows,Font,ScreenWidths,380,ref ScreenRow);h=Heights(g,lines,Font,ScreenWidths[1],ScreenRow).Sum();}
+  int full=(int)(ScreenWidths.Sum()+Math.Max(1,Total)*ScreenDay+40);Width=Parent!=null?Math.Max((int)ScreenWidths.Sum()+(int)ScreenDay*8,Math.Min(full,Parent.ClientSize.Width-SystemInformation.VerticalScrollBarWidth-2)):full;Height=(int)(ScreenHead+h+40+ScreenRow+10);SyncDays();}
+ protected override void OnPaint(PaintEventArgs e){e.Graphics.Clear(BackColor);int last=Math.Min(Math.Max(1,Total),FirstDay+VisibleDays-1);using(var bold=new Font(Font,FontStyle.Bold))Draw(e.Graphics,Lines(Rows),0,0,ScreenWidths,ScreenDay,ScreenRow,ScreenHead,FirstDay,Math.Max(FirstDay,last),Font,bold,ScheduleManpower.Daily(Rows));}
  /* header height: caption row plus the day-number row; numbers too wide for their column (3 digits) are written
     vertically (owner, 18 November 2026: "rotate mo siguro days sa barchart para magkasya if 3 digits na") */
  internal static bool RotateDays(Graphics g,Font font,float dayW,int dayTo){return g.MeasureString(dayTo.ToString(CultureInfo.InvariantCulture),font).Width>dayW-1;}
@@ -78,17 +87,21 @@ partial class ProgramOfWorksForm {
  static string ScheduleKey(string code,string description){return code+"|"+description;}
  const double ScheduleHoursPerDay=8;/* fixed (owner, 18 November 2026: "fix at 8 hrs/day") */
  void AddConstructionSchedule(){var page=new TabPage("Construction Schedule");
-  scheduleSummary=new Label{Dock=DockStyle.Top,Height=34,Padding=new Padding(14,8,14,2),Font=new Font("Segoe UI",10f,FontStyle.Bold),ForeColor=PowTheme.Ink};
-  var note=new Label{Dock=DockStyle.Top,Height=28,Padding=new Padding(14,2,14,2),ForeColor=PowTheme.Muted,Text="No. of days = quantity / (output per hour x 8 hours x crews), rounded up; output per hour is fixed at the DUPA value; double-click an item to add crews and shorten the schedule; working days only. Items keep the Bill of Quantities order. Construction logic: each item follows the trades it depends on (FS / SS / FF with lags, e.g. formworks overlap the rebar, trusses 7 days after the frame is poured); non-critical items are started within their float so the daily manpower stays level. LS items are listed without a duration."};
-  scheduleChart=new ScheduleChart{Height=200,Width=1200,Cursor=Cursors.Hand};scheduleChart.RowDoubleClicked=EditScheduleItem;var host=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};host.Controls.Add(scheduleChart);
-  var bar=new FlowLayoutPanel{Dock=DockStyle.Top,Height=44,Padding=new Padding(10,4,10,0)};
-  Button(bar,"Print preview",()=>PrintSchedule(true));Button(bar,"Print",()=>PrintSchedule(false));bar.Controls.Add(new Label{AutoSize=true,Padding=new Padding(10,10,0,0),ForeColor=PowTheme.Muted,Text="Prints the complete set for issue: summary, bar chart with manpower per day, manpower loading and schedule, PDM, PERT table and PERT-CPM network (A3 landscape, title block). Red = critical path."});
+  /* owner (19 November 2026, "ayusin itong sa taas"): one command row - print buttons and the summary - and one short hint; the long
+     explanation opens from "How the schedule is computed" */
+  scheduleSummary=new Label{AutoSize=true,Padding=new Padding(14,9,8,0),Font=new Font("Segoe UI",10f,FontStyle.Bold),ForeColor=PowTheme.Ink};
+  const string explanation="No. of days = quantity / (output per hour x 8 hours x crews), rounded up; working days only. The output per hour is fixed at the DUPA value; double-click an item in the Bar Chart to add crews and shorten it.\r\n\r\nItems keep the Bill of Quantities order. Construction logic: each item follows the trades it depends on (FS / SS / FF with lags, e.g. formworks overlap the rebar, trusses 7 days after the frame is poured); when an item is missing it follows the next work it stands on. Non-critical items are started within their float so the daily manpower stays level. LS items are listed without a duration.\r\n\r\nPrint / Print preview: the complete set for issue - summary, bar chart with manpower per day, manpower loading and schedule, PDM, PERT table and PERT-CPM network (A3 landscape, title block). Red = critical path.";
+scheduleChart=new ScheduleChart{Height=200,Width=1200,Cursor=Cursors.Hand};scheduleChart.RowDoubleClicked=EditScheduleItem;var host=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};host.Controls.Add(scheduleChart);var dayScroll=new HScrollBar{Dock=DockStyle.Bottom,Height=SystemInformation.HorizontalScrollBarHeight};scheduleChart.DayScroll=dayScroll;dayScroll.Scroll+=(s,e)=>scheduleChart.ScrollDays(dayScroll.Value);host.Resize+=(s,e)=>{if(scheduleChart.Rows!=null)scheduleChart.Fit();};
+  var bar=new FlowLayoutPanel{Dock=DockStyle.Top,Height=44,Padding=new Padding(10,4,10,0),WrapContents=false};
+  Button(bar,"Print preview",()=>PrintSchedule(true));Button(bar,"Print",()=>PrintSchedule(false));Button(bar,"?",()=>MessageBox.Show(this,explanation,"Construction Schedule",MessageBoxButtons.OK,MessageBoxIcon.Information));
+  var printTip=new ToolTip();foreach(Control c in bar.Controls)if(c.Text=="?")printTip.SetToolTip(c,"How the schedule is computed");else if(c.Text.StartsWith("Print"))printTip.SetToolTip(c,"Prints the complete set for issue (A3 landscape): summary, bar chart with manpower per day, manpower loading and schedule, PDM, PERT table and PERT-CPM network.");page.Disposed+=(s,e)=>printTip.Dispose();
+  bar.Controls.Add(scheduleSummary);
   /* Bar Chart and Precedence Diagram (PDM) views (owner, 18 November 2026) */
-  scheduleViews=new TabControl{Dock=DockStyle.Fill};var barPage=new TabPage("Bar Chart");barPage.Controls.Add(host);var pdmPage=new TabPage("Precedence Diagram (PDM)");
+  scheduleViews=new TabControl{Dock=DockStyle.Fill};var barPage=new TabPage("Bar Chart");barPage.Controls.Add(host);barPage.Controls.Add(dayScroll);var pdmPage=new TabPage("Precedence Diagram (PDM)");
   pdmView=new PdmView{Width=800,Height=400};var pdmHost=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};pdmHost.Controls.Add(pdmView);pdmPage.Controls.Add(pdmHost);var pertPage=new TabPage("PERT-CPM");pertView=new PertView{Width=800,Height=400};var pertHost=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};pertHost.Controls.Add(pertView);pertPage.Controls.Add(pertHost);
   var manPage=new TabPage("Manpower");manpowerView=new ManpowerView{Width=1000,Height=600};var manHost=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};manHost.Controls.Add(manpowerView);manPage.Controls.Add(manHost);
   scheduleViews.TabPages.Add(barPage);scheduleViews.TabPages.Add(pdmPage);scheduleViews.TabPages.Add(pertPage);scheduleViews.TabPages.Add(manPage);
-  page.Controls.Add(scheduleViews);page.Controls.Add(note);page.Controls.Add(scheduleSummary);page.Controls.Add(bar);tabs.TabPages.Add(page);}
+  page.Controls.Add(scheduleViews);page.Controls.Add(bar);tabs.TabPages.Add(page);}
  /* crews and output per hour of one item (saved with the Program of Works); more crews shorten the item and add to the daily manpower */
  void EditScheduleItem(ScheduleRow row){if(row==null||ScheduleRow.IsLumpSum(row.Unit))return;string key=row.Key??ScheduleKey(row.Code,row.Description);ScheduleOverride o;scheduleOverrides.TryGetValue(key,out o);
   var standard=ScheduleRates.Find(row.Code,row.Description);
@@ -135,7 +148,7 @@ partial class ProgramOfWorksForm {
     the float (ScheduleLogic); rows stay in Bill of Quantities order (owner: "huwag i-rearrange") */
  internal static List<ScheduleRow> Plan(List<ScheduleRow> rows){ScheduleLogic.Schedule(rows);return rows;}
  void RefreshSchedule(){if(scheduleChart==null||scheduleChart.IsDisposed)return;var rows=ScheduleRows();int total=rows.Where(r=>r.Days>0).Select(r=>r.Finish).DefaultIfEmpty(0).Max();
-  scheduleSummary.Text=rows.Count==0?"No pay item quantities yet. Map the Tool Kit quantities to the BACKUP pay items first.":"Total: "+total+" working days"+(rows.Any(r=>r.Rate<=0&&!ScheduleRow.IsLumpSum(r.Unit))?"  |  "+rows.Count(r=>r.Rate<=0&&!ScheduleRow.IsLumpSum(r.Unit))+" item(s) without output per hour (not counted)":"")+(rows.Any(r=>r.Rate<=0&&ScheduleRow.IsLumpSum(r.Unit))?"  |  "+rows.Count(r=>r.Rate<=0&&ScheduleRow.IsLumpSum(r.Unit))+" LS item(s) listed, output per hour left blank":"");
+  scheduleSummary.Text=rows.Count==0?"No pay item quantities yet.":"Total: "+total+" working days"+(rows.Any(r=>r.Rate<=0&&!ScheduleRow.IsLumpSum(r.Unit))?"  |  "+rows.Count(r=>r.Rate<=0&&!ScheduleRow.IsLumpSum(r.Unit))+" item(s) without DUPA output":"");/* owner (19 November 2026): "alisin ang unnecessary wordings" */
   var network=PdmNetwork.Build(rows);
   scheduleChart.Rows=rows;scheduleChart.Total=total;scheduleChart.Fit();if(pdmView!=null){pdmView.Network=network;pdmView.Fit();}if(pertView!=null){var pertNet=PdmNetwork.Build(rows);pertView.Pert=PertResult.Build(pertNet);pertView.Diagram=PertAoa.Build(pertNet,pertView.Pert);pertView.Fit();}if(manpowerView!=null){manpowerView.Rows=rows;manpowerView.Fit();}
   if(rows.Count>0)scheduleSummary.Text+="  |  "+ScheduleManpower.Summary(rows).Split(';')[0];}

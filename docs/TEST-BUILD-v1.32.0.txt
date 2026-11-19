@@ -40,3 +40,11 @@ Program of Works command bar ("isummarize yung buttons", "huwag na yung undo red
   Ctrl+Shift+P, Export report file). Save is Ctrl+S.
 - No Undo / Redo buttons (also in the estimates and design sheets); Ctrl+Z undoes and
   Ctrl+Y (or Ctrl+Shift+Z) redoes row edits as before.
+
+Construction Schedule screen ("ayusin itong sa taas", "ifix mo yung left side tapos scrollable yung working days",
+"alisin ang unnecessary wordings")
+- One command row: Print preview, Print, "?" (how the schedule is computed) and the
+  summary (total working days, peak manpower). The long notes were removed.
+- Bar Chart: item no., description, quantity, unit, output per hour and no. of days stay
+  in place; only the working days scroll (scroll bar under the chart, or Shift + mouse
+  wheel). The printed set is unchanged.
