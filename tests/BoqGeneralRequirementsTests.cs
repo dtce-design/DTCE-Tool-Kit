@@ -38,6 +38,11 @@ class BoqGeneralRequirementsTests {
    var photos=item("A.1.4(1)",null);photos.ManualQuantity=12;f.Recalculate();Check(Final(f,photos)==12,"a typed number of months wins");photos.ManualQuantity=null;f.Recalculate();Check(Final(f,photos)==months,"blank returns to the app's months");
    Call(f,"UpdateBackupBillDashboard");var grid=Get<DataGridView>(f,"boqGrid");var row=grid.Rows.Cast<DataGridViewRow>().First(x=>x.Tag==photos);
    Check(!row.Cells[2].ReadOnly&&Convert.ToString(row.Cells[2].Value)==months.ToString()&&row.Cells[2].ToolTipText.StartsWith("Filled by the app"),"the filled months stay editable in the Bill of Quantities");
-   Check(f.ScheduleRows().Any(x=>x.Code=="B.5(1)"&&x.Days>0),"billboards appear in the construction schedule");}
+   Check(f.ScheduleRows().Any(x=>x.Code=="B.5(1)"&&x.Days>0),"billboards appear in the construction schedule");
+   /* "hindi ba pwede paiksiin yung working days": more crews on an item shorten it */
+   {var item0=f.ScheduleRows().First(x=>x.Rate>0&&x.Days>0);var overrides=Get<System.Collections.IDictionary>(f,"scheduleOverrides");var type=typeof(ProgramOfWorksForm).Assembly.GetType("BeamScheduleFormatter.ScheduleOverride");
+    Func<double,int?,object> make=(rate,crews)=>{var o=Activator.CreateInstance(type,true);type.GetField("Rate",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(o,(double?)rate);type.GetField("Crews",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(o,crews);return o;};
+    double slow=item0.Quantity/(8*30.0);overrides[item0.Key]=make(slow,null);var one=f.ScheduleRows().First(x=>x.Key==item0.Key);overrides[item0.Key]=make(slow,3);var three=f.ScheduleRows().First(x=>x.Key==item0.Key);
+    Check(one.Days==30&&three.Crews==3&&three.Days==10,"3 crews shorten "+item0.Code+" from "+one.Days+" to "+three.Days+" days");overrides.Remove(item0.Key);}}
   ProgramOfWorksForm.FillGeneralRequirements=false;Console.WriteLine("PASS: "+checks+" Part A / B checks");}
 }

@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Drawing;using System.Globalization;using System.Linq;using System.Windows.Forms;using System.Xml;
+﻿using System;using System.Collections.Generic;using System.Drawing;using System.Globalization;using System.Linq;using System.Windows.Forms;using System.Xml;
 namespace BeamScheduleFormatter {
 // Construction Schedule (owner, 18 November 2026: "bar chart for computation of working days, based sa quantities and pay
 // items"; output per hour from the owner's DUPA summary, see ScheduleRates). One row per Bill of Quantities pay item with a
@@ -26,6 +26,10 @@ sealed class ScheduleChart:Control {
     left and one numbered column per working day on the right. The same drawing is used on screen and on paper. */
  internal List<ScheduleRow> Rows=new List<ScheduleRow>();internal int Total;
  internal ScheduleChart(){DoubleBuffered=true;BackColor=Color.White;Font=new Font("Segoe UI",8.5f);}
+ /* owner (19 November 2026, "hindi ba pwede paiksiin yung working days"): double-click an item to set its crews / output */
+ internal Action<ScheduleRow> RowDoubleClicked;
+ internal ScheduleRow RowAt(Point p){var lines=Lines(Rows);using(var g=CreateGraphics()){float head=HeaderHeight(g,Font,ScreenDay,Math.Max(1,Total),ScreenHead);var hs=Heights(g,lines,Font,ScreenWidths[1],ScreenRow);float y=head;for(int i=0;i<lines.Count;i++){if(p.Y>=y&&p.Y<y+hs[i])return lines[i].Item;y+=hs[i];}}return null;}
+ protected override void OnMouseDoubleClick(MouseEventArgs e){base.OnMouseDoubleClick(e);var r=RowAt(e.Location);if(r!=null&&RowDoubleClicked!=null)RowDoubleClicked(r);}
  internal static readonly string[] Captions={"Item no.","Description","Quantity","Unit","Output / hour","No. of days"};
  readonly float[] ScreenWidths={90,300,90,60,90,70};float ScreenRow=24;/* base row height; long descriptions get two lines */const float ScreenDay=24,ScreenHead=44;
  /* description column sized to its longest text (owner, 18 November 2026: "adjust mo yung description box para magkasya"):
@@ -75,8 +79,8 @@ partial class ProgramOfWorksForm {
  const double ScheduleHoursPerDay=8;/* fixed (owner, 18 November 2026: "fix at 8 hrs/day") */
  void AddConstructionSchedule(){var page=new TabPage("Construction Schedule");
   scheduleSummary=new Label{Dock=DockStyle.Top,Height=34,Padding=new Padding(14,8,14,2),Font=new Font("Segoe UI",10f,FontStyle.Bold),ForeColor=PowTheme.Ink};
-  var note=new Label{Dock=DockStyle.Top,Height=28,Padding=new Padding(14,2,14,2),ForeColor=PowTheme.Muted,Text="No. of days = quantity / (output per hour x 8 hours), rounded up; working days only. Items keep the Bill of Quantities order. Construction logic: each item follows the trades it depends on (FS / SS / FF with lags, e.g. formworks overlap the rebar, trusses 7 days after the frame is poured); non-critical items are started within their float so the daily manpower stays level. LS items are listed without a duration."};
-  scheduleChart=new ScheduleChart{Height=200,Width=1200};var host=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};host.Controls.Add(scheduleChart);
+  var note=new Label{Dock=DockStyle.Top,Height=28,Padding=new Padding(14,2,14,2),ForeColor=PowTheme.Muted,Text="No. of days = quantity / (output per hour x 8 hours x crews), rounded up; double-click an item to add crews or change its output and shorten the schedule; working days only. Items keep the Bill of Quantities order. Construction logic: each item follows the trades it depends on (FS / SS / FF with lags, e.g. formworks overlap the rebar, trusses 7 days after the frame is poured); non-critical items are started within their float so the daily manpower stays level. LS items are listed without a duration."};
+  scheduleChart=new ScheduleChart{Height=200,Width=1200,Cursor=Cursors.Hand};scheduleChart.RowDoubleClicked=EditScheduleItem;var host=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};host.Controls.Add(scheduleChart);
   var bar=new FlowLayoutPanel{Dock=DockStyle.Top,Height=44,Padding=new Padding(10,4,10,0)};
   Button(bar,"Print preview",()=>PrintSchedule(true));Button(bar,"Print",()=>PrintSchedule(false));bar.Controls.Add(new Label{AutoSize=true,Padding=new Padding(10,10,0,0),ForeColor=PowTheme.Muted,Text="Prints the complete set for issue: summary, bar chart with manpower per day, manpower loading and schedule, PDM, PERT table and PERT-CPM network (A3 landscape, title block). Red = critical path."});
   /* Bar Chart and Precedence Diagram (PDM) views (owner, 18 November 2026) */
@@ -85,6 +89,24 @@ partial class ProgramOfWorksForm {
   var manPage=new TabPage("Manpower");manpowerView=new ManpowerView{Width=1000,Height=600};var manHost=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};manHost.Controls.Add(manpowerView);manPage.Controls.Add(manHost);
   scheduleViews.TabPages.Add(barPage);scheduleViews.TabPages.Add(pdmPage);scheduleViews.TabPages.Add(pertPage);scheduleViews.TabPages.Add(manPage);
   page.Controls.Add(scheduleViews);page.Controls.Add(note);page.Controls.Add(scheduleSummary);page.Controls.Add(bar);tabs.TabPages.Add(page);}
+ /* crews and output per hour of one item (saved with the Program of Works); more crews shorten the item and add to the daily manpower */
+ void EditScheduleItem(ScheduleRow row){if(row==null||ScheduleRow.IsLumpSum(row.Unit))return;string key=row.Key??ScheduleKey(row.Code,row.Description);ScheduleOverride o;scheduleOverrides.TryGetValue(key,out o);
+  var standard=ScheduleRates.Find(row.Code,row.Description);
+  using(var f=new Form{Text="Schedule - "+row.Code,FormBorderStyle=FormBorderStyle.FixedDialog,MinimizeBox=false,MaximizeBox=false,StartPosition=FormStartPosition.CenterParent,ClientSize=new Size(520,250),Font=Font}){AppBrand.Apply(f);
+   var info=new Label{Left=14,Top=12,Width=490,Height=40,Text=row.Code+"  "+row.Description+"\r\nQuantity "+row.Quantity.ToString("N2")+" "+row.Unit+" - now "+row.Days+" working day(s)"};
+   var crews=new NumericUpDown{Left=260,Top=62,Width=90,Minimum=1,Maximum=50,Value=Math.Max(1,Math.Min(50,row.Crews))};
+   var rate=new TextBox{Left=260,Top=96,Width=90,Text=o!=null&&o.Rate.HasValue?o.Rate.Value.ToString("0.####",CultureInfo.InvariantCulture):""};
+   var preview=new Label{Left=14,Top=132,Width=490,Height=44,ForeColor=PowTheme.Muted};
+   Func<double> perHour=()=>{double v;return double.TryParse(rate.Text.Trim(),NumberStyles.Float,CultureInfo.InvariantCulture,out v)&&v>0?v:(standard!=null?standard.PerHour:row.Rate);};
+   Action show=()=>{double r=perHour();int days=r>0?(int)Math.Ceiling(row.Quantity/(r*ScheduleHoursPerDay*(int)crews.Value)-1e-9):0;preview.Text="New duration: "+days+" working day(s) with "+crews.Value+" crew(s) at "+r.ToString("0.###",CultureInfo.InvariantCulture)+" "+row.Unit+"/hour each. Each crew adds its workers to the daily manpower.";};
+   crews.ValueChanged+=(s,e)=>show();rate.TextChanged+=(s,e)=>show();show();
+   var ok=new Button{Text="Apply",Left=300,Top=200,Width=100,DialogResult=DialogResult.OK};var reset=new Button{Text="Reset",Left=192,Top=200,Width=100};var cancel=new Button{Text="Cancel",Left=408,Top=200,Width=100,DialogResult=DialogResult.Cancel};
+   reset.Click+=(s,e)=>{crews.Value=1;rate.Text="";};
+   f.Controls.AddRange(new Control[]{info,new Label{Left=14,Top=65,Width=240,Text="No. of crews working at the same time"},crews,new Label{Left=14,Top=99,Width=240,Text="Output per hour per crew (blank = DUPA "+(standard!=null?standard.PerHour.ToString("0.###",CultureInfo.InvariantCulture):"-")+")"},rate,preview,reset,ok,cancel});f.AcceptButton=ok;f.CancelButton=cancel;
+   if(f.ShowDialog(this)!=DialogResult.OK)return;double typed;bool hasRate=double.TryParse(rate.Text.Trim(),NumberStyles.Float,CultureInfo.InvariantCulture,out typed)&&typed>0;
+   var next=new ScheduleOverride{Crews=crews.Value>1?(int?)crews.Value:null,Rate=hasRate?(double?)typed:null,Start=o!=null?o.Start:null};
+   if(!next.Crews.HasValue&&!next.Rate.HasValue&&!next.Start.HasValue)scheduleOverrides.Remove(key);else scheduleOverrides[key]=next;
+   dashboardDirty=reportPreviewDirty=true;RefreshSchedule();}}
  /* Quantity of each pay item as shown in Bill of Quantities */
  List<KeyValuePair<BackupBillItem,double>> SchedulePayQuantities(){var result=new List<KeyValuePair<BackupBillItem,double>>();if(backupBill==null||backupBill.Count==0)return result;
   var demands=BackupQuantities(false).Where(d=>d.Quantity>1e-10||d.ManualOverride||backupBillRoutes.ContainsKey(d.Key)).ToList();List<BackupDemand> unmapped;var grouped=SourcesByItem(demands,out unmapped);
