@@ -1,0 +1,9 @@
+DTCE Tool Kit v1.41.0 test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+
+Project Information ("pagclick ng save project info mag close yung window")
+- Save project information closes the Project Information window after a successful save. If a field is
+  missing, the message is shown and the window stays open.
+
+Includes v1.40.0 and earlier local builds (see their notes).
