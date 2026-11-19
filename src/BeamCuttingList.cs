@@ -58,6 +58,8 @@ static class BeamCutting {
  sealed class Geo {public List<CutSpan> Spans;public double[] SupportStart,SupportWidth,FaceLeft,FaceRight;public double Total;public BeamRow[] Rows;public double[] Width,Depth;}
  static int Count(Dictionary<int,int> bars,int dia){int n;return bars.TryGetValue(dia,out n)?n:0;}
  static Dictionary<int,int> Bars(BeamRow row,int cell){return EstimatorEngine.Bars(row.Cells[cell]);}
+ /* all bars of a group are lapped at one place (more than 50% spliced), so the lap is Class B = 1.3 ld (NSCP 425.5.2) */
+ internal static double SpliceLap(CutSettings s,int dia,bool top){return s.Config.Rounded(s.Config.Values(dia,top).LapB)/1000;}
  internal static double Lap(CutSettings s,int dia,bool top){return s.Config.Rounded(s.Config.Values(dia,top).Lap)/1000;}
  internal static double Ld(CutSettings s,int dia,bool top){return s.Config.Rounded(s.Config.Values(dia,top).Ld)/1000;}
  static double Hook(CutSettings s,int dia){var v=s.Config.Values(dia,false);return s.Config.Rounded(v.Cut90)/1000;}
@@ -98,11 +100,15 @@ static class BeamCutting {
    Shape(p,s);if(p.Length>s.MaxBar+1e-9)result.Errors.Add("Beam line "+id+" "+p.Location+": "+F(p.Length)+" m piece is longer than the "+s.MaxBar.ToString("0.##",Inv)+" m bar.");result.Pieces.Add(p);
    /* steel shared to spans by length; a span region runs from the middle of its left support to the middle of its right support */
    double kg=p.Kg,len=Math.Max(1e-9,p.End-p.Start);for(int j=0;j<n;j++){double from=j==0?0:g.SupportStart[j]+g.SupportWidth[j]/2,to=j==n-1?g.Total:g.SupportStart[j+1]+g.SupportWidth[j+1]/2;double overlap=Math.Max(0,Math.Min(to,p.End)-Math.Max(from,p.Start));if(overlap<=0)continue;double share=kg*overlap/len;estimates[j].Kg+=share;double v;estimates[j].KgByDiameter[p.Diameter]=(estimates[j].KgByDiameter.TryGetValue(p.Diameter,out v)?v:0)+share;}};
+  var hoopOptions=new EstimateOptions{LengthConfig=s.Config,Cover=s.Cover,Hook=s.HookFactor,Fc=s.Config.Input.Fc,GradeSmall=s.Config.GradeSmall,Grade=s.Config.GradeLarge};
+  Action<int,TieZone,double,double,int,double> extraHoops=(span,z,from,to,count,spacing)=>{var shape=HookGeometry.TieParts(g.Width[span]*1000,g.Depth[span]*1000,z.Dia,z.Legs,hoopOptions);estimates[span].Ties+=count*lineQty;
+   add(new CutPiece{BarMark=nextMark(),Location="Extra hoops over lap, span "+(span+1)+" ("+z.Legs+"L, hoops at "+(spacing*1000).ToString("0",Inv)+" mm over the lap)",Diameter=z.Dia,PerLine=count,Length=shape.MainHoop,Start=from,End=to,Shape="Hoop, 135° hooks",SecB=g.Width[span]*1000,SecH=g.Depth[span]*1000,Span=span+1});
+   if(z.Legs>2)add(new CutPiece{BarMark=nextMark(),Location="Extra crossties over lap, span "+(span+1),Diameter=z.Dia,PerLine=count*(z.Legs-2),Length=shape.AdditionalLeg,Start=from,End=to,Shape="Crosstie 90°/135°",SecB=g.Width[span]*1000,SecH=g.Depth[span]*1000,Span=span+1});};
   for(int face=0;face<2;face++){bool top=face==1;int first=top?5:2;string name=top?"Top":"Bottom";
    var counts=new Dictionary<int,int>[n,3];for(int j=0;j<n;j++)for(int z=0;z<3;z++)counts[j,z]=Bars(g.Rows[j],first+z);
    var dias=Enumerable.Range(0,n).SelectMany(j=>Enumerable.Range(0,3).SelectMany(z=>counts[j,z].Keys)).Distinct().OrderBy(d=>d).ToList();
    foreach(int dia in dias){int cont=int.MaxValue;for(int j=0;j<n;j++)for(int z=0;z<3;z++)cont=Math.Min(cont,Count(counts[j,z],dia));
-    if(cont>0)Continuous(g,s,result,add,nextMark(),name,top,dia,cont,cover);
+    if(cont>0)Continuous(g,s,result,add,nextMark(),name,top,dia,cont,cover,extraHoops);
     if(top){for(int i=0;i<=n;i++){int left=i>0?Count(counts[i-1,2],dia)-cont:0,right=i<n?Count(counts[i,0],dia)-cont:0;int through=Math.Min(left,right);double ld=Ld(s,dia,true);
       if(through>0){double end1=EndAllowance(s,dia,true,2);double a=g.FaceLeft[i-1]+spans[i-1].Ln-s.TopExtension*spans[i-1].Ln-end1,b2=g.FaceLeft[i]+s.TopExtension*spans[i].Ln+end1;add(new CutPiece{BarMark=nextMark(),Location="Top extra over support "+(i+1),Diameter=dia,Top=true,PerLine=through,Length=b2-a,Start=a,End=b2,Shape="Straight"});}
       int one=Math.Max(left,right)-through;if(one<=0)continue;bool toLeft=left>right;int j2=toLeft?i-1:i;double ext=s.TopExtension*spans[j2].Ln+EndAllowance(s,dia,true,1);bool exterior=i==0||i==n;double hook=exterior?Hook(s,dia):0,inSupport=exterior?g.SupportWidth[i]-cover:g.SupportWidth[i]+ld;double start=toLeft?g.FaceRight[i-1]-ext:(i==0?cover:g.SupportStart[i]-ld),end=toLeft?(i==n?g.Total-cover:g.SupportStart[i]+g.SupportWidth[i]+ld):g.FaceLeft[i]+ext;
@@ -130,22 +136,34 @@ static class BeamCutting {
    if(s.SpecialMomentFrame){double h2=2*g.Depth[j];if(ln>2*h2)zones.Add(new[]{g.FaceLeft[j]+h2,g.FaceRight[j]-h2,j});}
    else if(top)zones.Add(new[]{g.FaceLeft[j]+ln/3,g.FaceRight[j]-ln/3,j});
    else if(j<n-1)zones.Add(new[]{g.FaceRight[j]-ln/4,g.FaceLeft[j+1]+g.Spans[j+1].Ln/4,j});}return zones;}
- static void Continuous(Geo g,CutSettings s,CutResult result,Action<CutPiece> add,string barMark,string face,bool top,int dia,int count,double cover){
-  int n=g.Spans.Count;double lap=Lap(s,dia,top),hook=Hook(s,dia),xs=cover,xe=g.Total-cover;
+ static void Continuous(Geo g,CutSettings s,CutResult result,Action<CutPiece> add,string barMark,string face,bool top,int dia,int count,double cover,Action<int,TieZone,double,double,int,double> addExtraHoops=null){
+  int n=g.Spans.Count;double lap=SpliceLap(s,dia,top),hook=Hook(s,dia),xs=cover,xe=g.Total-cover;
   /* development into the exterior supports: straight length available before the hook */
   var ldh=s.Config.Rounded(s.Config.Values(dia,top).Ldh)/1000;foreach(int i in new[]{0,n})if(g.SupportWidth[i]-cover+1e-9<ldh)result.Errors.Add("Beam line "+g.Spans[0].Line+" "+face.ToLowerInvariant()+" "+dia+" mm: support "+(i+1)+" ("+(g.SupportWidth[i]*1000).ToString("0",Inv)+" mm) is narrower than Ldh "+(ldh*1000).ToString("0",Inv)+" mm + cover for the hooked end.");
   var zones=SpliceZones(g,s,top);
   double p=xs;int piece=0;
   while(true){bool firstPiece=piece==0;double startHook=firstPiece?hook:0;
    if(xe-p+startHook+hook<=s.MaxBar+1e-9){add(new CutPiece{BarMark=barMark+(piece>0?"."+(piece+1):""),Location=face+" continuous "+(piece==0?"(one length)":"(last piece)"),Diameter=dia,Top=top,PerLine=count,Length=xe-p+startHook+hook,Start=p,End=xe,Shape=firstPiece?"90° hooks both ends":"90° hook one end"});break;}
-   double reach=p+s.MaxBar-startHook;double best=double.NaN;double[] chosen=null;
-   foreach(var z in zones){double end=Math.Min(z[1],reach);double start=end-lap;if(start+1e-9<z[0]||start<=p+lap)continue;if(double.IsNaN(best)||start>best){best=start;chosen=z;}}
+   double reach=p+s.MaxBar-startHook;double best=double.NaN;double[] chosen=null;bool preferred=true;
+   /* lap position (owner, 19 November 2026: "Sure ka sa mga lap location?"): special moment frames - top bars lapped about midspan,
+      bottom bars near the ends of the allowed zone (just outside 2h, away from the midspan positive moment); the farthest such
+      position within reach of the bar is used. Only when none fits is the lap put at the farthest allowed point (flagged). */
+   if(s.SpecialMomentFrame)foreach(var z in zones){int sp=(int)z[2];double mid=(g.FaceLeft[sp]+g.FaceRight[sp])/2,limit=Math.Min(z[1],reach);var cands=new List<double>();
+    if(top)cands.Add(Math.Max(z[0],Math.Min(limit-lap,mid-lap/2)));else{if(z[1]<=reach+1e-9)cands.Add(z[1]-lap);cands.Add(z[0]);}
+    foreach(double c in cands){if(c+1e-9<z[0]||c+lap>limit+1e-9||c<=p+lap)continue;if(double.IsNaN(best)||c>best){best=c;chosen=z;}}}
+   if(chosen==null){preferred=!s.SpecialMomentFrame;foreach(var z in zones){double end=Math.Min(z[1],reach);double start=end-lap;if(start+1e-9<z[0]||start<=p+lap)continue;if(double.IsNaN(best)||start>best){best=start;chosen=z;}}}
    if(chosen==null){result.Errors.Add("Beam line "+g.Spans[0].Line+" "+face.ToLowerInvariant()+" "+dia+" mm: no allowed splice zone within reach of a "+s.MaxBar.ToString("0.##",Inv)+" m bar from "+F(p)+" m (lap "+F(lap)+" m). Use a longer bar or review the splice zones.");add(new CutPiece{BarMark=barMark+"."+(piece+1),Location=face+" continuous (NO VALID SPLICE)",Diameter=dia,Top=top,PerLine=count,Length=Math.Min(s.MaxBar,xe-p+startHook),Start=p,End=Math.Min(xe,reach),Shape="REVIEW"});break;}
    int span=(int)chosen[2];add(new CutPiece{BarMark=barMark+"."+(piece+1),Location=face+" continuous piece "+(piece+1)+" (lap in span "+(span+1)+")",Diameter=dia,Top=top,PerLine=count,Length=best+lap-p+startHook,Start=p,End=best+lap,Shape=firstPiece?"90° hook one end":"Straight"});
    var check=new CutSplice{Line=g.Spans[0].Line,Bar=barMark,Diameter=dia,Span=span+1,From=best,To=best+lap,Lap=lap,ZoneFrom=chosen[0],ZoneTo=chosen[1],Ok=true,Status="OK"};
    if(s.SpecialMomentFrame){var row=g.Rows[span];double local=best-g.FaceLeft[span],localEnd=local+lap;var spacings=TieZones(row,g.Spans[span].Ln,s).Where(z=>localEnd>z.From&&local<z.To).Select(z=>z.Spacing).ToList();
     double d=g.Depth[span]-cover-.010-dia/2000.0,limit=Math.Min(d/4,.100),worst=spacings.Count==0?double.NaN:spacings.Max();
-    if(double.IsNaN(worst)||worst>limit+1e-9){check.Ok=false;check.Status="NG";check.Note="Hoops over the lap at "+(double.IsNaN(worst)?"?":(worst*1000).ToString("0",Inv))+" mm exceed min(d/4, 100 mm) = "+(limit*1000).ToString("0",Inv)+" mm (418.6.3.3): add hoops at that spacing over the lap.";}else check.Note="Hoops over the lap at "+(worst*1000).ToString("0",Inv)+" mm <= "+(limit*1000).ToString("0",Inv)+" mm.";}
+    if(double.IsNaN(worst)||worst>limit+1e-9){
+     /* 418.6.3.3 requires hoops over the lap at min(d/4, 100 mm): extra hoops are added between the schedule hoops */
+     var z0=TieZones(row,g.Spans[span].Ln,s).FirstOrDefault(z=>localEnd>z.From&&local<z.To);if(z0!=null&&addExtraHoops!=null){int need=(int)Math.Floor(lap/limit+1e-9)+1,have=(int)Math.Floor(lap/worst+1e-9)+1,extra=Math.Max(0,need-have);
+      if(extra>0)addExtraHoops(span,z0,best,best+lap,extra,limit);check.Status="OK";check.Note="Schedule hoops at "+(worst*1000).ToString("0",Inv)+" mm; "+extra+" extra hoops added over the lap for min(d/4, 100) = "+(limit*1000).ToString("0",Inv)+" mm (418.6.3.3).";}
+     else{check.Ok=false;check.Status="NG";check.Note="Hoops over the lap at "+(double.IsNaN(worst)?"?":(worst*1000).ToString("0",Inv))+" mm exceed min(d/4, 100 mm) = "+(limit*1000).ToString("0",Inv)+" mm (418.6.3.3): add hoops at that spacing over the lap.";}}
+    else check.Note="Hoops over the lap at "+(worst*1000).ToString("0",Inv)+" mm <= "+(limit*1000).ToString("0",Inv)+" mm.";
+    check.Note+=" Class B lap, "+(top?"top":"bottom")+(preferred?(top?" bars about midspan.":" bars just outside 2h, away from midspan."):" - no preferred position within reach: lapped at the farthest allowed point; consider a longer bar or a coupler.");}
    else check.Note=top?"Top bars spliced in the middle third.":"Bottom bars spliced over the interior support.";
    result.Splices.Add(check);p=best;piece++;if(piece>200)throw new Exception("Too many splices; check the span lengths.");}
  }

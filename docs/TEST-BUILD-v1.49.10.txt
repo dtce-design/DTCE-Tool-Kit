@@ -1,0 +1,17 @@
+DTCE Tool Kit v1.49.10 test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: fixes the lap splices of the Bar Bending Schedule (beams).
+
+Lap locations reviewed ("Sure ka sa mga lap location?")
+- Special moment frame: laps stay out of the joints and 2h from each face (NSCP 418.6.3.3). Within that, top bars are now
+  lapped about midspan and bottom bars just outside 2h, away from the midspan positive moment (before, a lap could fall
+  wherever the 12 m bar ended, e.g. a bottom lap at midspan). The farthest preferred position within reach of the bar is
+  used; only when none fits is the lap put at the farthest allowed point and flagged in the splice check.
+- Splice laps are Class B (1.3 ld, NSCP 425.5.2) because all bars of a group are lapped at one place; before, the class of
+  the Splice, Development & Hooks configuration was used. The POW "1 x lap" piece allowance is unchanged.
+- Hoops over each lap at min(d/4, 100 mm) are now added to the schedule ("Extra hoops over lap" bars, in the estimate of
+  their span) where the schedule hoops are wider, instead of only reporting NG. They are drawn in the elevation.
+- Fewer long pieces may become one more short piece because of the preferred positions; the cutting patterns follow.
+
+Includes v1.49.9 and earlier local builds (see their notes).

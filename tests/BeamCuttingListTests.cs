@@ -14,7 +14,7 @@ class BeamCuttingListTests {
   Check(r.Errors.All(e=>!e.Contains("splice zone")),"continuous bars find splice zones: "+string.Join(" | ",r.Errors));
   double total=4*.4+19,cover=.04;
   foreach(var group in new[]{new{Top=true,Dia=20,Count=2},new{Top=false,Dia=16,Count=2}}){var pieces=r.Pieces.Where(p=>p.Location.Contains("continuous")&&p.Diameter==group.Dia&&p.Top==group.Top).ToList();Check(pieces.Count>=2&&pieces.All(p=>p.PerLine==group.Count),(group.Top?"top":"bottom")+" continuous bars are spliced pieces of the smallest count");
-   double lap=BeamCutting.Lap(s,group.Dia,group.Top),hook=cfg.Rounded(cfg.Values(group.Dia,false).Cut90)/1000;var laps=r.Splices.Where(c=>c.Diameter==group.Dia).ToList();Check(laps.Count==pieces.Count-1&&laps.All(c=>Math.Abs(c.To-c.From-lap)<1e-9),"laps use the configured lap length");
+   double lap=BeamCutting.SpliceLap(s,group.Dia,group.Top),hook=cfg.Rounded(cfg.Values(group.Dia,false).Cut90)/1000;var laps=r.Splices.Where(c=>c.Diameter==group.Dia).ToList();Check(laps.Count==pieces.Count-1&&laps.All(c=>Math.Abs(c.To-c.From-lap)<1e-9),"laps use the configured lap length");
    Near(pieces.Sum(p=>p.Length),total-2*cover+2*hook+laps.Count*lap,"continuous length = line less cover + 2 hooks + laps");Check(pieces.All(p=>p.Length<=12+1e-9),"no piece longer than the longest bar");
    foreach(var c in laps){Check(c.From>=c.ZoneFrom-1e-9&&c.To<=c.ZoneTo+1e-9,"lap inside its zone");double face=.4+(c.Span==1?0:c.Span==2?6.4:13.8);Check(c.From>=face+1.0-1e-9,"lap starts at least 2h from the left face");}}
   var topExtra=r.Pieces.Where(p=>p.Location.StartsWith("Top extra over support")).ToList();Check(topExtra.Count==2&&topExtra.All(p=>p.PerLine==2),"two interior supports with 2 extra top bars each");Near(topExtra[0].Length,6/4.0+.4+7/4.0+2*BeamCutting.Ld(s,20,true),"POW standard: extra top bar = L/4 + support + L/4 + Ld at both cut ends");
@@ -23,7 +23,9 @@ class BeamCuttingListTests {
   var none=BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg,Allowance=0});Near(none.Pieces.First(p=>p.Location.StartsWith("Bottom extra, span 2")).Length,7*2/3.0,"no allowance: 2/3 L only");
   var est=r.Spans;Check(est.Count==3,"three span estimates");Check(est[0].Ties==15+15+16,"6 m span stirrups: 15 + 15 + 16 sets ("+est[0].Ties+")");
   Near(est.Sum(e=>e.Kg),r.Pieces.Sum(p=>p.Kg),"all steel is shared to the spans");
-  Check(r.Splices.Any(c=>!c.Ok&&c.Note.Contains("100 mm")),"lap in the 200 mm stirrup zone fails the hoop spacing over the lap (418.6.3.3)");
+  Check(r.Splices.All(c=>c.Ok)&&r.Pieces.Any(p=>p.Location.StartsWith("Extra hoops over lap")&&p.PerLine>0),"laps in the 200 mm stirrup zone get extra hoops at min(d/4, 100 mm) (418.6.3.3)");
+  foreach(var c in r.Splices){double face=.4+(c.Span==1?0:c.Span==2?6.4:13.8),ln=c.Span==2?7:6,mid=face+ln/2,center=(c.From+c.To)/2;bool top=c.Diameter==20;
+   Check(top?Math.Abs(center-mid)<=ln/6+1e-9:Math.Abs(center-mid)>=ln/6-1e-9,(top?"top laps about midspan":"bottom laps away from midspan")+" (span "+c.Span+", centre "+center.ToString("0.00")+")");}
   var part=BeamCutting.Build(line(new[]{true,false,true}),find,s);Near(part.IncludedConcrete,.3*.4*12,"unticked span leaves its concrete out");Check(part.IncludedKg<r.IncludedKg&&part.Pieces.Count==r.Pieces.Count,"unticked span: less estimate steel, same cutting list");
   var ordinary=BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg,SpecialMomentFrame=false});foreach(var c in ordinary.Splices.Where(c=>c.Diameter==20)){double face=.4+(c.Span==1?0:c.Span==2?6.4:13.8),ln=c.Span==2?7:6;Check(c.From>=face+ln/3-1e-9&&c.To<=face+2*ln/3+1e-9,"ordinary frame: top laps in the middle third");}
   var bad=line(new[]{true,true,true});bad[1].LeftSupport=.5;Check(BeamCutting.Build(bad,find,s).Errors.Any(e=>e.Contains("same support")),"different widths for one support are reported");
