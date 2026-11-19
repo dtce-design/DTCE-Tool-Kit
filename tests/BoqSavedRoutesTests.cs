@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Linq;using System.Reflection;using System.Windows.Forms;using BeamScheduleFormatter;
+﻿using System;using System.Collections.Generic;using System.Linq;using System.Reflection;using System.Windows.Forms;using BeamScheduleFormatter;
 // Owner (19 November 2026): "huwag buburahin, yung naka save na mapping ang susundin sa dtce app" / "ang susundan e yung nasa pow na
 // app hindi sa excel" - linking or refreshing the BACKUP workbook keeps the Bill of Quantities mapping saved in the Program of Works.
 class BoqSavedRoutesTests {
@@ -30,6 +30,17 @@ class BoqSavedRoutesTests {
    Call(f,"ApplyBoqRouteOverrides",plan);Check(plan.Routes[metal].SlotId=="new-1","the next write to Excel uses the app's mapping");
    /* the same workbook again (ids kept): nothing changes */
    saved=Call(f,"CaptureSavedBoqMapping");var before=new Dictionary<string,string>(routes);missing=(List<string>)Call(f,"RestoreSavedBoqMapping",saved);
-   Check(missing.Count==0&&routes.Count==before.Count&&routes.All(p=>before[p.Key]==p.Value),"relinking the same workbook keeps every mapping as it is");}
+   Check(missing.Count==0&&routes.Count==before.Count&&routes.All(p=>before[p.Key]==p.Value),"relinking the same workbook keeps every mapping as it is");
+   /* v1.30.0 report: a mapping made on the app's catalogue (other wording) is kept when the BACKUP workbook is linked */
+   var catalogue=new List<BackupTarget>{new BackupTarget{Row=0,EndRow=0,Code="1032(1)c",Description="Painting Works, Metal",Unit="sq.m.",SlotId="cat-0"},new BackupTarget{Row=0,EndRow=0,Code="1018(1)",Description="Glazed Tiles and Trims",Unit="sq.m.",SlotId="cat-1"},new BackupTarget{Row=0,EndRow=0,Code="1200(1)",Description="Plumbing Fixtures",Unit="l.s.",SlotId="cat-2"}};
+   Set(f,"backupBill",BackupBill.Capture(catalogue,new List<BackupBillItem>()));routes.Clear();overrides.Clear();unmapped.Clear();includes.Clear();lsAuto.Clear();routes[metal]="cat-0";routes[tiles]="cat-1";overrides[tiles]="cat-1";
+   saved=Call(f,"CaptureSavedBoqMapping");
+   var book=new List<BackupTarget>{new BackupTarget{Row=40,EndRow=40,Code="1032 (1) c",Description="Painting (Metal)",Unit="m2",SlotId="wb-0"},new BackupTarget{Row=43,EndRow=43,Code="1018(1)",Description="Glazed Tiles",Unit="sq.m.",SlotId="wb-1"},new BackupTarget{Row=46,EndRow=46,Code="1018(1)",Description="Glazed Tiles",Unit="ea",SlotId="wb-2"}};
+   Set(f,"backupBill",BackupBill.Capture(book,new List<BackupBillItem>()));routes.Clear();
+   missing=(List<string>)Call(f,"RestoreSavedBoqMapping",saved);
+   Check(missing.Count==0&&routes[metal]=="wb-0"&&routes[tiles]=="wb-1"&&overrides[tiles]=="wb-1","a mapping made with other wording follows the item no. and unit of the linked workbook");
+   var typed=BackupBill.Capture(catalogue,new List<BackupBillItem>());typed[0].ManualQuantity=12;
+   var rebound=(List<BackupBillItem>)typeof(ProgramOfWorksForm).GetMethod("RebindCatalogueManuals",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,new object[]{book,typed});
+   Check(rebound.Count==1&&rebound[0].Slot=="wb-0"&&rebound[0].ManualQuantity==12,"a typed quantity follows its item into a workbook with other wording");}
   Console.WriteLine("PASS: "+checks+" saved BACKUP mapping checks");}
 }
