@@ -1,0 +1,18 @@
+DTCE Tool Kit v1.31.4 test build (19 November 2026) - bug fixes
+
+Not tested on Windows yet (Linux/Mono checks only). GitHub test build, not a Microsoft
+Store release (the Store still has v1.5.0).
+
+Sync to Excel ("tama na nga ang pagmap sa app di naman nag sync")
+- "Previously mapped BACKUP item was removed or changed" stopped the whole write when a
+  name left in the workbook by an earlier write no longer matched its row. Such names
+  (and broken #REF! names of the app) are now removed and the write goes on; the status
+  bar lists the rows concerned. Nothing is written to those rows unless they are mapped
+  now.
+
+POW file size ("yung xml file di naman nabawasan ang file size" after Save As)
+- Every link of the BACKUP workbook stored another full copy of it under Project files
+  (the owner's POW held 10 copies, about 245 MB). Saving now keeps one copy per workbook
+  name - the newest, by the "modified" date saved inside the workbook - and a new link
+  replaces the stored copy. The status bar says how many older copies were removed. Use
+  Save As to keep the old file as it was.

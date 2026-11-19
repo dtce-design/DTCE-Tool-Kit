@@ -1,4 +1,4 @@
-using System;using System.IO;using System.IO.Compression;using System.Linq;using System.Text;using System.Xml;using System.Collections.Generic;using System.Security.Cryptography;
+﻿using System;using System.IO;using System.IO.Compression;using System.Linq;using System.Text;using System.Xml;using System.Collections.Generic;using System.Security.Cryptography;
 namespace BeamScheduleFormatter {
 sealed class PowSourceFile {
  internal readonly string Id,Name,Kind,Sha256;internal readonly bool RecoveredText;string cachePath,encodedPath;readonly long size;readonly object gate=new object();
@@ -39,8 +39,21 @@ sealed class PowXmlBase64Stream:Stream {
 }
 sealed class PowSourceFiles {
  readonly List<PowSourceFile> files=new List<PowSourceFile>();internal IList<PowSourceFile> Files{get{return files.AsReadOnly();}}internal Action<PowSourceFile> BeforeAdd;
- internal void Add(PowSourceFile file){if(BeforeAdd!=null)BeforeAdd(file);var same=files.Where(f=>f.Name.Equals(file.Name,StringComparison.OrdinalIgnoreCase)&&f.Kind.Equals(file.Kind,StringComparison.OrdinalIgnoreCase)).ToList();if(file.RecoveredText&&same.Any(f=>!f.RecoveredText))return;var remove=file.RecoveredText?new List<PowSourceFile>():same.Where(f=>f.RecoveredText).ToList();if(files.Any(f=>f.Id==file.Id&&!remove.Contains(f)))return;foreach(var old in remove)files.Remove(old);files.Add(file);}
+ internal void Add(PowSourceFile file){if(BeforeAdd!=null)BeforeAdd(file);var same=files.Where(f=>f.Name.Equals(file.Name,StringComparison.OrdinalIgnoreCase)&&f.Kind.Equals(file.Kind,StringComparison.OrdinalIgnoreCase)).ToList();if(file.RecoveredText&&same.Any(f=>!f.RecoveredText))return;var remove=file.RecoveredText?new List<PowSourceFile>():same.Where(f=>f.RecoveredText).ToList();if(files.Any(f=>f.Id==file.Id&&!remove.Contains(f)))return;if(!file.RecoveredText&&file.Kind.Equals(WorkbookKind,StringComparison.OrdinalIgnoreCase))remove.AddRange(same.Where(f=>!f.RecoveredText&&!remove.Contains(f)));foreach(var old in remove)files.Remove(old);files.Add(file);}
  internal void AddRange(IEnumerable<PowSourceFile> source){foreach(var file in source)Add(file);}
+ /* Owner (19 November 2026, "yung xml file di naman nabawasan ang file size" after Save As): every link of the BACKUP workbook
+    added another full copy of it under Project files (one POW held 10 copies, ~245 MB). One copy per workbook name is kept:
+    a new copy replaces the older one, and a file that already holds several keeps only the newest (the latest "modified" date
+    saved inside the workbook; the copy of the linked workbook when dates are missing). Returns the number of copies dropped. */
+ internal const string WorkbookKind="Excel workbook (imported original)";
+ internal int KeepNewestWorkbookCopies(string linkedSha=null){int dropped=0;
+  foreach(var group in files.Where(f=>!f.RecoveredText&&f.Kind.Equals(WorkbookKind,StringComparison.OrdinalIgnoreCase)).GroupBy(f=>f.Name.ToUpperInvariant()).Where(g=>g.Count()>1).ToList()){
+   var ranked=group.Select(f=>new{File=f,Modified=WorkbookModified(f)}).OrderByDescending(x=>x.Modified??DateTime.MinValue).ThenByDescending(x=>linkedSha!=null&&x.File.Sha256==linkedSha).ToList();
+   var keep=ranked[0].File;if(ranked.All(x=>x.Modified==null)&&linkedSha!=null){var linked=group.FirstOrDefault(f=>f.Sha256==linkedSha);if(linked!=null)keep=linked;}
+   foreach(var f in group)if(f!=keep){files.Remove(f);dropped++;}}
+  return dropped;}
+ /* dcterms:modified of docProps/core.xml inside an .xlsx / .xlsm copy */
+ internal static DateTime? WorkbookModified(PowSourceFile file){try{using(var stream=file.OpenRead())using(var zip=new ZipArchive(stream,ZipArchiveMode.Read)){var entry=zip.GetEntry("docProps/core.xml");if(entry==null)return null;using(var core=entry.Open()){var doc=new XmlDocument{XmlResolver=null};using(var reader=XmlReader.Create(core,new XmlReaderSettings{DtdProcessing=DtdProcessing.Prohibit,XmlResolver=null}))doc.Load(reader);foreach(XmlElement e in doc.GetElementsByTagName("*")){if(e.LocalName!="modified")continue;DateTime d;if(DateTime.TryParse(e.InnerText,System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.AdjustToUniversal|System.Globalization.DateTimeStyles.AssumeUniversal,out d))return d;}}}}catch(Exception){}return null;}
  internal static PowSourceFile ReadFile(string path,string kind){using(var input=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete))return PowSourceFile.Capture(Path.GetFileName(path),kind,input);}
  internal void CaptureFile(string path,string kind){Add(ReadFile(path,kind));}
  internal void CaptureText(string name,string kind,string text){if(files.Any(f=>f.Kind==kind&&f.Name.Equals(PowSourceFile.SafeName(name),StringComparison.OrdinalIgnoreCase)))return;Add(new PowSourceFile(name,kind,new UTF8Encoding(false).GetBytes(text??""),true));}
