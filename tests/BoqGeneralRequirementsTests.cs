@@ -20,7 +20,7 @@ class BoqGeneralRequirementsTests {
     Check(typedDemands.Count==2&&typedDemands.Any(d=>d.TargetSlotId==board.Slot&&d.Quantity==2&&d.TargetIdentity==board.Signature),"typed Part A / B quantities are written to their own BACKUP item");
     Call(f,"UpdateBackupBillDashboard");var g0=Get<DataGridView>(f,"boqGrid");var boardRow=g0.Rows.Cast<DataGridViewRow>().First(x=>x.Tag==board);var photoRow=g0.Rows.Cast<DataGridViewRow>().First(x=>x.Tag==item("A.1.4(1)",null));
     Check(Convert.ToString(boardRow.Cells[2].Value)=="2","the typed billboard quantity is shown ("+Convert.ToString(boardRow.Cells[2].Value)+")");
-    Check(!boardRow.Cells[2].ReadOnly,"the typed billboard quantity can be edited (grid "+g0.ReadOnly+", column "+boardRow.Cells[2].OwningColumn.ReadOnly+", row "+boardRow.ReadOnly+")");
+    Check(!boardRow.Cells[2].ReadOnly,"the typed billboard quantity can be edited (grid "+g0.ReadOnly+", column "+boardRow.Cells[2].OwningColumn.ReadOnly+", row "+boardRow.ReadOnly+", index "+boardRow.Index+", colour "+boardRow.Cells[2].Style.BackColor+" vs "+ModernUi.Input+", matches "+g0.Rows.Cast<DataGridViewRow>().Count(x=>x.Tag==board)+")");
     Check(!photoRow.Cells[2].ReadOnly,"an empty Part A item can be typed (grid "+g0.ReadOnly+", column "+photoRow.Cells[2].OwningColumn.ReadOnly+", row "+photoRow.ReadOnly+")");
     board.ManualQuantity=null;mobilization.ManualQuantity=null;f.Recalculate();}
    /* the earlier fill rules, kept switched off, still give the same values when switched on */
