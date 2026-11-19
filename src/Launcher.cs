@@ -39,8 +39,8 @@ class LauncherForm:Form {
   dashboard.Controls.Add(new Label{Text="v"+Engine.Version+"  /  Developed by Engr. Daryl O. Tomaneng",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,ForeColor=PowTheme.Muted,Font=new Font("Segoe UI",8.5f),Margin=Padding.Empty},0,3);
   var header=PremiumControls.WorkspaceHeader(groupTitle,ShowStart);groupHost.Controls.Add(groupContent);groupHost.Controls.Add(header);
   AddFormatterEntry("Beam Formatter",()=>UseTool(ref formatter,CreateBeam,"Beam Formatter",formatterTabs,1));AddFormatterEntry("Slab Formatter",()=>UseTool(ref slabFormatter,()=>new SlabFormatterForm(),"Slab Formatter",formatterTabs,ProgramAccess.SlabFormatter));AddDesignEntry("Splice, Development & Hooks",()=>UseTool(ref lengths,()=>new RebarLengthForm(),"Splice, Development & Hooks",designTabs,4));AddDesignEntry("Purlin Design",()=>OpenDesign("Purlin Design",()=>new PurlinDesignForm()));AddDesignEntry("Truss Connections",()=>OpenDesign("Truss Connections",()=>new TrussConnectionForm()));AddDesignEntry("Wind Load (NSCP 2015)",()=>OpenDesign("Wind Load (NSCP 2015)",()=>new WindDesignForm()));AddDesignEntry("Beam Deflection Check",()=>OpenDesign("Beam Deflection Check",()=>new BeamDeflectionForm()));
-  formatterTabs.SelectedIndexChanged+=(s,e)=>{if(groupHost.Visible&&!loadingFormatter&&groupContent.Controls.Contains(formatterTabs))LoadSelectedFormatter();};
-  designTabs.SelectedIndexChanged+=(s,e)=>{if(groupHost.Visible&&!loadingDesign)LoadSelectedDesign();};
+  /* the tab groups live in their own workspace windows (19 November 2026) */formatterTabs.SelectedIndexChanged+=(s,e)=>{if(!loadingFormatter&&formatterTabs.FindForm() is WorkspaceWindow)LoadSelectedFormatter();};
+  designTabs.SelectedIndexChanged+=(s,e)=>{if(!loadingDesign&&designTabs.FindForm() is WorkspaceWindow)LoadSelectedDesign();};
   FormClosing+=(s,e)=>{var children=new[]{formatter,slabFormatter,lengths,project,works}.Concat(designModules.Values).Where(f=>f!=null&&!f.IsDisposed).Distinct().ToList();
    #if ADMIN_APP
    if(generator!=null&&!generator.IsDisposed)children.Add(generator);
