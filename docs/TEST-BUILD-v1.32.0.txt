@@ -11,3 +11,14 @@ Construction Schedule ("hindi ba pwede paiksiin yung working days")
   the Program of Works, and the PDM, PERT-CPM, manpower and printed set follow it.
 - The longest items are usually painting, ceilings and tiles; adding crews there
   shortens the critical path the most.
+
+Reports ("wala naman pinagbago ang detailed at extensive")
+- Detailed and Extensive gave the same PDF report. Extensive now adds, after the
+  Detailed calculation record, a calculation trace of every bar (pieces x cut length x
+  unit mass = cut steel, lap and offcut, commercial bars and segments used) and, in the
+  Program of Works report, the commercial bars to order. Beam and slab estimate reports
+  get the same trace.
+
+Bill of Quantities
+- A quantity left unmapped by hand stays unmapped even when the app has its own pay item
+  for it.
