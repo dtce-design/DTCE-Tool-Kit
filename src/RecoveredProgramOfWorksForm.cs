@@ -4491,7 +4491,8 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 				AutoSize = true,
 				AutoSizeMode = AutoSizeMode.GrowAndShrink,
 				WrapContents = true,
-				Padding = new Padding(8, 5, 8, 3)
+				Padding = new Padding(8, 5, 8, 3),
+				Name = "PowCommandBar"
 			};
 			base.Controls.Add(tabs);
 			base.Controls.Add(flowLayoutPanel);
@@ -4500,7 +4501,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
             /* owner (19 November 2026, "isummarize yung buttons"): Undo, Redo and Save stay on the bar; the other commands are grouped
                in a File menu and a Report menu */
             MenuButton(flowLayoutPanel,"File",new KeyValuePair<string,Action>("Open Program of Works…\tCtrl+O",Open),new KeyValuePair<string,Action>("Save Program of Works As…\tCtrl+Shift+S",SaveAs),new KeyValuePair<string,Action>("Close Program of Works",CloseProgramOfWorks),null,new KeyValuePair<string,Action>("Project files…",ManageProjectFiles),new KeyValuePair<string,Action>("Restore backup…",RestoreBackup));
-            MenuButton(flowLayoutPanel,"Report",new KeyValuePair<string,Action>("Print preview\tCtrl+P",PreviewQuantityEngineeringReport),new KeyValuePair<string,Action>("Save PDF…\tCtrl+Shift+P",SaveQuantityEngineeringPdf),new KeyValuePair<string,Action>("Export report file…",ExportEngineeringReport));/* Save status lives in the bottom status bar (owner, 17 November 2026), not between the command buttons. */powSaveIndicator=new Label{Name="PowSaveStatus",AccessibleName="Program of Works save status",Text=""};
+            /* No Report menu in the command bar: the Reports main tab has them (owner, 19 November 2026). *//* Save status lives in the bottom status bar (owner, 17 November 2026), not between the command buttons. */powSaveIndicator=new Label{Name="PowSaveStatus",AccessibleName="Program of Works save status",Text=""};
 			beam = new EstimatorForm(null);
 			slab = new SlabEstimatorForm();
 			AddHome();

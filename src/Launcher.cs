@@ -84,16 +84,27 @@ class LauncherForm:Form {
 /* A workspace in its own window: the same header as before ("Workspaces" brings the start window to the front). Closing the
    window closes its tools with their usual save prompts; the tab groups are kept for the next time they are opened. */
 class WorkspaceWindow:Form {
- readonly LauncherForm launcher;readonly Panel content=new Panel{Dock=DockStyle.Fill};readonly Label title=new Label();
+ readonly LauncherForm launcher;readonly Panel content=new Panel{Dock=DockStyle.Fill};readonly Label title=new Label();Panel header;
+ /* the Program of Works command bar sits in the header beside the title (owner, 19 November 2026) and goes back on close */
+ FlowLayoutPanel bar;Control barHome;int barIndex;
  public WorkspaceWindow(LauncherForm owner,string caption){launcher=owner;AppBrand.Apply(this);Text=caption+" - DTCE Tool Kit v"+Engine.Version;Font=owner.Font;StartPosition=FormStartPosition.CenterScreen;ClientSize=new Size(1280,820);MinimumSize=new Size(900,600);
   var area=Screen.FromControl(owner).WorkingArea;if(area.Width<1320||area.Height<880)WindowState=FormWindowState.Maximized;
-  title.Text=caption;Controls.Add(content);Controls.Add(PremiumControls.WorkspaceHeader(title,owner.ShowStart));
+  title.Text=caption;Controls.Add(content);header=PremiumControls.WorkspaceHeader(title,owner.ShowStart);Controls.Add(header);
   FormClosing+=(s,e)=>{foreach(var child in Children().ToList()){child.Close();if(!child.IsDisposed){e.Cancel=true;return;}}if(!e.Cancel)Release();};}
  /* the tools hosted here (embedded forms, also inside the Formatter / Design Sheet tabs) */
  IEnumerable<Form> Children(){var stack=new Stack<Control>(content.Controls.Cast<Control>());while(stack.Count>0){var c=stack.Pop();var f=c as Form;if(f!=null){yield return f;continue;}foreach(Control x in c.Controls)stack.Push(x);}}
- internal void Host(Control control){if(content.Controls.Count==1&&content.Controls[0]==control)return;content.Controls.Clear();control.Dock=DockStyle.Fill;content.Controls.Add(control);PowTheme.Apply(this);}
+ internal void Host(Control control){if(content.Controls.Count==1&&content.Controls[0]==control)return;content.Controls.Clear();control.Dock=DockStyle.Fill;content.Controls.Add(control);DockCommandBar();PowTheme.Apply(this);if(bar!=null&&bar.Parent==header)bar.BackColor=header.BackColor;}
+ void DockCommandBar(){
+  if(bar!=null&&!bar.IsDisposed&&bar.Parent==header)return;
+  var found=Find(content);if(found==null)return;
+  bar=found;barHome=found.Parent;barIndex=barHome.Controls.GetChildIndex(found);
+  title.Dock=DockStyle.Left;title.Width=TextRenderer.MeasureText(title.Text,title.Font).Width+28;
+  bar.AutoSize=false;bar.WrapContents=false;bar.Padding=new Padding(0);bar.Dock=DockStyle.Fill;
+  header.Controls.Add(bar);header.Controls.SetChildIndex(bar,0);
+ }
+ static FlowLayoutPanel Find(Control root){foreach(Control c in root.Controls){if(c.Name=="PowCommandBar"&&c is FlowLayoutPanel)return (FlowLayoutPanel)c;var f=Find(c);if(f!=null)return f;}return null;}
  /* keeps the shared tab groups alive when the window closes */
- internal void Release(){foreach(var tabs in content.Controls.OfType<TabControl>().ToList())content.Controls.Remove(tabs);}
+ internal void Release(){if(bar!=null&&barHome!=null&&!barHome.IsDisposed&&bar.Parent==header){header.Controls.Remove(bar);bar.Dock=DockStyle.Top;bar.AutoSize=true;bar.WrapContents=true;bar.Padding=new Padding(8,5,8,3);barHome.Controls.Add(bar);barHome.Controls.SetChildIndex(bar,barIndex);title.Dock=DockStyle.Fill;}bar=null;foreach(var tabs in content.Controls.OfType<TabControl>().ToList())content.Controls.Remove(tabs);}
 }
 class ToolModuleButton:Button {
  public int ModuleIndex;public string Description;bool hover;static readonly Font SmallBody=new Font("Segoe UI",9f);
