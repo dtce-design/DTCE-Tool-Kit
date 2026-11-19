@@ -66,6 +66,6 @@ class BeamCuttingListTests {
    Check(strips.All(st=>lg.SupportStart[st[1]+1]+lg.SupportWidth[st[1]+1]-lg.SupportStart[st[0]]<=21.5+1e-9||st[0]==st[1]),"each strip is at most about 21 m");
    var groups=BeamDetailPaper.Groups(r4,lg);Check(groups.Count<BeamDetailPaper.Cuts(lg).Count/3&&groups.Sum(x=>x.Same.Count)==45,"identical sections are drawn once and cover all 45 cuts");
    Check(BeamDetailPaper.Compact(new List<string>{"1A","2A","3A","5A"})=="1A to 3A, 5A","typical list is compact");
-   using(var doc=BbsReport.Build(r4,s4,new BbsInfo()))Check(doc.Sheets.Count>3,"long line prints");}
+   using(var doc=BbsReport.Build(r4,s4,new BbsInfo()))Check(doc.Sheets.Count>3,"long line prints");using(var site=SiteSheets.Build(r4,s4,new BbsInfo{Number="BBS-01"})){Check(site.A3&&site.Sheets.Count>=4,"crew site sheets print on A3");using(var bmp=new System.Drawing.Bitmap((int)site.PageWidth,(int)site.PageHeight))using(var g=System.Drawing.Graphics.FromImage(bmp))for(int pg=0;pg<site.Sheets.Count;pg++)site.Draw(g,pg);}}
   Console.WriteLine("PASS: "+checks+" beam cutting list checks");}
 }

@@ -26,7 +26,7 @@ class CutSettings {
  public List<double> Stocks=new List<double>{6,7.5,9,10.5,12};
 }
 class CutOverride {public double? Length;public int? PerLine;public bool Deleted;}
-class CutPiece {public string Line,BarMark,Location,Shape,ShapeCode="STRAIGHT";public double DimA,DimB,DimC,SecB,SecH;public int Span;public bool Edited,Manual;public double? CalculatedLength;public int? CalculatedPerLine;public string Member{get{return Line+(Span>0?" span "+Span:"");}}public int Diameter,Grade,PerLine,Lines;public double Length,Start,End;public bool Top;public long Pieces{get{return (long)PerLine*Lines;}}public double Kg{get{return Pieces*Length*EstimatorEngine.UnitMass(Diameter);}}}
+class CutPiece {public string Line,BarMark,Location,Shape,ShapeCode="STRAIGHT";public double DimA,DimB,DimC,SecB,SecH;/* drawing only: shortened straight leg of a hooked bar */public double DrawnStraight;public int Span;public bool Edited,Manual;public double? CalculatedLength;public int? CalculatedPerLine;public string Member{get{return Line+(Span>0?" span "+Span:"");}}public int Diameter,Grade,PerLine,Lines;public double Length,Start,End;public bool Top;public long Pieces{get{return (long)PerLine*Lines;}}public double Kg{get{return Pieces*Length*EstimatorEngine.UnitMass(Diameter);}}}
 class CutSplice {public string Line,Bar,Status,Note;public int Diameter,Span;public double From,To,Lap,ZoneFrom,ZoneTo;public bool Ok;}
 class CutSpanEstimate {public string Line,Mark;public int Span,Quantity;public bool Include;public double Ln,Concrete,Formwork,Kg;public int Ties;public Dictionary<int,double> KgByDiameter=new Dictionary<int,double>();}
 class CutPurchase {public int Grade,Diameter;public double Cut;public long Pieces;public StockChoice Choice;}
