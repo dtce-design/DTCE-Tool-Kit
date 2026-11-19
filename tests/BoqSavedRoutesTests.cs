@@ -54,6 +54,9 @@ class BoqSavedRoutesTests {
    routes.Clear();overrides.Clear();unmapped.Clear();includes.Clear();lsAuto.Clear();const string closet="Plumbing|Water closet|set";routes[closet]="ls-0";includes[closet]=false;
    var lsList=new List<BackupDemand>{new BackupDemand{Key=closet,Description="Water closet",Unit="set",Quantity=4}};Call(f,"ApplyBoqIncludes",lsList);
    var control=lsList.FirstOrDefault(d=>d.Key==ProgramOfWorksForm.LsIncludePrefix+"ls-0");
-   Check(control!=null&&control.Quantity==0&&control.ManualPriority==1&&lsList[0].Quantity==0&&BackupMapping.FinalQuantity(lsList.Where(d=>d.TargetSlotId=="ls-0"||d.Key==closet),"l.s.")==0,"unchecking every mapped quantity of an LS item gives 0 LS");}
+   Check(control!=null&&control.Quantity==0&&control.ManualPriority==1&&lsList[0].Quantity==0&&BackupMapping.FinalQuantity(lsList.Where(d=>d.TargetSlotId=="ls-0"||d.Key==closet),"l.s.")==0,"unchecking every mapped quantity of an LS item gives 0 LS");
+   /* "The manual BOQ item was removed or changed: Project Billboard" when mapping: a BACKUP row without the app's name keeps the same id on every read */
+   string id1=ExcelLiveLink.StableSlotId(120,"B.5(1)","Project Billboard / Signboard (DPWH Billboard)","ea"),id2=ExcelLiveLink.StableSlotId(120,"B.5(1)","Project Billboard / Signboard (DPWH Billboard)","ea");
+   Check(id1==id2&&id1.Length==32&&id1.All(c=>"0123456789abcdef".IndexOf(c)>=0)&&id1!=ExcelLiveLink.StableSlotId(121,"B.5(1)","Project Billboard / Signboard (COA Billboard)","ea"),"BACKUP rows without a name keep a stable id between reads");}
   Console.WriteLine("PASS: "+checks+" saved BACKUP mapping checks");}
 }

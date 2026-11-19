@@ -166,5 +166,8 @@ Macros: a workbook the app opens for a visible link follows the Excel Trust Cent
 Excel shown first); never force macros off for the owner's linked workbook.
 BOQ mapping: the mapping saved in the Program of Works wins over the linked workbook's names and suggestions; linking or
 refreshing BACKUP must never erase it (items are followed by item no., description and unit).
-Part A / B (owner, "Pareho"): the app fills B.3, B.4 staking, B.7, B.9 (1 ls), B.5 billboards (1 ea each), A.1.4 progress
-photographs and field office / vehicle operation months from the schedule; every value can be typed over (0 removes it).
+Part A / B (owner, 19 November 2026, superseding "Pareho": "iallow na lang maginput ng qty sa boq ng app for part A and B"): the
+owner types Part A / B quantities in the app's Bill of Quantities and they are copied to the same BACKUP item; the app does not
+fill them (ProgramOfWorksForm.FillGeneralRequirements stays false).
+Workspaces (owner, 19 November 2026): each workspace (Formatters, Program of Works, Design Sheets, Project Information, Access
+Code Generator) opens in its own window; the Workspaces window stays open.

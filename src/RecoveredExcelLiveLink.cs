@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -767,6 +767,11 @@ namespace BeamScheduleFormatter
 			val.Activate();
 		}
 
+/* Owner (19 November 2026, "The manual BOQ item was removed or changed: Project Billboard / Signboard" when mapping): a BACKUP row
+   without a _DTCE_BACKUP_ITEM_ name got a new random id on every read, so a typed quantity on it (kept by the app under the id
+   of the earlier read) was "removed" when Map BACKUP items read the workbook again. The id of such a row is now derived from
+   its row, item no., description and unit, so it stays the same until the row itself changes. */
+internal static string StableSlotId(int row,string code,string description,string unit){using(var sha=System.Security.Cryptography.SHA256.Create())return BitConverter.ToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes("row|"+row+"|"+(code??"").Trim()+"|"+(description??"").Trim()+"|"+(unit??"").Trim()))).Replace("-","").Substring(0,32).ToLowerInvariant();}
 public List<BackupTarget> RegisterBackupBillItems(){backupNameRows=null;backupNameSignatures=null;nameIdentityCache=null;var targets=BackupTargets();registeredItemSlots=new HashSet<string>(CachedBackupNames(BackupMapping.ItemPrefix,null).Keys.Select(n=>n.Substring(BackupMapping.ItemPrefix.Length)),StringComparer.OrdinalIgnoreCase);targetCache=targets;routeCache=null;return targets;}
 
 
@@ -821,7 +826,7 @@ public List<BackupTarget> RegisterBackupBillItems(){backupNameRows=null;backupNa
 				{
 					string slotId = (from x in source
 						where x.Value == row
-						select x.Key.Substring("_DTCE_BACKUP_ITEM_".Length)).OrderBy((string x) => x, StringComparer.Ordinal).FirstOrDefault() ?? Guid.NewGuid().ToString("N");
+						select x.Key.Substring("_DTCE_BACKUP_ITEM_".Length)).OrderBy((string x) => x, StringComparer.Ordinal).FirstOrDefault() ?? StableSlotId(row, text, text2, text3);
 					list.Add(new BackupTarget
 					{
 						Row = row,
@@ -860,7 +865,10 @@ public List<BackupTarget> RegisterBackupBillItems(){backupNameRows=null;backupNa
 					backupTarget = targets.SingleOrDefault((BackupTarget x) => x.SlotId == d.TargetSlotId && BackupMapping.Identity(x) == d.TargetIdentity);
 					if (backupTarget == null)
 					{
-						if(d.ManualOverride)throw new Exception("The manual BOQ item was removed or changed: " + d.Description);
+						/* owner (19 November 2026): the item read again under another id - follow its item no., description and unit */
+						var same = targets.Where((BackupTarget x) => BackupMapping.Identity(x) == d.TargetIdentity).ToList();
+						if (same.Count == 1) { dictionary3.Add(d.Key, same[0]); continue; }
+						if(d.ManualOverride)throw new Exception("The manual BOQ item was removed or changed: " + d.Description + ". Its BACKUP row (item no., description and unit) is no longer found once in the workbook; use Refresh BACKUP items and type the quantity again on the right item.");
                         continue;
 					}
 					dictionary3.Add(d.Key, backupTarget);

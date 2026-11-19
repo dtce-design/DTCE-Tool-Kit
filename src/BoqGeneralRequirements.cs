@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Globalization;using System.Linq;
+﻿using System;using System.Collections.Generic;using System.Globalization;using System.Linq;
 namespace BeamScheduleFormatter {
 // Owner (19 November 2026, "part A at Part B allow na ikaw ang maginput ng data sa BOQ ng app" - answered "Pareho"): the app fills
 // the usual Part A (Facilities for the Engineer) and Part B (Other General Requirements) quantities in the Bill of Quantities, and
@@ -11,6 +11,10 @@ namespace BeamScheduleFormatter {
 //   A.1.2(5)/(6) operation of service vehicles: vehicles of A.1.2(1)/(3) x months.
 // Field offices, vehicles, equipment, provisional sums, detours and tests are project decisions and are not filled.
 partial class ProgramOfWorksForm {
+ /* Owner (19 November 2026, after v1.30.2: "ako na lang ang magiinput ng quantities" / "iallow na lang maginput ng qty sa boq ng
+    app for part A and B"): Part A / B quantities are typed by the owner in the Bill of Quantities and copied to the same BACKUP
+    item; the app does not fill them. The rules below are kept but switched off. */
+ internal static bool FillGeneralRequirements=false;
  internal const string GeneralSuggestionPrefix="Part A/B suggested|";
  internal static bool IsGeneralSuggestion(BackupDemand d){return d!=null&&d.Key!=null&&d.Key.StartsWith(GeneralSuggestionPrefix,StringComparison.Ordinal);}
  bool suggestingGeneral;string generalDaysStamp;int generalDays;

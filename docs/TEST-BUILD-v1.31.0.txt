@@ -1,0 +1,26 @@
+DTCE Tool Kit v1.31.0 test build (19 November 2026)
+
+Not tested on Windows yet (Linux/Mono checks only). GitHub test build, not a Microsoft
+Store release (the Store still has v1.5.0).
+
+Workspaces
+- Each workspace opens in its own window ("another window na lang yung magbubukas sa
+  mga individual workspaces"). The Workspaces window stays open; "Workspaces" in a
+  workspace window brings it to the front. Closing a workspace window closes its tools
+  with their usual save prompts. Opening a workspace that is already open brings its
+  window to the front.
+- The workspace cards end on the same right edge as the header and Workspace settings,
+  and the arrow no longer touches the description.
+
+Program of Works - Bill of Quantities
+- Part A / B: you type the quantities in the Bill of Quantities and they are copied to
+  the same BACKUP item in Excel ("iallow na lang maginput ng qty sa boq ng app for part A
+  and B"). The app no longer fills them by itself.
+- "The manual BOQ item was removed or changed: Project Billboard / Signboard" when using
+  Map BACKUP items: a BACKUP row without the app's name in the workbook got a new id
+  every time the workbook was read, so a quantity typed on it was lost to the mapping.
+  Such rows now keep the same id, and a typed quantity also follows its item no.,
+  description and unit.
+- Disconnect Excel: a failed last write no longer keeps Excel connected ("ayaw pa
+  magdisconnect"); Excel is disconnected and the status says the last quantities were
+  not written.

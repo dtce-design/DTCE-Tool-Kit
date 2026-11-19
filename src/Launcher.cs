@@ -34,7 +34,7 @@ class LauncherForm:Form {
   #if ADMIN_APP
   AddCard(cards,"Access Code Generator","Manage program access and generate activation codes.",()=>UseTool(ref generator,()=>new CodeGeneratorForm(),"Access Code Generator",null,8));
   #endif
-  Action sizeCards=()=>{int columns=cards.ClientSize.Width>=900?3:2;int width=Math.Max(250,(cards.ClientSize.Width-14*columns-6)/columns);foreach(Control item in cards.Controls)item.Width=width;};
+  /* owner (19 November 2026, "hindi pantay yung edge niya sa right"): the last card of each row ends on the same right edge as the header and Workspace settings */Action sizeCards=()=>{const int gap=14;int space=cards.ClientSize.Width-cards.Padding.Horizontal;int columns=space>=900?3:2;int width=Math.Max(250,(space-gap*(columns-1))/columns);int extra=Math.Max(0,space-width*columns-gap*(columns-1));for(int i=0;i<cards.Controls.Count;i++){var item=cards.Controls[i];bool last=i%columns==columns-1;item.Width=width+(last?extra:0);item.Margin=new Padding(0,0,last?0:gap,12);}};
   cards.Resize+=(sender,args)=>sizeCards();sizeCards();
   dashboard.Controls.Add(new Label{Text="v"+Engine.Version+"  /  Developed by Engr. Daryl O. Tomaneng",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,ForeColor=PowTheme.Muted,Font=new Font("Segoe UI",8.5f),Margin=Padding.Empty},0,3);
   var header=PremiumControls.WorkspaceHeader(groupTitle,ShowStart);groupHost.Controls.Add(groupContent);groupHost.Controls.Add(header);
@@ -46,6 +46,7 @@ class LauncherForm:Form {
    if(generator!=null&&!generator.IsDisposed)children.Add(generator);
    #endif
    foreach(var child in children){child.Close();if(!child.IsDisposed){e.Cancel=true;return;}}
+   foreach(var window in windows.Values.Where(w=>!w.IsDisposed).ToList()){window.Release();window.Close();}
   };DesktopAppearance.Attach(this);new StoreUpdateMonitor(this);ShowStart();
  }
  Form CreateBeam(){var form=new MainForm();
@@ -58,8 +59,13 @@ class LauncherForm:Form {
  void UseTool(ref Form form,Func<Form> create,string title,TabControl tabs,int app){try{if(!Authorize(app))return;if(form==null||form.IsDisposed)form=create();ShowTool(form,title,tabs);}catch(Exception ex){MessageBox.Show(this,ex.Message,"DTCE Tool Kit");}}
  void OpenDesign(string title,Func<Form> create){try{if(!Authorize(DesignProgram(title)))return;Form form;if(!designModules.TryGetValue(title,out form)||form.IsDisposed){form=create();designModules[title]=form;}ShowTool(form,title,designTabs);}catch(Exception ex){MessageBox.Show(this,ex.Message,"Design Sheet");}}
  void ShowTool(Form form,string title,TabControl tabs){if(form.TopLevel){form.TopLevel=false;form.FormBorderStyle=FormBorderStyle.None;}form.MinimumSize=Size.Empty;form.MaximumSize=Size.Empty;form.Dock=DockStyle.Fill;if(tabs==null){ShowGroup(form,title);form.Show();return;}var page=tabs.TabPages.Cast<TabPage>().FirstOrDefault(p=>p.Text==title);if(page==null){page=new TabPage(title);tabs.TabPages.Add(page);}if(page.Tag!=form){page.Controls.Clear();page.Tag=form;page.Controls.Add(form);}tabs.SelectedTab=page;ShowGroup(tabs,tabs==formatterTabs?"Formatters":"Design Sheets");form.Show();form.BringToFront();}
- void ShowGroup(Control content,string title){groupContent.Controls.Clear();content.Dock=DockStyle.Fill;groupContent.Controls.Add(content);groupTitle.Text=title;home.Visible=false;groupHost.Visible=true;groupHost.BringToFront();content.Visible=true;PowTheme.Apply(groupHost);}
- internal void ShowStart(){groupHost.Visible=false;home.Visible=true;home.BringToFront();}
+ /* Owner (19 November 2026, "another window na lang yung magbubukas sa mga individual workspaces"): each workspace opens in its
+    own window; the Workspaces window stays as it is, and a workspace already open is brought to the front. */
+ readonly Dictionary<string,WorkspaceWindow> windows=new Dictionary<string,WorkspaceWindow>();
+ void ShowGroup(Control content,string title){WorkspaceWindow window;if(!windows.TryGetValue(title,out window)||window.IsDisposed){window=new WorkspaceWindow(this,title);windows[title]=window;}
+  window.Host(content);content.Visible=true;if(!window.Visible)window.Show();if(window.WindowState==FormWindowState.Minimized)window.WindowState=FormWindowState.Normal;window.Activate();}
+ internal IEnumerable<WorkspaceWindow> OpenWindows{get{return windows.Values.Where(w=>!w.IsDisposed&&w.Visible);}}
+ internal void ShowStart(){groupHost.Visible=false;home.Visible=true;home.BringToFront();if(Visible){if(WindowState==FormWindowState.Minimized)WindowState=FormWindowState.Normal;Activate();}}
  internal void ShowDesignSheets(){if(!AccessCodes.CanUseFormatter){using(var login=new LoginForm())if(login.ShowDialog(this)!=DialogResult.OK)return;}var allowed=designTabs.TabPages.Cast<TabPage>().Where(p=>AccessCodes.CanUseApp(DesignProgram(p.Text))).ToList();if(allowed.Count==0){MessageBox.Show(this,"No Design Sheet is included in your approved access.","App access");return;}loadingDesign=true;try{if(!allowed.Contains(designTabs.SelectedTab))designTabs.SelectedTab=allowed[0];ShowGroup(designTabs,"Design Sheets");}finally{loadingDesign=false;}LoadSelectedDesign();}
  static int DesignProgram(string title){return title=="Wind Load (NSCP 2015)"?ProgramAccess.WindDesign:title=="Purlin Design"?ProgramAccess.PurlinDesign:title=="Truss Connections"?ProgramAccess.TrussConnections:title=="Beam Deflection Check"?ProgramAccess.BeamDeflection:ProgramAccess.SpliceDevelopmentHooks;}
  void LoadSelectedDesign(){if(loadingDesign||designTabs.SelectedTab==null)return;foreach(var child in designTabs.SelectedTab.Controls.OfType<Form>())child.Hide();Action open;if(!designLoaders.TryGetValue(designTabs.SelectedTab.Text,out open))return;loadingDesign=true;try{open();}finally{loadingDesign=false;}}
@@ -69,6 +75,20 @@ class LauncherForm:Form {
  void AddDesignEntry(string title,Action open){designLoaders.Add(title,open);var page=new TabPage(title);page.Controls.Add(new Label{Text="This design sheet requires its own program access.",Dock=DockStyle.Top,Height=60,Padding=new Padding(20)});designTabs.TabPages.Add(page);}
  void AddCard(FlowLayoutPanel panel,string title,string description,Action action){var card=new ToolModuleButton{ModuleIndex=panel.Controls.Count,Text=title,Description=description,Height=86,Width=330,Margin=new Padding(0,0,14,12)};card.Click+=(s,e)=>action();panel.Controls.Add(card);}
  void AddEntry(TabControl tabs,string title,string buttonText,Action action){var page=new TabPage(title);var open=new Button{Text=buttonText,Left=24,Top=28,Width=300,Height=42};open.Click+=(s,e)=>action();page.Controls.Add(open);tabs.TabPages.Add(page);}
+}
+/* A workspace in its own window: the same header as before ("Workspaces" brings the start window to the front). Closing the
+   window closes its tools with their usual save prompts; the tab groups are kept for the next time they are opened. */
+class WorkspaceWindow:Form {
+ readonly LauncherForm launcher;readonly Panel content=new Panel{Dock=DockStyle.Fill};readonly Label title=new Label();
+ public WorkspaceWindow(LauncherForm owner,string caption){launcher=owner;AppBrand.Apply(this);Text=caption+" - DTCE Tool Kit v"+Engine.Version;Font=owner.Font;StartPosition=FormStartPosition.CenterScreen;ClientSize=new Size(1280,820);MinimumSize=new Size(900,600);
+  var area=Screen.FromControl(owner).WorkingArea;if(area.Width<1320||area.Height<880)WindowState=FormWindowState.Maximized;
+  title.Text=caption;Controls.Add(content);Controls.Add(PremiumControls.WorkspaceHeader(title,owner.ShowStart));
+  FormClosing+=(s,e)=>{foreach(var child in Children().ToList()){child.Close();if(!child.IsDisposed){e.Cancel=true;return;}}if(!e.Cancel)Release();};}
+ /* the tools hosted here (embedded forms, also inside the Formatter / Design Sheet tabs) */
+ IEnumerable<Form> Children(){var stack=new Stack<Control>(content.Controls.Cast<Control>());while(stack.Count>0){var c=stack.Pop();var f=c as Form;if(f!=null){yield return f;continue;}foreach(Control x in c.Controls)stack.Push(x);}}
+ internal void Host(Control control){if(content.Controls.Count==1&&content.Controls[0]==control)return;content.Controls.Clear();control.Dock=DockStyle.Fill;content.Controls.Add(control);PowTheme.Apply(this);}
+ /* keeps the shared tab groups alive when the window closes */
+ internal void Release(){foreach(var tabs in content.Controls.OfType<TabControl>().ToList())content.Controls.Remove(tabs);}
 }
 class ToolModuleButton:Button {
  public int ModuleIndex;public string Description;bool hover;static readonly Font SmallBody=new Font("Segoe UI",9f);
@@ -85,7 +105,7 @@ class ToolModuleButton:Button {
   DrawGlyph(e.Graphics,new Rectangle(19,19,20,20));
   using(var title=new Font("Segoe UI",10.5f,FontStyle.Bold))TextRenderer.DrawText(e.Graphics,Text,title,new Rectangle(54,12,Width-90,24),PowTheme.Ink,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.NoPrefix);
   TextRenderer.DrawText(e.Graphics,"›",ModernUi.Heading,new Rectangle(Width-32,12,22,28),PowTheme.Teal,TextFormatFlags.VerticalCenter);
-  TextRenderer.DrawText(e.Graphics,Description??descriptions[Math.Min(5,ModuleIndex)],SmallBody,new Rectangle(54,38,Width-70,42),PowTheme.Muted,TextFormatFlags.Left|TextFormatFlags.WordBreak|TextFormatFlags.EndEllipsis|TextFormatFlags.NoPrefix);
+  TextRenderer.DrawText(e.Graphics,Description??descriptions[Math.Min(5,ModuleIndex)],SmallBody,new Rectangle(54,38,Width-92,42),PowTheme.Muted,TextFormatFlags.Left|TextFormatFlags.WordBreak|TextFormatFlags.EndEllipsis|TextFormatFlags.NoPrefix);
   if(Focused)FocusHighlight.Draw(e.Graphics,new Rectangle(5,5,Width-10,Height-10),WorksheetColors.Focus);
  }
  void DrawGlyph(Graphics g,Rectangle r){
