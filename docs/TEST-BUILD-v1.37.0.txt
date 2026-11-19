@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.37.0 test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+
+Admin edition ("yung admin app manghingi ng password kapag after shut down and every restart")
+- The admin password is asked again after every restart or shut down of the computer. An unlock holds
+  only for the Windows sign-in it was given in (identified by the start of the user's shell in this
+  session, so Windows Fast Startup does not keep it; the system start time is the fallback). Opening
+  the app again in the same sign-in does not ask again. The first start after this update asks once.
+
+Includes v1.36.0 and earlier local builds (see their notes).
