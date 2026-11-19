@@ -5,16 +5,19 @@ namespace BeamScheduleFormatter {
    CalculationDocument header (title, project) and footer; text is never below 7 pt; tables continue on the next page with their
    headings; figures, checks and paragraphs are not split. */
 sealed class RichReport {
- const float Left=36,Width=523,Top=128,Bottom=792;
+ /* page frame in points; set from the page size before each layout and each page is drawn */
+ static float Left=36,Width=523,Top=128,Bottom=792;readonly bool a3;
+ static void Frame(bool a3){Left=36;Top=128;Width=a3?1190.55f-72:523;Bottom=a3?841.89f-50:792;}
+ public static float ContentWidth(bool a3){return a3?1190.55f-72:523;}
  abstract class Block {internal abstract float Height(Graphics g);internal virtual bool Splittable{get{return false;}}internal abstract void Draw(Graphics g,float y);}
  readonly string title;readonly List<Block> blocks=new List<Block>();
- public RichReport(string title){this.title=title;}
+ public RichReport(string title,bool a3Landscape=false){this.title=title;a3=a3Landscape;Frame(a3);}
  static Font Body{get{return new Font("Segoe UI",7.5f,FontStyle.Regular,GraphicsUnit.Point);}}
  static Font Bold{get{return new Font("Segoe UI",7.5f,FontStyle.Bold,GraphicsUnit.Point);}}
  static Font Mono{get{return new Font("Consolas",7.5f,FontStyle.Regular,GraphicsUnit.Point);}}
  static float Measure(Graphics g,string text,Font f,float width){return g.MeasureString(text??"",f,(int)Math.Max(10,width)).Height;}
  /* ---- blocks ---- */
- sealed class HeadingBlock:Block {internal string Text;internal override float Height(Graphics g){return 34;}internal override void Draw(Graphics g,float y){CalculationDocument.Section(g,Text,y+4);}}
+ sealed class HeadingBlock:Block {internal string Text;internal override float Height(Graphics g){return 34;}internal override void Draw(Graphics g,float y){CalculationDocument.Section(g,Text,y+4,Width);}}
  sealed class ParagraphBlock:Block {internal string Text;internal bool Muted,Strong;internal override float Height(Graphics g){using(var f=Strong?Bold:Body)return Measure(g,Text,f,Width)+6;}internal override void Draw(Graphics g,float y){using(var f=Strong?Bold:Body)using(var b=new SolidBrush(Muted?PowTheme.Muted:PowTheme.Ink))g.DrawString(Text,f,b,new RectangleF(Left,y,Width,2000));}}
  sealed class FigureBlock:Block {internal float H;internal Action<Graphics,RectangleF> Paint;internal string Caption;internal override float Height(Graphics g){return H+(Caption==null?6:22);}
   internal override void Draw(Graphics g,float y){var rect=new RectangleF(Left,y,Width,H);using(var b=new SolidBrush(Color.White))g.FillRectangle(b,rect);var state=g.Save();try{g.SetClip(rect);Paint(g,rect);}finally{g.Restore(state);}using(var pen=new Pen(PowTheme.Line))g.DrawRectangle(pen,rect.X,rect.Y,rect.Width,rect.Height);
@@ -51,7 +54,7 @@ sealed class RichReport {
  public RichReport Check(string name,string clause,IEnumerable<string> lines,string governing,double demand,double capacity,string unit,bool ok){blocks.Add(new CheckBlock{Name=name,Clause=clause,Lines=lines.ToList(),Governing=governing,Demand=demand,Capacity=capacity,Ratio=capacity<=0?double.PositiveInfinity:demand/capacity,Unit=unit,Ok=ok});return this;}
  public RichReport Signatures(params string[] roles){blocks.Add(new SignatureBlock{Roles=roles});return this;}
  /* ---- layout into pages ---- */
- public CalculationDocument Build(){var doc=new CalculationDocument(title);var pages=new List<List<KeyValuePair<Block,float>>>();var page=new List<KeyValuePair<Block,float>>();float y=Top;
+ public CalculationDocument Build(){Frame(a3);var doc=new CalculationDocument(title);if(a3)doc.UseA3Landscape();var pages=new List<List<KeyValuePair<Block,float>>>();var page=new List<KeyValuePair<Block,float>>();float y=Top;
   using(var bmp=new Bitmap(10,10))using(var g=Graphics.FromImage(bmp)){g.PageUnit=GraphicsUnit.Point;
    Action newPage=()=>{pages.Add(page);page=new List<KeyValuePair<Block,float>>();y=Top;};
    for(int bi=0;bi<blocks.Count;bi++){var block=blocks[bi];var table=block as TableBlock;
@@ -59,7 +62,7 @@ sealed class RichReport {
     if(table!=null){int start=0;while(start<table.Rows.Count||start==0){var part=new TableBlock{Headers=table.Headers,Rows=table.Rows,Widths=table.Widths,RowColor=table.RowColor,Start=start,PaintCol=table.PaintCol,MinRow=table.MinRow,Painter=table.Painter};int fit=part.Fit(g,Bottom-y);if(fit==0&&page.Count>0){newPage();fit=part.Fit(g,Bottom-y);}fit=Math.Max(1,fit);part.Count=fit;page.Add(new KeyValuePair<Block,float>(part,y));y+=part.Height(g);start+=fit;if(start>=table.Rows.Count)break;newPage();}continue;}
     float h=block.Height(g);if(y+h>Bottom&&page.Count>0)newPage();page.Add(new KeyValuePair<Block,float>(block,y));y+=h;}
    if(page.Count>0)pages.Add(page);}
-  foreach(var p in pages){var items=p;doc.Sheets.Add(g=>{foreach(var item in items)item.Key.Draw(g,item.Value);});}
+  bool big=a3;foreach(var p in pages){var items=p;doc.Sheets.Add(g=>{Frame(big);foreach(var item in items)item.Key.Draw(g,item.Value);});}
   if(doc.Sheets.Count==0)doc.Sheets.Add(g=>{});return doc;}
 }
 }

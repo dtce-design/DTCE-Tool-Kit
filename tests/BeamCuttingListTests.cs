@@ -57,6 +57,6 @@ class BeamCuttingListTests {
    Check(r2.Smf.Where(c=>c.Item.Contains("continuous")).All(c=>c.Ok),"two continuous bars top and bottom");
    Check(r2.Smf.Any(c=>c.Clause=="418.8.2.3"&&c.Ok),"400 mm interior column = 20 x 20 mm bar");
    var r3=BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg,SpecialMomentFrame=false});Check(r3.Smf.Count==0,"no SMF checks for an ordinary frame");
-   using(var doc=BbsReport.Build(r2,s2,new BbsInfo{Number="BBS-01",Revision="0",Status="For review"}))Check(doc.Sheets.Count>=3,"printed BBS has pages");}
+   using(var doc=BbsReport.Build(r2,s2,new BbsInfo{Number="BBS-01",Revision="0",Status="For review"})){Check(doc.Sheets.Count>=3,"printed BBS has pages");Check(doc.A3&&doc.PageWidth>doc.PageHeight,"BBS prints on A3 landscape");Check(BeamDetailPaper.Cuts(r2.Geometry[0]).Count==9,"sections at the faces and midspan of 3 spans");using(var bmp=new System.Drawing.Bitmap((int)doc.PageWidth,(int)doc.PageHeight))using(var g=System.Drawing.Graphics.FromImage(bmp))for(int pg=0;pg<doc.Sheets.Count;pg++)doc.Draw(g,pg);}}
   Console.WriteLine("PASS: "+checks+" beam cutting list checks");}
 }
