@@ -48,3 +48,21 @@ Construction Schedule screen ("ayusin itong sa taas", "ifix mo yung left side ta
 - Bar Chart: item no., description, quantity, unit, output per hour and no. of days stay
   in place; only the working days scroll (scroll bar under the chart, or Shift + mouse
   wheel). The printed set is unchanged.
+
+Contract Duration tab ("gumawa ng ganitong tab sa pow, ilagay lahat ng holidays, at input ng rainy days")
+- New Program of Works tab after Construction Schedule, following the owner's
+  "COMPUTATION OF ESTIMATED PROJECT DURATION" sheet. Inputs: start date and working days
+  (0 = the construction schedule's total). Per month: working days, Sundays, holidays,
+  rainy days, revised rainy days = MIN(open days, ROUNDUP(rainy x (1 - (Sundays +
+  holidays) / total days))), total days and weeks; totals; contract duration and end
+  date (the first date at which the workable days reach the working days).
+- Holidays: the national regular holidays and special non-working days are listed for
+  the project years (fixed dates, Holy Week from Easter, National Heroes Day, and the
+  expected Chinese New Year / Eid dates, to be edited to the proclamation). Rows can be
+  added, edited or deleted; holidays on Sundays are not counted twice.
+- Rainy days: days with rainfall above 7.5 mm, one row per year; the last five recorded
+  years of each month are averaged. "Use PAGASA Aparri records" fills the table from the
+  owner's sheet (Nov 2020 - Aug 2026).
+- Checked against the owner's sheet: start May 3, 2027, 72 working days -> Sundays 15,
+  holidays 2, rainy days 18, contract duration 107 days, end date August 17, 2027.
+- Saved with the Program of Works.

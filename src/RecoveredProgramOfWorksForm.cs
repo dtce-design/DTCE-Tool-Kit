@@ -4595,7 +4595,7 @@ worksExcelTimer.Tick += async delegate
             FormClosed += (s0, e0) => { if (!Automated) ProjectInfoStore.ClearProject(); };
             InstallStandardSettings();
             InstallRowInclusion();
-            AddConstructionSchedule();
+            AddConstructionSchedule();AddContractDuration();
             PlaceSteelSetColumns();
             if (wood != null) PlaceOpeningPaintColumns(wood);
 			tabs.Multiline = true;
