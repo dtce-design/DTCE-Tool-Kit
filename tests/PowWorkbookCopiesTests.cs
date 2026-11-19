@@ -1,4 +1,4 @@
-using System;using System.IO;using System.IO.Compression;using System.Linq;using System.Text;using BeamScheduleFormatter;
+﻿using System;using System.IO;using System.IO.Compression;using System.Linq;using System.Text;using BeamScheduleFormatter;
 // Owner (19 November 2026, "yung xml file di naman nabawasan ang file size"): one copy per linked workbook is kept in a POW.
 class PowWorkbookCopiesTests {
  static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}
@@ -17,10 +17,14 @@ class PowWorkbookCopiesTests {
   Check(store.Files.Any(f=>f.Name=="Other.xlsx")&&store.Files.Any(f=>f.Name=="Beam.dxf"),"other workbooks and DXF files are kept");
   Check(store.KeepNewestWorkbookCopies()==0,"nothing more to remove");
   /* linking again replaces the copy instead of adding another */
-  var relinked=Workbook("BOQ.xlsm","2026-11-19T05:00:00Z","e");store.Add(relinked);
+  var relinked=Workbook("BOQ.xlsm","2026-11-19T05:00:00Z","e");store.AddWorkbookCopy(relinked);
   Check(store.Files.Count(f=>f.Name=="BOQ.xlsm")==1&&store.Files.Single(f=>f.Name=="BOQ.xlsm").Sha256==relinked.Sha256,"a new link replaces the stored copy");
   /* copies without dates: one is still kept */
   var undated=new PowSourceFiles();var u=typeof(PowSourceFiles).GetField("files",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(undated) as System.Collections.Generic.List<PowSourceFile>;u.Add(Workbook("X.xlsm",null,"1"));u.Add(Workbook("X.xlsm",null,"2"));
   Check(undated.KeepNewestWorkbookCopies()==1&&undated.Files.Count==1,"undated copies keep one");
+  /* v1.31.4 regression: an older POW holding several copies must still be read (all records kept until the next save) */
+  var many=new PowSourceFiles();var m=typeof(PowSourceFiles).GetField("files",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(many) as System.Collections.Generic.List<PowSourceFile>;m.AddRange(new[]{Workbook("BOQ.xlsm","2026-11-17T08:00:00Z","p"),Workbook("BOQ.xlsm","2026-11-18T08:00:00Z","q"),Workbook("BOQ.xlsm","2026-11-19T08:00:00Z","r")});
+  var text=new StringBuilder();using(var w=System.Xml.XmlWriter.Create(text,new System.Xml.XmlWriterSettings{OmitXmlDeclaration=true}))many.WriteStreaming(w);
+  using(var r=System.Xml.XmlReader.Create(new StringReader(text.ToString()))){r.MoveToContent();var back=PowSourceFiles.ReadArchive(r);Check(back.Files.Count==3,"an older POW with three copies opens with all three");Check(back.KeepNewestWorkbookCopies()==2&&back.Files.Single().Sha256==m[2].Sha256,"saving keeps the newest");}
   Console.WriteLine("PASS: "+checks+" workbook copy checks");}
 }

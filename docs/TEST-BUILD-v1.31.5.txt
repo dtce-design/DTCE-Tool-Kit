@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.31.5 test build (19 November 2026) - fix of a v1.31.4 regression
+
+Not tested on Windows yet (Linux/Mono checks only). GitHub test build, not a Microsoft
+Store release (the Store still has v1.5.0).
+
+- v1.31.4 could not read the Project files of an older POW holding several copies of
+  the same workbook ("Duplicate or conflicting project source records"): the new
+  one-copy rule was also applied while reading. Reading keeps every record again; the
+  older copies are removed only when the POW is saved (the newest copy is kept), and a
+  new link replaces the stored copy. A POW saved by v1.31.4 after that message has no
+  Project files; its quantities are not affected - re-open the older file instead.

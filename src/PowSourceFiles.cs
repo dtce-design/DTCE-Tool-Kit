@@ -39,8 +39,11 @@ sealed class PowXmlBase64Stream:Stream {
 }
 sealed class PowSourceFiles {
  readonly List<PowSourceFile> files=new List<PowSourceFile>();internal IList<PowSourceFile> Files{get{return files.AsReadOnly();}}internal Action<PowSourceFile> BeforeAdd;
- internal void Add(PowSourceFile file){if(BeforeAdd!=null)BeforeAdd(file);var same=files.Where(f=>f.Name.Equals(file.Name,StringComparison.OrdinalIgnoreCase)&&f.Kind.Equals(file.Kind,StringComparison.OrdinalIgnoreCase)).ToList();if(file.RecoveredText&&same.Any(f=>!f.RecoveredText))return;var remove=file.RecoveredText?new List<PowSourceFile>():same.Where(f=>f.RecoveredText).ToList();if(files.Any(f=>f.Id==file.Id&&!remove.Contains(f)))return;if(!file.RecoveredText&&file.Kind.Equals(WorkbookKind,StringComparison.OrdinalIgnoreCase))remove.AddRange(same.Where(f=>!f.RecoveredText&&!remove.Contains(f)));foreach(var old in remove)files.Remove(old);files.Add(file);}
+ internal void Add(PowSourceFile file){if(BeforeAdd!=null)BeforeAdd(file);var same=files.Where(f=>f.Name.Equals(file.Name,StringComparison.OrdinalIgnoreCase)&&f.Kind.Equals(file.Kind,StringComparison.OrdinalIgnoreCase)).ToList();if(file.RecoveredText&&same.Any(f=>!f.RecoveredText))return;var remove=file.RecoveredText?new List<PowSourceFile>():same.Where(f=>f.RecoveredText).ToList();if(files.Any(f=>f.Id==file.Id&&!remove.Contains(f)))return;foreach(var old in remove)files.Remove(old);files.Add(file);}
  internal void AddRange(IEnumerable<PowSourceFile> source){foreach(var file in source)Add(file);}
+ /* a newly linked workbook replaces its stored copy (same name); reading an archive keeps every record (v1.31.4 applied this in
+    Add, so an older POW with several copies could not be read: "Duplicate or conflicting project source records") */
+ internal void AddWorkbookCopy(PowSourceFile file){foreach(var old in files.Where(f=>!f.RecoveredText&&f.Kind.Equals(WorkbookKind,StringComparison.OrdinalIgnoreCase)&&f.Name.Equals(file.Name,StringComparison.OrdinalIgnoreCase)&&f.Id!=file.Id).ToList())files.Remove(old);Add(file);}
  /* Owner (19 November 2026, "yung xml file di naman nabawasan ang file size" after Save As): every link of the BACKUP workbook
     added another full copy of it under Project files (one POW held 10 copies, ~245 MB). One copy per workbook name is kept:
     a new copy replaces the older one, and a file that already holds several keeps only the newest (the latest "modified" date
