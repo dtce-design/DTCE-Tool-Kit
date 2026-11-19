@@ -46,5 +46,17 @@ class BeamCuttingListTests {
    var hoop=current().Pieces.First(p=>p.ShapeCode=="HOOP");Check(hoop.DimA==300-2*40&&hoop.DimB==500-2*40&&hoop.DimC>0,"hoop outside dimensions b-2c x h-2c and hook tail");var hooked=current().Pieces.First(p=>p.ShapeCode=="HOOK1");Check(hooked.DimB>0&&hooked.DimA>hooked.DimB,"L-bar straight and hook leg");
    string bbs=form.BbsText();Check(bbs.StartsWith("BAR BENDING SCHEDULE")&&bbs.Contains("G1-A1")&&bbs.Contains("Signature: ____")&&bbs.Contains("the program does not approve it")&&bbs.Contains("Opening trimmer")==false,"BBS lists the bars with blank signature lines");
    string xml=form.ProjectXml();Check(xml.Contains("<Edit ")&&xml.Contains("<AddedBar "),"edits are saved");using(var again=new CuttingListForm()){again.OpenProjectXml(xml);Check(again.ProjectXml()==xml,"cutting list file round-trips");var a2=(CutResult)typeof(CuttingListForm).GetField("last",flags).GetValue(again);Check(a2.Pieces.Any(p=>p.BarMark=="G1-A1")&&a2.Deleted.Count==1,"edits come back when the file is opened");}}
+  /* Stage 2: cutting patterns, SMF detailing checks, printed BBS */
+  {var s2=new CutSettings{Config=cfg};var r2=BeamCutting.Build(line(new[]{true,true,true}),find,s2);
+   foreach(var grp in r2.Pieces.Where(p=>p.Length<=12+1e-9).GroupBy(p=>new{p.Grade,p.Diameter})){var pats=r2.Patterns.Where(p=>p.Grade==grp.Key.Grade&&p.Diameter==grp.Key.Diameter).ToList();
+    Check(pats.Sum(p=>p.Marks.Values.Sum())==grp.Sum(p=>p.Pieces),"every piece of "+grp.Key.Diameter+" mm is in a cutting pattern");
+    Check(pats.All(p=>p.Used<=p.Stock+1e-9&&p.Offcut>=-1e-9&&s2.Stocks.Contains(p.Stock)),"patterns fit commercial bars");
+    Check(pats.All(p=>s2.Stocks.Where(x=>x<p.Stock-1e-9).All(x=>x<p.Used-1e-9)),"each bar is bought at the shortest length that holds its cuts");}
+   Check(r2.Smf.Any(c=>c.Clause.StartsWith("418.6.4.1")&&!c.Ok),"hoops at 100 mm fail min(d/4, 6db = 96, 150) over 2h");
+   Check(r2.Smf.Any(c=>c.Clause=="418.6.3.2"&&c.Item.StartsWith("M+ at left")&&!c.Ok),"2-16 bottom is less than half of 4-20 top at the face");
+   Check(r2.Smf.Where(c=>c.Item.Contains("continuous")).All(c=>c.Ok),"two continuous bars top and bottom");
+   Check(r2.Smf.Any(c=>c.Clause=="418.8.2.3"&&c.Ok),"400 mm interior column = 20 x 20 mm bar");
+   var r3=BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg,SpecialMomentFrame=false});Check(r3.Smf.Count==0,"no SMF checks for an ordinary frame");
+   using(var doc=BbsReport.Build(r2,s2,new BbsInfo{Number="BBS-01",Revision="0",Status="For review"}))Check(doc.Sheets.Count>=3,"printed BBS has pages");}
   Console.WriteLine("PASS: "+checks+" beam cutting list checks");}
 }

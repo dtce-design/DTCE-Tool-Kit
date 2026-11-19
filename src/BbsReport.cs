@@ -1,0 +1,51 @@
+using System;using System.Collections.Generic;using System.Drawing;using System.Globalization;using System.Linq;
+namespace BeamScheduleFormatter {
+/* Printed bar bending schedule and cutting list (owner, 19 November 2026: "Standard presentation ng bbs at cutting list", "dapat
+   lahat ng report ganito"): schedule information, shape key, the schedule with a sketch of every bar, weights, the cutting
+   pattern of each commercial bar, the NSCP 2015 special moment frame detailing check, review items and blank signatures. */
+class BbsInfo {public string Number="",Revision="",Status="",Source="",Curtailment="",Prepared="",Checked="",Approved="";}
+static class BbsReport {
+ static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
+ /* shape codes of this schedule; the sketch and A / B / C define the bend */
+ internal static string Code(string shape){switch(shape){case "HOOK1":return "L1";case "HOOK2":return "U2";case "HOOP":return "H5";case "CROSSTIE":return "X3";default:return "S0";}}
+ /* BBS sketches are schematic: long straight parts are shortened so that the hooks read */
+ static CutPiece Schematic(CutPiece p){switch(p.ShapeCode){case "HOOK1":return Sample("HOOK1",400,110,0);case "HOOK2":return Sample("HOOK2",110,400,110);case "STRAIGHT":return Sample("STRAIGHT",400,0,0);default:return p;}}
+ static string Dim(double v){return v>0?v.ToString("0",Inv):"";}
+ static CutPiece Sample(string code,double a,double b,double c){return new CutPiece{ShapeCode=code,DimA=a,DimB=b,DimC=c,Diameter=12};}
+ public static CalculationDocument Build(CutResult r,CutSettings s,BbsInfo info){if(r==null)throw new Exception("Nothing to schedule yet: load a schedule and enter the beam lines.");
+  var rep=new RichReport("Bar Bending Schedule and Cutting List - Beams");var shown=r.Pieces.Where(p=>p.PerLine>0).ToList();
+  rep.Heading("1  SCHEDULE INFORMATION").KeyValues(new[]{
+   new[]{"BBS no. / revision",info.Number+" / rev. "+info.Revision},new[]{"Status",info.Status},new[]{"Date",DateTime.Now.ToString("yyyy-MM-dd",Inv)},new[]{"Beam schedule",info.Source},
+   new[]{"Materials","fc' = "+s.Config.Input.Fc.ToString("0.#",Inv)+" MPa; Grade "+s.Config.GradeSmall+" (fy "+s.Config.FySmall.ToString("0",Inv)+" MPa) for 12 mm and smaller, Grade "+s.Config.GradeLarge+" (fy "+s.Config.FyLarge.ToString("0",Inv)+" MPa) for 16 mm and larger"},
+   new[]{"Laps, development and hooks",s.Config.Name+" (Splice, Development & Hooks)"},new[]{"Clear cover",s.Cover.ToString("0",Inv)+" mm"},
+   new[]{"Frame",s.SpecialMomentFrame?"Special moment frame - NSCP 2015 Section 418.6 / 418.8 (ACI 318-14 Ch. 18), ACI SP-66 detailing":"Ordinary frame / non-seismic"},
+   new[]{"Curtailment",info.Curtailment},new[]{"Commercial lengths",CommercialBars.FormatLengths(s.Stocks)+" m; longest bar used "+s.MaxBar.ToString("0.##",Inv)+" m"}});
+  rep.Heading("2  SHAPE KEY").Figure(140,(g,rect)=>{var samples=new[]{new KeyValuePair<string,CutPiece>("S0  straight",Sample("STRAIGHT",900,0,0)),new KeyValuePair<string,CutPiece>("L1  90° hook one end",Sample("HOOK1",700,300,0)),new KeyValuePair<string,CutPiece>("U2  90° hooks both ends",Sample("HOOK2",300,700,300)),new KeyValuePair<string,CutPiece>("H5  closed hoop, 135° hooks",Sample("HOOP",220,420,90)),new KeyValuePair<string,CutPiece>("X3  crosstie 135° / 90°",Sample("CROSSTIE",420,90,90))};
+    float w=rect.Width/samples.Length;using(var f=new Font("Segoe UI",7.5f,FontStyle.Regular,GraphicsUnit.Point))using(var b=new Font("Segoe UI",7.5f,FontStyle.Bold,GraphicsUnit.Point))using(var ink=new SolidBrush(PowTheme.Ink))for(int k=0;k<samples.Length;k++){float x=rect.Left+k*w;g.DrawString(samples[k].Key,b,ink,new RectangleF(x+4,rect.Top+4,w-8,24));BarShapes.Draw(g,new RectangleF(x+8,rect.Top+34,w-16,rect.Height-40),samples[k].Value,true,Color.FromArgb(25,90,160),f);}},
+   "A, B, C = outside dimensions (mm); seismic hooks 135°, extension >= max(6db, 75).");
+  rep.Heading("3  BAR BENDING SCHEDULE").Table(new[]{"Member","Bar mark","Type & size","Mbrs","Each","Total no.","Length (mm)","Shape","Sketch (not to scale)","A","B","C","kg"},
+   shown.Select(p=>new[]{p.Member,p.BarMark+(p.Manual?" *":p.Edited?" †":""),"G"+p.Grade+" Ø"+p.Diameter,p.Lines.ToString(Inv),p.PerLine.ToString(Inv),p.Pieces.ToString(Inv),(p.Length*1000).ToString("0",Inv),Code(p.ShapeCode),"",Dim(p.DimA),Dim(p.DimB),Dim(p.DimC),p.Kg.ToString("0.00",Inv)}),
+   new float[]{10,9,8,6,6,6,8,7,15,7,6,5,7},8,26,(g,cell,i)=>{var p=Schematic(shown[i]);BarShapes.Draw(g,new RectangleF(cell.X+4,cell.Y,cell.Width-8,cell.Height),p,false,shown[i].Manual||shown[i].Edited?Color.FromArgb(180,90,20):Color.FromArgb(25,90,160),null);});
+  rep.Paragraph("Lengths in mm. * added on the cutting list, † edited on the cutting list. Cut lengths include the bend allowances; check the bent shape on site against A, B, C.",true);
+  var weights=r.Pieces.GroupBy(x=>new{x.Grade,x.Diameter}).OrderBy(x=>x.Key.Grade).ThenBy(x=>x.Key.Diameter).Select(x=>new[]{"Grade "+x.Key.Grade,"Ø"+x.Key.Diameter+" mm",EstimatorEngine.UnitMass(x.Key.Diameter).ToString("0.000",Inv),x.Sum(p=>p.Pieces*p.Length).ToString("0.00",Inv),x.Sum(p=>p.Kg).ToString("0.00",Inv)}).ToList();weights.Add(new[]{"TOTAL","","","",r.Pieces.Sum(p=>p.Kg).ToString("0.00",Inv)});
+  rep.Heading("4  WEIGHT SUMMARY").Table(new[]{"Grade","Bar size","Unit mass (kg/m)","Total length (m)","Weight (kg)"},weights,new float[]{18,18,20,22,22},row=>row[0]=="TOTAL"?(Color?)Color.FromArgb(232,236,240):null);
+  rep.Heading("5  CUTTING LIST - CUTTING PATTERN PER COMMERCIAL BAR").Table(new[]{"Pattern","Grade / size","Stock (m)","No. of bars","Cuts from each bar","For bar marks (total pieces)","Offcut (m)"},
+   r.Patterns.Select(p=>new[]{p.Id,"G"+p.Grade+" Ø"+p.Diameter,p.Stock.ToString("0.0#",Inv),p.Bars.ToString(Inv),CuttingPatterns.Describe(p),CuttingPatterns.MarksOf(p),p.Offcut.ToString("0.000",Inv)+(p.Offcut>=CuttingPatterns.ReusableOffcut?" (keep)":"")}),new float[]{8,9,7,7,22,36,11});
+  var order=CuttingPatterns.Summary(r.Patterns);
+  rep.Table(new[]{"Order","Bars to buy","Bought (m)","Cut (m)","Offcut %","Weight bought (kg)"},order.Select(o=>new[]{"G"+o.Grade+" Ø"+o.Diameter,string.Join(", ",o.BarsByStock.OrderByDescending(k=>k.Key).Select(k=>k.Value+" x "+k.Key.ToString("0.0#",Inv)+" m")),o.Bought.ToString("0.00",Inv),o.Used.ToString("0.00",Inv),o.WastePercent.ToString("0.0",Inv),o.Kg.ToString("0.00",Inv)}),new float[]{12,34,13,13,11,17});
+  rep.Paragraph("Patterns by best-fit decreasing: longest pieces first, each into the bar it fills best; each bar bought at the shortest commercial length that holds its cuts. Offcuts of "+CuttingPatterns.ReusableOffcut.ToString("0.0",Inv)+" m or more are marked (keep) for reuse. No saw kerf (sheared).",true);
+  int section=6;
+  if(s.SpecialMomentFrame&&r.Smf.Count>0){rep.Heading(section+"  SPECIAL MOMENT FRAME DETAILING CHECK (NSCP 2015 418.6 / 418.8)").Table(new[]{"Line","Span","Check","Clause","Required","Provided","Result"},r.Smf.Select(c=>new[]{c.Line,c.Span>0?c.Span.ToString(Inv):"-",c.Item+(c.Note!=""?" - "+c.Note:""),c.Clause,c.Required,c.Provided,c.Ok?"OK":"NOT OK"}),new float[]{6,6,30,13,17,19,9},row=>row[6]=="OK"?null:(Color?)Color.FromArgb(252,232,232));
+   rep.Paragraph("Moment strengths are compared through the steel areas of the same section. Not checked here (structural design): beam width against the column width (418.6.2.1(c)), joint shear (418.8.4), strong column - weak beam (418.7.3) and the shear design of the hoops (418.6.5).",true);section++;}
+  if(r.Splices.Count>0){rep.Heading(section+"  SPLICE ZONE CHECK").Table(new[]{"Line","Bar","Ø","Span","Lap from - to (m)","Allowed zone (m)","Lap (m)","Result","Note"},r.Splices.Select(c=>new[]{c.Line,c.Bar,c.Diameter.ToString(Inv),c.Span.ToString(Inv),c.From.ToString("0.000",Inv)+" - "+c.To.ToString("0.000",Inv),c.ZoneFrom.ToString("0.000",Inv)+" - "+c.ZoneTo.ToString("0.000",Inv),c.Lap.ToString("0.000",Inv),c.Status,c.Note}),new float[]{7,8,4,5,14,14,7,7,34},row=>row[7]=="OK"?null:(Color?)Color.FromArgb(252,232,232));section++;}
+  int open=r.Errors.Count+r.Splices.Count(c=>!c.Ok)+r.Smf.Count(c=>!c.Ok);
+  rep.Heading(section+"  REVIEW AND NOTES");rep.Paragraph(open==0?"No open review items.":open+" OPEN REVIEW ITEM(S) - resolve before issue for construction.",false,true);foreach(var e in r.Errors)rep.Paragraph("• "+e);
+  if(r.Pieces.Any(x=>x.Manual||x.Edited)||r.Deleted.Count>0)rep.Paragraph("• Edited on the cutting list: "+r.Pieces.Count(x=>x.Edited&&!x.Manual)+" bar(s) changed, "+r.Pieces.Count(x=>x.Manual)+" added, "+r.Deleted.Count+" removed"+(r.Deleted.Count>0?" ("+string.Join(", ",r.Deleted.Select(x=>x.BarMark))+")":"")+".");
+  foreach(var n in r.Notes)rep.Paragraph("• "+n);
+  rep.Paragraph("• Shape codes S0, L1, U2, H5, X3 are the codes of this schedule (sketch and A / B / C govern); they are not BS 8666 or CRSI shape numbers.",true);
+  rep.Signatures(Role("Prepared by",info.Prepared),Role("Checked by",info.Checked),Role("Approved by",info.Approved));
+  rep.Paragraph("Valid for construction only when signed by the responsible engineer. Generated by DTCE Tool Kit v"+Engine.Version+"; the program does not approve this schedule.",true);
+  return rep.Build();}
+ static string Role(string role,string name){return string.IsNullOrWhiteSpace(name)?role:role+": "+name.Trim();}
+}
+}
