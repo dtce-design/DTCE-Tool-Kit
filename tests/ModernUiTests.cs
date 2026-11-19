@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
@@ -26,7 +26,7 @@ class ModernUiTests {
    Check(dynamicInput.BackColor==ModernUi.Input&&dynamicInput.Text=="unchanged","New input was not themed safely");
    PowTheme.Apply(form);Check(grid.Rows.Count==1,"Reapplying theme changed rows");form.Close();
   }
-  using(var launcher=new LauncherForm()){
+  /* the workspaces open only after complete project information (19 November 2026) */ProjectInfoStore.Save("Test project","Test location","Test office","Test address","2026-11-19");  using(var launcher=new LauncherForm()){
    launcher.Show();Application.DoEvents();var home=Field<Panel>(launcher,"home");
    Check(home.Controls.Count==1,"Start must remain a dashboard with no extra tabs");
    launcher.ShowFormatters();var formatterPages=Field<TabControl>(launcher,"formatterTabs");Check(!formatterPages.TabPages.Cast<TabPage>().SelectMany(p=>p.Controls.OfType<Button>()).Any(),"Formatter tabs must open their tool without an extra Open button");Check(formatterPages.SelectedTab.Controls.OfType<Form>().Any(),"Selecting a Formatter tab loads its form");launcher.ShowStart();foreach(int width in new[]{900,1100,1500}){launcher.Width=width;Application.DoEvents();Check(home.ClientSize.Width>0,"Dashboard lost its layout");}

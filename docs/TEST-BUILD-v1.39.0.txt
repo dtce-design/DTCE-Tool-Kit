@@ -1,0 +1,20 @@
+DTCE Tool Kit v1.39.0 test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+
+Project Information first ("yung project information pala dapat laging nauuna, di pwede mag proceed if di
+nafill up. lagyan ng date prepared")
+- Project Information is the first workspace card. Formatters, Program of Works and Design Sheets open
+  only after the project title, location, implementing office, office address and the new Date Prepared
+  are filled in and saved; otherwise the app says what is missing and opens Project Information.
+- Date Prepared is saved with the project information and in the Program of Works file.
+
+Contract Duration - rainy days ("include if kailan ka naginsert ng data sa rainy days, if kailan prinepare
+yung pow yun lang ang isasama sa rainy days, di mapapalitan yung contract duration")
+- Every rainy-day value keeps the date it was entered (shown in the "Last entered" column and in the cell
+  tooltip). The built-in PAGASA Aparri values count as entered on the first day after their month.
+- A Program of Works uses only the values entered on or before its preparation date - the Date Prepared
+  of the Project Information - so records added later do not change its contract duration. Values
+  entered later are shown greyed out and are left out of the average and the report.
+
+Includes v1.38.0 and earlier local builds (see their notes).
