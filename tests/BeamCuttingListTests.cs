@@ -60,5 +60,12 @@ class BeamCuttingListTests {
    Check(r2.Smf.Any(c=>c.Clause=="418.8.2.3"&&c.Ok),"400 mm interior column = 20 x 20 mm bar");
    var r3=BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg,SpecialMomentFrame=false});Check(r3.Smf.Count==0,"no SMF checks for an ordinary frame");
    using(var doc=BbsReport.Build(r2,s2,new BbsInfo{Number="BBS-01",Revision="0",Status="For review"})){Check(doc.Sheets.Count>=3,"printed BBS has pages");Check(doc.A3&&doc.PageWidth>doc.PageHeight,"BBS prints on A3 landscape");Check(BeamDetailPaper.Cuts(r2.Geometry[0]).Count==9,"sections at the faces and midspan of 3 spans");using(var bmp=new System.Drawing.Bitmap((int)doc.PageWidth,(int)doc.PageHeight))using(var g=System.Drawing.Graphics.FromImage(bmp))for(int pg=0;pg<doc.Sheets.Count;pg++)doc.Draw(g,pg);}}
+  /* long lines: 15 spans are drawn in strips; identical sections once */
+  {var many=Enumerable.Range(0,15).Select(i=>new CutSpan{Line="B9",Mark="B-1",Ln=i%3==1?7:6,LeftSupport=.4,RightSupport=.4,Slab=.1}).ToList();var s4=new CutSettings{Config=cfg};var r4=BeamCutting.Build(many,find,s4);var lg=r4.Geometry[0];var strips=BeamDetailPaper.Strips(lg);
+   Check(strips.Count>=4&&strips[0][0]==0&&strips[strips.Count-1][1]==14&&strips.Zip(strips.Skip(1),(a,b)=>b[0]==a[1]+1).All(x=>x),"15 spans are drawn in consecutive strips");
+   Check(strips.All(st=>lg.SupportStart[st[1]+1]+lg.SupportWidth[st[1]+1]-lg.SupportStart[st[0]]<=21.5+1e-9||st[0]==st[1]),"each strip is at most about 21 m");
+   var groups=BeamDetailPaper.Groups(r4,lg);Check(groups.Count<BeamDetailPaper.Cuts(lg).Count/3&&groups.Sum(x=>x.Same.Count)==45,"identical sections are drawn once and cover all 45 cuts");
+   Check(BeamDetailPaper.Compact(new List<string>{"1A","2A","3A","5A"})=="1A to 3A, 5A","typical list is compact");
+   using(var doc=BbsReport.Build(r4,s4,new BbsInfo()))Check(doc.Sheets.Count>3,"long line prints");}
   Console.WriteLine("PASS: "+checks+" beam cutting list checks");}
 }
