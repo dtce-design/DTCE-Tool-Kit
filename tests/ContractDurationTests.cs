@@ -26,5 +26,12 @@ class ContractDurationTests {
   /* a holiday on a Sunday is not counted twice */
   var sunday=ContractDurationCalc.Months(new DateTime(2027,6,1),new DateTime(2027,6,30),new HashSet<DateTime>{new DateTime(2027,6,13)},new int[12]);Check(sunday[0].Sundays==4&&sunday[0].Holidays==0,"holiday on a Sunday");
   int[] u2;Check(ContractDurationCalc.Averages(ContractDurationCalc.AparriRecords(),out u2).SequenceEqual(avg),"built-in Aparri records give the sheet averages");
+  /* a project without records starts from the last records entered on this computer, else the Aparri records */
+  ContractDurationCalc.RainStorePath=System.IO.Path.Combine(System.IO.Path.GetTempPath(),"dtce-rain-"+Guid.NewGuid().ToString("N")+".txt");
+  Check(ContractDurationCalc.LastRecords().Count==ContractDurationCalc.AparriRecords().Count,"no saved records: the Aparri records");
+  ContractDurationCalc.SaveRecords(new Dictionary<int,int?[]>{{2026,new int?[]{1,2,3,4,5,6,7,8,9,10,11,12}}});var last=ContractDurationCalc.LastRecords();
+  Check(last.Count==1&&last[2026][11]==12,"the last records entered are used");System.IO.File.Delete(ContractDurationCalc.RainStorePath);
+  /* moving average: a month without the newest year uses the five years before it */
+  Check(avg[8]==7&&used[8]==5,"September 2026 not recorded yet: 2021-2025 are averaged");
   Console.WriteLine("PASS: "+checks+" contract duration checks");}
 }

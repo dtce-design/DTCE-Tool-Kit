@@ -47,6 +47,11 @@ static class ContractDurationCalc {
  internal static Dictionary<int,int?[]> AparriRecords(){return new Dictionary<int,int?[]>{
   {2020,new int?[]{null,null,null,null,null,null,null,null,null,null,9,13}},{2021,new int?[]{8,3,2,0,0,7,6,4,4,6,5,5}},{2022,new int?[]{3,2,1,1,6,4,5,12,5,15,4,16}},
   {2023,new int?[]{5,7,0,1,3,3,9,5,5,6,8,7}},{2024,new int?[]{5,0,0,0,2,2,6,5,11,9,13,8}},{2025,new int?[]{10,6,2,3,4,0,11,7,11,8,14,10}},{2026,new int?[]{9,1,0,1,0,2,9,8,null,null,null,null}}};}
+ /* the last rainfall records entered on this computer (owner, 19 November 2026: "kapag wala pang bagong data ng rainy
+    days, yung luma pa din") - a project without records uses them, else the built-in PAGASA Aparri records */
+ internal static string RainStorePath=System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"BeamTools","RainyDays.txt");
+ internal static Dictionary<int,int?[]> LastRecords(){try{if(System.IO.File.Exists(RainStorePath)){var result=new Dictionary<int,int?[]>();foreach(var line in System.IO.File.ReadAllLines(RainStorePath)){var parts=line.Split('\t');int year;if(parts.Length<2||!int.TryParse(parts[0],out year))continue;var cells=parts[1].Split(',');var values=new int?[12];for(int m=0;m<12&&m<cells.Length;m++){int v;if(int.TryParse(cells[m],out v))values[m]=v;}result[year]=values;}if(result.Count>0)return result;}}catch(Exception){}return AparriRecords();}
+ internal static void SaveRecords(IEnumerable<KeyValuePair<int,int?[]>> records){try{var list=records.ToList();if(list.Count==0)return;System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(RainStorePath));System.IO.File.WriteAllLines(RainStorePath,list.OrderBy(r=>r.Key).Select(r=>r.Key.ToString(CultureInfo.InvariantCulture)+"\t"+string.Join(",",r.Value.Select(v=>v.HasValue?v.Value.ToString(CultureInfo.InvariantCulture):""))));}catch(Exception){}}
  internal static List<DurationMonth> Months(DateTime start,DateTime end,ICollection<DateTime> holidays,int[] rainy){var result=new List<DurationMonth>();if(end<start)return result;
   for(var m=new DateTime(start.Year,start.Month,1);m<=end;m=m.AddMonths(1)){var from=m<start?start:m;var last=m.AddMonths(1).AddDays(-1);var to=last>end?end:last;var row=new DurationMonth{Year=m.Year,Month=m.Month,TotalDays=(to-from).Days+1};
    for(var d=from;d<=to;d=d.AddDays(1)){if(d.DayOfWeek==DayOfWeek.Sunday)row.Sundays++;else if(holidays.Contains(d.Date))row.Holidays++;}
@@ -90,13 +95,13 @@ partial class ProgramOfWorksForm {
   durationRain.Columns.Add("Year","Year");foreach(var m in CultureInfo.InvariantCulture.DateTimeFormat.AbbreviatedMonthNames.Take(12))durationRain.Columns.Add(m,m);GridAppearance.Apply(durationRain);
   durationRainNote=new Label{Dock=DockStyle.Top,Height=44,Padding=new Padding(8,4,8,0),ForeColor=PowTheme.Muted};
   var rainBar=new FlowLayoutPanel{Dock=DockStyle.Top,Height=40,Padding=new Padding(6,4,6,0)};var aparri=new Button{Text="Use PAGASA Aparri records (Nov 2020 - Aug 2026)",AutoSize=true};
-  aparri.Click+=(s,e)=>{foreach(var p in ContractDurationCalc.AparriRecords())durationRainRecords[p.Key]=(int?[])p.Value.Clone();ShowRainGrid();DurationChanged();};rainBar.Controls.Add(aparri);
+  aparri.Click+=(s,e)=>{foreach(var p in ContractDurationCalc.AparriRecords())durationRainRecords[p.Key]=(int?[])p.Value.Clone();ContractDurationCalc.SaveRecords(durationRainRecords);ShowRainGrid();DurationChanged();};rainBar.Controls.Add(aparri);
   var rainPage=new TabPage("Rainy days");rainPage.Controls.Add(durationRain);rainPage.Controls.Add(durationRainNote);rainPage.Controls.Add(rainBar);views.TabPages.Add(rainPage);
   page.Controls.Add(views);page.Controls.Add(top);tabs.TabPages.Add(page);
   durationStart.ValueChanged+=(s,e)=>{if(durationFilling)return;durationStartDate=durationStart.Value.Date;if(durationHolidayList.Count>0&&durationHolidayList.Max(h=>h.Date.Year)<durationStartDate.Year+1)FillStandardHolidays(false);DurationChanged();};
   durationWorkingDays.ValueChanged+=(s,e)=>{if(durationFilling)return;durationWorkingOverride=(int)durationWorkingDays.Value;DurationChanged();};
   durationHolidays.CellEndEdit+=(s,e)=>{if(!durationFilling){ReadHolidayGrid();DurationChanged();}};durationHolidays.UserDeletedRow+=(s,e)=>{if(!durationFilling){ReadHolidayGrid();DurationChanged();}};
-  durationRain.CellEndEdit+=(s,e)=>{if(!durationFilling){ReadRainGrid();DurationChanged();}};durationRain.UserDeletedRow+=(s,e)=>{if(!durationFilling){ReadRainGrid();DurationChanged();}};
+  durationRain.CellEndEdit+=(s,e)=>{if(!durationFilling){ReadRainGrid();ContractDurationCalc.SaveRecords(durationRainRecords);DurationChanged();}};durationRain.UserDeletedRow+=(s,e)=>{if(!durationFilling){ReadRainGrid();DurationChanged();}};
   tabs.SelectedIndexChanged+=(s,e)=>{if(tabs.SelectedTab==page)RefreshContractDuration();};}
  void DurationChanged(){dashboardDirty=reportPreviewDirty=true;RefreshContractDuration();}
  int DurationWorkingDays(){if(durationWorkingOverride>0)return durationWorkingOverride;var rows=ScheduleRows();return rows.Where(r=>r.Days>0).Select(r=>r.Finish).DefaultIfEmpty(0).Max();}
@@ -108,11 +113,11 @@ partial class ProgramOfWorksForm {
  void ShowRainGrid(){if(durationRain==null)return;durationFilling=true;try{durationRain.Rows.Clear();foreach(var p in durationRainRecords){var cells=new object[13];cells[0]=p.Key;for(int m=0;m<12;m++)cells[m+1]=p.Value[m].HasValue?(object)p.Value[m].Value:"";durationRain.Rows.Add(cells);}}finally{durationFilling=false;}}
  void ReadRainGrid(){durationRainRecords.Clear();foreach(DataGridViewRow r in durationRain.Rows){if(r.IsNewRow)continue;int year;if(!int.TryParse(Convert.ToString(r.Cells[0].Value).Trim(),out year)||year<1900||year>2200){r.ErrorText=Convert.ToString(r.Cells[0].Value).Trim()==""?"":"Enter the year";continue;}r.ErrorText="";var values=new int?[12];
    for(int m=0;m<12;m++){int v;string t=Convert.ToString(r.Cells[m+1].Value).Trim();if(t!=""&&int.TryParse(t,out v)&&v>=0&&v<=31)values[m]=v;}durationRainRecords[year]=values;}}
- void RefreshContractDuration(){if(durationMonths==null||durationMonths.IsDisposed)return;
+ void RefreshContractDuration(){if(durationMonths==null||durationMonths.IsDisposed)return;if(durationRainRecords.Count==0){foreach(var p in ContractDurationCalc.LastRecords())durationRainRecords[p.Key]=(int?[])p.Value.Clone();ShowRainGrid();}
   if(durationHolidayList.Count==0){foreach(var h in ContractDurationCalc.Standard(durationStartDate.Year,durationStartDate.Year+3))durationHolidayList.Add(h);ShowHolidayGrid();}
   if(durationHolidays.Rows.Count<=1&&durationHolidayList.Count>0)ShowHolidayGrid();if(durationRain.Rows.Count<=1&&durationRainRecords.Count>0)ShowRainGrid();
   int[] used;var rainy=ContractDurationCalc.Averages(durationRainRecords,out used);
-  durationRainNote.Text="Days with rainfall above 7.5 mm per month, one row per year (e.g. PAGASA station records). Average used: "+string.Join("  ",CultureInfo.InvariantCulture.DateTimeFormat.AbbreviatedMonthNames.Take(12).Select((m,i)=>m+" "+rainy[i]))+(used.Any(u=>u>0&&u<5)?"  (fewer than 5 years for some months)":"")+". The last five recorded years of each month are averaged.";
+  durationRainNote.Text="Days with rainfall above 7.5 mm per month, one row per year (e.g. PAGASA station records); a new project starts from the last records entered. Moving average of the last five recorded years of each month: "+string.Join("  ",CultureInfo.InvariantCulture.DateTimeFormat.AbbreviatedMonthNames.Take(12).Select((m,i)=>m+" "+rainy[i]))+(used.Any(u=>u>0&&u<5)?"  (fewer than 5 years for some months)":"")+".";
   durationFilling=true;try{durationMonths.Rows.Clear();int working=DurationWorkingDays();if(durationWorkingDays.Value!=durationWorkingOverride)durationWorkingDays.Value=durationWorkingOverride;
    DurationResult result;try{result=ContractDurationCalc.Compute(durationStartDate,working,durationHolidayList.Select(h=>h.Date),rainy);}catch(Exception ex){durationSummary.Text=ex.Message;return;}
    foreach(var m in result.Months)durationMonths.Rows.Add(m.Year,ContractDurationCalc.MonthNames[m.Month-1],m.Working,m.Sundays,m.Holidays,m.Rainy,m.RevisedRainy,m.TotalDays,m.Weeks);

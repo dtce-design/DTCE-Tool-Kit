@@ -1,0 +1,14 @@
+DTCE Tool Kit v1.38.0 test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+
+Contract Duration - rainy days ("kapag wala pang bagong data ng rainy days, yung luma pa din ang gagawin";
+"yung mga data sa rainy days na inupload ilagay na sa app")
+- The rainfall records of the owner's sheet (PAGASA Aparri, Nov 2020 - Aug 2026) are built into the app
+  and a new project starts with them, so rainy days are never zero by default.
+- Records entered or changed are remembered on this computer; the next new project starts from the
+  last records entered.
+- Moving average: each month averages its last five recorded years, so a month without the newest
+  year's data keeps using the earlier years (e.g. September 2026 not recorded yet: 2021-2025).
+
+Includes v1.37.0 and earlier local builds (see their notes).
