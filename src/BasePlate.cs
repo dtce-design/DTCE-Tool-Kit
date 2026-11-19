@@ -6,7 +6,7 @@ namespace BeamScheduleFormatter {
 class BasePlateInput {
  public string ColumnType="I / W section";public double ColumnD=300,ColumnBf=200,ColumnTf=12;
  public double B=400,N=450,Tp=25,Fy=248,Fc=21,PedestalB=600,PedestalN=650,PedestalDepth=600;
- public int BoltDia=24,BoltsPerSide=2;public double EdgeN=50,Gauge=250,Hef=400,Futa=400,Fya=250,HookEh=100;public bool Headed=true,Cracked=true,Grout=true,Friction=false;
+ public double BoltDia=24;public int BoltsPerSide=2;public string BoltName="";public double ThreadLength;public double EdgeN=50,Gauge=250,Hef=400,Futa=400,Fya=250,HookEh=100;public bool Headed=true,Cracked=true,Grout=true,Friction=false;
  public string Vertical="Y",MomentAxis="Mz";
 }
 class BasePlateRow {public SupportReaction Reaction;public double Pu,Vu,Mu,E,Ecrit,Y,Tu,Fp,TpBearing,TpTension;public bool LargeMoment,Uplift;}
@@ -26,7 +26,7 @@ static class BasePlate {
   double f=i.N/2-i.EdgeN;/* plate centre to the tension anchors */int nt=i.BoltsPerSide,nAll=2*i.BoltsPerSide;double ase=TrussSupport.StressArea(i.BoltDia),da=i.BoltDia,futa=Math.Min(i.Futa,Math.Min(1.9*i.Fya,860));double sq=Math.Sqrt(i.Fc);
   double across=nt>1?i.Gauge:0;/* outer anchors across B */double cy=(i.PedestalB-across)/2,cx=(i.PedestalN-2*f)/2;if(cy<=0||cx<=0)throw new Exception("The anchors do not fit on the pedestal.");
   notes.Add("Plate "+F(i.B,"0")+" x "+F(i.N,"0")+" x "+F(i.Tp,"0")+" mm on a "+F(i.PedestalB,"0")+" x "+F(i.PedestalN,"0")+" mm pedestal: √(A2/A1) = "+F(ratio,"0.00")+", fp,max = φc 0.85 fc' √(A2/A1) = "+F(fpMax,"0.00")+" MPa, qmax = "+F(qMax/1000*1000,"0")+" N/mm.");
-  notes.Add("Cantilevers: m = "+F(m)+" mm, n = "+F(n)+" mm"+(lp>0?", λn' (λ = 1, conservative) = "+F(lp)+" mm":"")+"; anchors "+nAll+" x M"+i.BoltDia+", "+nt+" per side at "+F(i.EdgeN,"0")+" mm from the plate ends (f = "+F(f)+" mm), gauge "+F(across,"0")+" mm; pedestal edges cx = "+F(cx)+" mm, cy = "+F(cy)+" mm.");
+  notes.Add("Cantilevers: m = "+F(m)+" mm, n = "+F(n)+" mm"+(lp>0?", λn' (λ = 1, conservative) = "+F(lp)+" mm":"")+"; anchors "+nAll+" x "+(i.BoltName!=""?i.BoltName:AnchorBolts.Short(i.BoltDia))+", "+nt+" per side at "+F(i.EdgeN,"0")+" mm from the plate ends (f = "+F(f)+" mm), gauge "+F(across,"0")+" mm; pedestal edges cx = "+F(cx)+" mm, cy = "+F(cy)+" mm.");
   /* anchor capacities */
   double h15=1.5*i.Hef;double Nb=10*sq*Math.Pow(i.Hef,1.5)/1000;if(i.Headed&&i.Hef>=280&&i.Hef<=635)Nb=Math.Min(Nb,3.9*sq*Math.Pow(i.Hef,5.0/3)/1000);double psiC=i.Cracked?1:1.25;
   Func<double,double,double,double> breakout=(ancX,ancY,count)=>{double ANco=9*i.Hef*i.Hef;double ca=Math.Min(cx,cy);double psiEd=ca>=h15?1:.7+.3*ca/h15;return .70*Math.Min(ancX*ancY/ANco,count)*psiEd*psiC*Nb;};
@@ -48,7 +48,8 @@ static class BasePlate {
    double friction=i.Friction&&d.Pu>0?.75*.55*d.Pu/1000:0;double vu=Math.Max(0,d.Vu/1000-friction);keep("Anchor steel - shear","417.5.1",rx,vu,phiVsa,"kN","φ 0.65 n 0.6 Ase futa"+(i.Grout?" x 0.8 (grout)":"")+(friction>0?"; friction "+F(friction,"0.0")+" kN deducted":""));keep("Concrete breakout - shear","417.5.2",rx,vu,phiVcbg,"kN","toward the pedestal edge, ca1 = "+F(ca1)+" mm");keep("Concrete pryout","417.5.3",rx,vu,phiVcpg,"kN","φ 0.70 kcp Ncbg");
    double tPer=d.Tu>0&&!double.IsInfinity(d.Tu)?(d.Uplift?d.Tu/nAll:d.Tu/nt)/1000:0;double nr=tPer==0?0:Math.Max(tPer/phiNsa1,Math.Max(tPer/phiNp1,(d.Uplift?d.Tu:d.Tu)/1000/(d.Uplift?phiNcbgAll:phiNcbgRow)));double vr=vu/Math.Min(phiVsa,Math.Min(phiVcbg,phiVcpg));double inter=nr<=.2?vr:vr<=.2?nr:(nr+vr)/1.2;keep("Tension-shear interaction","417.6",rx,inter,1,"ratio","governing tension and shear ratios");
    if(rows!=null)rows.Add(d);}
-  string[] order={"Bearing / plate size (large moment)","Concrete bearing","Plate thickness - bearing","Plate thickness - tension","Anchor steel - tension","Concrete breakout - tension","Anchor pullout","Anchor steel - shear","Concrete breakout - shear","Concrete pryout","Tension-shear interaction"};
+  if(i.ThreadLength>0){double need=AnchorBolts.ThreadNeeded(i.BoltDia,i.Tp);keep("Anchor thread length","detail",reactions[0],need,i.ThreadLength,"mm","plate "+F(i.Tp,"0")+" + washer + nut + 2 threads");}
+  string[] order={"Bearing / plate size (large moment)","Concrete bearing","Plate thickness - bearing","Plate thickness - tension","Anchor steel - tension","Concrete breakout - tension","Anchor pullout","Anchor steel - shear","Concrete breakout - shear","Concrete pryout","Tension-shear interaction","Anchor thread length"};
   return order.Where(best.ContainsKey).Select(k=>best[k]).ToList();}
 }
 }

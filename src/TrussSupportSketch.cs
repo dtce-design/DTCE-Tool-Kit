@@ -44,7 +44,7 @@ class TrussSupportSketch:Control {
    float left=Math.Min(X(-i.PlateN/2),X(-i.SupportN/2));Dim(g,font,muted,dim,new PointF(left-20,Y(-i.PlateB/2)),new PointF(left-20,Y(i.PlateB/2)),i.PlateB,"PlateB",true);
    double edge2=(i.PlateB-i.BoltS2)/2;Dim(g,font,muted,dim,new PointF(left-62,Y(-i.PlateB/2)),new PointF(left-62,Y(-i.BoltS2/2)),edge2,null,true);Dim(g,font,muted,dim,new PointF(left-62,Y(-i.BoltS2/2)),new PointF(left-62,Y(i.BoltS2/2)),i.BoltS2,"BoltS2",true);
    if(i.BoltColumns>1)Dim(g,font,muted,dim,new PointF(X(-run/2),Y(Math.Max(i.PlateB,i.SupportB)/2)+34),new PointF(X(-run/2+i.BoltS1),Y(Math.Max(i.PlateB,i.SupportB)/2)+34),i.BoltS1,"BoltS1",false,"pitch ");
-   g.DrawString(F(i.PlateN)+" x "+F(i.PlateB)+" x "+F(i.PlateT)+" mm plate, "+(2*i.BoltColumns)+" - "+i.BoltDia+" mm "+(i.Headed?"headed":"L")+" anchors ("+i.BoltColumns+" each side)",font,ink,12,Height-22);
+   g.DrawString(F(i.PlateN)+" x "+F(i.PlateB)+" x "+F(i.PlateT)+" mm plate, "+(2*i.BoltColumns)+" - "+AnchorBolts.Short(i.BoltDia)+" "+(i.Headed?"headed":"L")+" anchors ("+i.BoltColumns+" each side)",font,ink,12,Height-22);
    planScale=k;planCenter=new PointF(cx,cy);
    /* elevation: along the truss */
    float ke=k;float ex=W1+W2/2+10,ey=60+(float)(gussetH*ke)+20;

@@ -10,7 +10,7 @@ namespace BeamScheduleFormatter {
 class SupportReaction {public string Node="",Case="";public double Fx,Fy,Fz,Mx,My,Mz;}
 class TrussSupportInput {
  public double PlateB,PlateN,PlateT,PlateFy=248,Fc=21,SupportB,SupportN,SupportDepth=400;
- public int BoltDia=20,BoltColumns=1;public double BoltS1=100,BoltS2=150,Hef=300,Futa=400,Fya=250,HookEh=80;public bool Headed=true,Cracked=true,GroutPad=true;
+ public double BoltDia=20;public int BoltColumns=1;public string BoltName="";public double ThreadLength;public double BoltS1=100,BoltS2=150,Hef=300,Futa=400,Fya=250,HookEh=80;public bool Headed=true,Cracked=true,GroutPad=true;
  public double GussetT=10,GussetL=200,GussetFy=248,GussetFu=400,PlateWeld=6,Fexx=482,Lc=150;public bool BearingCompression=true;
  public SteelProfile Angle;public int Angles=2;public double MemberForce=double.NaN,HeelWeld=100,ToeWeld=60,AngleWeld=6,AngleFy=248,AngleFu=400;
  public string Vertical="Y";public List<JointMember> Others=new List<JointMember>();
@@ -25,11 +25,8 @@ class JointMember {public string Name="Member";public int Angles=2;public SteelP
 class SupportCheck {public string Name,Clause,Node="",Case="",Note="";public double Demand,Capacity,Ratio;public string Unit="kN";public bool Ok{get{return Ratio<=1+1e-9;}}}
 static class TrussSupport {
  static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
- internal static readonly int[] Diameters={16,20,24,27,30,36};
- static readonly Dictionary<int,double> Ase=new Dictionary<int,double>{{16,157},{20,245},{24,353},{27,459},{30,561},{36,817}};
- static readonly Dictionary<int,double> NutFlats=new Dictionary<int,double>{{16,27},{20,34},{24,41},{27,46},{30,50},{36,60}};
- internal static double StressArea(int d){double a;if(!Ase.TryGetValue(d,out a))throw new Exception("Use an M16 to M36 anchor rod.");return a;}
- internal static double BearingArea(int d){double f=NutFlats[d];return Math.Sqrt(3)/2*f*f-Math.PI*d*d/4;}
+ internal static double StressArea(double d){return AnchorBolts.StressArea(d);}
+ internal static double BearingArea(double d){return AnchorBolts.BearingArea(d);}
  /* STAAD Support Reactions table: Node, L/C, Fx, Fy, Fz [, Mx, My, Mz]; the node may be blank on the rows that follow it */
  internal static List<SupportReaction> Reactions(string text,out string unitNote){var rows=StaadDisplacements.Rows(text);unitNote="kN (assumed)";int header=rows.FindIndex(r=>r.Any(c=>Has(c,"FX"))&&r.Any(c=>Has(c,"FY")));double factor=1;
   int node=0,lc=1,fx=2,fy=3,fz=4,mx=5,my=6,mz=7;int start=0;
@@ -49,7 +46,7 @@ static class TrussSupport {
   if(reactions==null||reactions.Count==0)throw new Exception("Enter the STAAD support reactions.");
   Func<double,bool> pos=v=>v>0&&!double.IsNaN(v)&&!double.IsInfinity(v);foreach(var v in new[]{i.PlateB,i.PlateN,i.PlateT,i.PlateFy,i.Fc,i.SupportB,i.SupportN,i.SupportDepth,i.BoltS2,i.Hef,i.Futa,i.Fya,i.GussetT,i.GussetL,i.GussetFy,i.GussetFu,i.PlateWeld,i.Fexx,i.AngleWeld,i.AngleFy,i.AngleFu})if(!pos(v))throw new Exception("Every dimension and strength must be greater than zero.");
   if(i.BoltColumns<1||i.BoltColumns>8)throw new Exception("Use 1 to 8 bolts on each side of the gusset.");if(i.BoltColumns>1&&!pos(i.BoltS1))throw new Exception("Enter the bolt spacing along the plate.");if(i.Angles!=1&&i.Angles!=2)throw new Exception("Choose 1L or 2L.");
-  if(i.PlateB>i.SupportB+1e-9||i.PlateN>i.SupportN+1e-9)throw new Exception("The plate is larger than the top of the RC support.");if(i.ChordOnPlate){if(i.Chord==null||i.Chord.Kind!="Angle bar")throw new Exception("Choose the bottom chord angle section.");if(i.ChordAngles!=1&&i.ChordAngles!=2)throw new Exception("Choose 1L or 2L for the bottom chord.");double clear=i.BoltS2/2-i.Footprint/2-NutFlats[i.BoltDia]/2;if(clear<5)throw new Exception("The anchors are not clear of the chord: the "+i.BoltDia+" mm nuts reach the angle legs. Use an anchor gauge of at least "+F(i.Footprint+NutFlats[i.BoltDia]+10,"0")+" mm.");if(i.Footprint>=i.PlateB)throw new Exception("The chord is wider than the plate.");}
+  if(i.PlateB>i.SupportB+1e-9||i.PlateN>i.SupportN+1e-9)throw new Exception("The plate is larger than the top of the RC support.");if(i.ChordOnPlate){if(i.Chord==null||i.Chord.Kind!="Angle bar")throw new Exception("Choose the bottom chord angle section.");if(i.ChordAngles!=1&&i.ChordAngles!=2)throw new Exception("Choose 1L or 2L for the bottom chord.");double clear=i.BoltS2/2-i.Footprint/2-AnchorBolts.NutFlats(i.BoltDia)/2;if(clear<5)throw new Exception("The anchors are not clear of the chord: the "+i.BoltDia+" mm nuts reach the angle legs. Use an anchor gauge of at least "+F(i.Footprint+AnchorBolts.NutFlats(i.BoltDia)+10,"0")+" mm.");if(i.Footprint>=i.PlateB)throw new Exception("The chord is wider than the plate.");}
   else if(i.BoltS2<=i.GussetT+2*i.PlateWeld)throw new Exception("The bolt gauge across the plate must clear the gusset and its welds.");
   double futa=Math.Min(i.Futa,Math.Min(1.9*i.Fya,860));if(futa<i.Futa)notes.Add("futa limited to min(1.9 fya, 860 MPa) = "+F(futa)+" MPa (417.4.1.2).");
   int n=2*i.BoltColumns;double ase=StressArea(i.BoltDia),da=i.BoltDia,fc=i.Fc,sq=Math.Sqrt(fc),run=(i.BoltColumns-1)*i.BoltS1;
@@ -65,7 +62,7 @@ static class TrussSupport {
   double phiVsa=.65*.6*ase*futa*(i.GroutPad?.8:1)/1000*n;double ca1=camin,ca2=Math.Max(cB,cN),across=ca1==cB?run:i.BoltS2;double le=Math.Min(i.Hef,8*da);
   double Vb=Math.Min(.6*Math.Pow(le/da,.2)*Math.Sqrt(da)*sq*Math.Pow(ca1,1.5),3.7*sq*Math.Pow(ca1,1.5))/1000;double AVc=(Math.Min(ca2,1.5*ca1)*2+across)*Math.Min(1.5*ca1,i.SupportDepth),AVco=4.5*ca1*ca1;double psiEdV=ca2>=1.5*ca1?1:.7+.3*ca2/(1.5*ca1),psiCV=i.Cracked?1:1.4,psiH=Math.Max(1,Math.Sqrt(1.5*ca1/i.SupportDepth));
   double front=ca1==cB?i.BoltColumns:2;double phiVcbg=.70*Math.Min(AVc/AVco,front)*psiEdV*psiCV*psiH*Vb;double phiVcpg=.70*(i.Hef<65?1:2)*phiNcbg/.70;
-  notes.Add("Anchors: "+n+" x M"+i.BoltDia+" ("+(i.Headed?"headed":"hooked J/L")+"), Ase = "+F(ase)+" mm2, hef = "+F(i.Hef)+" mm, gauge "+F(i.BoltS2)+" mm"+(i.BoltColumns>1?", pitch "+F(i.BoltS1)+" mm":"")+"; edges cB = "+F(cB)+" mm, cN = "+F(cN)+" mm; "+(i.Cracked?"cracked":"uncracked")+" concrete, condition B (no supplementary reinforcement).");
+  notes.Add("Anchors: "+n+" x "+(i.BoltName!=""?i.BoltName:AnchorBolts.Short(i.BoltDia))+" ("+(i.Headed?"headed":"hooked J/L")+"), Ase = "+F(ase)+" mm2, hef = "+F(i.Hef)+" mm, gauge "+F(i.BoltS2)+" mm"+(i.BoltColumns>1?", pitch "+F(i.BoltS1)+" mm":"")+"; edges cB = "+F(cB)+" mm, cN = "+F(cN)+" mm; "+(i.Cracked?"cracked":"uncracked")+" concrete, condition B (no supplementary reinforcement).");
   notes.Add("Shear breakout is taken toward the nearest edge (ca1 = "+F(ca1)+" mm) whatever the reaction direction - conservative. Side-face blowout applies only to headed anchors with ca1 < 0.4 hef: "+(i.Headed&&ca1<.4*i.Hef?"CHECK SEPARATELY":"not governing")+".");
   /* bearing plate */
   double A1=i.PlateB*i.PlateN,k=Math.Min(2,Math.Min(i.SupportB/i.PlateB,i.SupportN/i.PlateN));double phiPp=.65*.85*fc*A1*k/1000;
@@ -93,10 +90,13 @@ static class TrussSupport {
    double P=double.IsNaN(i.MemberForce)?Math.Sqrt(v*v+h*h):i.MemberForce;bool tension=!double.IsNaN(i.MemberForce)?i.MemberForce>=0:tu>0;double pa=Math.Abs(P);
    keep("Angle welds (heel + toe)","AISC J2.4",rx,pa,weldCap,"kN","φ 0.6 FEXX 0.707 w (Lh + Lt) x "+i.Angles);keep("Angle base metal at welds","AISC J4.2",rx,pa,baseAngle,"kN","φ 0.6 Fu t (Lh + Lt) x "+i.Angles);keep("Gusset base metal at welds","AISC J4.2",rx,pa,baseGusset,"kN","φ 0.6 Fu tg (Lh + Lt)");
    if(tension){keep("Angle tension yielding","AISC D2",rx,pa,phiTy,"kN","φ 0.9 Fy Ag");keep("Angle tension rupture","AISC D2/D3",rx,pa,phiTr,"kN","φ 0.75 Fu U Ag");keep("Gusset Whitmore yielding","AISC J4.1",rx,pa,phiWy,"kN","φ 0.9 Fy Lw tg");}else keep("Gusset Whitmore buckling","AISC J4.4",rx,pa,phiWc,"kN","φ 0.9 Fcr Lw tg");}
+  /* the thread must take the plate, washer, nut and two threads (Powersteel size D) */
+  if(i.ThreadLength>0){double need=AnchorBolts.ThreadNeeded(i.BoltDia,i.PlateT);keep("Anchor thread length","detail",reactions[0],need,i.ThreadLength,"mm","plate "+F(i.PlateT,"0")+" + washer + nut + 2 threads");}
+  if(i.Hef<4*i.BoltDia)notes.Add("hef "+F(i.Hef,"0")+" mm is short for a "+AnchorBolts.Short(i.BoltDia)+" anchor; use a longer bolt.");
   /* balanced welds: what each weld needs */
   double paMax=reactions.Max(rx=>double.IsNaN(i.MemberForce)?Math.Sqrt(Math.Pow(Vertical(rx,i.Vertical),2)+Math.Pow(Horizontal(rx,i.Vertical),2)):Math.Abs(i.MemberForce))/i.Angles;notes.Add("Balanced welds for "+F(paMax)+" kN per angle: heel "+F(paMax*(legH-yHeel)/legH/phiRwA,"0")+" mm, toe "+F(paMax*yHeel/legH/phiRwA,"0")+" mm (provided "+F(i.HeelWeld,"0")+" / "+F(i.ToeWeld,"0")+" mm).");
   if(double.IsNaN(i.MemberForce))notes.Add("No member force entered: the angle and gusset checks use the support reaction resultant (√(V² + H²)) of each row, taken as tension when the row is uplift.");
-  string[] order={"Concrete bearing","Plate thickness - bearing","Plate thickness - uplift","Anchor steel - tension","Concrete breakout - tension","Anchor pullout","Anchor steel - shear","Concrete breakout - shear","Concrete pryout","Tension-shear interaction","Gusset-to-plate welds","Gusset shear yielding","Chord-to-plate welds","Chord leg bending - uplift","Angle welds (heel + toe)","Angle base metal at welds","Gusset base metal at welds","Angle tension yielding","Angle tension rupture","Gusset Whitmore yielding","Gusset Whitmore buckling"};
+  string[] order={"Concrete bearing","Plate thickness - bearing","Plate thickness - uplift","Anchor steel - tension","Concrete breakout - tension","Anchor pullout","Anchor steel - shear","Concrete breakout - shear","Concrete pryout","Tension-shear interaction","Gusset-to-plate welds","Gusset shear yielding","Chord-to-plate welds","Chord leg bending - uplift","Anchor thread length","Angle welds (heel + toe)","Angle base metal at welds","Gusset base metal at welds","Angle tension yielding","Angle tension rupture","Gusset Whitmore yielding","Gusset Whitmore buckling"};
   var list=order.Where(best.ContainsKey).Select(k2=>best[k2]).ToList();
   /* the other members at the joint, each with its own STAAD force (+ tension, - compression) */
   foreach(var m in i.Others??new List<JointMember>()){if(m==null||m.Angle==null)continue;if(m.Angles!=1&&m.Angles!=2)throw new Exception(m.Name+": choose 1L or 2L.");if(!(m.HeelWeld>0)||m.ToeWeld<0||!(m.Weld>0))throw new Exception(m.Name+": enter the weld lengths and size.");
