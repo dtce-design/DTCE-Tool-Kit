@@ -59,6 +59,10 @@ sealed class ScheduleChart:Control {
  /* owner (19 November 2026, "ifix din yung header ng barchart"): the column headings stay at the top while the rows scroll */
  int HeaderTop{get{var host=Parent as ScrollableControl;return host==null?0:Math.Max(0,-host.AutoScrollPosition.Y);}}
  protected override void OnPaint(PaintEventArgs e){e.Graphics.Clear(BackColor);int last=Math.Max(FirstDay,Math.Min(Math.Max(1,Total),FirstDay+VisibleDays-1));using(var bold=new Font(Font,FontStyle.Bold)){Draw(e.Graphics,Lines(Rows),0,0,ScreenWidths,ScreenDay,ScreenRow,ScreenHead,FirstDay,last,Font,bold,ScheduleManpower.Daily(Rows));
+   /* the manpower row stays at the bottom of the view while the rows scroll ("ifix mo din yung manpower sa baba") */
+   var host=Parent as ScrollableControl;if(host!=null){var lines=Lines(Rows);float head=HeaderHeight(e.Graphics,Font,ScreenDay,last,ScreenHead);float body=head+Heights(e.Graphics,lines,Font,ScreenWidths[1],ScreenRow).Sum();int viewBottom=HeaderTop+host.ClientSize.Height;float left=ScreenWidths.Sum(),right=left+(last-FirstDay+1)*ScreenDay;int[] daily=ScheduleManpower.Daily(Rows);
+    float fh=Math.Max(ScreenRow,16);if(viewBottom<body+fh){using(var probe=new Bitmap(1,1))using(var pg=Graphics.FromImage(probe))fh=ManpowerBand(pg,0,-1000,left,right,last-FirstDay+1,FirstDay,last,ScreenDay,ScreenRow,Font,bold,daily);float y=viewBottom-fh-1;using(var back=new SolidBrush(BackColor))e.Graphics.FillRectangle(back,0,y-1,Width,fh+2);
+     using(var shade=new Pen(Color.FromArgb(150,PowTheme.Line),1.5f))e.Graphics.DrawLine(shade,0,y-1,right,y-1);ManpowerBand(e.Graphics,0,y,left,right,last-FirstDay+1,FirstDay,last,ScreenDay,ScreenRow,Font,bold,daily);}}
    int top=HeaderTop;if(top>0){float head=HeaderHeight(e.Graphics,Font,ScreenDay,last,ScreenHead);using(var back=new SolidBrush(BackColor))e.Graphics.FillRectangle(back,0,top,Width,head+1);Draw(e.Graphics,new List<Line>(),0,top,ScreenWidths,ScreenDay,ScreenRow,ScreenHead,FirstDay,last,Font,bold,null);
     using(var shade=new Pen(Color.FromArgb(150,PowTheme.Line),1.5f))e.Graphics.DrawLine(shade,0,top+head+1,Width,top+head+1);}}}
  /* header height: caption row plus the day-number row; numbers too wide for their column (3 digits) are written
@@ -83,10 +87,16 @@ sealed class ScheduleChart:Control {
    foreach(float cx in cols)g.DrawLine(grid,cx,y0,cx,bottom);for(int d=0;d<=days;d++){float dx=left+d*dayW;g.DrawLine(grid,dx,y0+top,dx,bottom);}
    g.DrawLine(grid,x0,y0,right,y0);g.DrawLine(grid,left,y0+top,right,y0+top);for(int i=0;i<=lines.Count;i++){float y=ys[i];g.DrawLine(grid,x0,y,right,y);}g.DrawLine(grid,right,y0,right,bottom);
    /* manpower per working day under the bars (owner, 18 November 2026: "determine the manpower needed") */
-   if(manpower!=null){float fh=Math.Max(rowH,16);for(int d=dayFrom;d<=dayTo&&d<manpower.Length;d++){var w=g.MeasureString(manpower[d].ToString(CultureInfo.InvariantCulture),font).Width;if(w>dayW-4)fh=Math.Max(fh,w+6);}g.FillRectangle(band,x0,bottom,right-x0,fh);g.DrawString("Manpower per day (workers)",bold,ink,new RectangleF(x0+2,bottom,left-x0-4,fh),near);
+   if(manpower!=null)ManpowerBand(g,x0,bottom,left,right,days,dayFrom,dayTo,dayW,rowH,font,bold,manpower);}}
+ /* manpower per working day under the bars; returns the band height */
+ internal static float ManpowerBand(Graphics g,float x0,float bottom,float left,float right,int days,int dayFrom,int dayTo,float dayW,float rowH,Font font,Font bold,int[] manpower){
+  var near=new StringFormat{Alignment=StringAlignment.Near,LineAlignment=StringAlignment.Center,Trimming=StringTrimming.EllipsisCharacter,FormatFlags=StringFormatFlags.NoWrap};var mid=new StringFormat(near){Alignment=StringAlignment.Center};
+  using(var ink=new SolidBrush(PowTheme.Ink))using(var band=new SolidBrush(Color.FromArgb(244,246,248)))using(var grid=new Pen(Color.FromArgb(205,211,218),0.5f)){
+   float fh=Math.Max(rowH,16);for(int d=dayFrom;d<=dayTo&&d<manpower.Length;d++){var w=g.MeasureString(manpower[d].ToString(CultureInfo.InvariantCulture),font).Width;if(w>dayW-4)fh=Math.Max(fh,w+6);}g.FillRectangle(band,x0,bottom,right-x0,fh);g.DrawString("Manpower per day (workers)",bold,ink,new RectangleF(x0+2,bottom,left-x0-4,fh),near);
     for(int d=dayFrom;d<=dayTo;d++){int m=d<manpower.Length?manpower[d]:0;if(m<=0)continue;float dx=left+(d-dayFrom)*dayW;string t=m.ToString(CultureInfo.InvariantCulture);var sz=g.MeasureString(t,font);
      if(sz.Width<=dayW-4)g.DrawString(t,font,ink,new RectangleF(dx,bottom,dayW,fh),mid);else{var st=g.Save();g.TranslateTransform(dx+dayW/2,bottom+fh-2);g.RotateTransform(-90);g.DrawString(t,font,ink,0,-sz.Height/2);g.Restore(st);}}
-    for(int d=0;d<=days;d++){float dx=left+d*dayW;g.DrawLine(grid,dx,bottom,dx,bottom+fh);}g.DrawLine(grid,x0,bottom,x0,bottom+fh);g.DrawLine(grid,left,bottom,left,bottom+fh);g.DrawLine(grid,x0,bottom+fh,right,bottom+fh);}}}
+    for(int d=0;d<=days;d++){float dx=left+d*dayW;g.DrawLine(grid,dx,bottom,dx,bottom+fh);}g.DrawLine(grid,x0,bottom,x0,bottom+fh);g.DrawLine(grid,left,bottom,left,bottom+fh);g.DrawLine(grid,x0,bottom+fh,right,bottom+fh);
+   return fh;}}
 }
 partial class ProgramOfWorksForm {
  readonly Dictionary<string,ScheduleOverride> scheduleOverrides=new Dictionary<string,ScheduleOverride>(StringComparer.Ordinal);

@@ -11,3 +11,7 @@ Construction Schedule - LS items
   the item with its trade. Mobilization and demobilization keep their durations in days.
 
 Includes v1.35.0, v1.34.0 and v1.33.0 (see their notes).
+
+Bar Chart ("sa bar chart ifix mo din yung manpower sa baba")
+- The manpower per day row stays at the bottom of the view while the rows scroll (the headings stay at
+  the top and the item columns at the left). The printed set is unchanged.
