@@ -1,0 +1,23 @@
+using System;using System.Linq;using System.Collections.Generic;using System.Windows.Forms;using BeamScheduleFormatter;
+class TrussSupportTests {
+ static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}static void Near(double a,double b,double tol,string why){Check(Math.Abs(a-b)<=tol,why+" ("+a+" vs "+b+")");}
+ const string Table="Node\tL/C\tHorizontal Fx kN\tVertical Fy kN\tHorizontal Fz kN\tMoment Mx kN-m\tMoment My kN-m\tMoment Mz kN-m\n1\t101 1.2D+1.6L\t5.2\t40\t0\t0\t0\t0\n\t102 0.9D+1.6W\t-8\t-25\t3\t0\t0\t0\n2\t101 1.2D+1.6L\t-5.2\t42\t0\t0\t0\t0\n";
+ [STAThread]static void Main(){
+  string unit;var rows=TrussSupport.Reactions(Table,out unit);Check(rows.Count==3&&rows[1].Node=="1"&&rows[1].Case.StartsWith("102")&&rows[1].Fy==-25&&unit=="kN","STAAD Support Reactions table with the node carried down");
+  var kip=TrussSupport.Reactions("Node\tL/C\tFx kip\tFy kip\tFz kip\n1\t1\t1\t2\t0\n",out unit);Near(kip[0].Fy,2*4.4482216,1e-6,"kip converted to kN");
+  var spaced=TrussSupport.Reactions("Node L/C Horizontal Fx kN Vertical Fy kN Horizontal Fz kN\n1 101 4 30 1\n",out unit);Check(spaced.Count==1&&spaced[0].Fy==30&&spaced[0].Fz==1,"space separated headings with units");
+  var typed=TrussSupport.Reactions("1 1 0 30 0\n2 1 0 -10 2\n",out unit);Check(typed.Count==2&&typed[1].Fz==2,"typed rows without headings");
+  var input=new TrussSupportInput{PlateB=250,PlateN=300,PlateT=12,SupportB=300,SupportN=400,SupportDepth=400,Fc=21,BoltDia=20,BoltColumns=1,BoltS2=150,Hef=300,Angle=SteelCatalog.Profiles.First(p=>p.Kind=="Angle bar"&&p.H==50&&p.B==50),Angles=2};
+  var notes=new List<string>();var res=TrussSupport.Check(input,rows,notes);Func<string,SupportCheck> c=name=>res.First(x=>x.Name==name);
+  Near(c("Anchor steel - tension").Capacity,.75*245*400*2/1000,1e-6,"φNsa = 0.75 n Ase futa");Near(c("Concrete bearing").Capacity,.65*.85*21*75000*1.2/1000,1e-6,"φPp with √(A2/A1) = 1.2");
+  double nb=10*Math.Sqrt(21)*Math.Pow(300,1.5)/1000;Near(c("Concrete breakout - tension").Capacity,.70*(120000.0/810000)*.75*nb,1e-6,"φNcbg = 0.70 ANc/ANco ψed Nb");
+  Check(c("Anchor steel - tension").Demand==25&&c("Anchor steel - tension").Case.StartsWith("102"),"uplift row governs the anchor tension");Check(c("Concrete bearing").Demand==42&&c("Concrete bearing").Node=="2","largest downward reaction governs bearing");
+  Near(c("Anchor steel - shear").Demand,Math.Sqrt(64+9),1e-9,"shear = √(Fx² + Fz²)");Check(c("Concrete breakout - tension").Ratio>1&&!c("Concrete breakout - tension").Ok,"breakout at a 75 mm edge is NG for 25 kN uplift");
+  var r1=c("Tension-shear interaction");Check(r1.Ratio>0,"interaction ratio");
+  var ap=TrussSupport.AngleProperties(input.Angle);Check(ap[0]>0&&ap[1]>0&&ap[1]<input.Angle.B,"angle area and centroid");
+  bool bad=false;try{TrussSupport.Check(new TrussSupportInput{PlateB=400,PlateN=300,PlateT=12,SupportB=300,SupportN=400,Angle=input.Angle},rows,new List<string>());}catch(Exception){bad=true;}Check(bad,"a plate wider than the support is refused");
+  AccessCodes.Granted=true;using(var form=new TrussSupportForm()){var flags=System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance;var inputs=(Dictionary<string,Control>)typeof(DesignSheetForm).GetField("Inputs",flags).GetValue(form);inputs["Reactions"].Text=Table;inputs["Nodes"].Text="2";
+   string report=form.CurrentReport();Check(report.Contains("## 04  CHECKS")&&report.Contains("Concrete bearing")&&report.Contains("not an engineer's approval"),"report");string unit2;Check(form.Rows(out unit2).All(r=>r.Node=="2"),"node filter");
+   string xml=form.Snapshot();using(var again=new TrussSupportForm()){again.Restore(xml);var i2=(Dictionary<string,Control>)typeof(DesignSheetForm).GetField("Inputs",flags).GetValue(again);Check(i2["Reactions"].Text.Replace("\r","")==Table.Replace("\r","")&&i2["Nodes"].Text=="2","sheet saves the reactions");}}
+  Console.WriteLine("PASS: "+checks+" truss support plate, anchor, weld and angle checks");}
+}

@@ -1,0 +1,21 @@
+DTCE Tool Kit v1.48.0 test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+
+New design sheet: Truss Support on RC ("Design calculation sheet para sa support ng trusses sa rc column beam, angle bar
+2L or 1L. Na pwede input yung design loads galing staad")
+- STAAD reactions tab: paste or import (CSV / Excel) the STAAD Support Reactions table (node, L/C, Fx, Fy, Fz, moments);
+  kN, kip, N and metric ton headings are converted; blank node cells take the node above; filter the support nodes to
+  design; vertical axis Y or Z. Every reaction row is checked and the governing row is shown for each check.
+- Plate and anchors: bearing plate on the RC column / beam top, anchors in two rows (one each side of the gusset),
+  M16-M36, headed or J/L hooked, cracked / uncracked concrete, grout pad.
+- Gusset and angle: gusset thickness / length, fillet welds to the plate, 1L or 2L angle from the Regan handbook with
+  heel / toe weld lengths, member force from STAAD (or the support reaction when left blank).
+- Checks (LRFD, NSCP 2015): concrete bearing (510.8 / AISC J8); plate thickness for bearing and uplift (AISC DG1);
+  anchor steel tension and shear, concrete breakout in tension and shear, pullout, pryout and tension-shear interaction
+  (Section 417 / ACI 318-14 Ch. 17, condition B); gusset-to-plate welds and gusset shear; angle welds, angle and gusset
+  base metal, angle tension yielding / rupture with shear lag, Whitmore yielding / buckling; balanced heel / toe weld
+  lengths. Results tab and calculation report with the reactions and every ratio.
+- Uses the Truss Connections program access. Support moments are reported but not designed for (pinned support).
+
+Includes v1.47.0 and earlier local builds (see their notes).
