@@ -1,0 +1,22 @@
+DTCE Tool Kit v1.43.0 test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+
+Design sheets layout ("ayusin din ito, pati yung ibang design sheets, paki check din yung mga buttons", "putol
+yung text box at drop down")
+- Command buttons have one width and line up; the content starts at the same left edge as the buttons.
+- Input cards share one column grid that follows the window width; the section note, section preview and
+  other full-width blocks span exactly the same width as the card rows. Check-box cards have the same height
+  and input line as the other cards.
+- Inputs always fit inside their card (the Wind Load site panel cut them off on the right).
+- Section preview: the H label sits left of the dimension line and the B dimension is no longer cut off.
+
+RSA Curve Builder (new design sheet; "sa design sheet maglagay ng RSA Curve Builder", "for copy paste sa staad")
+- NSCP 2015 Section 208 design response spectrum: zone, soil profile (SA-SE), seismic source type and
+  distance (Na / Nv from Tables 208-4 / 208-5, interpolated), Ca / Cv (Tables 208-7 / 208-8), Ts, T0 and
+  Sa(T) per Figure 208-3, with a chart.
+- STAAD input tab: LOAD / SPECTRUM commands for both horizontal directions with ACC SCALE = g x I / R x
+  base-shear scale factor, ready to copy; period table copy; calculation report (PDF / print / file).
+- Uses the Wind Load (NSCP 2015) program access (no new access code type).
+
+Includes v1.42.0 and earlier local builds (see their notes).

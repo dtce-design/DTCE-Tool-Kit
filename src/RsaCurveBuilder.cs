@@ -1,0 +1,80 @@
+using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.Linq;using System.Text;using System.Windows.Forms;
+namespace BeamScheduleFormatter {
+/* NSCP 2015 Section 208 design response spectrum (owner, 19 November 2026: "sa design sheet maglagay ng RSA Curve Builder",
+   "for copy paste sa staad"). Ca / Cv: Tables 208-7 / 208-8; near-source factors Na / Nv: Tables 208-4 / 208-5 (linear
+   interpolation between the tabulated distances); spectrum shape: Figure 208-3 (Section 208.5.2). */
+static class NscpSpectrum {
+ internal static readonly string[] Soils={"SA","SB","SC","SD","SE"};
+ static readonly double[] CaZone2={.16,.20,.24,.28,.34},CaZone4={.32,.40,.40,.44,.44};
+ static readonly double[] CvZone2={.16,.20,.32,.40,.64},CvZone4={.32,.40,.56,.64,.96};
+ static double Interpolate(double[] at,double[] values,double x){if(x<=at[0])return values[0];for(int i=1;i<at.Length;i++)if(x<=at[i])return values[i-1]+(values[i]-values[i-1])*(x-at[i-1])/(at[i]-at[i-1]);return values[values.Length-1];}
+ internal static double Na(string source,double km){double[] at={2,5,10};switch(source){case "A":return Interpolate(at,new[]{1.5,1.2,1.0},km);case "B":return Interpolate(at,new[]{1.3,1.0,1.0},km);default:return 1.0;}}
+ internal static double Nv(string source,double km){double[] at={2,5,10,15};switch(source){case "A":return Interpolate(at,new[]{2.0,1.6,1.2,1.0},km);case "B":return Interpolate(at,new[]{1.6,1.2,1.0,1.0},km);default:return 1.0;}}
+ internal static double Ca(int zone,int soil,double na){return zone==4?CaZone4[soil]*na:CaZone2[soil];}
+ internal static double Cv(int zone,int soil,double nv){return zone==4?CvZone4[soil]*nv:CvZone2[soil];}
+ /* Sa in g: Ca at T = 0 rising linearly to 2.5Ca at T0, flat 2.5Ca to Ts, then Cv / T. */
+ internal static double Sa(double t,double ca,double cv){double ts=cv/(2.5*ca),t0=.2*ts;if(t<t0)return ca+1.5*ca*t/t0;if(t<=ts)return 2.5*ca;return cv/t;}
+ internal static List<double[]> Points(double ca,double cv,double tMax,double step){double ts=cv/(2.5*ca),t0=.2*ts;var periods=new SortedSet<double>{0,t0,ts};for(int i=1;i*step<=tMax+1e-9;i++){double t=Math.Round(i*step,4);if(Math.Abs(t-t0)>1e-4&&Math.Abs(t-ts)>1e-4)periods.Add(t);}/* exact T0 / Ts keep the 2.5Ca plateau ordinates */return periods.Where(t=>t<=tMax+1e-9).Select(t=>new[]{t,Sa(t,ca,cv)}).ToList();}
+}
+class SpectrumChart:Control {
+ internal List<double[]> Points=new List<double[]>();internal double T0,Ts;
+ public SpectrumChart(){DoubleBuffered=true;ResizeRedraw=true;Height=340;Width=1000;Tag="FullWidth";BackColor=Color.White;}
+ protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;var font=ModernUi.Body;
+  using(var ink=new SolidBrush(PowTheme.Ink))g.DrawString("DESIGN RESPONSE SPECTRUM (NSCP 2015 Figure 208-3)",ModernUi.Strong,ink,12,8);
+  if(Points.Count<2)return;var plot=new RectangleF(70,44,Math.Max(50,Width-100),Math.Max(50,Height-96));double tMax=Points.Max(p=>p[0]),sMax=Points.Max(p=>p[1])*1.1;
+  Func<double,float> X=t=>plot.Left+(float)(t/tMax)*plot.Width;Func<double,float> Y=s=>plot.Bottom-(float)(s/sMax)*plot.Height;
+  using(var grid=new Pen(PowTheme.Line))using(var muted=new SolidBrush(PowTheme.Muted)){
+   for(int i=0;i<=5;i++){double s=sMax*i/5;g.DrawLine(grid,plot.Left,Y(s),plot.Right,Y(s));g.DrawString(s.ToString("0.00",CultureInfo.InvariantCulture),font,muted,plot.Left-44,Y(s)-8);}
+   int ticks=(int)Math.Ceiling(tMax/.5);for(int i=0;i<=ticks;i++){double t=Math.Min(tMax,i*.5);g.DrawLine(grid,X(t),plot.Top,X(t),plot.Bottom);g.DrawString(t.ToString("0.0",CultureInfo.InvariantCulture),font,muted,X(t)-10,plot.Bottom+4);}
+   g.DrawString("Period T (s)",font,muted,plot.Left+plot.Width/2-30,plot.Bottom+22);g.DrawString("Sa (g)",font,muted,8,plot.Top-20);
+   using(var mark=new Pen(PowTheme.Muted){DashStyle=DashStyle.Dash})foreach(var item in new[]{new{T=T0,Name="T0"},new{T=Ts,Name="Ts"}}){g.DrawLine(mark,X(item.T),plot.Top,X(item.T),plot.Bottom);g.DrawString(item.Name+" = "+item.T.ToString("0.000",CultureInfo.InvariantCulture)+" s",font,muted,X(item.T)+4,plot.Top+2+(item.Name=="Ts"?18:0));}}
+  using(var pen=new Pen(PowTheme.Teal,2.2f))g.DrawLines(pen,Points.Select(p=>new PointF(X(p[0]),Y(p[1]))).ToArray());
+ }
+}
+class RsaCurveForm:DesignSheetForm {
+ static readonly string[] SoilNames={"SA - Hard rock","SB - Rock","SC - Very dense soil and soft rock","SD - Stiff soil profile","SE - Soft soil profile"};
+ static readonly string[] Importance={"Essential facilities (I = 1.50)","Hazardous facilities (I = 1.25)","Special occupancy (I = 1.00)","Standard occupancy (I = 1.00)","Miscellaneous (I = 1.00)"};
+ readonly SpectrumChart chart=new SpectrumChart();readonly TextBox staad=new TextBox{Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Both,WordWrap=false,Height=560,Width=1000,Tag="FullWidth",Font=new Font("Consolas",9.5f)};readonly Label summary=new Label{Width=1000,Height=64,Tag="FullWidth",Font=ModernUi.Strong,ForeColor=PowTheme.Teal};
+ public RsaCurveForm():base("RSA Curve Builder | NSCP 2015 response spectrum","RSA-Curve"){
+  var site=Section("Site and structure","NSCP 2015 Section 208 design response spectrum for STAAD.Pro response spectrum analysis. Soil profile SF needs a site-specific study and is not offered. Check the seismic source type and distance against the PHIVOLCS active fault map.");
+  Choice(site,"Zone","Seismic zone",new[]{"Zone 4 (Z = 0.40)","Zone 2 (Z = 0.20)"});Choice(site,"Soil","Soil profile type (Table 208-2)",SoilNames).SelectedIndex=3;/* SD: the code default when soil properties are not known in detail */Choice(site,"Source","Seismic source type (Table 208-6)",new[]{"A","B","C"});NumberField(site,"Distance","Closest distance to seismic source km","10");
+  Choice(site,"Importance","Occupancy category (Table 208-1)",Importance).SelectedIndex=3;NumberField(site,"R","Response modification R (Table 208-11)","8.5");NumberField(site,"ExtraScale","Base-shear scale factor","1");
+  NumberField(site,"TMax","Last period s","4");NumberField(site,"Step","Period step s","0.05");NumberField(site,"Damping","Damping ratio","0.05");
+  Choice(site,"Unit","STAAD length unit",new[]{"Metre (g = 9.80665 m/s2)","Millimetre (g = 9806.65 mm/s2)"});Choice(site,"Method","Modal combination",new[]{"CQC","SRSS","ABS"});Choice(site,"Axes","Horizontal directions",new[]{"X and Z (Y up)","X and Y (Z up)"});NumberField(site,"LoadNo","First load case number","101");
+  site.Controls.Add(summary);site.Controls.Add(chart);
+  var output=Section("STAAD input","Copy into the STAAD input file (Edit Input) after the modal CUT OFF / MODAL CALCULATION commands, one load case per direction. Spectrum ordinates are in g; ACC SCALE = g x I / R x additional factor in the model length unit.");
+  var actions=new FlowLayoutPanel{Width=1000,Height=48,Tag="FullWidth"};var copy=new Button{Text="Copy STAAD input",AutoSize=true};copy.Click+=(s,e)=>{if(staad.Text.Length>0)Clipboard.SetText(staad.Text);};var copyTable=new Button{Text="Copy period table",AutoSize=true};copyTable.Click+=(s,e)=>{try{Clipboard.SetText(Table());}catch(Exception ex){MessageBox.Show(this,ex.Message,"RSA Curve Builder");}};actions.Controls.Add(copy);actions.Controls.Add(copyTable);output.Controls.Add(actions);output.Controls.Add(staad);
+  foreach(var input in Inputs.Values){input.TextChanged+=(s,e)=>Refresh0();var combo=input as ComboBox;if(combo!=null)combo.SelectedIndexChanged+=(s,e)=>Refresh0();}
+  Shown+=(s,e)=>Refresh0();
+ }
+ sealed class Curve {public int Zone,Soil;public string Source;public double Km,Na,Nv,Ca,Cv,Ts,T0,I,R,Extra,G,Scale,Damping;public List<double[]> Points;}
+ Curve Compute(){var c=new Curve{Zone=Value("Zone").StartsWith("Zone 4")?4:2,Soil=Array.IndexOf(SoilNames,Value("Soil")),Source=Value("Source"),Km=Number("Distance"),R=Number("R"),Extra=Number("ExtraScale"),Damping=Number("Damping")};
+  if(c.Soil<0)throw new Exception("Choose a soil profile type.");if(c.Km<0)throw new Exception("Distance must be zero or more.");if(c.R<=0)throw new Exception("R must be greater than zero.");if(c.Extra<=0)throw new Exception("Additional scale factor must be greater than zero.");if(c.Damping<=0||c.Damping>=1)throw new Exception("Damping ratio must be between 0 and 1.");
+  double tMax=Number("TMax"),step=Number("Step");if(tMax<=0||tMax>10)throw new Exception("Last period must be more than 0 and up to 10 s.");if(step<.005||step>tMax)throw new Exception("Period step must be at least 0.005 s and not more than the last period.");if(tMax/step>400)throw new Exception("Too many points: use a larger period step (400 points at most).");
+  c.Na=c.Zone==4?NscpSpectrum.Na(c.Source,c.Km):1;c.Nv=c.Zone==4?NscpSpectrum.Nv(c.Source,c.Km):1;c.Ca=NscpSpectrum.Ca(c.Zone,c.Soil,c.Na);c.Cv=NscpSpectrum.Cv(c.Zone,c.Soil,c.Nv);c.Ts=c.Cv/(2.5*c.Ca);c.T0=.2*c.Ts;
+  c.I=Value("Importance").Contains("1.50")?1.5:Value("Importance").Contains("1.25")?1.25:1.0;c.G=Value("Unit").StartsWith("Milli")?9806.65:9.80665;c.Scale=c.G*c.I/c.R*c.Extra;c.Points=NscpSpectrum.Points(c.Ca,c.Cv,tMax,step);return c;}
+ static string F(double v,string format){return v.ToString(format,CultureInfo.InvariantCulture);}
+ string Staad(Curve c){var b=new StringBuilder();int load;if(!int.TryParse(Value("LoadNo"),out load)||load<1)throw new Exception("First load case number must be a whole number.");string[] axes=Value("Axes").StartsWith("X and Z")?new[]{"X","Z"}:new[]{"X","Y"};
+  b.AppendLine("* NSCP 2015 design response spectrum - Zone "+c.Zone+", soil "+NscpSpectrum.Soils[c.Soil]+", source "+c.Source+" at "+F(c.Km,"0.##")+" km");b.AppendLine("* Ca = "+F(c.Ca,"0.####")+", Cv = "+F(c.Cv,"0.####")+", T0 = "+F(c.T0,"0.####")+" s, Ts = "+F(c.Ts,"0.####")+" s; ordinates in g");b.AppendLine("* ACC SCALE = g x I / R x factor = "+F(c.G,"0.#####")+" x "+F(c.I,"0.##")+" / "+F(c.R,"0.##")+" x "+F(c.Extra,"0.####"));
+  for(int d=0;d<axes.Length;d++){b.AppendLine("LOAD "+(load+d)+" LOADTYPE SEISMIC TITLE RSA "+axes[d]);b.AppendLine("SPECTRUM "+Value("Method")+" "+axes[d]+" 1 ACC SCALE "+F(c.Scale,"0.######")+" DAMP "+F(c.Damping,"0.###")+" LIN");
+   for(int i=0;i<c.Points.Count;i+=4){var pairs=c.Points.Skip(i).Take(4).Select(p=>F(p[0],"0.####")+" "+F(p[1],"0.#####"));b.AppendLine(string.Join("; ",pairs));/* ";" separates STAAD lines, so each pair is its own data line */}}
+  return b.ToString().TrimEnd();}
+ string Table(){var c=Compute();var b=new StringBuilder("T (s)\tSa (g)\r\n");foreach(var p in c.Points)b.Append(F(p[0],"0.####")+"\t"+F(p[1],"0.#####")+"\r\n");return b.ToString();}
+ void Refresh0(){if(Restoring)return;try{var c=Compute();chart.Points=c.Points;chart.T0=c.T0;chart.Ts=c.Ts;chart.Invalidate();staad.Text=Staad(c).Replace("\n","\r\n").Replace("\r\r\n","\r\n");summary.ForeColor=PowTheme.Teal;summary.Text="Ca = "+F(c.Ca,"0.###")+"   Cv = "+F(c.Cv,"0.###")+"   Na = "+F(c.Na,"0.###")+"   Nv = "+F(c.Nv,"0.###")+"   T0 = "+F(c.T0,"0.###")+" s   Ts = "+F(c.Ts,"0.###")+" s   peak 2.5Ca = "+F(2.5*c.Ca,"0.###")+" g   ACC SCALE = "+F(c.Scale,"0.####");}
+  catch(Exception ex){summary.ForeColor=Color.Firebrick;summary.Text=ex.Message;staad.Text="";chart.Points=new List<double[]>();chart.Invalidate();}}
+ protected override void AfterRestore(){Refresh0();}
+ protected override string BuildReport(){var c=Compute();var b=new StringBuilder();
+  b.AppendLine("RSA CURVE BUILDER - NSCP 2015 DESIGN RESPONSE SPECTRUM");b.AppendLine();
+  b.AppendLine("## 01  INPUTS");b.AppendLine("Seismic zone: Zone "+c.Zone+" (Z = "+(c.Zone==4?"0.40":"0.20")+")");b.AppendLine("Soil profile type: "+Value("Soil"));b.AppendLine("Seismic source type: "+c.Source+"; closest distance = "+F(c.Km,"0.##")+" km");b.AppendLine("Occupancy: "+Value("Importance"));b.AppendLine("R = "+F(c.R,"0.##")+"; additional scale factor = "+F(c.Extra,"0.####")+"; damping = "+F(c.Damping,"0.###"));b.AppendLine();
+  b.AppendLine("## 02  SEISMIC COEFFICIENTS");
+  if(c.Zone==4){b.AppendLine("Na (Table 208-4, source "+c.Source+", "+F(c.Km,"0.##")+" km, linear interpolation) = "+F(c.Na,"0.###"));b.AppendLine("Nv (Table 208-5, source "+c.Source+", "+F(c.Km,"0.##")+" km, linear interpolation) = "+F(c.Nv,"0.###"));}else b.AppendLine("Zone 2: near-source factors do not apply.");
+  b.AppendLine("Ca (Table 208-7) = "+F(c.Ca,"0.####"));b.AppendLine("Cv (Table 208-8) = "+F(c.Cv,"0.####"));b.AppendLine();
+  b.AppendLine("## 03  SPECTRUM SHAPE (Figure 208-3)");b.AppendLine("Ts = Cv / (2.5 Ca) = "+F(c.Cv,"0.####")+" / (2.5 x "+F(c.Ca,"0.####")+") = "+F(c.Ts,"0.####")+" s");b.AppendLine("T0 = 0.2 Ts = "+F(c.T0,"0.####")+" s");
+  b.AppendLine("0 <= T < T0:  Sa = Ca (1 + 1.5 T / T0)");b.AppendLine("T0 <= T <= Ts: Sa = 2.5 Ca = "+F(2.5*c.Ca,"0.####")+" g");b.AppendLine("T > Ts:        Sa = Cv / T");b.AppendLine();
+  b.AppendLine("## 04  STAAD SCALE");b.AppendLine("ACC SCALE = g x I / R x factor = "+F(c.G,"0.#####")+" x "+F(c.I,"0.##")+" / "+F(c.R,"0.##")+" x "+F(c.Extra,"0.####")+" = "+F(c.Scale,"0.######"));b.AppendLine();
+  b.AppendLine("## 05  SPECTRUM ORDINATES");b.AppendLine("T (s)      Sa (g)");foreach(var p in c.Points)b.AppendLine(F(p[0],"0.0000").PadRight(11)+F(p[1],"0.00000"));b.AppendLine();
+  b.AppendLine("## 06  STAAD INPUT");b.AppendLine(Staad(c));b.AppendLine();
+  b.AppendLine("## 07  NOTES");b.AppendLine("Section 208.5.4.5: scale the dynamic base shear to not less than the static base shear requirement (90% regular / 100% irregular structures); enter the resulting ratio as the additional scale factor.");b.AppendLine("Soil profile SF and structures needing a site-specific spectrum are outside this sheet. Verify the seismic source type and distance from the PHIVOLCS fault map.");b.AppendLine("This sheet prepares analysis input only; it is not an engineer's approval.");
+  return b.ToString();}
+}
+}
