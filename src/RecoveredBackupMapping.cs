@@ -61,7 +61,9 @@ namespace BeamScheduleFormatter
 			var list = targets.ToList();
 			var exact = list.FirstOrDefault(x => x.SlotId == d.TargetSlotId && Identity(x) == d.TargetIdentity);
 			if (exact != null) return exact;
-			var same = list.Where(x => Identity(x) == d.TargetIdentity).ToList();
+			exact = list.FirstOrDefault(x => x.SlotId == d.TargetSlotId && SameIdentity(x, d.TargetIdentity));
+			if (exact != null) return exact;
+			var same = list.Where(x => SameIdentity(x, d.TargetIdentity)).ToList();
 			return same.Count == 1 ? same[0] : null;
 		}
 
@@ -72,7 +74,38 @@ namespace BeamScheduleFormatter
 
 		public static BackupTarget ResolveSaved(int row, string identity, IEnumerable<BackupTarget> targets)
 		{
-			return targets.SingleOrDefault((BackupTarget t) => t.Row == row && Identity(t) == identity);
+			return targets.SingleOrDefault((BackupTarget t) => t.Row == row && SameIdentity(t, identity));
+		}
+
+		/* Owner (19 November 2026, "hindi ls ang yunit niyan kg ang unit niyan"): the BACKUP unit cells of the owner's workbook are
+		   formulas into another workbook (='[1]DETAILED'!BE..) and read "ls" for items that are measured in kg, sq.m., cu.m. ...
+		   Read as LS, a mapped kg / m2 quantity was only kept as the LS basis and nothing was written. A DPWH catalogue item (same
+		   item no. and description) that reads "ls" uses its catalogue unit; true LS items keep LS. */
+		static Dictionary<string, string> catalogueUnits;
+		public static string EffectiveUnit(string code, string description, string unit)
+		{
+			if (Unit(unit) != "ls" && !string.IsNullOrWhiteSpace(unit)) return unit;
+			if (catalogueUnits == null)
+			{
+				var units = new Dictionary<string, string>(StringComparer.Ordinal);
+				foreach (var g in BackupPayItemCatalog.Items().GroupBy(t => (t.Code ?? "").Trim().ToUpperInvariant() + "|" + Normal(t.Description)))
+				{
+					var distinct = g.Select(t => t.Unit).Distinct().ToList();
+					if (distinct.Count == 1) units[g.Key] = distinct[0];
+				}
+				catalogueUnits = units;
+			}
+			string real;
+			if (catalogueUnits.TryGetValue((code ?? "").Trim().ToUpperInvariant() + "|" + Normal(description), out real) && Unit(real) != "ls") return real;
+			return unit;
+		}
+
+		/* a name written by an earlier version may carry the identity with the unit as read ("ls") */
+		public static bool SameIdentity(BackupTarget t, string identity)
+		{
+			if (t == null || identity == null) return false;
+			if (Identity(t) == identity) return true;
+			return !string.IsNullOrEmpty(t.ReadUnit) && t.ReadUnit != t.Unit && Identity(new BackupTarget { Code = t.Code, Description = t.Description, Unit = t.ReadUnit }) == identity;
 		}
 
 		private static string Normal(string text)
@@ -266,7 +299,8 @@ namespace BeamScheduleFormatter
 					throw new Exception(d.Description + ": " + reason + ".");
 				}
 				/* the same BACKUP item read under another id (owner, 19 November 2026) is accepted by its item no., description and unit */
-				if (d.TargetSlotId != null && Identity(t) != d.TargetIdentity)
+				/* only a quantity typed on a pay item is bound to it; app quantities may be mapped to another item (19 November 2026) */
+				if (d.ManualOverride && d.TargetSlotId != null && Identity(t) != d.TargetIdentity)
 				{
 					throw new Exception("The BOQ manual quantity target changed; review " + d.Description);
 				}

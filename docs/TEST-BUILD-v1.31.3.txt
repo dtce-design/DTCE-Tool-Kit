@@ -1,0 +1,21 @@
+DTCE Tool Kit v1.31.3 test build (19 November 2026) - BACKUP mapping fixes
+
+Not tested on Windows yet (Linux/Mono checks only). GitHub test build, not a Microsoft
+Store release (the Store still has v1.5.0).
+
+Checked with the owner's Book1.xlsm.
+- Units: the BACKUP unit cells (BK) are formulas into another workbook ('[1]DETAILED'!BE,
+  "2027 - V6.02 - Aparri - Mabanguc - MPB.xlsm") and read "ls" for 256 of 266 items. Read
+  as LS, mapped kg / m2 / m3 quantities were only kept as the LS basis and nothing was
+  written ("kahit nag map na ako walang nangyayare"; "hindi ls ang yunit niyan kg"). A
+  DPWH catalogue item (same item no. and description) that reads "ls" now uses its
+  catalogue unit: 197 items of Book1 get kg, sq.m., cu.m. ...; true LS items stay LS.
+  Mappings already saved in the workbook with "ls" still resolve.
+- Formworks and RSB are automatic again in such a workbook: every form area of
+  Reinforced Concrete Works goes to 903(2) Formworks and Falseworks; RSB Grade 40 to
+  902(1)a1; Grade 60 to 902(1)a2 max 25mm, or max 42mm when a Grade 60 bar larger than
+  25mm is used.
+- Not mapped rows can be mapped in Map BACKUP items (they were locked when the app's own
+  pay item was not found), and an item chosen from the status panel is used in the Bill
+  of Quantities and written to Excel ("di naalis sa status").
+- Saved mappings follow their item by item no. and description when the unit differs.

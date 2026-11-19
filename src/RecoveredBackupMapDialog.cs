@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
@@ -73,7 +73,9 @@ namespace BeamScheduleFormatter
 				BackupTarget value2;
 				SetTarget(dataGridViewComboBoxCell, routes.TryGetValue(d.Key, out value2) ? value2 : null);
 				grid.Rows[index].Tag = d;
-				if (d.TargetSlotId != null)
+				/* owner (19 November 2026, "yung mga not mapped di pwedeng mamili ng item no"): only a quantity typed on a pay item is
+				   fixed to it; an app quantity whose own pay item is not found (or any app quantity) can be mapped here */
+				if (d.ManualOverride && d.TargetSlotId != null)
 				{
 					dataGridViewComboBoxCell.ReadOnly = true;
 				}
