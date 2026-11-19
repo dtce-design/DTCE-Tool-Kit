@@ -162,3 +162,5 @@ workbook but never saves it; the owner saves it in Excel (the status bar and the
 new workbook file at a chosen path and the explicit design-report export still write the file. GitHub releases are named
 after the app version they carry (tag v<version>-build-<run>). The Store package version is the app version (x.y.z.0);
 the Store still shows v1.5.0 because no later upload was accepted - a newer Store upload needs a new explicit request.
+Macros: a workbook the app opens for a visible link follows the Excel Trust Center (AutomationSecurity by UI, events on,
+Excel shown first); never force macros off for the owner's linked workbook.

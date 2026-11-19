@@ -109,8 +109,17 @@ namespace BeamScheduleFormatter
 					bool flag = Convert.ToBoolean(app.EnableEvents);
 					try
 					{
-						app.AutomationSecurity = 3;
-						app.EnableEvents = false;
+						/* Owner (19 November 2026, "bakit di pwede gamitin yung macros ng excel ko"): a workbook the app opens itself used
+						   to be opened with macros forced off (AutomationSecurity 3) and events off, so its macros stayed disabled until
+						   it was closed and opened again. A visible link now opens it as a double-click would: Excel is shown first, the
+						   Trust Center settings decide on macros (AutomationSecurity 2, by UI, with the usual Enable Content bar) and
+						   Workbook_Open runs. Hidden helper instances and new files made from the template keep macros and events off. */
+						if (!isolated)
+						{
+							app.Visible = true;
+						}
+						app.AutomationSecurity = isolated ? 3 : 2;
+						app.EnableEvents = !isolated && File.Exists(PathName);
 						if (!File.Exists(PathName))
 						{
 							if (requireTemplate)
