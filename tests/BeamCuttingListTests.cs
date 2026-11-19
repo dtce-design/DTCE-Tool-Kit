@@ -67,5 +67,12 @@ class BeamCuttingListTests {
    var groups=BeamDetailPaper.Groups(r4,lg);Check(groups.Count<BeamDetailPaper.Cuts(lg).Count/3&&groups.Sum(x=>x.Same.Count)==45,"identical sections are drawn once and cover all 45 cuts");
    Check(BeamDetailPaper.Compact(new List<string>{"1A","2A","3A","5A"})=="1A to 3A, 5A","typical list is compact");
    using(var doc=BbsReport.Build(r4,s4,new BbsInfo()))Check(doc.Sheets.Count>3,"long line prints");using(var site=SiteSheets.Build(r4,s4,new BbsInfo{Number="BBS-01"})){Check(site.A3&&site.Sheets.Count>=4,"crew site sheets print on A3");using(var bmp=new System.Drawing.Bitmap((int)site.PageWidth,(int)site.PageHeight))using(var g=System.Drawing.Graphics.FromImage(bmp))for(int pg=0;pg<site.Sheets.Count;pg++)site.Draw(g,pg);}}
+  /* two layers: 6-20 top at the supports of a 300 wide beam (4 fit per layer) need Ø25 spacer bars between the layers */
+  {var heavy=Row();heavy.Cells[5][0]="6-#20";heavy.Cells[7][0]="6-#20";Func<string,BeamRow> f2=m=>m=="B-1"?heavy:null;var s5=new CutSettings{Config=cfg};var r5=BeamCutting.Build(line(new[]{true,true,true}),f2,s5);
+   Check(BeamCutting.PerLayer(300-2*40-2*10,20,20)==4,"4 bars of 20 mm fit in one layer of a 300 wide beam");var sp=r5.Pieces.Where(p=>p.Location.StartsWith("Layer spacer")).ToList();
+   Check(sp.Count>0&&sp.All(p=>p.Top&&p.Diameter==25&&Math.Abs(p.Length-.2)<1e-9&&p.PerLine>=2),"Ø25 spacer bars across the inner width where the top bars are in two layers");
+   Check(r5.Pieces.Where(p=>p.Location.StartsWith("Layer spacer")).All(p=>!BeamCutting.Longitudinal(p)),"spacers are not main bars");
+   Check(BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg}).Pieces.All(p=>!p.Location.StartsWith("Layer spacer")),"no spacers when every face fits one layer");
+   Check(r5.Smf.Any(c=>c.Note.Contains("2 layers")),"SMF d uses the two layers");}
   Console.WriteLine("PASS: "+checks+" beam cutting list checks");}
 }

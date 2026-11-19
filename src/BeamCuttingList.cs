@@ -23,6 +23,8 @@ class CutSettings {
  public int Allowance=1;
  /* edits made on the cutting list (owner: "Gawin interactive yung sa cutting list dapat minomodify din") */
  public Dictionary<string,CutOverride> Overrides=new Dictionary<string,CutOverride>(StringComparer.OrdinalIgnoreCase);public List<CutPiece> Added=new List<CutPiece>();public bool SpecialMomentFrame=true;
+ /* bars in two or more layers: spacer bars between the layers (NSCP 425.2.2: layers at least 25 mm clear, the upper bars directly above) */
+ public int SpacerDia=25;public double SpacerSpacing=1.0,Aggregate=20;
  public List<double> Stocks=new List<double>{6,7.5,9,10.5,12};
 }
 class CutOverride {public double? Length;public int? PerLine;public bool Deleted;}
@@ -40,6 +42,10 @@ class CutResult {public List<CutLineGeometry> Geometry=new List<CutLineGeometry>
 static class BeamCutting {
  static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
  internal static string F(double v){return v.ToString("0.000",Inv);}
+ /* main bars along the beam (not hoops, crossties, side-face bars or layer spacers) */
+ internal static bool Longitudinal(CutPiece p){return p.ShapeCode!="HOOP"&&p.ShapeCode!="CROSSTIE"&&!p.Location.StartsWith("Side-face")&&!p.Location.StartsWith("Layer spacer");}
+ /* bars that fit in one layer of the inner width: clear spacing max(25 mm, db, 4/3 aggregate) (NSCP 425.2.1) */
+ internal static int PerLayer(double innerMm,int db,double aggregate){double sc=Math.Max(25,Math.Max(db,4.0/3*aggregate));return Math.Max(2,(int)Math.Floor((innerMm-db)/(db+sc)+1e-9)+1);}
  sealed class Tie {public int Legs,Dia;public double Spacing;}
  static Tie ParseTie(string raw){if(string.IsNullOrWhiteSpace(raw)||raw.Trim()=="-"||raw.Trim()=="--")return null;var m=Regex.Match(Engine.Normal(raw).Replace("#","O").Replace("Ø","O"),@"^(\d+)-(\d+)L-O(\d+)@(\d+)C/C$");if(!m.Success)throw new Exception("Unsupported stirrup: "+raw);return new Tie{Legs=int.Parse(m.Groups[2].Value),Dia=int.Parse(m.Groups[3].Value),Spacing=double.Parse(m.Groups[4].Value,Inv)/1000};}
  internal sealed class TieZone {public double From,To,Spacing,First;public int Count,Legs,Dia;public string Name;}
@@ -126,6 +132,19 @@ static class BeamCutting {
     add(new CutPiece{BarMark=nextMark(),Location="Stirrups, span "+(j+1)+" "+t.Name+" ("+t.Legs+"L @ "+(t.Spacing*1000).ToString("0",Inv)+" mm)",Diameter=t.Dia,PerLine=t.Count,Length=shape.MainHoop,Start=a,End=b2,Shape="Hoop, 135° hooks",SecB=g.Width[j]*1000,SecH=g.Depth[j]*1000,Span=j+1});
     if(t.Legs>2)add(new CutPiece{BarMark=nextMark(),Location="Crossties, span "+(j+1)+" "+t.Name,Diameter=t.Dia,PerLine=t.Count*(t.Legs-2),Length=shape.AdditionalLeg,Start=a,End=b2,Shape="Crosstie 90°/135°",SecB=g.Width[j]*1000,SecH=g.Depth[j]*1000,Span=j+1});}
    if(s.SpecialMomentFrame&&string.IsNullOrEmpty(row.RevisedSpacing)){double need=2*g.Depth[j];if(ln*s.EndZone+1e-9<need)result.Errors.Add("Beam line "+id+" span "+(j+1)+": the end stirrup zone ("+F(ln*s.EndZone)+" m) is shorter than 2h = "+F(need)+" m (NSCP 418.6.4.1).");if(s.TieOffset>.05+1e-9)result.Errors.Add("Beam line "+id+": first hoop is more than 50 mm from the support face (NSCP 418.6.4.4).");}}
+  /* layer spacer bars (owner, 19 November 2026: "Sa BBS sinama mo ba yung bar spacer? If may 2 layers ganon. Kasi 25mm yun e"):
+     where the bars of a face need two or more layers, Ø25 spacer bars across the beam between the layers at the set spacing;
+     lapped pieces of one bar count once (contact laps lie side by side) */
+  {var mine=result.Pieces.Where(p=>p.Line==id&&Longitudinal(p)).ToList();
+   for(int j=0;j<n;j++){int tieDia=10;try{var tz=TieZones(g.Rows[j],spans[j].Ln,s);if(tz.Count>0)tieDia=tz.Max(z=>z.Dia);}catch(Exception){}double inner=g.Width[j]*1000-2*s.Cover-2*tieDia;
+    foreach(bool top in new[]{true,false}){var intervals=new List<double[]>();double start=double.NaN;int worst=0;int steps=Math.Max(20,(int)(spans[j].Ln/.05));
+     for(int k=0;k<=steps;k++){double xs=g.FaceLeft[j]+spans[j].Ln*k/steps;var here=mine.Where(p=>p.Top==top&&p.Start<=xs+1e-9&&p.End>=xs-1e-9).ToList();int count=here.GroupBy(p=>p.BarMark.Split('.')[0]).Sum(q=>q.Max(p=>p.PerLine));int db=here.Count==0?0:here.Max(p=>p.Diameter);
+      int layers=count==0?0:(count+PerLayer(inner,db,s.Aggregate)-1)/PerLayer(inner,db,s.Aggregate);
+      if(layers>=2){if(double.IsNaN(start)){start=xs;worst=0;}worst=Math.Max(worst,layers-1);}else if(!double.IsNaN(start)){intervals.Add(new[]{start,xs,worst});start=double.NaN;}}
+     if(!double.IsNaN(start))intervals.Add(new[]{start,g.FaceRight[j],worst});
+     foreach(var iv in intervals){double len=iv[1]-iv[0];int gaps=(int)iv[2];int each=Math.Max(2,(int)Math.Floor(len/s.SpacerSpacing+1e-9)+1);
+      add(new CutPiece{BarMark=nextMark(),Location="Layer spacer bars, "+(top?"top":"bottom")+", span "+(j+1)+" ("+(gaps+1)+" layers, "+each+" @ "+(s.SpacerSpacing*1000).ToString("0",Inv)+" mm"+(gaps>1?" x "+gaps+" gaps":"")+")",Diameter=s.SpacerDia,PerLine=each*gaps,Length=inner/1000,Start=iv[0],End=iv[1],Shape="Straight",Span=j+1,Top=top});
+      result.Notes.Add("Beam line "+id+" span "+(j+1)+": "+(top?"top":"bottom")+" bars in "+(gaps+1)+" layers over "+F(len)+" m - Ø"+s.SpacerDia+" spacer bars between the layers (NSCP 425.2.2).");}}}}
   /* extra hoops over laps get their marks after the schedule stirrups */
   foreach(var a in deferred)a();
   /* bars added by hand on the cutting list: they count in the estimate of their span */

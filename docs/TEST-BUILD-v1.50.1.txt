@@ -1,0 +1,13 @@
+DTCE Tool Kit v1.50.1 (19 November 2026) - local commit, packaged with v1.50.2; not pushed (owner: "huwag mo munang ipush")
+
+PATCH: Bar Bending Schedule (beams) - layer spacer bars.
+
+Layer spacer bars ("Sa BBS sinama mo ba yung bar spacer? If may 2 layers ganon. Kasi 25mm yun e")
+- Where the bars of a face do not fit one layer (clear spacing max(25 mm, db, 4/3 aggregate), NSCP 425.2.1), they go in two or
+  more layers and Ø25 spacer bars are added across the beam between the layers (NSCP 425.2.2: layers at least 25 mm clear, the
+  upper bars directly above). Spacers are placed over the length where the extra layer exists, at the set spacing (default
+  1000 mm, at least two per stretch), one set per gap between layers; length = beam width - 2 covers - 2 hoop diameters.
+  Lapped pieces of one bar count once (contact laps side by side).
+- New settings: layer spacer bar Ø (default 25 mm) and spacer spacing (default 1000 mm); saved with the cutting list.
+- Spacers appear in the bar bending schedule, cutting patterns, estimate, crew site sheets, the elevation (brown dots) and the
+  sections (bars in layers with the spacer drawn between them). The SMF check uses d for two layers.

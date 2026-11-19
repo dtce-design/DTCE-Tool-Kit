@@ -17,8 +17,9 @@ static class BeamSmf {
    Action<int,string,string,string,string,bool,string> add=(span,item,clause,req,prov,ok,note)=>list.Add(new SmfCheck{Line=g.Line,Span=span,Item=item,Clause=clause,Required=req,Provided=prov,Ok=ok,Note=note??""});
    for(int j=0;j<n;j++){double b=g.Width[j]*1000,h=g.Depth[j]*1000,ln=g.Ln[j]*1000;var ties=j<g.Ties.Count?g.Ties[j]:new List<BeamCutting.TieZone>();int tieDia=ties.Count>0?ties.Max(t=>t.Dia):10;
     var bottom=new[]{bars(j,2),bars(j,3),bars(j,4)};var top=new[]{bars(j,5),bars(j,6),bars(j,7)};int dbMax=bottom.Concat(top).SelectMany(x=>x.Keys).DefaultIfEmpty(20).Max(),dbMin=bottom.Concat(top).SelectMany(x=>x.Keys).DefaultIfEmpty(20).Min();
-    double d=h-cover-tieDia-dbMax/2.0;
-    add(j+1,"Clear span Ln >= 4d","418.6.2.1(a)","4d = "+(4*d).ToString("0",Inv)+" mm","Ln = "+ln.ToString("0",Inv)+" mm",ln>=4*d-1e-6,"d = h - cover - tie - db/2 = "+d.ToString("0",Inv)+" mm (one layer)");
+    int layers=1;{double inner=b-2*cover-2*tieDia;foreach(var face in bottom.Concat(top)){int cnt=face.Values.Sum();if(cnt==0)continue;int per=BeamCutting.PerLayer(inner,face.Keys.Max(),s.Aggregate);layers=Math.Max(layers,(cnt+per-1)/per);}}
+    double d=layers>1?h-cover-tieDia-dbMax-s.SpacerDia/2.0:h-cover-tieDia-dbMax/2.0;
+    add(j+1,"Clear span Ln >= 4d","418.6.2.1(a)","4d = "+(4*d).ToString("0",Inv)+" mm","Ln = "+ln.ToString("0",Inv)+" mm",ln>=4*d-1e-6,(layers>1?"d = h - cover - tie - db - spacer/2 = "+d.ToString("0",Inv)+" mm ("+layers+" layers)":"d = h - cover - tie - db/2 = "+d.ToString("0",Inv)+" mm (one layer)"));
     add(j+1,"Width bw >= min(0.3h, 250 mm)","418.6.2.1(b)",Math.Min(.3*h,250).ToString("0",Inv)+" mm",b.ToString("0",Inv)+" mm",b>=Math.Min(.3*h,250)-1e-6,null);
     double asMin=Math.Max(.25*Math.Sqrt(fc)/fy,1.4/fy)*b*d;string[] zone={"left face","midspan","right face"};
     for(int f=0;f<2;f++){var face=f==0?bottom:top;string nm=f==0?"Bottom":"Top";double lo=face.Min(x=>Area(x)),hi=face.Max(x=>Area(x));int at=Array.FindIndex(face,x=>Area(x)==lo),atHi=Array.FindIndex(face,x=>Area(x)==hi);

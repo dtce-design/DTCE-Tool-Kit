@@ -14,7 +14,7 @@ class BeamModelView:Control {
  public void SetResult(CutResult r,string line){result=r;geo=r==null?null:r.Geometry.FirstOrDefault(g=>g.Line==line)??(r==null?null:r.Geometry.FirstOrDefault());pieces=geo==null?new List<CutPiece>():r.Pieces.Where(p=>p.Line==geo.Line).ToList();Lanes();if(geo!=null&&(double.IsNaN(sectionX)||sectionX>geo.Total))sectionX=geo.FaceLeft[0]+geo.Ln[0]/2;Invalidate();}
  public string Selected{get{return selected;}set{if(selected==value)return;selected=value;var p=pieces.FirstOrDefault(x=>x.BarMark==value);if(p!=null&&geo!=null&&!(p.ShapeCode=="HOOP"||p.ShapeCode=="CROSSTIE"))sectionX=Math.Max(0,Math.Min(geo.Total,(p.Start+p.End)/2));Invalidate();}}
  public void Fit(){zoom=1;offset=0;offsetY=0;Invalidate();}
- static bool Longitudinal(CutPiece p){return p.ShapeCode!="HOOP"&&p.ShapeCode!="CROSSTIE"&&!p.Location.StartsWith("Side-face");}
+ static bool Longitudinal(CutPiece p){return BeamCutting.Longitudinal(p);}
  /* lanes: pieces of a face that overlap (laps, extra bars) go on separate lanes */
  void Lanes(){lane.Clear();topLanes=bottomLanes=0;foreach(bool top in new[]{true,false}){var ends=new List<double>();foreach(var p in pieces.Where(x=>Longitudinal(x)&&x.Top==top).OrderBy(x=>x.Location.Contains("continuous")?0:1).ThenBy(x=>x.Start)){int k=ends.FindIndex(e=>e<p.Start-1e-6);if(k<0){ends.Add(p.End);k=ends.Count-1;}else ends[k]=p.End;lane[p]=k;}if(top)topLanes=ends.Count;else bottomLanes=ends.Count;}}
  RectangleF Elevation{get{return new RectangleF(40,46,Math.Max(100,Width-SectionWidth-80),Math.Max(120,Height-150));}}
