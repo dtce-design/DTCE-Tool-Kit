@@ -81,18 +81,34 @@ sealed class PertAoa {
   int total=Math.Max(n.Total,a.Finish.TE);foreach(var e in order)e.TL=total;for(int i=order.Count-1;i>=0;i--){var e=order[i];foreach(var x in a.Arrows.Where(z=>z.Tail==e))e.TL=Math.Min(e.TL,x.Head.TL-dur(x));}
   foreach(var x in a.Arrows)x.Critical=x.Tail.TE==x.Tail.TL&&x.Head.TE==x.Head.TL&&x.Head.TL-x.Tail.TE-dur(x)==0;
   return a;}
- internal SizeF Layout(float height){Height=height;float usable=height-Foot;int levels=Events.Count==0?0:Events.Max(e=>e.Level);var lists=new List<List<AoaEvent>>();for(int lv=0;lv<=levels;lv++)lists.Add(Events.Where(e=>e.Level==lv).ToList());
-  var order=new Dictionary<AoaEvent,int>();int k0=0;foreach(var e in Events)order[e]=k0++;
-  PdmNetwork.Order(lists,e=>Arrows.Where(x=>x.Head==e&&!x.Collector).Select(x=>x.Tail),e=>Arrows.Where(x=>x.Tail==e&&!x.Collector).Select(x=>x.Head),e=>order[e]);
-  /* a level with more events than fit one above the other (each needs room for the labels of its arrows) is split into
-     staggered sub-columns; the next level starts after the last sub-column */
-  int no=1;float mid=Head+(usable-Head)/2;Cuts.Clear();Groups.Clear();const float minStep=64;int perCol=Math.Max(1,(int)((usable-Head-2*R-10)/minStep)+1);float cx=20,sub=2*R+(LevelW-2*R)*0.5f;
-  for(int lv=0;lv<lists.Count;lv++){var list=lists[lv];int cols=Math.Max(1,(int)Math.Ceiling(list.Count/(double)perCol));
-   for(int c=0;c<cols;c++){var part=list.Skip(c*perCol).Take(perCol).ToList();float step=part.Count<=1?0:Math.Min(78,(usable-Head-2*R-10)/(part.Count-1));float top=mid-step*(part.Count-1)/2;
-    for(int i=0;i<part.Count;i++){var e=part[i];e.No=no++;e.X=cx+c*sub;e.Y=top+i*step+(cols>1&&c%2==1?Math.Min(step,78)/2:0);}}
+ /* heights of the events (and the sub-column of a crowded level) for one drawing height; the x positions follow LevelW */
+ float placedFor=float.NaN;readonly Dictionary<AoaEvent,int> subColumn=new Dictionary<AoaEvent,int>();readonly List<List<AoaEvent>> levelLists=new List<List<AoaEvent>>();
+ internal SizeF Layout(float height){Height=height;layoutStamp++;float usable=height-Foot;if(placedFor!=height){placedFor=height;Place(usable);}return PlaceX();}
+ /* events numbered column by column, top to bottom (every arrow runs from a lower to a higher number) */
+ SizeF PlaceX(){int no=1;Cuts.Clear();Groups.Clear();float cx=20,sub=2*R+(LevelW-2*R)*0.5f;
+  foreach(var list in levelLists){int cols=list.Count==0?1:list.Max(e=>subColumn[e])+1;foreach(var e in list.OrderBy(e=>subColumn[e]).ThenBy(e=>e.Y)){e.No=no++;e.X=cx+subColumn[e]*sub;}
    float last=cx+(cols-1)*sub;Groups.Add(new[]{cx,last+2*R});Cuts.Add(last+2*R+40);cx=last+LevelW;}
-  Right=cx-LevelW+2*R+20;return new SizeF(Right,height);}
-
+  Right=cx-LevelW+2*R+20;return new SizeF(Right,Height);}
+ /* a level with more events than fit one above the other (each needs room for the labels of its arrows) is split into
+    sub-columns, the events that only lead to FINISH in the last one; the order and the heights come from the layered
+    placement (NetLayout): arrows of the same height run straight, long arrows keep a free lane through the columns, an
+    event whose only successor is FINISH stays at the bottom of its column (short drop to the collector). A few weightings
+    are tried and the one whose routed drawing has the fewest crossings and bends is kept (for networks of moderate size). */
+ void Place(float usable){int levels=Events.Count==0?0:Events.Max(e=>e.Level);levelLists.Clear();subColumn.Clear();const float minStep=64,step=78;
+  /* a big network keeps a row of room above and below its events for the lines that go round its crowded columns */
+  bool big=Arrows.Count>300;float margin=big?step:0;int perCol=Math.Max(1,(int)((usable-Head-2*R-10-2*margin)/minStep)+1);int n=Events.Count;var index=new Dictionary<AoaEvent,int>();for(int i=0;i<n;i++)index[Events[i]]=i;
+  var layerOf=new int[n];var order=new List<List<int>>();
+  for(int lv=0;lv<=levels;lv++){var list=Events.Where(e=>e.Level==lv).ToList();levelLists.Add(list);if(list.Count==0)continue;int cols=(int)Math.Ceiling(list.Count/(double)perCol);
+   var sorted=list.OrderBy(e=>Arrows.Any(x=>x.Tail==e&&!x.Collector)?0:1).ToList();int per=(int)Math.Ceiling(sorted.Count/(double)cols);
+   for(int c=0;c<cols;c++){var part=sorted.Skip(c*per).Take(per).ToList();foreach(var e in part){subColumn[e]=c;layerOf[index[e]]=order.Count;}order.Add(part.Select(e=>index[e]).ToList());}}
+  var net=new NetLayout(n,layerOf,order);foreach(var e in Events.Where(e=>Arrows.Any(x=>x.Tail==e&&x.Collector)))net.Bottom(index[e]);
+  /* routing order of MakePlan (RouteOrder) */
+  if(Environment.GetEnvironmentVariable("NOSPINE")==null)net.SpineBand=new[]{Head+R+5+margin,usable-R-5-margin,step,step/2,step/2};
+  net.TailLanes=true;var routed=RouteOrder();
+  for(int i=0;i<routed.Count;i++)net.Edge(index[routed[i].Tail],index[routed[i].Head],routed[i].Activity!=null?2:1,routed[i].Critical,i);
+  net.Order(24);
+  var t=new NetLayout.Tune{Mu=0.1f,Crit=1,Pass=step/2,CritRise=1,Margin=margin};{var ov=Environment.GetEnvironmentVariable("NETTUNE");if(ov!=null){var q=ov.Split(',').Select(z=>float.Parse(z,IC)).ToArray();t.Mu=q[0];t.Crit=q[1];t.CritRise=q[2];if(q.Length>3)t.Lam=q[3];if(q.Length>4)t.Near=q[4];}}net.Assign(Head+R+5,usable-R-5,step,step/2,minStep,k=>0,t);
+  for(int i=0;i<n;i++)Events[i].Y=net.Y[i];if(Environment.GetEnvironmentVariable("NETDBG")!=null){PlaceX();Console.Error.WriteLine(net.Dump(i=>Events[i].No+(Events[i].Critical?"*":"")));}}
  static void Event(Graphics g,RectangleF c,string no,string te,string tl,bool crit,Font font,Font bold,Pen ring,Pen critRing,Brush ink,Brush red,Brush white){var mid=new StringFormat{Alignment=StringAlignment.Center,LineAlignment=StringAlignment.Center,FormatFlags=StringFormatFlags.NoWrap};
   g.FillEllipse(white,c);var pen=crit?critRing:ring;g.DrawEllipse(pen,c);float cy=c.Y+c.Height/2;g.DrawLine(pen,c.X,cy,c.Right,cy);g.DrawLine(pen,c.X+c.Width/2,cy,c.X+c.Width/2,c.Bottom);
   g.DrawString(no,bold,crit?red:ink,new RectangleF(c.X-4,c.Y+2,c.Width+8,c.Height/2-2),mid);g.DrawString(te,font,ink,new RectangleF(c.X+1,cy,c.Width/2-1,c.Height/2-4),mid);g.DrawString(tl,font,ink,new RectangleF(c.X+c.Width/2,cy,c.Width/2-1,c.Height/2-4),mid);}
@@ -102,82 +118,197 @@ sealed class PertAoa {
     touch an event, another line or another label; labels are centred on the longest piece of their run that lies on one
     sheet, so no text is split by a sheet join */
  internal sealed class Plan {internal readonly List<KeyValuePair<PointF[],int>> Lines=new List<KeyValuePair<PointF[],int>>();/* 0 activity, 1 critical activity, 2 dummy, 3 critical dummy, 5 dashed collector piece without arrowhead, 6 lag arrow, 7 critical lag arrow */
-  internal readonly List<PlanLabel> Labels=new List<PlanLabel>();internal readonly List<RectangleF> Boxes=new List<RectangleF>();}
+  internal readonly List<PlanLabel> Labels=new List<PlanLabel>();internal readonly List<RectangleF> Boxes=new List<RectangleF>();
+  internal readonly List<int> LabelLine=new List<int>();/* the line each label belongs to */}
  internal sealed class PlanLabel {internal RectangleF Rect;internal string Text;internal bool Bold,Critical,Muted,Truncated;}
  internal Plan LastPlan;
- internal Plan MakePlan(Graphics g,Font font,Font bold,IList<float> joins){var plan=new Plan();joins=joins??new float[0];float th=g.MeasureString("0",font).Height;
+ /* x ranges printed on two sheets (the repeated event column of a continuation sheet and the arrows in front of it): an
+    arrow label placed there shows on both sheets, so the arrow into a repeated event keeps its no. and te / lag */
+ internal List<float[]> Repeats=new List<float[]>();
+ /* the plan is made once per layout (Layout sets a new stamp), event positions, sheet joins, repeated ranges and text size,
+    and is then reused by every sheet, every repaint and the drawing checks */
+ int layoutStamp;readonly List<KeyValuePair<string,Plan>> plans=new List<KeyValuePair<string,Plan>>();
+ string PlanKey(Graphics g,Font font,Font bold,IList<float> joins){var sb=new System.Text.StringBuilder();long h=17;
+  foreach(var e in Events){h=h*31+e.X.GetHashCode();h=h*31+e.Y.GetHashCode();h=h*31+e.No;}foreach(var x in Arrows){h=h*31+x.Tail.No;h=h*31+x.Head.No;h=h*31+x.Lag;}
+  sb.Append(layoutStamp).Append('|').Append(h).Append('|').Append(Events.Count).Append('|').Append(Arrows.Count).Append('|').Append(Height.ToString("R",IC)).Append('|').Append(Right.ToString("R",IC)).Append('|');
+  foreach(var j in joins??new float[0])sb.Append(j.ToString("R",IC)).Append(',');sb.Append('|');foreach(var r in Repeats)sb.Append(r[0].ToString("R",IC)).Append('-').Append(r[1].ToString("R",IC)).Append(',');
+  var m=g.Transform.Elements;sb.Append('|').Append(font.Name).Append(font.SizeInPoints.ToString("R",IC)).Append(font.Style).Append(bold.Name).Append(bold.SizeInPoints.ToString("R",IC)).Append(bold.Style).Append('|').Append(g.PageUnit).Append(g.PageScale.ToString("R",IC)).Append(g.DpiX.ToString("R",IC))
+   .Append('|').Append(m[0].ToString("R",IC)).Append(',').Append(m[1].ToString("R",IC)).Append(',').Append(m[2].ToString("R",IC)).Append(',').Append(m[3].ToString("R",IC))
+   .Append('|').Append(g.MeasureString("0",font).Height.ToString("R",IC)).Append('|').Append(g.MeasureString("te 98  (78.4 / 98 / 117.6)",font).Width.ToString("R",IC)).Append('|').Append(g.MeasureString("38  1032(1)a",bold).Width.ToString("R",IC));
+  return sb.ToString();}
+ internal Plan MakePlan(Graphics g,Font font,Font bold,IList<float> joins){var key=PlanKey(g,font,bold,joins);foreach(var kv in plans)if(kv.Key==key)return kv.Value;
+  var plan=Route(g,font,bold,joins);plans.Insert(0,new KeyValuePair<string,Plan>(key,plan));if(plans.Count>2)plans.RemoveAt(2);return plan;}
+ /* routing order: the critical arrows first (activities, then lag arrows and dummies), so the critical path keeps the
+    straight lane at the height of its events; then the other activities, then the other dummies and lag arrows; shorter
+    ones first. The layout (NetLayout) uses the same order for its cost of the lanes out of an event. */
+ internal List<AoaArrow> RouteOrder(){return Arrows.Where(x=>!x.Collector).OrderBy(x=>!x.Critical).ThenBy(x=>x.Activity==null).ThenBy(x=>x.Head.X-x.Tail.X).ThenBy(x=>x.Tail.No).ThenBy(x=>x.Head.No).ToList();}
+ /* least horizontal room kept between two labels (room for the lines that pass between them) */
+ const float LabelGap=24;
+ /* lane choice of the single run: a crossing of another line and a bend in drawing units of vertical travel */
+ static float LaneCross=Environment.GetEnvironmentVariable("LANECROSS")==null?60:float.Parse(Environment.GetEnvironmentVariable("LANECROSS")),LaneBend=Environment.GetEnvironmentVariable("LANEBEND")==null?20:float.Parse(Environment.GetEnvironmentVariable("LANEBEND"));
+ /* costs of the route by stages (in drawing units of vertical travel) */
+ const float BendCost=50,CrossCost=90,ShareCost=20,OverlapCost=2000,LabelCost=5e4f,TextCost=1e5f,EventCost=1e6f;
+ Plan Route(Graphics g,Font font,Font bold,IList<float> joins){var plan=new Plan();joins=joins??new float[0];float th=g.MeasureString("0",font).Height;
   var boxes=Events.ToDictionary(e=>e,e=>new RectangleF(e.X-6,e.Y-R-6,2*R+12,2*R+12));plan.Boxes.AddRange(Events.Select(e=>new RectangleF(e.X,e.Y-R,2*R,2*R)));
-  var lanes=NetRoute.Corridors(boxes.Values.ToList(),0,Height-Foot);for(float y=Head+th+2;y<Height-Foot-th-2;y+=5)lanes.Add(y);/* labels must stay inside the drawing */
-  float collector=Math.Min(Height-8,(Events.Count==0?Height-Foot:Events.Max(e=>e.Y+R))+16);
-  var bands=new List<RectangleF>();var texts=new List<RectangleF>();var vlines=new List<RectangleF>();
-  var groups=new List<Tuple<int,int,int,Func<float,float,float,List<RectangleF>>,float,float>>();/* line, first label, labels, label rectangles (y, centre, room), room, need */
+  /* lanes: never below the last event row (the collector to FINISH runs there) and never above the top of the drawing */
+  float lowest=Events.Count==0?Height-Foot:Events.Max(e=>e.Y+R);float yTop=Head+th+2,yBottom=Math.Min(Height-Foot-th-2,lowest+10);
+  var lanes=NetRoute.Corridors(boxes.Values.ToList(),0,Height-Foot).Where(y=>y>=yTop&&y<=yBottom).ToList();for(float y=yTop;y<=yBottom;y+=5)lanes.Add(y);lanes=lanes.Distinct().ToList();
+  float collector=Math.Min(Height-8,lowest+16);
+  var bands=new List<RectangleF>();var texts=new List<RectangleF>();var vlines=new List<RectangleF>();var allBoxes=boxes.Values.ToList();var colXs=Events.Select(e=>e.X).Distinct().OrderBy(x=>x).ToList();/* event columns (and sub-columns) */
+  var groups=new List<Tuple<int,int,int,Func<float,float,float,List<RectangleF>>,float,float>>();/* line, first label, labels, label rectangles (y, centre, room), room, need */var groupFlags=new List<bool[]>();var groupLead=new List<float[]>();/* lead-in, lag label (may go below its line) */
   /* the collector to the finish event (drawn last) is reserved first, so no arrow or label is placed on it */
   {var cl=Arrows.Where(x=>x.Collector).ToList();if(cl.Count>0){float fx0=cl[0].Head.X-26;foreach(var grp in cl.GroupBy(x=>x.Tail.X)){float cx0=grp.Key+2*R+10;vlines.Add(new RectangleF(cx0-1.5f,grp.Min(x=>x.Tail.Y),3,collector-grp.Min(x=>x.Tail.Y)));}
     float c0=cl.Min(x=>x.Tail.X)+2*R+10;bands.Add(new RectangleF(c0,collector-2,fx0-c0,4));vlines.Add(new RectangleF(fx0-1.5f,Math.Min(collector,cl[0].Head.Y),3,Math.Abs(collector-cl[0].Head.Y)));}}
-  Func<float,float,float,float,PointF> edge=(cx,cy,px,py)=>{float vx=px-cx,vy=py-cy,len=(float)Math.Sqrt(vx*vx+vy*vy);return len<0.01f?new PointF(cx+R,cy):new PointF(cx+vx/len*R,cy+vy/len*R);};
-  Func<RectangleF,IEnumerable<RectangleF>,int> hits=(r,list)=>list.Count(o=>o.IntersectsWith(r));
-  foreach(var ar in Arrows.OrderBy(x=>x.Collector).ThenBy(x=>x.Activity==null).ThenBy(x=>!x.Critical).ThenBy(x=>x.Head.X-x.Tail.X)){
+  Func<RectangleF,List<RectangleF>,int> hits=(r,list)=>{int c=0;foreach(var o in list)if(o.IntersectsWith(r))c++;return c;};
+  Func<float,float,float,RectangleF> vr=(x,ya,yb)=>new RectangleF(x-1.5f,Math.Min(ya,yb),3,Math.Abs(yb-ya));
+  foreach(var ar in RouteOrder()){
    float tx=ar.Tail.X+R,ty=ar.Tail.Y,hx=ar.Head.X+R,hy=ar.Head.Y;float xa=tx+R+14,xb=hx-R-14;if(xb<xa+10){xa=(tx+hx)/2-5;xb=xa+10;}
    bool timed=ar.Activity==null&&(ar.Lag!=0||ar.Type!="FS");/* a lag arrow carries time but no work: dash-dot; a plain dummy (no time) is dashed */
    int kind=ar.Activity!=null?(ar.Critical?1:0):timed?(ar.Critical?7:6):(ar.Critical?3:2);
-   if(ar.Collector)continue;/* drawn below as one collector */
    string name=null,te=null,lag=null;if(ar.Activity!=null){var pa=ar.Activity;name=pa.Node.Name+"  "+pa.Node.Row.Code;te="te "+pa.Te.ToString("0.#",IC)+"  ("+pa.A.ToString("0.0",IC)+" / "+pa.M.ToString("0.#",IC)+" / "+pa.B.ToString("0.0",IC)+")";}
-   else if(ar.Lag!=0||ar.Type!="FS")lag=ar.Type+(ar.Lag>0?" +"+ar.Lag:ar.Lag<0?" "+ar.Lag:"");
+   else if(timed)lag=ar.Type+(ar.Lag>0?" +"+ar.Lag:ar.Lag<0?" "+ar.Lag:"");
    float wn=name==null?0:g.MeasureString(name,bold).Width,wt=te==null?0:g.MeasureString(te,font).Width,wl=lag==null?0:g.MeasureString(lag,font).Width;
    /* orthogonal arrow: out of the right side of the tail event, a bend just past its column (xa), one horizontal run, a
       bend just before the head column (xb), into the left side of the head event. The run takes the nearest height where
-      the run and both bends touch no event, no label and no other line; the labels go on the longest piece of the run that
-      lies on one sheet, where they touch nothing. If no single height is free, the run steps between free heights in the
-      gaps before the columns that block it (NetRoute.Sweep). */
-   float need=Math.Max(wn,Math.Max(wt,wl));var obsEvents=boxes.Where(k=>k.Key!=ar.Tail&&k.Key!=ar.Head).Select(k=>k.Value).ToList();var allEvents=boxes.Values.ToList();
+      the run and both bends touch no event, no label and no other line and its labels find a free place; the labels go on
+      the piece of the run that lies on one sheet, at the free place nearest its middle. If no single height is free, the
+      run steps between free heights in the gaps before the columns that block it (NetRoute.Sweep). Only the obstacles
+      near the arrow are looked at. */
+   float need=Math.Max(wn,Math.Max(wt,wl));float lx0=xa-LabelGap-12,lx1=xb+LabelGap+12;var leadRange=Repeats.FirstOrDefault(rp=>ar.Head.X>=rp[0]&&ar.Head.X+2*R<=rp[1]&&ar.Tail.X<rp[0]);bool leadIn=leadRange!=null;
+   Func<List<RectangleF>,List<RectangleF>> nearby=list=>{var r=new List<RectangleF>();foreach(var o in list)if(o.Right>lx0&&o.Left<lx1)r.Add(o);return r;};
+   var obsEvents=boxes.Where(k=>k.Key!=ar.Tail&&k.Key!=ar.Head&&k.Value.Right>lx0&&k.Value.Left<lx1).Select(k=>k.Value).ToList();var nEvents=nearby(allBoxes);var nTexts=nearby(texts);var nBands=nearby(bands);var nV=nearby(vlines);
    Func<float,float,float,List<RectangleF>> labelRects=(y,cx,room)=>{var list=new List<RectangleF>();if(name!=null){float w=Math.Min(wn,room);list.Add(new RectangleF(cx-w/2,y-th-1,w,th));}if(te!=null){float w=Math.Min(wt,room);list.Add(new RectangleF(cx-w/2,y+1,w,th));}if(lag!=null){float w=Math.Min(wl,room);list.Add(new RectangleF(cx-w/2,y-th-1,w,th));}return list;};
-   Func<List<RectangleF>,int> labelHits=lr=>lr.Sum(r=>hits(r,allEvents)*10+hits(r,texts)*3+hits(r,bands)*2+hits(r,vlines)*2);
-   Func<float,float,float,RectangleF> vr=(x,ya,yb)=>new RectangleF(x-1.5f,Math.Min(ya,yb),3,Math.Abs(yb-ya));
-   /* best label place on the horizontal pieces {y, from, to}: returns {hits, centre, room, y} */
+   Func<List<RectangleF>,int> labelHits=lr=>{int c=0;foreach(var r in lr)c+=hits(r,nEvents)*10+hits(r,nTexts)*3+hits(r,nBands)*2+hits(r,nV)*2;return c;};
+   /* free label centre on the piece p0..p1 of a run at height y: the label rectangles keep clear of every event (2),
+      every other label (gap, sideways) and every line (3 from a vertical); the free centre nearest the middle of the piece,
+      NaN when there is none */
+   Func<float,float,float,float,float> slot=(y,p0,p1,gap)=>{if(p1-p0<need-0.01f)return float.NaN;float lo=p0+need/2,hi=p1-need/2,mid=(lo+hi)/2;var strips=new List<float[]>();
+    if(name!=null)strips.Add(new[]{y-th-1,y-1,wn});if(te!=null)strips.Add(new[]{y+1,y+1+th,wt});if(lag!=null)strips.Add(new[]{y-th-1,y-1,wl});
+    var blocked=new List<float[]>();Action<List<RectangleF>,float> block=(list,gx)=>{foreach(var st in strips){float hw=st[2]/2;foreach(var o in list)if(o.Top<st[1]&&o.Bottom>st[0]&&o.Right+gx+hw>lo&&o.Left-gx-hw<hi)blocked.Add(new[]{o.Left-gx-hw,o.Right+gx+hw});}};
+    block(nEvents,2);block(nTexts,gap);block(nBands,0);block(nV,3);
+    if(blocked.Count==0)return mid;blocked.Sort((u,v)=>u[0].CompareTo(v[0]));float best=float.NaN,bd=float.MaxValue,at=lo;
+    Action<float,float> free=(a,b)=>{if(b-a<0.2f)return;float c=Math.Max(a+0.1f,Math.Min(b-0.1f,mid));if(Math.Abs(c-mid)<bd){bd=Math.Abs(c-mid);best=c;}};
+    foreach(var b in blocked){if(b[0]>at)free(at,Math.Min(b[0],hi));at=Math.Max(at,b[1]);if(at>hi)break;}if(at<hi)free(at,hi);return best;};
+   /* best label place on the horizontal pieces {y, from, to}: returns {hits, centre, room, y}. A piece printed on two
+      sheets (in front of a repeated event column) is taken first when the labels fit on it */
+   /* the pieces of a run {y, from, to} that lie on one sheet; a lag label may also go below its line (label height y + th + 2) */
+   Func<float,float,float,List<float[]>> piecesOf=(y,x0,x1)=>{var list=new List<float[]>();float p0=x0+4;foreach(var c in joins.Where(c=>c>x0+4&&c<x1-4).OrderBy(c=>c).Concat(new[]{x1-4})){list.Add(new[]{y,p0,c});p0=c;}return list;};
+   Func<float[],bool> repeated=pc=>pc[2]-pc[1]>=need+8&&(leadIn?new[]{leadRange}:Repeats.ToArray()).Any(rp=>pc[1]>=rp[0]-0.5f&&pc[2]<=rp[1]+0.5f);
+   Func<float[],float,float> freeAt=(pc,gap)=>{float c=slot(pc[0],pc[1],pc[2],gap);if(float.IsNaN(c)&&lag!=null&&name==null){c=slot(pc[0]+th+2,pc[1],pc[2],gap);if(!float.IsNaN(c))pc[0]+=th+2;}return c;};
+   /* best label place on the horizontal pieces {y, from, to}: returns {hits, centre, room, label y}. A piece printed on two
+      sheets (in front of a repeated event column) is taken first when the labels fit on it; an arrow into a repeated
+      event column (lead-in) has its labels there, elsewhere they count as a touch, so another lane is looked for */
+   int away=leadIn?2:0;
    Func<List<float[]>,float[]> place=runs=>{if(need<=0)return new float[]{0,0,0,runs.Count>0?runs[0][0]:ty};float[] best=null;
-    var pieces=new List<float[]>();foreach(var run in runs){float p0=run[1]+4;foreach(var c in joins.Where(c=>c>run[1]+4&&c<run[2]-4).OrderBy(c=>c).Concat(new[]{run[2]-4})){pieces.Add(new[]{run[0],p0,c});p0=c;}}
-    foreach(var pc in pieces.OrderByDescending(pc=>Math.Min(pc[2]-pc[1],need))){float len=pc[2]-pc[1];if(len<=1)continue;float room=Math.Min(len,need);float lo=pc[1]+room/2,hi=pc[2]-room/2;float m=(lo+hi)/2;
-     for(int k=0;k<=60;k++){float off=(k+1)/2*6f*(k%2==0?1:-1);float cx=m+off;if(cx<lo-0.01f||cx>hi+0.01f){if(k>1&&Math.Abs(off)>(hi-lo)/2+6)break;continue;}int h=labelHits(labelRects(pc[0],cx,room))+(room<need-0.5f?6:0);
-      if(best==null||h<best[0]){best=new float[]{h,cx,room,pc[0]};if(h==0)return best;}}}
+    var pieces=new List<float[]>();foreach(var run in runs)pieces.AddRange(piecesOf(run[0],run[1],run[2]));
+    var ordered=pieces.OrderByDescending(pc=>repeated(pc)?1:0).ThenByDescending(pc=>Math.Min(pc[2]-pc[1],need)).ToList();
+    foreach(var set in new[]{ordered.Where(repeated).ToList(),ordered.Where(pc=>!repeated(pc)).ToList()}){foreach(var gap in new[]{LabelGap,6f})foreach(var pc0 in set){var pc=(float[])pc0.Clone();float c=freeAt(pc,gap);if(!float.IsNaN(c))return new float[]{repeated(pc0)?0:away,c,need,pc[0]};}}
+    foreach(var pc in ordered){float len=pc[2]-pc[1];if(len<=1)continue;float room=Math.Min(len,need);float lo=pc[1]+room/2,hi=pc[2]-room/2;float m=(lo+hi)/2;
+     for(int k=0;k<=60;k++){float off=(k+1)/2*6f*(k%2==0?1:-1);float cx=m+off;if(cx<lo-0.01f||cx>hi+0.01f){if(k>1&&Math.Abs(off)>(hi-lo)/2+6)break;continue;}int h=labelHits(labelRects(pc[0],cx,room))+(room<need-0.5f?6:0)+1+(repeated(pc)?0:away);
+      if(best==null||h<best[0])best=new float[]{h,cx,room,pc[0]};}}
     return best??new float[]{50,(xa+xb)/2,Math.Max(1,xb-xa),runs.Count>0?runs[0][0]:ty};};
-   var cands=new List<float>{ty,hy};cands.AddRange(lanes);float pick=float.NaN,pickCost=float.MaxValue;int pickHits=int.MaxValue;float[] pickPlace=null;
-   foreach(var y in cands.Distinct().OrderBy(y=>Math.Abs(y-ty)+Math.Abs(y-hy)-(ar.Activity==null&&Math.Abs(y-ty)<0.5f?1:0))){
+   bool dbgArrow=Environment.GetEnvironmentVariable("NETDBG2")==((int)ar.Tail.X)+"-"+((int)ar.Head.X)+"-"+((int)ty);if(dbgArrow)Console.Error.WriteLine("ARROW "+ar.Tail.No+">"+ar.Head.No+" leadIn="+leadIn+" need="+need);
+   var cands=new List<float>{ty,hy};cands.AddRange(lanes);float pick=float.NaN,pickCost=float.MaxValue;int pickHits=int.MaxValue,pickTouch=0;float[] pickPlace=null;
+   /* lines crossed by the run at height y and by its two bends */
+   Func<float,int> crossingsAt=y=>{int c=0;foreach(var v in nV){float vx=v.X+1.5f;if(vx>xa+0.5f&&vx<xb-0.5f&&y>v.Top+0.5f&&y<v.Bottom-0.5f)c++;}
+    float a1=Math.Min(ty,y),b1=Math.Max(ty,y),a2=Math.Min(y,hy),b2=Math.Max(y,hy);foreach(var b in nBands){float by=b.Y+b.Height/2;if(b.Left<xa-0.5f&&b.Right>xa+0.5f&&by>a1+0.5f&&by<b1-0.5f)c++;if(b.Left<xb-0.5f&&b.Right>xb+0.5f&&by>a2+0.5f&&by<b2-0.5f)c++;}return c;};
+   /* the lane: fewest touches first, then the least of crossings, bends and vertical travel */
+   double laneCost=double.MaxValue;
+   foreach(var y in cands.Distinct().OrderBy(y=>Math.Abs(y-ty)+Math.Abs(y-hy))){
+    if(y>yBottom+0.01f&&Math.Abs(y-ty)>0.01f&&Math.Abs(y-hy)>0.01f)continue;float dist=Math.Abs(y-ty)+Math.Abs(y-hy);if(pickHits==0&&dist>=laneCost)break;
     var band=new RectangleF(xa,y-2,xb-xa,4);var v1=vr(xa,ty,y);var v2=vr(xb,y,hy);
-    int bh=hits(band,obsEvents)*20+hits(band,texts)*4+hits(band,bands)*2+(hits(v1,obsEvents)+hits(v2,obsEvents))*20+(hits(v1,texts)+hits(v2,texts))*4;if(bh>pickHits)continue;var pl=place(new List<float[]>{new[]{y,xa,xb}});
-    int h=bh+(int)pl[0];if(h==0){pick=y;pickHits=0;pickPlace=pl;break;}float cost=Math.Abs(y-ty)+Math.Abs(y-hy);if(h<pickHits||(h==pickHits&&cost<pickCost)){pickHits=h;pickCost=cost;pick=y;pickPlace=pl;}}
+    int bh=hits(band,obsEvents)*20+hits(band,nTexts)*4+hits(band,nBands)*2+(hits(v1,obsEvents)+hits(v2,obsEvents))*20+(hits(v1,nTexts)+hits(v2,nTexts))*4;if(dbgArrow&&Math.Abs(y-ty)<60)Console.Error.WriteLine("   try "+y+" bh="+bh+" ev="+hits(band,obsEvents)+" tx="+hits(band,nTexts)+" bd="+hits(band,nBands)+" v1="+hits(v1,obsEvents)+"/"+hits(v1,nTexts)+" v2="+hits(v2,obsEvents)+"/"+hits(v2,nTexts));if(bh>pickHits)continue;
+    double cost=crossingsAt(y)*LaneCross+dist+((Math.Abs(y-ty)>0.5f?2:0)+(Math.Abs(y-hy)>0.5f?2:0))*LaneBend-(ar.Activity==null&&Math.Abs(y-ty)<0.5f?1:0);if(bh==pickHits&&cost>=laneCost)continue;
+    var pl=place(new List<float[]>{new[]{y,xa,xb}});int h=bh+(int)pl[0];if(h>pickHits||h==pickHits&&cost>=laneCost)continue;
+    int touch=hits(band,obsEvents)+hits(band,nTexts)+hits(v1,obsEvents)+hits(v2,obsEvents)+hits(v1,nTexts)+hits(v2,nTexts)+(pl[0]>0?1:0);if(dbgArrow)Console.Error.WriteLine("  lane "+y+" bh="+bh+" pl="+pl[0]+" cost="+cost);
+    pickHits=h;laneCost=cost;pick=y;pickPlace=pl;pickTouch=touch;}
    List<PointF> route=new List<PointF>{new PointF(tx+R,ty),new PointF(xa,ty),new PointF(xa,pick),new PointF(xb,pick),new PointF(xb,hy),new PointF(hx-R,hy)};
-   if(pickHits>=4){/* no free single height: step between free heights (NetRoute.Sweep) and keep it if it touches less */int cost;var hard=obsEvents.Concat(texts.Select(t=>RectangleF.Inflate(t,1,1))).ToList();
-    var alt=NetRoute.Sweep(tx+R,ty,xa,xb,hx-R,hy,hard,bands,joins,0,Height-Foot,out cost,lanes);if(cost>=100){/* no way round the labels: keep clear of the events at least */alt=NetRoute.Sweep(tx+R,ty,xa,xb,hx-R,hy,obsEvents,bands.Concat(texts).ToList(),joins,0,Height-Foot,out cost,lanes);}var ap=NetRoute.Path(alt.ToArray());var runs=new List<float[]>();int score=0;
-    for(int k=0;k+1<ap.Length;k++){var p=ap[k];var q=ap[k+1];if(Math.Abs(p.Y-q.Y)<0.01f){var rr=new RectangleF(Math.Min(p.X,q.X),p.Y-2,Math.Abs(q.X-p.X),4);score+=hits(rr,obsEvents)*20+hits(rr,texts)*4+hits(rr,bands)*2;if(k>0&&k+2<ap.Length&&q.X>p.X)runs.Add(new[]{p.Y,p.X,q.X});}
-     else{var rr=vr(p.X,p.Y,q.Y);score+=hits(rr,obsEvents)*20+hits(rr,texts)*4;}}
+   /* no clean single height (a touch, or no free place for the labels): the cheapest route by stages (NetRoute.Staged),
+      one height per stage and a step only just in front of a column it passes; it is taken when it touches no event, no
+      label and no other line and its labels find a free place */
+   if(pickHits>0){
+    var ys=lanes.Concat(new[]{ty,hy}).Select(y=>(float)Math.Round(y,2)).Distinct().OrderBy(y=>y).ToArray();int L=ys.Length;
+    /* stage boundaries: a step just in front of every event column passed and, for a lead-in, just after the join where
+       the continuation sheet starts (so the last stage can take a height where the labels fit on that sheet) */
+    var steps=colXs.Where(cx=>cx>ar.Tail.X+2*R+1&&cx<ar.Head.X-1).Select(cx=>cx-26).ToList();if(leadIn)steps.Add(leadRange[0]+12);
+    var bx=new List<float>{xa};foreach(var x0 in steps.OrderBy(x=>x)){float x=x0;int tries=0;while(joins.Any(j=>Math.Abs(j-x)<10)&&tries++<10)x+=x0>=(leadIn?leadRange[0]:float.MaxValue)?2:-6;if(x>bx[bx.Count-1]+30&&x<xb-30)bx.Add(x);}bx.Add(xb);int S=bx.Count-1;
+    var hc=new float[S,L];var labC=new float[S,L];
+    for(int st=0;st<S;st++){float x0=bx[st],x1=bx[st+1];var diff=new double[L+1];for(int i=0;i<L;i++)labC[st,i]=float.NaN;
+     foreach(var o in obsEvents)if(o.Right>x0&&o.Left<x1)NetRoute.AddOpen(diff,ys,o.Top-2,o.Bottom+2,EventCost);
+     foreach(var o in nTexts)if(o.Right>x0&&o.Left<x1)NetRoute.AddOpen(diff,ys,o.Top-2,o.Bottom+2,TextCost);
+     foreach(var o in nBands)if(Math.Min(o.Right,x1)-Math.Max(o.Left,x0)>1){float c=o.Y+o.Height/2;NetRoute.AddOpen(diff,ys,c-4,c+4,OverlapCost);}
+     foreach(var v in nV){float vx=v.X+1.5f;if(vx>x0+0.5f&&vx<x1-0.5f)NetRoute.AddOpen(diff,ys,v.Top+0.5f,v.Bottom-0.5f,CrossCost);}
+     double run=0;for(int i=0;i<L;i++){run+=diff[i];hc[st,i]=(float)run;}}
+    Func<int,int,float> lab=(st,i)=>{if(!float.IsNaN(labC[st,i]))return labC[st,i];float v=LabelCost;
+     if(hc[st,i]<TextCost)foreach(var pc in piecesOf(ys[i],bx[st],bx[st+1])){if(leadIn&&!repeated(pc))continue;if(!float.IsNaN(freeAt((float[])pc.Clone(),6))){v=0;break;}}
+     labC[st,i]=v;return v;};
+    Func<float,int,Func<float,float,float>> vertical=(x,role)=>{var hard=new List<float[]>();foreach(var o in obsEvents)if(o.Left<x+1.5f&&o.Right>x-1.5f)hard.Add(new[]{o.Top,o.Bottom,EventCost});foreach(var o in nTexts)if(o.Left<x+1.5f&&o.Right>x-1.5f)hard.Add(new[]{o.Top,o.Bottom,TextCost});
+     var cy=nBands.Where(b=>b.Left<x-0.5f&&b.Right>x+0.5f).Select(b=>b.Y+b.Height/2).OrderBy(v=>v).ToArray();var ov=new List<float[]>();foreach(var v in nV)if(Math.Abs(v.X+1.5f-x)<3)ov.Add(new[]{v.Top,v.Bottom});
+     return (ya,yb)=>{float lo=Math.Min(ya,yb),hi=Math.Max(ya,yb);if(hi-lo<0.01f)return 0;float c=hi-lo+2*BendCost;foreach(var h in hard)if(h[1]>lo&&h[0]<hi)c+=h[2];c+=CrossCost*NetRoute.Between(cy,lo+0.5f,hi-0.5f);foreach(var o in ov)if(Math.Min(o[1],hi)-Math.Max(o[0],lo)>1)c+=ShareCost;return c;};};
+    float total;var laneOf=NetRoute.Staged(ys,bx,ty,hy,hc,need>0?lab:null,vertical,BendCost,i=>0,out total);
+    if(dbgArrow)Console.Error.WriteLine("  staged total="+total+" S="+S+" lanes="+string.Join(",",laneOf.Select(q=>ys[q])));
+    /* taken when it is clean (no event, label or overlap) and better, or when the single height touches an event or a
+       label or leaves the labels without a free place and the stepped route does not (crossings and overlaps aside) */
+    if(total<OverlapCost||total<LabelCost&&pickTouch>0){var sr=new List<PointF>{new PointF(tx+R,ty),new PointF(xa,ty)};var sruns=new List<float[]>();
+     for(int st=0;st<S;st++){float y=ys[laneOf[st]];sr.Add(new PointF(bx[st],y));sr.Add(new PointF(bx[st+1],y));if(sruns.Count>0&&Math.Abs(sruns[sruns.Count-1][0]-y)<0.01f)sruns[sruns.Count-1][2]=bx[st+1];else sruns.Add(new[]{y,bx[st],bx[st+1]});}
+     sr.Add(new PointF(xb,hy));sr.Add(new PointF(hx-R,hy));var spl=place(sruns);if(dbgArrow)Console.Error.WriteLine("  staged place "+string.Join(",",spl)+" pickHits="+pickHits);if(spl[0]<pickHits||pickTouch>0&&spl[0]==0){route=sr;pickPlace=spl;pickHits=(int)spl[0];}}}
+   if(pickHits>=4){/* no free single height: step between free heights (NetRoute.Sweep) and keep it if it touches less */int cost;var hard=obsEvents.Concat(nTexts.Select(t=>RectangleF.Inflate(t,1,1))).ToList();
+    var alt=NetRoute.Sweep(tx+R,ty,xa,xb,hx-R,hy,hard,nBands,joins,yTop-4,yBottom+4,out cost,lanes);if(cost>=100){/* no way round the labels: keep clear of the events at least */alt=NetRoute.Sweep(tx+R,ty,xa,xb,hx-R,hy,obsEvents,nBands.Concat(nTexts).ToList(),joins,yTop-4,yBottom+4,out cost,lanes);}var ap=NetRoute.Path(alt.ToArray());var runs=new List<float[]>();int score=0;
+    for(int k=0;k+1<ap.Length;k++){var p=ap[k];var q=ap[k+1];if(Math.Abs(p.Y-q.Y)<0.01f){var rr=new RectangleF(Math.Min(p.X,q.X),p.Y-2,Math.Abs(q.X-p.X),4);score+=hits(rr,obsEvents)*20+hits(rr,nTexts)*4+hits(rr,nBands)*2;if(k>0&&k+2<ap.Length&&q.X>p.X)runs.Add(new[]{p.Y,p.X,q.X});}
+     else{var rr=vr(p.X,p.Y,q.Y);score+=hits(rr,obsEvents)*20+hits(rr,nTexts)*4;}}
     if(runs.Count==0)runs.Add(new[]{ty,xa,xb});var pl=place(runs);score+=(int)pl[0]+2;
     /* crossing an event is never accepted when the stepped route avoids it */
     Func<IList<PointF>,int> eventHits=pts=>{int c=0;for(int k=0;k+1<pts.Count;k++){var p=pts[k];var q=pts[k+1];var rr=Math.Abs(p.Y-q.Y)<0.01f?new RectangleF(Math.Min(p.X,q.X),p.Y-2,Math.Abs(q.X-p.X),4):vr(p.X,p.Y,q.Y);c+=hits(rr,obsEvents);}return c;};
     int pe=eventHits(NetRoute.Path(route.ToArray())),ae=eventHits(ap);if(ae<pe||(ae==pe&&score<pickHits)){route=alt;pickPlace=pl;pickHits=score;}}
+   if(dbgArrow)Console.Error.WriteLine("  final "+string.Join(" ",route.Select(q=>(int)q.X+","+(int)q.Y))+" label "+string.Join(",",pickPlace));
    ar.Score=pickHits;var path=NetRoute.Path(route.ToArray());
    for(int k=0;k+1<path.Length;k++){var p=path[k];var q=path[k+1];if(Math.Abs(p.Y-q.Y)<0.01f)bands.Add(new RectangleF(Math.Min(p.X,q.X),p.Y-2,Math.Abs(q.X-p.X),4));else if(Math.Abs(p.X-q.X)<0.01f)vlines.Add(vr(p.X,p.Y,q.Y));}
    float ly=pickPlace[3];var rects=need>0?labelRects(ly,pickPlace[1],pickPlace[2]):new List<RectangleF>();texts.AddRange(rects);
    plan.Lines.Add(new KeyValuePair<PointF[],int>(path,kind));
-   if(rects.Count>0)groups.Add(Tuple.Create(plan.Lines.Count-1,plan.Labels.Count,rects.Count,labelRects,pickPlace[2],need));
-   int ri=0;float rm=pickPlace[2];if(name!=null)plan.Labels.Add(new PlanLabel{Rect=rects[ri++],Text=name,Bold=true,Critical=ar.Critical,Truncated=rm<wn-0.5f});if(te!=null)plan.Labels.Add(new PlanLabel{Rect=rects[ri++],Text=te,Muted=true,Truncated=rm<wt-0.5f});if(lag!=null)plan.Labels.Add(new PlanLabel{Rect=rects[ri++],Text=lag,Critical=ar.Critical,Muted=!ar.Critical,Truncated=rm<wl-0.5f});}
+   if(rects.Count>0){groups.Add(Tuple.Create(plan.Lines.Count-1,plan.Labels.Count,rects.Count,labelRects,pickPlace[2],need));groupFlags.Add(new[]{leadIn,lag!=null&&name==null});groupLead.Add(leadRange);}
+   int ri=0;float rm=pickPlace[2];if(name!=null)plan.Labels.Add(new PlanLabel{Rect=rects[ri++],Text=name,Bold=true,Critical=ar.Critical,Truncated=rm<wn-0.5f});if(te!=null)plan.Labels.Add(new PlanLabel{Rect=rects[ri++],Text=te,Muted=true,Truncated=rm<wt-0.5f});if(lag!=null)plan.Labels.Add(new PlanLabel{Rect=rects[ri++],Text=lag,Critical=ar.Critical,Muted=!ar.Critical,Truncated=rm<wl-0.5f});
+   while(plan.LabelLine.Count<plan.Labels.Count)plan.LabelLine.Add(plan.Lines.Count-1);}
   /* collector: from each last event a short dummy to the right, one vertical line per event column down to the collector
      and one collector line to the finish event, drawn once so the dashes stay readable */
   var coll=Arrows.Where(x=>x.Collector).ToList();if(coll.Count>0){var fin=coll[0].Head;float fx=fin.X-26;var colX=new List<float>();
    foreach(var grp in coll.GroupBy(x=>x.Tail.X)){float cx0=grp.Key+2*R+10;colX.Add(cx0);foreach(var ar in grp)plan.Lines.Add(new KeyValuePair<PointF[],int>(new[]{new PointF(ar.Tail.X+2*R,ar.Tail.Y),new PointF(cx0,ar.Tail.Y)},5));
     plan.Lines.Add(new KeyValuePair<PointF[],int>(new[]{new PointF(cx0,grp.Min(x=>x.Tail.Y)),new PointF(cx0,collector)},5));}
    plan.Lines.Add(new KeyValuePair<PointF[],int>(NetRoute.Path(new[]{new PointF(colX.Min(),collector),new PointF(fx,collector),new PointF(fx,fin.Y),new PointF(fin.X,fin.Y)}),2));}
+  /* lead-in repair: an arrow into a repeated event column whose labels found no place on the continuation sheet steps,
+     just after the join where that sheet starts, to the nearest height where the step and the run touch no event and no
+     label and the labels fit; the run then goes on to the arrowhead as before */
+  for(int gi=0;gi<groups.Count;gi++){var lr=groupLead[gi];if(lr==null)continue;var gp=groups[gi];int own=gp.Item1;var mine=plan.Labels.Skip(gp.Item2).Take(gp.Item3).Select(l=>l.Rect).ToList();
+   if(mine.Any(r=>r.Left>=lr[0]&&r.Right<=lr[1]))continue;var path=plan.Lines[own].Key;float x0s=lr[0]+12;int seg=-1;
+   for(int k=1;k+2<path.Length;k++)if(Math.Abs(path[k].Y-path[k+1].Y)<0.01f&&path[k].X<x0s-10&&path[k+1].X>x0s+gp.Item6+8){seg=k;break;}
+   if(seg<0)continue;var p=path[seg];var q=path[seg+1];var nx=path[seg+2];if(Math.Abs(nx.X-q.X)>0.01f)continue;/* the run is followed by the drop into the head */
+   var otherLabels=plan.Labels.Where((l,i)=>i<gp.Item2||i>=gp.Item2+gp.Item3).Select(l=>l.Rect).ToList();var evs=boxes.Values.Where(b=>b.Right>x0s-3&&b.Left<q.X+3).ToList();
+   var hs=new List<RectangleF>();var vs=new List<RectangleF>();for(int i=0;i<plan.Lines.Count;i++){if(i==own)continue;var pl=plan.Lines[i].Key;for(int k=0;k+1<pl.Length;k++){var a0=pl[k];var b0=pl[k+1];if(Math.Abs(a0.Y-b0.Y)<0.01f)hs.Add(new RectangleF(Math.Min(a0.X,b0.X),a0.Y-2,Math.Abs(b0.X-a0.X),4));else if(Math.Abs(a0.X-b0.X)<0.01f)vs.Add(vr(a0.X,a0.Y,b0.Y));}}
+   Func<RectangleF,bool> clear=r=>!evs.Any(b=>b.IntersectsWith(r))&&!otherLabels.Any(b=>b.IntersectsWith(r));
+   PointF[] np=null;List<RectangleF> nl=null;
+   for(float xs=x0s;np==null&&xs<q.X-gp.Item6-12;xs+=6){if(joins.Any(j=>Math.Abs(j-xs)<10))continue;
+    foreach(var y2 in lanes.Where(y=>Math.Abs(y-p.Y)>3).OrderBy(y=>Math.Abs(y-p.Y))){
+     /* the drop into the head below / above the new height is part of the old drop when y2 lies between */
+     var v1=vr(xs,p.Y,y2);var run=new RectangleF(xs,y2-2,q.X-xs,4);bool inside=y2>Math.Min(p.Y,nx.Y)&&y2<Math.Max(p.Y,nx.Y);var v2=vr(q.X,y2,nx.Y);
+     if(!clear(v1)||!clear(run)||!inside&&!clear(v2)||hs.Any(b=>b.IntersectsWith(run)))continue;
+     var rs=new List<RectangleF>();float lo=xs+4+gp.Item6/2,hi=q.X-4-gp.Item6/2;bool ok=false;if(hi<lo)continue;
+     for(float st=0;Math.Abs(st)<=(hi-lo)/2+0.01f;st=st<=0?-st+3:-st){rs=gp.Item4(y2,(lo+hi)/2+st,gp.Item5);if(rs.Any(r=>!clear(r)||r.Left<lr[0]||r.Right>lr[1]||hs.Any(b=>b.IntersectsWith(r))||vs.Any(b=>b.IntersectsWith(r))||joins.Any(j=>r.Left<j&&r.Right>j)))continue;ok=true;break;}
+     if(!ok)continue;var list=path.Take(seg+1).ToList();list.Add(new PointF(xs,p.Y));list.Add(new PointF(xs,y2));list.Add(new PointF(q.X,y2));list.AddRange(path.Skip(seg+2));np=NetRoute.Path(list.ToArray());nl=rs;break;}}
+   if(np==null)continue;plan.Lines[own]=new KeyValuePair<PointF[],int>(np,plan.Lines[own].Value);for(int i=0;i<gp.Item3;i++)plan.Labels[gp.Item2+i].Rect=nl[i];}
   /* a label crossed by a line routed after it is moved along its own arrow to a place no other line, label or event
      touches and no sheet join cuts (the text would otherwise hide part of that line) */
-  foreach(var gp in groups){int own=gp.Item1;
+  for(int gi=0;gi<groups.Count;gi++){var gp=groups[gi];int own=gp.Item1;bool lead=groupFlags[gi][0],flip=groupFlags[gi][1];
    Func<List<RectangleF>,bool> crossed=rs=>rs.Any(r=>{var inner=RectangleF.Inflate(r,-1.5f,-1.5f);for(int i=0;i<plan.Lines.Count;i++){if(i==own)continue;var pl=plan.Lines[i].Key;for(int k=0;k+1<pl.Length;k++)if(ScheduleSet.Crosses(pl[k],pl[k+1],inner))return true;}return false;});
    if(!crossed(plan.Labels.Skip(gp.Item2).Take(gp.Item3).Select(l=>l.Rect).ToList()))continue;
    var others=plan.Labels.Where((l,i)=>i<gp.Item2||i>=gp.Item2+gp.Item3).Select(l=>l.Rect).ToList();var circles=plan.Boxes.Select(b=>RectangleF.Inflate(b,3,3)).ToList();
-   var path=plan.Lines[own].Key;List<RectangleF> found=null;
-   for(int k=0;k+1<path.Length&&found==null;k++){var p=path[k];var q=path[k+1];if(Math.Abs(p.Y-q.Y)>0.01f||q.X<p.X+1)continue;float p0=p.X+4;
-    foreach(var c in joins.Where(c=>c>p.X+4&&c<q.X-4).OrderBy(c=>c).Concat(new[]{q.X-4})){float len=c-p0,room=Math.Min(len,gp.Item6);
-     if(room>=gp.Item5-0.5f){float lo=p0+room/2,hi=c-room/2;for(float step=0;Math.Abs(step)<=(hi-lo)/2+0.01f;step=step<=0?-step+3:-step){var rs=gp.Item4(p.Y,(lo+hi)/2+step,room);
-       if(rs.Any(r=>others.Any(o=>o.IntersectsWith(r))||circles.Any(o=>o.IntersectsWith(r))||joins.Any(j=>r.Left<j&&r.Right>j))||crossed(rs))continue;found=rs;break;}}
-     if(found!=null)break;p0=c;}}
+   /* the pieces of the arrow's runs between the sheet joins, those printed on two sheets first (a lead-in label stays
+      there when it can); a lag label may also go below its line */
+   var path=plan.Lines[own].Key;List<RectangleF> found=null;var cands=new List<float[]>();
+   for(int k=0;k+1<path.Length;k++){var p=path[k];var q=path[k+1];if(Math.Abs(p.Y-q.Y)>0.01f||q.X<p.X+1)continue;float p0=p.X+4;
+    foreach(var c in joins.Where(c=>c>p.X+4&&c<q.X-4).OrderBy(c=>c).Concat(new[]{q.X-4})){cands.Add(new[]{p.Y,p0,c});if(flip)cands.Add(new[]{p.Y+th+2,p0,c});p0=c;}}
+   Func<float[],bool> rep=pc=>(lead?new[]{groupLead[gi]}:Repeats.ToArray()).Any(rp=>pc[1]>=rp[0]-0.5f&&pc[2]<=rp[1]+0.5f);
+   foreach(var pc in cands.OrderByDescending(pc=>rep(pc)?1:0)){if(found!=null)break;if(lead&&!rep(pc)&&cands.Any(rep))continue;float len=pc[2]-pc[1],room=Math.Min(len,gp.Item6);if(room<gp.Item5-0.5f)continue;
+    float lo=pc[1]+room/2,hi=pc[2]-room/2;for(float step=0;Math.Abs(step)<=(hi-lo)/2+0.01f;step=step<=0?-step+3:-step){var rs=gp.Item4(pc[0],(lo+hi)/2+step,room);
+     if(rs.Any(r=>others.Any(o=>o.IntersectsWith(r))||circles.Any(o=>o.IntersectsWith(r))||joins.Any(j=>r.Left<j&&r.Right>j))||crossed(rs))continue;found=rs;break;}}
    if(found!=null)for(int i=0;i<gp.Item3;i++)plan.Labels[gp.Item2+i].Rect=found[i];}
   return plan;}
  internal void Draw(Graphics g,float dx,float dy,Font font,Font bold,IList<float> joins=null){var smooth=g.SmoothingMode;g.SmoothingMode=SmoothingMode.AntiAlias;Color redC=Color.FromArgb(192,40,40),lineC=Color.FromArgb(110,120,132);var state=g.Save();g.TranslateTransform(dx,dy);

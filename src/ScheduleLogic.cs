@@ -18,6 +18,11 @@ namespace BeamScheduleFormatter {
 // painting, road subgrade / subbase / pavement after the building is roofed, signs and markings last.
 // Survey, lean concrete, footing pours, the roof deck, pile tests, roof insulation and roofing accessories are not moved
 // by the levelling (they go with the trade before them).
+// When an item is missing (owner, 19 November 2026: "paano if wala yung isa?") every rule falls back, in order, to the
+// next trade that is physically before it - e.g. tiles after the plaster, else the walls, the roof, the frame, the
+// footings, the clearing and at last the survey - so no item starts before the work it stands on; a few late trades also
+// keep a minimum age after the first frame / footing pours (Cured) for small or incomplete Bills of Quantities. Checked
+// with a coverage harness: every template, each trade and each pair of trades left out, and thousands of random item mixes.
 sealed class ScheduleLink {internal PdmNode From,To;internal string Type;internal int Lag;
  internal string Label{get{return Type+(Lag>0?" +"+Lag:Lag<0?" "+Lag:"");}}}
 static class ScheduleLogic {
@@ -25,14 +30,14 @@ static class ScheduleLogic {
     buong pay items ko, para kahit anong pay items man ang mailagay tama pa din") - every item of the DUPA catalogue has
     a trade below; an item of no known trade follows the work phase of its item no. */
  internal static readonly string[] Order={"PRE","CLR","INVEST","GIMP","PILEF","PILE","PTEST","SPOIL","PEXC","PPIPE","PBACK","EXC","FFILL","GRAVF","LEAN","RB","FW","CFTG","FWS","CFRAME","CROOF","ANCHOR","RWALL","BACK",
-  "SANIT","POIS","GRAV","VB","CSOF","DRAIN","SITEW","MAS","JAMB","CSEC","GLASSB","STEEL","PURL","WPRES","PAINTM","ROOF","ROOFACC","STORM","INSUL","PLUMB","ELEC","FPROT","WP","PLAST","CLAD","PART","CEIL","TRIM",
+  "SANIT","POIS","GRAV","VB","CSOF","DRAIN","BACKS","SITEW","MAS","JAMB","CSEC","GLASSB","STEEL","PURL","WPRES","PAINTM","ROOF","ROOFACC","STORM","INSUL","PLUMB","ELEC","FPROT","WP","PLAST","CLAD","PART","CEIL","TRIM",
   "ELEC2","TILE","FLOOR","DOOR","HW","RAIL","PAINTMF","PAINT","PAINTW","FCOAT","CAB","FIXT","LIGHT","EQUIP","MECH","LIFT","FITOUT","SWEXC","SUBG","SUBB","PAVE","MARK","LAND","OTHER"};
  internal static readonly Dictionary<string,string> Names=new Dictionary<string,string>{{"PRE","General requirements (offices, billboard, safety)"},{"CLR","Site clearing and removal"},{"INVEST","Site investigation, survey and staking"},
   {"GIMP","Ground improvement"},{"PILEF","Piles furnished"},{"PILE","Piling"},{"PTEST","Pile / load tests"},{"SPOIL","Surplus excavation"},{"PEXC","Pipeline trench excavation"},{"PPIPE","Pipeline pipes"},{"PBACK","Pipeline backfill"},
   {"EXC","Structure excavation"},{"FFILL","Foundation fill"},{"GRAVF","Gravel bedding (footings, tie beams)"},{"LEAN","Lean / seal concrete"},{"RB","Reinforcing steel"},{"FW","Formworks"},{"CFTG","Footing concrete"},
   {"FWS","Slab forms, steel decking, falsework"},{"CFRAME","Frame concrete (columns, beams, slabs, walls)"},{"CROOF","Roof deck / roof slab concrete"},{"ANCHOR","Anchor bolts"},{"RWALL","Stone masonry / gabion walls"},
   {"BACK","Backfill / embankment"},{"SANIT","Sanitary drain, waste and vent piping"},{"POIS","Soil poisoning"},{"GRAV","Gravel bed (slab on fill, other areas)"},{"VB","Damp proofing / vapour barrier"},{"CSOF","Slab on fill"},
-  {"DRAIN","Canal, catch basin, sewer and septic"},{"SITEW","Riprap and slope protection"},{"MAS","Masonry"},{"JAMB","Door jambs and frames"},{"CSEC","Stiffeners, lintels, coping, mouldings"},{"GLASSB","Glass block walls"},
+  {"DRAIN","Canal, catch basin, sewer and septic"},{"BACKS","Backfill for structures (culverts, abutments)"},{"SITEW","Riprap and slope protection"},{"MAS","Masonry"},{"JAMB","Door jambs and frames"},{"CSEC","Stiffeners, lintels, coping, mouldings"},{"GLASSB","Glass block walls"},
   {"STEEL","Structural steel / roof framing"},{"PURL","Purlins, sagrods and bracing"},{"WPRES","Wood preservative"},{"PAINTM","Metal painting (steel framing)"},{"ROOF","Roofing"},{"ROOFACC","Roofing accessories / fascia"},
   {"STORM","Storm drainage and downspouts"},{"INSUL","Roof insulation"},{"PLUMB","Water supply piping"},{"ELEC","Electrical rough-in"},{"FPROT","Fire sprinkler piping"},{"WP","Waterproofing"},{"PLAST","Plastering"},
   {"CLAD","Claddings and wall finishes"},{"PART","Drywall partitions"},{"CEIL","Ceiling"},{"TRIM","Wood mouldings / cornice"},{"ELEC2","Wires and wiring devices"},{"TILE","Tiles"},{"FLOOR","Cement floor finish / topping"},
@@ -43,98 +48,116 @@ static class ScheduleLogic {
  sealed class Cand {internal string Trade,Type;internal double Lag;}
  static Cand C(string trade,string type,double lag){return new Cand{Trade=trade,Type=type,Lag=lag};}
  static Cand[] Any(params Cand[] c){return c;}
+ /* the work starts at least d days after the frame pours (without frame items: the footing pours) begin - concrete cured,
+    forms and shores off; in a normal job the other links already give this and Reduce drops it from the drawing, it only
+    holds a small or incomplete Bill of Quantities to a realistic minimum */
+ static Cand[] Cured(int d){return Any(C("CFRAME","SS",d),C("CFTG","SS",d));}
  /* each rule = alternatives in order of preference; the first trade present in the project is used; the rules of one
     trade all apply (a trade missing from the project is skipped) */
  static readonly Dictionary<string,Cand[][]> Rules=new Dictionary<string,Cand[][]>{
   {"INVEST",new[]{Any(C("CLR","SS",.5))}},
   {"GIMP",new[]{Any(C("CLR","FS",0)),Any(C("INVEST","FS",0))}},
   {"PILEF",new[]{Any(C("CLR","SS",0)),Any(C("INVEST","FS",0))}},
-  {"PILE",new[]{Any(C("GIMP","FS",0),C("CLR","FS",0)),Any(C("PILEF","SS",.3)),Any(C("INVEST","FS",0))}},
+  /* the last pile is driven after the last furnished pile arrives */
+  {"PILE",new[]{Any(C("GIMP","FS",0),C("CLR","FS",0)),Any(C("PILEF","SS",.3)),Any(C("PILEF","FF",1)),Any(C("INVEST","FS",0))}},
   /* tests on the first piles 7 days after they are driven / cast, the last one 7 days after the last pile */
-  {"PTEST",new[]{Any(C("PILE","SS",7),C("GIMP","SS",3),C("CLR","FS",0)),Any(C("PILE","FF",7),C("GIMP","FF",3))}},
-  {"SPOIL",new[]{Any(C("CLR","FS",0))}},
-  {"PEXC",new[]{Any(C("CLR","FS",0))}},
-  {"PPIPE",new[]{Any(C("PEXC","SS",.3),C("CLR","FS",0)),Any(C("PEXC","FF",1))}},
-  {"PBACK",new[]{Any(C("PPIPE","SS",.3),C("PEXC","SS",.5),C("CLR","FS",0)),Any(C("PPIPE","FF",1),C("PEXC","FF",1))}},
+  {"PTEST",new[]{Any(C("PILE","SS",7),C("GIMP","SS",3),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PILE","FF",7),C("GIMP","FF",3))}},
+  /* a site without clearing items starts after the survey / staking */
+  {"SPOIL",new[]{Any(C("CLR","FS",0),C("INVEST","FS",0))}},
+  {"PEXC",new[]{Any(C("CLR","FS",0),C("INVEST","FS",0))}},
+  {"PPIPE",new[]{Any(C("PEXC","SS",.3),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PEXC","FF",1))}},
+  {"PBACK",new[]{Any(C("PPIPE","SS",.3),C("PEXC","SS",.5),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PPIPE","FF",1),C("PEXC","FF",1))}},
   {"EXC",new[]{Any(C("PILE","FS",0),C("GIMP","FS",0),C("CLR","FS",0)),Any(C("INVEST","FS",0))}},
   {"FFILL",new[]{Any(C("EXC","SS",.3),C("CLR","FS",0)),Any(C("EXC","FF",1)),Any(C("INVEST","FS",0))}},
   /* gravel bedding under the footings and tie beams: placed in the excavated pits before the lean concrete */
-  {"GRAVF",new[]{Any(C("FFILL","SS",.3),C("EXC","SS",.3),C("CLR","FS",0)),Any(C("FFILL","FF",1),C("EXC","FF",1))}},
+  {"GRAVF",new[]{Any(C("FFILL","SS",.3),C("EXC","SS",.3),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("FFILL","FF",1),C("EXC","FF",1))}},
   {"LEAN",new[]{Any(C("GRAVF","SS",.3),C("FFILL","SS",.3),C("EXC","SS",.3),C("CLR","FS",0)),Any(C("GRAVF","FF",1),C("FFILL","FF",1),C("EXC","FF",1)),Any(C("INVEST","FS",0))}},
   {"RB",new[]{Any(C("LEAN","SS",.3),C("GRAVF","SS",.3),C("EXC","SS",.3),C("PILE","FS",0),C("CLR","FS",0)),Any(C("INVEST","FS",0))}},
-  {"FW",new[]{Any(C("RB","SS",.2),C("LEAN","SS",.3),C("GRAVF","SS",.3),C("EXC","SS",.3),C("CLR","FS",0))}},
+  {"FW",new[]{Any(C("RB","SS",.2),C("LEAN","SS",.3),C("GRAVF","SS",.3),C("EXC","SS",.3),C("CLR","FS",0),C("INVEST","FS",0))}},
   /* footing / pile-cap pours after every pile test, and not finished before the lean concrete or bedding below */
   {"CFTG",new[]{Any(C("FW","SS",.15),C("RB","SS",.2),C("LEAN","SS",.3),C("GRAVF","SS",.3),C("EXC","SS",.3),C("CLR","FS",0)),Any(C("PTEST","FS",0)),Any(C("LEAN","FF",1),C("GRAVF","FF",1),C("FFILL","FF",1),C("EXC","FF",1)),Any(C("INVEST","FS",0))}},
-  {"FWS",new[]{Any(C("CFTG","FS",0),C("FW","SS",.3),C("RB","SS",.2),C("EXC","FS",0),C("CLR","FS",0))}},
-  {"CFRAME",new[]{Any(C("CFTG","FS",0),C("FW","SS",.2),C("RB","SS",.2),C("EXC","FS",0),C("CLR","FS",0)),Any(C("FW","FF",1)),Any(C("RB","FF",1)),Any(C("PTEST","FS",0)),Any(C("FWS","FF",1))}},
-  /* the roof deck / roof slab is the last pour of the frame */
-  {"CROOF",new[]{Any(C("CFRAME","SS",.7),C("CFTG","FS",0),C("CLR","FS",0)),Any(C("CFRAME","FF",0)),Any(C("FW","FF",1)),Any(C("RB","FF",1)),Any(C("FWS","FF",1))}},
-  {"ANCHOR",new[]{Any(C("CFRAME","SS",.3),C("CFTG","SS",.3),C("CLR","FS",0)),Any(C("CFRAME","FF",0))}},
-  {"RWALL",new[]{Any(C("EXC","SS",.3),C("CLR","FS",0)),Any(C("EXC","FF",1))}},
-  {"BACK",new[]{Any(C("CFTG","FS",1),C("CFRAME","FS",1),C("EXC","FS",0),C("CLR","FS",0))}},
+  {"FWS",new[]{Any(C("CFTG","FS",0),C("FW","SS",.3),C("RB","SS",.2),C("EXC","FS",0),C("CLR","FS",0),C("INVEST","FS",0))}},
+  {"CFRAME",new[]{Any(C("CFTG","FS",0),C("FW","SS",.2),C("RB","SS",.2),C("EXC","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("FW","FF",1)),Any(C("RB","FF",1)),Any(C("PTEST","FS",0)),Any(C("FWS","FF",1))}},
+  /* the roof deck / roof slab is the last pour of the frame, at least 3 days after the first frame pour (columns cast,
+     slab forms up); without frame items a week after the footings, or with its own forms and bars */
+  {"CROOF",new[]{Any(C("CFRAME","SS",.7),C("CFTG","FS",7),C("FWS","SS",.5),C("FW","SS",.5),C("RB","SS",.5),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("CFRAME","SS",3)),Any(C("CFRAME","FF",0)),Any(C("FW","FF",1)),Any(C("RB","FF",1)),Any(C("FWS","FF",1))}},
+  /* anchor bolts are set in the pedestal / column forms and bars */
+  {"ANCHOR",new[]{Any(C("CFRAME","SS",.3),C("CFTG","SS",.3),C("RB","SS",.5),C("EXC","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("CFRAME","FF",0))}},
+  {"RWALL",new[]{Any(C("EXC","SS",.3),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("EXC","FF",1))}},
+  {"BACK",new[]{Any(C("CFTG","FS",1),C("CFRAME","FS",1),C("EXC","FS",0),C("CLR","FS",0),C("INVEST","FS",0))}},
   /* under-slab sanitary lines go in with the backfill, before soil poisoning, gravel bed and slab on fill */
-  {"SANIT",new[]{Any(C("BACK","SS",.5),C("CFTG","FS",0),C("EXC","FS",0),C("CFRAME","FS",0),C("CLR","FS",0))}},
-  {"POIS",new[]{Any(C("BACK","FS",0),C("EXC","FS",0),C("CLR","FS",0)),Any(C("SANIT","SS",.5))}},
-  {"GRAV",new[]{Any(C("POIS","FS",0),C("BACK","FS",0),C("EXC","FS",0),C("CLR","FS",0)),Any(C("SANIT","SS",.5))}},
-  {"VB",new[]{Any(C("GRAV","FS",0),C("POIS","FS",0),C("BACK","FS",0),C("CFTG","FS",1),C("CFRAME","SS",.3),C("EXC","FS",0),C("CLR","FS",0)),Any(C("CFTG","FS",1),C("CFRAME","SS",.3),C("EXC","FS",0)),Any(C("GRAVF","FS",0)),Any(C("SANIT","SS",.5))}},
-  {"CSOF",new[]{Any(C("VB","FS",0),C("GRAV","FS",0),C("POIS","FS",0),C("BACK","FS",0),C("CFTG","FS",0),C("CLR","FS",0)),Any(C("CFTG","FS",1),C("CFRAME","SS",.3),C("EXC","FS",0)),Any(C("GRAV","FS",0),C("GRAVF","FS",0)),Any(C("SANIT","SS",.5)),Any(C("SANIT","FF",1))}},
-  {"DRAIN",new[]{Any(C("BACK","FS",0),C("CFTG","FS",0),C("EXC","FS",0),C("CLR","FS",0))}},
-  {"SITEW",new[]{Any(C("BACK","FS",0),C("EXC","FS",0),C("SPOIL","FS",0),C("CLR","FS",0))}},
+  {"SANIT",new[]{Any(C("BACK","SS",.5),C("CFTG","FS",0),C("EXC","FS",0),C("CFRAME","FS",0),C("CLR","FS",0),C("INVEST","FS",0))}},
+  {"POIS",new[]{Any(C("BACK","FS",0),C("CFTG","FS",0),C("EXC","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("SANIT","SS",.5))}},
+  {"GRAV",new[]{Any(C("POIS","FS",0),C("BACK","FS",0),C("CFTG","FS",0),C("EXC","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("SANIT","SS",.5))}},
+  {"VB",new[]{Any(C("GRAV","FS",0),C("POIS","FS",0),C("BACK","FS",0),C("CFTG","FS",1),C("CFRAME","SS",.3),C("EXC","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("CFTG","FS",1),C("CFRAME","SS",.3),C("EXC","FS",0)),Any(C("GRAVF","FS",0)),Any(C("SANIT","SS",.5))}},
+  {"CSOF",new[]{Any(C("VB","FS",0),C("GRAV","FS",0),C("POIS","FS",0),C("BACK","FS",0),C("CFTG","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("CFTG","FS",1),C("CFRAME","SS",.3),C("EXC","FS",0)),Any(C("GRAV","FS",0),C("GRAVF","FS",0)),Any(C("SANIT","SS",.5)),Any(C("SANIT","FF",1))}},
+  {"DRAIN",new[]{Any(C("BACK","FS",0),C("CFTG","FS",0),C("EXC","FS",0),C("CLR","FS",0),C("INVEST","FS",0))}},
+  /* backfill for structures (highway item 104): around the culverts as they are laid, behind abutments cast a week before */
+  {"BACKS",new[]{Any(C("DRAIN","SS",.5),C("CFRAME","FS",7),C("CFTG","FS",1),C("EXC","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("DRAIN","FF",1))}},
+  {"SITEW",new[]{Any(C("BACKS","FS",0),C("BACK","FS",0),C("EXC","FS",0),C("SPOIL","FS",0),C("CLR","FS",0),C("INVEST","FS",0))}},
   /* walls from 30 % of the frame, the last walls (upper floors) 7 days after the last frame pour */
-  {"MAS",new[]{Any(C("CFRAME","SS",.3),C("CFTG","FS",0),C("CSOF","FS",0),C("CLR","FS",0)),Any(C("CFRAME","FF",7))}},
-  {"JAMB",new[]{Any(C("MAS","SS",.2),C("CFRAME","FS",3),C("CLR","FS",0))}},
-  {"CSEC",new[]{Any(C("MAS","SS",.3),C("CFRAME","FS",3),C("CFTG","FS",0),C("CLR","FS",0)),Any(C("MAS","FF",2))}},
-  {"GLASSB",new[]{Any(C("MAS","SS",.5),C("CFRAME","FS",7),C("CLR","FS",0))}},
-  {"STEEL",new[]{Any(C("CFRAME","FS",7),C("CSEC","FS",7),C("MAS","FS",3),C("CFTG","FS",7),C("CLR","FS",0)),Any(C("CFTG","FS",7)),Any(C("ANCHOR","FS",7)),Any(C("CROOF","FS",7))}},
-  {"PURL",new[]{Any(C("STEEL","SS",.5),C("CFRAME","FS",7),C("CSEC","FS",7),C("MAS","FS",3),C("CLR","FS",0)),Any(C("STEEL","FF",1))}},
-  {"WPRES",new[]{Any(C("STEEL","SS",.5),C("PURL","SS",.5),C("CFRAME","FS",0),C("CLR","FS",0)),Any(C("PURL","FF",1),C("STEEL","FF",1))}},
-  {"PAINTM",new[]{Any(C("STEEL","SS",.5),C("PURL","SS",.5),C("CFRAME","FS",0),C("CLR","FS",0)),Any(C("PURL","FF",1),C("STEEL","FF",1))}},
+  {"MAS",new[]{Any(C("CFRAME","SS",.3),C("CFTG","FS",0),C("CSOF","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("CFRAME","FF",7))}},
+  {"JAMB",new[]{Any(C("MAS","SS",.2),C("CFRAME","FS",3),C("CFTG","FS",3),C("CLR","FS",0),C("INVEST","FS",0))}},
+  {"CSEC",new[]{Any(C("MAS","SS",.3),C("CFRAME","FS",3),C("CFTG","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("MAS","FF",2))}},
+  {"GLASSB",new[]{Any(C("MAS","SS",.5),C("CFRAME","FS",7),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0))}},
+  {"STEEL",new[]{Any(C("CFRAME","FS",7),C("CSEC","FS",7),C("MAS","FS",3),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("CFTG","FS",7)),Any(C("ANCHOR","FS",7)),Any(C("CROOF","FS",7))}},
+  {"PURL",new[]{Any(C("STEEL","SS",.5),C("CFRAME","FS",7),C("CSEC","FS",7),C("MAS","FS",3),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("STEEL","FF",1))}},
+  {"WPRES",new[]{Any(C("STEEL","SS",.5),C("PURL","SS",.5),C("CFRAME","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PURL","FF",1),C("STEEL","FF",1))}},
+  {"PAINTM",new[]{Any(C("STEEL","SS",.5),C("PURL","SS",.5),C("CFRAME","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PURL","FF",1),C("STEEL","FF",1))}},
   /* roof sheets on painted purlins and trusses */
-  {"ROOF",new[]{Any(C("PURL","SS",.5),C("STEEL","FS",0),C("CFRAME","FS",7),C("CSEC","FS",7),C("MAS","FS",3),C("CLR","FS",0)),Any(C("PURL","FF",1)),Any(C("STEEL","FS",0)),Any(C("PAINTM","SS",.5)),Any(C("PAINTM","FF",1))}},
-  {"ROOFACC",new[]{Any(C("ROOF","SS",.5),C("STEEL","FS",0),C("CFRAME","FS",7),C("CLR","FS",0)),Any(C("ROOF","FF",1))}},
+  {"ROOF",new[]{Any(C("PURL","SS",.5),C("STEEL","FS",0),C("CFRAME","FS",7),C("CSEC","FS",7),C("MAS","FS",3),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PURL","FF",1)),Any(C("STEEL","FS",0)),Any(C("PAINTM","SS",.5)),Any(C("PAINTM","FF",1))}},
+  /* ridge rolls, flashings, gutters and fascia with the roofing; without roof sheets on the purlins / framing */
+  {"ROOFACC",new[]{Any(C("ROOF","SS",.5),C("PURL","SS",.5),C("STEEL","FS",0),C("CFRAME","FS",7),C("CSEC","FS",7),C("MAS","FS",3),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("ROOF","FF",1),C("PURL","FF",1))}},
   /* storm lines in the ground early, the downspouts after the roofing */
-  {"STORM",new[]{Any(C("BACK","FS",0),C("CFTG","FS",0),C("EXC","FS",0),C("CLR","FS",0)),Any(C("ROOFACC","FF",1),C("ROOF","FF",1))}},
-  {"INSUL",new[]{Any(C("ROOF","SS",0),C("STEEL","FS",0),C("CFRAME","FS",7),C("CLR","FS",0)),Any(C("ROOF","FF",0))}},
+  {"STORM",new[]{Any(C("BACK","FS",0),C("CFTG","FS",0),C("EXC","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("ROOFACC","FF",1),C("ROOF","FF",1))}},
+  /* insulation with the roof sheets; without roof sheets on the purlins / framing */
+  {"INSUL",new[]{Any(C("ROOF","SS",0),C("PURL","SS",.5),C("STEEL","FS",0),C("CFRAME","FS",7),C("CSEC","FS",7),C("MAS","FS",3),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("ROOF","FF",0),C("PURL","FF",1))}},
   /* rough-in with the walls; without walls from 30 % / 20 % of the frame, finishing with the frame */
-  {"PLUMB",new[]{Any(C("MAS","SS",.2),C("CFRAME","SS",.3),C("CFTG","FS",0),C("CLR","FS",0)),Any(C("MAS","SS",.2),C("CFRAME","FF",0))}},
-  {"ELEC",new[]{Any(C("MAS","SS",.2),C("CFRAME","SS",.2),C("CFTG","FS",0),C("CLR","FS",0)),Any(C("MAS","SS",.2),C("CFRAME","FF",0))}},
-  {"FPROT",new[]{Any(C("ROOF","FS",0),C("STEEL","FS",0),C("CFRAME","FS",7),C("CLR","FS",0)),Any(C("MAS","SS",.5))}},
-  {"WP",new[]{Any(C("CROOF","FS",7),C("CFRAME","FS",7),C("CSOF","FS",7),C("MAS","SS",.5),C("CLR","FS",0)),Any(C("CSOF","FS",7)),Any(C("PLUMB","SS",.5)),Any(C("PLUMB","FF",1))}},
+  {"PLUMB",new[]{Any(C("MAS","SS",.2),C("CFRAME","SS",.3),C("CFTG","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("MAS","SS",.2),C("CFRAME","FF",0))}},
+  {"ELEC",new[]{Any(C("MAS","SS",.2),C("CFRAME","SS",.2),C("CFTG","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("MAS","SS",.2),C("CFRAME","FF",0))}},
+  /* sprinkler piping under the roof; the last of it under the roof deck a week after it is cast */
+  {"FPROT",new[]{Any(C("ROOF","FS",0),C("STEEL","FS",0),C("CFRAME","FS",7),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("MAS","SS",.5)),Any(C("CROOF","FF",7))}},
+  /* waterproofing on concrete / masonry cured a week */
+  {"WP",new[]{Any(C("CROOF","FS",7),C("CFRAME","FS",7),C("CSOF","FS",7),C("MAS","SS",.5),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("CSOF","FS",7),C("CFTG","FS",7)),Any(C("PLUMB","SS",.5)),Any(C("PLUMB","FF",1))}},
   /* plaster closes the walls after the pipes, conduits, jambs, lintels and glass blocks in them */
-  {"PLAST",new[]{Any(C("MAS","SS",.3),C("CFRAME","FS",7),C("CLR","FS",0)),Any(C("MAS","FF",2)),Any(C("PLUMB","SS",.3)),Any(C("ELEC","SS",.3)),Any(C("CSEC","SS",.5)),Any(C("PLUMB","FF",1)),Any(C("ELEC","FF",1)),Any(C("CSEC","FF",1)),Any(C("JAMB","SS",.5)),Any(C("GLASSB","FF",2))}},
-  {"CLAD",new[]{Any(C("PLAST","SS",.5),C("MAS","SS",.5),C("STEEL","FS",0),C("CFRAME","FS",7),C("CLR","FS",0)),Any(C("PLAST","FF",2)),Any(C("STEEL","FS",0))}},
-  {"PART",new[]{Any(C("ROOF","FS",0),C("STEEL","FS",0),C("CFRAME","FS",7),C("CLR","FS",0)),Any(C("PLAST","SS",.3),C("MAS","SS",.5)),Any(C("ELEC","SS",.5)),Any(C("ELEC","FF",1)),Any(C("CROOF","FS",7))}},
-  /* ceiling boards closed after the rough-in above them */
-  {"CEIL",new[]{Any(C("ROOF","FS",0),C("STEEL","FS",0),C("CFRAME","FS",7),C("CLR","FS",0)),Any(C("PLAST","SS",.3),C("MAS","SS",.5)),Any(C("ELEC","SS",.5)),Any(C("PLUMB","SS",.5)),Any(C("PART","SS",.3)),Any(C("ELEC","FF",1)),Any(C("PLUMB","FF",1)),Any(C("SANIT","FF",1)),Any(C("FPROT","SS",.5)),Any(C("CROOF","FS",7))}},
-  {"TRIM",new[]{Any(C("CEIL","SS",.5),C("PLAST","SS",.5),C("MAS","FS",0),C("CLR","FS",0)),Any(C("PLAST","FF",1))}},
-  {"ELEC2",new[]{Any(C("ELEC","SS",.5),C("MAS","FS",0),C("CFRAME","FS",7),C("CLR","FS",0)),Any(C("ELEC","FF",1)),Any(C("PLAST","SS",.5)),Any(C("PLAST","FF",2)),Any(C("CEIL","SS",.3)),Any(C("CEIL","FF",1))}},
+  {"PLAST",new[]{Any(C("MAS","SS",.3),C("CFRAME","FS",7),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("MAS","FF",2)),Any(C("PLUMB","SS",.3)),Any(C("ELEC","SS",.3)),Any(C("CSEC","SS",.5)),Any(C("PLUMB","FF",1)),Any(C("ELEC","FF",1)),Any(C("CSEC","FF",1)),Any(C("JAMB","SS",.5)),Any(C("GLASSB","FF",2)),Any(C("CFTG","SS",5))}},
+  {"CLAD",new[]{Any(C("PLAST","SS",.5),C("MAS","SS",.5),C("STEEL","FS",0),C("CFRAME","FS",7),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PLAST","FF",2)),Any(C("STEEL","FS",0)),Cured(7)}},
+  {"PART",new[]{Any(C("ROOF","FS",0),C("STEEL","FS",0),C("CFRAME","FS",7),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PLAST","SS",.3),C("MAS","SS",.5)),Any(C("ELEC","SS",.5)),Any(C("ELEC","FF",1)),Any(C("CROOF","FS",7))}},
+  /* ceiling boards closed after the rough-in above them and the roof insulation */
+  {"CEIL",new[]{Any(C("ROOF","FS",0),C("STEEL","FS",0),C("CFRAME","FS",7),C("CFTG","FS",14),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PLAST","SS",.3),C("MAS","SS",.5)),Any(C("ELEC","SS",.5)),Any(C("PLUMB","SS",.5)),Any(C("PART","SS",.3)),Any(C("ELEC","FF",1)),Any(C("PLUMB","FF",1)),Any(C("SANIT","FF",1)),Any(C("FPROT","SS",.5)),Any(C("CROOF","FS",7)),Any(C("INSUL","FF",1)),Cured(14)}},
+  {"TRIM",new[]{Any(C("CEIL","SS",.5),C("PLAST","SS",.5),C("MAS","FS",0),C("CFRAME","FS",14),C("CFTG","FS",14),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PLAST","FF",1)),Cured(14)}},
+  {"ELEC2",new[]{Any(C("ELEC","SS",.5),C("MAS","FS",0),C("CFRAME","FS",7),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("ELEC","FF",1)),Any(C("PLAST","SS",.5)),Any(C("PLAST","FF",2)),Any(C("CEIL","SS",.3)),Any(C("CEIL","FF",1)),Cured(7)}},
   /* tiles and floor finishes 7 days after their slab, under a roof, after the drains and waterproofing below them */
-  {"TILE",new[]{Any(C("PLAST","SS",.5),C("MAS","SS",.5),C("ROOF","FS",0),C("CFRAME","FS",7),C("CLR","FS",0)),Any(C("CSOF","FS",7)),Any(C("CFRAME","FS",7)),Any(C("CROOF","FS",7)),Any(C("ROOF","SS",.5)),Any(C("WP","SS",.5)),Any(C("WP","FF",2)),Any(C("PLUMB","SS",.5)),Any(C("PLUMB","FF",1)),Any(C("PLAST","FF",2)),Any(C("SANIT","FS",0))}},
-  {"FLOOR",new[]{Any(C("PLAST","SS",.5),C("CSOF","FS",7),C("MAS","SS",.5),C("ROOF","FS",0),C("CFRAME","FS",7),C("CLR","FS",0)),Any(C("CSOF","FS",7)),Any(C("CFRAME","FS",7)),Any(C("CROOF","FS",7)),Any(C("ROOF","SS",.5)),Any(C("PLAST","FF",2)),Any(C("CEIL","FF",2),C("ROOF","FF",2))}},
-  {"DOOR",new[]{Any(C("PLAST","SS",.5),C("MAS","FS",0),C("CFRAME","FS",7),C("CLR","FS",0)),Any(C("PLAST","FF",2)),Any(C("JAMB","FS",0))}},
-  {"HW",new[]{Any(C("DOOR","SS",.5),C("PLAST","SS",.5),C("MAS","FS",0),C("CLR","FS",0)),Any(C("DOOR","FF",1))}},
-  {"RAIL",new[]{Any(C("TILE","SS",.5),C("PLAST","SS",.5),C("CFRAME","FS",7),C("CLR","FS",0))}},
-  {"PAINTMF",new[]{Any(C("DOOR","SS",.5),C("RAIL","SS",.5),C("PLAST","SS",.5),C("STEEL","FS",0),C("MAS","FS",0),C("CFRAME","FS",7),C("CLR","FS",0)),Any(C("DOOR","FF",1)),Any(C("RAIL","FF",1))}},
-  /* painting 14 days after the plaster (curing), under a roof, finishing after the ceiling, tiles and doors */
-  {"PAINT",new[]{Any(C("PLAST","SS",.5),C("CLAD","SS",.5),C("MAS","FS",0),C("CFRAME","FS",7),C("CLR","FS",0)),Any(C("PLAST","SS",14)),Any(C("PLAST","FF",14)),Any(C("ROOF","FS",0),C("CROOF","FS",7),C("CFRAME","FS",14)),Any(C("CEIL","FF",2)),Any(C("TILE","FF",2)),Any(C("DOOR","FF",2)),Any(C("GLASSB","FF",3))}},
-  {"PAINTW",new[]{Any(C("CEIL","SS",.5),C("PART","SS",.5),C("DOOR","SS",.5),C("PLAST","SS",.5),C("CLR","FS",0)),Any(C("CEIL","FF",2)),Any(C("PART","FF",2)),Any(C("DOOR","FF",2)),Any(C("TRIM","FF",1))}},
+  {"TILE",new[]{Any(C("PLAST","SS",.5),C("MAS","SS",.5),C("ROOF","FS",0),C("CFRAME","FS",7),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("CSOF","FS",7)),Any(C("CFRAME","FS",7),C("CFTG","FS",7)),Any(C("CROOF","FS",7)),Any(C("ROOF","SS",.5)),Any(C("WP","SS",.5)),Any(C("WP","FF",2)),Any(C("PLUMB","SS",.5)),Any(C("PLUMB","FF",1)),Any(C("PLAST","FF",2)),Any(C("SANIT","FS",0))}},
+  {"FLOOR",new[]{Any(C("PLAST","SS",.5),C("CSOF","FS",7),C("MAS","SS",.5),C("ROOF","FS",0),C("CFRAME","FS",7),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("CSOF","FS",7)),Any(C("CFRAME","FS",7)),Any(C("CROOF","FS",7)),Any(C("ROOF","SS",.5)),Any(C("PLAST","FF",2)),Any(C("CEIL","FF",2),C("ROOF","FF",2))}},
+  {"DOOR",new[]{Any(C("PLAST","SS",.5),C("MAS","FS",0),C("CFRAME","FS",7),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PLAST","FF",2)),Any(C("JAMB","FS",0))}},
+  {"HW",new[]{Any(C("DOOR","SS",.5),C("PLAST","SS",.5),C("MAS","FS",0),C("CFRAME","FS",7),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("DOOR","FF",1))}},
+  {"RAIL",new[]{Any(C("TILE","SS",.5),C("PLAST","SS",.5),C("CFRAME","FS",7),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0))}},
+  {"PAINTMF",new[]{Any(C("DOOR","SS",.5),C("RAIL","SS",.5),C("PLAST","SS",.5),C("STEEL","FS",0),C("MAS","FS",0),C("CFRAME","FS",7),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("DOOR","FF",1)),Any(C("RAIL","FF",1))}},
+  /* painting 14 days after the plaster (curing; without plaster on masonry cured a week), under a roof, finishing after
+     the ceiling, tiles and doors */
+  {"PAINT",new[]{Any(C("PLAST","SS",.5),C("CLAD","SS",.5),C("MAS","FS",7),C("CFRAME","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PLAST","SS",14),C("MAS","FS",7)),Any(C("PLAST","FF",14)),Any(C("ROOF","FS",0),C("CROOF","FS",7),C("CFRAME","FS",14),C("CFTG","FS",14)),Any(C("CEIL","FF",2)),Any(C("TILE","FF",2)),Any(C("DOOR","FF",2)),Any(C("GLASSB","FF",3)),Cured(14)}},
+  /* wood painting on the ceilings, partitions, doors and the jambs already set */
+  {"PAINTW",new[]{Any(C("CEIL","SS",.5),C("PART","SS",.5),C("DOOR","SS",.5),C("PLAST","SS",.5),C("JAMB","SS",.5),C("CFRAME","FS",14),C("CFTG","FS",14),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("CEIL","FF",2)),Any(C("PART","FF",2)),Any(C("DOOR","FF",2)),Any(C("JAMB","FS",0)),Any(C("TRIM","FF",1)),Cured(14)}},
   /* vinyl and floor coatings on a dry slab (24 working days, about 28 days), after the painting and the ceiling */
-  {"FCOAT",new[]{Any(C("PAINT","SS",.5),C("PAINTW","SS",.5),C("CEIL","SS",.5),C("PLAST","FS",0),C("MAS","FS",0),C("CLR","FS",0)),Any(C("PLAST","FS",0)),Any(C("CEIL","FF",2),C("ROOF","FS",0),C("STEEL","FS",0)),Any(C("FLOOR","FS",7)),Any(C("CSOF","FS",24)),Any(C("CFRAME","FS",24)),Any(C("PAINT","FF",2)),Any(C("PAINTW","FF",2))}},
-  {"CAB",new[]{Any(C("TILE","SS",.5),C("PAINT","SS",.5),C("PLAST","FS",0),C("MAS","FS",0),C("CLR","FS",0)),Any(C("PAINT","FF",1))}},
-  {"FIXT",new[]{Any(C("TILE","SS",.5),C("PAINT","SS",.5),C("PLAST","FS",0),C("PLUMB","FS",0),C("CLR","FS",0)),Any(C("PLUMB","FS",0)),Any(C("TILE","FF",1)),Any(C("CAB","FF",1)),Any(C("SANIT","FS",0))}},
-  {"LIGHT",new[]{Any(C("CEIL","SS",.5),C("PAINT","SS",.5),C("PLAST","FS",0),C("ROOF","FS",0),C("CLR","FS",0)),Any(C("ELEC2","SS",.3),C("ELEC","FS",0)),Any(C("CEIL","FF",1)),Any(C("ROOF","FS",0),C("CROOF","FS",7),C("CFRAME","FS",7))}},
-  {"EQUIP",new[]{Any(C("ELEC2","SS",.5),C("ELEC","SS",.5),C("ROOF","FS",0),C("CFRAME","FS",7),C("CLR","FS",0)),Any(C("ELEC2","FF",1),C("ELEC","FF",1)),Any(C("ROOF","FS",0),C("CROOF","FS",7),C("STEEL","FS",0),C("CFRAME","FS",7)),Any(C("CEIL","FF",1),C("PAINT","FF",1))}},
-  {"MECH",new[]{Any(C("ELEC","SS",.5),C("PLUMB","SS",.5),C("ROOF","FS",0),C("MAS","SS",.5),C("CFRAME","FS",7),C("PPIPE","SS",.5),C("CLR","FS",0)),Any(C("ROOF","FS",0),C("CROOF","FS",7),C("CFRAME","FS",7)),Any(C("CEIL","FF",3),C("PLAST","FF",3),C("PLUMB","FF",3))}},
+  {"FCOAT",new[]{Any(C("PAINT","SS",.5),C("PAINTW","SS",.5),C("CEIL","SS",.5),C("PLAST","FS",0),C("MAS","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PLAST","FS",0)),Any(C("CEIL","FF",2),C("ROOF","FS",0),C("STEEL","FS",0)),Any(C("FLOOR","FS",7)),Any(C("CSOF","FS",24)),Any(C("CFRAME","FS",24),C("CFTG","FS",14)),Any(C("PAINT","FF",2)),Any(C("PAINTW","FF",2))}},
+  {"CAB",new[]{Any(C("TILE","SS",.5),C("PAINT","SS",.5),C("PLAST","FS",0),C("MAS","FS",0),C("CFRAME","FS",14),C("CFTG","FS",14),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PAINT","FF",1)),Cured(14)}},
+  {"FIXT",new[]{Any(C("TILE","SS",.5),C("PAINT","SS",.5),C("PLAST","FS",0),C("MAS","FS",0),C("CFRAME","FS",14),C("CFTG","FS",14),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PLUMB","FS",0)),Any(C("TILE","FF",1)),Any(C("CAB","FF",1)),Any(C("SANIT","FS",0)),Cured(14)}},
+  {"LIGHT",new[]{Any(C("CEIL","SS",.5),C("PAINT","SS",.5),C("PLAST","FS",0),C("ROOF","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("ELEC2","SS",.3),C("ELEC","FS",0)),Any(C("CEIL","FF",1)),Any(C("ROOF","FS",0),C("CROOF","FS",7),C("CFRAME","FS",7),C("CFTG","FS",7))}},
+  {"EQUIP",new[]{Any(C("ELEC2","SS",.5),C("ELEC","SS",.5),C("ROOF","FS",0),C("CFRAME","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("ELEC2","FF",1),C("ELEC","FF",1)),Any(C("ROOF","FS",0),C("CROOF","FS",7),C("STEEL","FS",0),C("CFRAME","FS",7)),Any(C("CEIL","FF",1),C("PAINT","FF",1))}},
+  {"MECH",new[]{Any(C("ELEC","SS",.5),C("PLUMB","SS",.5),C("ROOF","FS",0),C("MAS","SS",.5),C("CFRAME","FS",7),C("PPIPE","SS",.5),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("ROOF","FS",0),C("CROOF","FS",7),C("CFRAME","FS",7)),Any(C("CEIL","FF",3),C("PLAST","FF",3),C("PLUMB","FF",3)),Any(C("ELEC2","FF",1),C("ELEC","FF",1))}},
   /* elevators once the hoistway and machine room are complete, tested on permanent power */
-  {"LIFT",new[]{Any(C("CROOF","FS",7),C("CFRAME","FS",7),C("STEEL","FS",0),C("MAS","FS",0),C("CFTG","FS",7),C("CLR","FS",0)),Any(C("EQUIP","FF",1),C("ELEC2","FF",1))}},
-  {"FITOUT",new[]{Any(C("TILE","SS",.5),C("PAINT","SS",.5),C("PLAST","FS",0),C("MAS","FS",0),C("CLR","FS",0)),Any(C("PAINT","FF",1))}},
+  {"LIFT",new[]{Any(C("CROOF","FS",7),C("CFRAME","FS",7),C("STEEL","FS",0),C("MAS","FS",0),C("CFTG","FS",14),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("EQUIP","FF",1),C("ELEC2","FF",1)),Cured(14)}},
+  {"FITOUT",new[]{Any(C("TILE","SS",.5),C("PAINT","SS",.5),C("PLAST","FS",0),C("MAS","FS",7),C("CFRAME","FS",14),C("CFTG","FS",14),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PAINT","FF",1)),Cured(14)}},
   /* roads, parking and walks after the building is roofed; on a road job right after clearing */
-  {"SWEXC",new[]{Any(C("ROOF","FS",0),C("MAS","FS",0),C("CLR","FS",0))}},
-  {"SUBG",new[]{Any(C("SWEXC","SS",.3),C("PEXC","FS",0),C("BACK","FS",0),C("EXC","FS",0),C("CLR","FS",0)),Any(C("SWEXC","FF",1)),Any(C("DRAIN","FS",0)),Any(C("PBACK","FS",0)),Any(C("ROOF","FS",0),C("CFRAME","FS",0),C("MAS","FS",0)),Any(C("STORM","FS",0))}},
-  {"SUBB",new[]{Any(C("SUBG","SS",.3),C("SWEXC","FS",0),C("CLR","FS",0)),Any(C("SUBG","FF",1)),Any(C("DRAIN","FS",0)),Any(C("PBACK","FS",0)),Any(C("ROOF","FS",0),C("CFRAME","FS",0),C("MAS","FS",0)),Any(C("STORM","FS",0))}},
-  {"PAVE",new[]{Any(C("SUBB","SS",.3),C("SUBG","SS",.3),C("ROOF","FS",0),C("CFRAME","FS",7),C("MAS","SS",.5),C("CLR","FS",0)),Any(C("SUBB","FF",1)),Any(C("ROOF","FS",0),C("CFRAME","FS",7)),Any(C("DRAIN","FS",0)),Any(C("PBACK","FS",0)),Any(C("STORM","FS",0))}},
-  {"MARK",new[]{Any(C("PAVE","FS",0),C("ROOF","FS",0),C("CFRAME","FS",7),C("CLR","FS",0))}},
-  {"LAND",new[]{Any(C("PAVE","SS",.5),C("ROOF","FS",0),C("CFRAME","FS",7),C("CLR","FS",0)),Any(C("PAVE","FF",1))}}};
+  {"SWEXC",new[]{Any(C("ROOF","FS",0),C("MAS","FS",0),C("CLR","FS",0),C("INVEST","FS",0))}},
+  {"SUBG",new[]{Any(C("SWEXC","SS",.3),C("PEXC","FS",0),C("BACK","FS",0),C("EXC","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("SWEXC","FF",1)),Any(C("BACKS","FS",0),C("DRAIN","FS",0)),Any(C("PBACK","FS",0)),Any(C("ROOF","FS",0),C("CFRAME","FS",0),C("MAS","FS",0)),Any(C("STORM","FS",0))}},
+  {"SUBB",new[]{Any(C("SUBG","SS",.3),C("SWEXC","FS",0),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("SUBG","FF",1)),Any(C("BACKS","FS",0),C("DRAIN","FS",0)),Any(C("PBACK","FS",0)),Any(C("ROOF","FS",0),C("CFRAME","FS",0),C("MAS","FS",0)),Any(C("STORM","FS",0))}},
+  /* pavement on the subbase / subgrade / formed roadbed */
+  {"PAVE",new[]{Any(C("SUBB","SS",.3),C("SUBG","SS",.3),C("SWEXC","SS",.3),C("ROOF","FS",0),C("CFRAME","FS",7),C("MAS","SS",.5),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("SUBB","FF",1),C("SUBG","FF",1),C("SWEXC","FF",1)),Any(C("ROOF","FS",0),C("CFRAME","FS",7)),Any(C("BACKS","FS",0),C("DRAIN","FS",0)),Any(C("PBACK","FS",0)),Any(C("STORM","FS",0))}},
+  {"MARK",new[]{Any(C("PAVE","FS",0),C("ROOF","FS",0),C("CFRAME","FS",7),C("CLR","FS",0),C("INVEST","FS",0))}},
+  /* softscape on the graded ground, after the backfill / embankment */
+  {"LAND",new[]{Any(C("PAVE","SS",.5),C("SWEXC","SS",.5),C("ROOF","FS",0),C("CFRAME","FS",7),C("CFTG","FS",7),C("CLR","FS",0),C("INVEST","FS",0)),Any(C("PAVE","FF",1)),Any(C("BACK","SS",.5)),Any(C("BACKS","SS",.5)),Any(C("ROOF","FS",0),C("CFRAME","FS",7),C("CFTG","FS",7))}}};
  /* items of no known trade follow the work phase of their item no. */
  static readonly Cand[][] OtherByPhase={new Cand[0],new[]{C("CLR","FS",0)},new[]{C("CLR","FS",0)},new[]{C("EXC","SS",.3),C("CLR","FS",0)},new[]{C("CFRAME","SS",.5),C("CFTG","FS",0),C("CLR","FS",0)},
   new[]{C("MAS","SS",.3),C("CFRAME","FS",0),C("CLR","FS",0)},new[]{C("PLAST","SS",.5),C("MAS","SS",.5),C("CLR","FS",0)},new[]{C("PLAST","SS",.5),C("MAS","FS",0),C("CLR","FS",0)}};
@@ -147,11 +170,11 @@ static class ScheduleLogic {
   if(n<0){/* general requirements A.x / B.x (written with or without the dots); survey, staking and soil investigation are site work */
    string k=new string(code.Where(c=>char.IsLetterOrDigit(c)||c=='(').ToArray());if(k.StartsWith("B19(")||k.StartsWith("B4(")||has("geotechnical")||has("staking")||has("soil investigation")||has("soil boring"))return "INVEST";
    return k.Length>1&&(k[0]=='A'||k[0]=='B')&&char.IsDigit(k[1])?"PRE":"OTHER";}
-  if(n==800||n==801||n==100||n==101)return "CLR";if(n==802)return "SPOIL";if(n==102)return "SWEXC";if(n==104)return has("backfill")?"BACK":"SWEXC";if(n==105)return "SUBG";if(n==200||n==201||n==202)return "SUBB";
+  if(n==800||n==801||n==100||n==101)return "CLR";if(n==802)return "SPOIL";if(n==102)return "SWEXC";if(n==104)return !has("backfill")?"SWEXC":has("structure")||has("culvert")||has("abutment")?"BACKS":"BACK";if(n==105)return "SUBG";if(n==200||n==201||n==202)return "SUBB";
   if(n==103)return has("excavation")?"EXC":"FFILL";if(n==803)return "EXC";
   if(n==804){if(!has("gravel")&&!rest.StartsWith("(7)"))return "BACK";return SlabGravel(d)&&!BeddingGravel(d)?"GRAV":"GRAVF";}
   if(n==807)return "LAND";if(n==808||n==1049){return has("test")?"PTEST":"GIMP";}
-  if(n==1052){if(has("test"))return "PTEST";if(has("furnished"))return "PILEF";return "PILE";}if(n==1717||n==400)return "PILE";
+  if(n==1052||n==400){if(has("test"))return "PTEST";if(has("furnish"))return "PILEF";return "PILE";}if(n==1717)return "PILE";
   if(n==1600)return "PEXC";if(n==1601||n==1061&&(has("pipeline")||has("backfill")))return "PBACK";if(n==1602||n==1603)return "PPIPE";if(n==1604)return "MECH";/* water treatment plant: packaged equipment */
   if(n==901)return "LEAN";if(n==902||n==404)return "RB";
   if(n==903){if(has("footing")||has("pile cap"))return "FW";if(has("deck")||has("suspended")||!has("formwork")&&(has("falsework")||has("scaffold")))return "FWS";return "FW";}

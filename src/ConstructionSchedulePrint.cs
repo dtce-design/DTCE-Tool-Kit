@@ -31,7 +31,7 @@ sealed class ScheduleSet {
      horizontal lines run - no bend, box or text is ever cut by an edge. */
   if(Network.Nodes.Count>0){float legendH=16+PdmNetwork.KeyH;
    Func<List<Window>> pdmWindows=()=>{List<Window> w=null;Network.Widen=new HashSet<int>();
-    for(int it=0;it<8;it++){Network.Layout(c.Height-legendH);var gaps=new HashSet<int>();w=Windows(Network.Cuts,Network.Groups,Network.Right,c.Width,gaps);if(gaps.All(Network.Widen.Contains))break;foreach(var i in gaps)Network.Widen.Add(i);}
+    for(int it=0;it<8;it++){Network.Layout(c.Height-legendH);var gaps=new HashSet<int>();w=Windows(Network.Cuts,Network.Groups,Network.Right,c.Width,gaps,false);if(gaps.All(Network.Widen.Contains))break;foreach(var i in gaps)Network.Widen.Add(i);}
     return w;};
    float bestGap=130;int fewest=int.MaxValue;foreach(var gap in new float[]{140,130,122,116,110,104}){Network.LinkGap=gap;int count=pdmWindows().Count;if(count<fewest){fewest=count;bestGap=gap;}}Network.LinkGap=bestGap;var pw=pdmWindows();PdmWindows=pw;
    var pdmEdges=Edges(pw);
@@ -44,7 +44,7 @@ sealed class ScheduleSet {
      repeated, shaded, at the start of the next) */
    var aoa=PertAoa.Build(Network,Pert);float aoaH=16+PertAoa.KeyH;
    Func<List<Window>> aoaWindows=()=>{aoa.Layout(c.Height-aoaH);return Windows(aoa.Cuts,aoa.Groups,aoa.Right,c.Width,new HashSet<int>(),false);/* the arrow labels run across the gaps, so the sheet starts right after the event column before */};
-   float bestW=250;int fewestP=int.MaxValue;foreach(var w in new float[]{260,250,236,224,212}){aoa.LevelW=w;int count=aoaWindows().Count;if(count<fewestP){fewestP=count;bestW=w;}}aoa.LevelW=bestW;var aw=aoaWindows();PertWindows=aw;
+   float bestW=250;int fewestP=int.MaxValue;foreach(var w in new float[]{260,250,236,224,212}){aoa.LevelW=w;int count=aoaWindows().Count;if(count<fewestP){fewestP=count;bestW=w;}}aoa.LevelW=bestW;var aw=aoaWindows();PertWindows=aw;aoa.Repeats=Enumerable.Range(1,Math.Max(0,aw.Count-1)).Select(k=>new[]{aw[k].X0,aw[k-1].X1}).ToList();
    var pertEdges=Edges(aw);
    for(int i=0;i<aw.Count;i++){var win=aw[i];int n=aw.Count;
     Sheets.Add(new KeyValuePair<string,Action<Graphics,RectangleF,Font,Font>>("PERT-CPM NETWORK"+(n>1?" - "+(i+1)+" OF "+n:""),(g,r,f,b)=>{using(var ink=new SolidBrush(PowTheme.Muted))g.DrawString(PertAoa.LegendText,f,ink,r.X,r.Y);PertAoa.DrawKey(g,r.X,r.Y+16,f,b);
@@ -74,11 +74,23 @@ sealed class ScheduleSet {
  internal List<string> DrawingProblems(){var problems=new List<string>();
   using(var bmp=new Bitmap(1,1)){bmp.SetResolution(100,100);using(var g=Graphics.FromImage(bmp))using(var f=new Font("Segoe UI",7.5f))using(var b=new Font("Segoe UI",7.5f,FontStyle.Bold)){
    if(Network.Nodes.Count>0){var inner=Edges(PdmWindows);var plan=Network.MakePlan(g,f,inner);
-    Check("PDM",plan.Labels.Select(k=>k.Rect).ToList(),plan.Boxes,plan.Lines.Select(k=>k.Key).ToList(),inner,problems,false);}
+    Check("PDM",plan.Labels.Select(k=>k.Rect).ToList(),plan.Boxes,plan.Lines.Select(k=>k.Key).ToList(),inner,problems,false);
+    CheckRepeats("PDM",PdmWindows,plan.Boxes,plan.Lines.Select(k=>k.Key).ToList(),plan.Labels.Select(k=>k.Rect).ToList(),null,problems);}
    if(Aoa!=null){var inner=Edges(PertWindows);var plan=Aoa.MakePlan(g,f,b,inner);
     foreach(var l in plan.Labels.Where(k=>k.Truncated))problems.Add("PERT: label cut short: "+l.Text);
-    Check("PERT",plan.Labels.Select(k=>k.Rect).ToList(),plan.Boxes,plan.Lines.Select(k=>k.Key).ToList(),inner,problems,true);}}}
+    Check("PERT",plan.Labels.Select(k=>k.Rect).ToList(),plan.Boxes,plan.Lines.Select(k=>k.Key).ToList(),inner,problems,true);
+    CheckRepeats("PERT",PertWindows,plan.Boxes,plan.Lines.Select(k=>k.Key).ToList(),plan.Labels.Select(k=>k.Rect).ToList(),plan.LabelLine,problems);}}}
   return problems;}
+ /* the repeated column of a continuation sheet comes with the arrows in front of it (owner, 18 November 2026: "sinama mo
+    ba yung arrow before niya"): every arrow into a repeated box / event shows on that sheet over at least 20 points, with
+    its label (PDM type and lag at the arrowhead; PERT activity no. and te, or the lag) */
+ static void CheckRepeats(string what,List<Window> windows,List<RectangleF> boxes,List<PointF[]> lines,List<RectangleF> labels,List<int> labelLine,List<string> problems){
+  foreach(var w in windows.Where(x=>!float.IsNaN(x.ShadeFrom)))foreach(var bx in boxes.Where(b=>b.Left>=w.ShadeFrom-0.5f&&b.Right<=w.ShadeTo+0.5f))
+   for(int i=0;i<lines.Count;i++){var pl=lines[i];if(pl.Length<2)continue;var end=pl[pl.Length-1];if(Math.Abs(end.X-bx.Left)>3||end.Y<bx.Top-1||end.Y>bx.Bottom+1)continue;
+    float vis=0;for(int k=0;k+1<pl.Length;k++){var p=pl[k];var q=pl[k+1];if(Math.Abs(p.Y-q.Y)<0.01f){float a=Math.Max(Math.Min(p.X,q.X),w.X0),b=Math.Min(Math.Max(p.X,q.X),w.X1);if(b>a)vis+=b-a;}else if(p.X>=w.X0&&p.X<=w.X1)vis+=Math.Abs(q.Y-p.Y);}
+    if(vis<20)problems.Add(what+": arrow into the repeated box at x "+(int)bx.X+", y "+(int)bx.Y+" barely shows on its continuation sheet");
+    var mine=labelLine!=null?Enumerable.Range(0,labels.Count).Where(j=>labelLine[j]==i).ToList():Enumerable.Range(0,labels.Count).Where(j=>labels[j].Right<=bx.Left+0.5f&&labels[j].Right>=bx.Left-8&&labels[j].Bottom>=bx.Top&&labels[j].Top<=bx.Bottom&&labels[j].Bottom<=end.Y+1&&labels[j].Bottom>=end.Y-labels[j].Height-3).ToList();
+    if(mine.Count>0&&!mine.Any(j=>labels[j].Left>=w.X0&&labels[j].Right<=w.X1))problems.Add(what+": the label of the arrow into the repeated box at x "+(int)bx.X+", y "+(int)bx.Y+" is only on the sheet before");}}
  internal static bool Crosses(PointF p,PointF q,RectangleF r){if(Math.Abs(p.Y-q.Y)<0.01f){return p.Y>r.Top&&p.Y<r.Bottom&&Math.Max(p.X,q.X)>r.Left&&Math.Min(p.X,q.X)<r.Right;}if(Math.Abs(p.X-q.X)<0.01f){return p.X>r.Left&&p.X<r.Right&&Math.Max(p.Y,q.Y)>r.Top&&Math.Min(p.Y,q.Y)<r.Bottom;}
   for(int k=0;k<=20;k++){float t=k/20f;var x=p.X+(q.X-p.X)*t;var y=p.Y+(q.Y-p.Y)*t;if(r.Contains(x,y))return true;}return false;}
  static bool CrossesCircle(PointF p,PointF q,RectangleF c){float cx=c.X+c.Width/2,cy=c.Y+c.Height/2,r=c.Width/2-2;float vx=q.X-p.X,vy=q.Y-p.Y;float len2=vx*vx+vy*vy;float t=len2<1e-6f?0:Math.Max(0,Math.Min(1,((cx-p.X)*vx+(cy-p.Y)*vy)/len2));float dx=p.X+vx*t-cx,dy=p.Y+vy*t-cy;return dx*dx+dy*dy<r*r;}
