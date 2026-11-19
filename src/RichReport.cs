@@ -43,6 +43,7 @@ sealed class RichReport {
    using(var f=Bold)using(var ink=new SolidBrush(PowTheme.Ink))g.DrawString(Result,f,ink,new RectangleF(Left+12,yy,Width-110,60));
    var badge=new RectangleF(Left+Width-78,yy-2,66,16);using(var b=new SolidBrush(Ok?Color.FromArgb(40,140,90):Color.FromArgb(200,50,50)))g.FillRectangle(b,badge);using(var f=Bold){var t=Ok?"OK":"NOT OK";var sz=g.MeasureString(t,f);g.DrawString(t,f,Brushes.White,badge.X+(badge.Width-sz.Width)/2,badge.Y+1);}}}
  sealed class SignatureBlock:Block {internal string[] Roles;internal override float Height(Graphics g){return 70;}internal override void Draw(Graphics g,float y){float w=Width/Roles.Length;using(var f=Body)using(var muted=new SolidBrush(PowTheme.Muted))using(var pen=new Pen(PowTheme.Ink))for(int k=0;k<Roles.Length;k++){float x=Left+k*w+6;g.DrawLine(pen,x,y+38,x+w-18,y+38);g.DrawString(Roles[k]+"\r\nName, PRC no., date",f,muted,x,y+42);}}}
+ sealed class PageBreakBlock:Block {internal override float Height(Graphics g){return 0;}internal override void Draw(Graphics g,float y){}}
  /* ---- authoring ---- */
  public RichReport Heading(string text){blocks.Add(new HeadingBlock{Text=text});return this;}
  public RichReport Paragraph(string text,bool muted=false,bool strong=false){blocks.Add(new ParagraphBlock{Text=text,Muted=muted,Strong=strong});return this;}
@@ -52,15 +53,16 @@ sealed class RichReport {
  public RichReport Table(string[] headers,IEnumerable<string[]> rows,float[] widths,int paintColumn,float minRowHeight,Action<Graphics,RectangleF,int> painter,Func<string[],Color?> rowColor=null){float sum=widths.Sum();var w=widths.Select(x=>x/sum*Width).ToArray();blocks.Add(new TableBlock{Headers=headers,Rows=rows.ToList(),Widths=w,RowColor=rowColor,PaintCol=paintColumn,MinRow=minRowHeight,Painter=painter});return this;}
  public RichReport KeyValues(IEnumerable<string[]> pairs){return Table(new[]{"Item","Value"},pairs,new float[]{38,62});}
  public RichReport Check(string name,string clause,IEnumerable<string> lines,string governing,double demand,double capacity,string unit,bool ok){blocks.Add(new CheckBlock{Name=name,Clause=clause,Lines=lines.ToList(),Governing=governing,Demand=demand,Capacity=capacity,Ratio=capacity<=0?double.PositiveInfinity:demand/capacity,Unit=unit,Ok=ok});return this;}
+ public RichReport PageBreak(){blocks.Add(new PageBreakBlock());return this;}
  public RichReport Signatures(params string[] roles){blocks.Add(new SignatureBlock{Roles=roles});return this;}
  /* ---- layout into pages ---- */
  public CalculationDocument Build(){Frame(a3);var doc=new CalculationDocument(title);if(a3)doc.UseA3Landscape();var pages=new List<List<KeyValuePair<Block,float>>>();var page=new List<KeyValuePair<Block,float>>();float y=Top;
   using(var bmp=new Bitmap(10,10))using(var g=Graphics.FromImage(bmp)){g.PageUnit=GraphicsUnit.Point;
    Action newPage=()=>{pages.Add(page);page=new List<KeyValuePair<Block,float>>();y=Top;};
-   for(int bi=0;bi<blocks.Count;bi++){var block=blocks[bi];var table=block as TableBlock;
+   for(int bi=0;bi<blocks.Count;bi++){var block=blocks[bi];var table=block as TableBlock;if(block is PageBreakBlock){if(page.Count>0)newPage();continue;}
     /* a heading stays with the start of what follows it */if(block is HeadingBlock&&bi+1<blocks.Count&&page.Count>0){var next=blocks[bi+1];var nt=next as TableBlock;float need=block.Height(g)+(nt!=null?Math.Min(nt.Height(g),90):next.Height(g));if(y+need>Bottom)newPage();}
     if(table!=null){int start=0;while(start<table.Rows.Count||start==0){var part=new TableBlock{Headers=table.Headers,Rows=table.Rows,Widths=table.Widths,RowColor=table.RowColor,Start=start,PaintCol=table.PaintCol,MinRow=table.MinRow,Painter=table.Painter};int fit=part.Fit(g,Bottom-y);if(fit==0&&page.Count>0){newPage();fit=part.Fit(g,Bottom-y);}fit=Math.Max(1,fit);part.Count=fit;page.Add(new KeyValuePair<Block,float>(part,y));y+=part.Height(g);start+=fit;if(start>=table.Rows.Count)break;newPage();}continue;}
-    float h=block.Height(g);if(y+h>Bottom&&page.Count>0)newPage();page.Add(new KeyValuePair<Block,float>(block,y));y+=h;}
+    float h=block.Height(g);if(y+h>Bottom&&page.Count>0){/* signatures take the paragraph before them along */KeyValuePair<Block,float>? carry=null;if(block is SignatureBlock&&page.Count>1&&page[page.Count-1].Key is ParagraphBlock){carry=page[page.Count-1];page.RemoveAt(page.Count-1);}newPage();if(carry.HasValue){page.Add(new KeyValuePair<Block,float>(carry.Value.Key,y));y+=carry.Value.Key.Height(g);}}page.Add(new KeyValuePair<Block,float>(block,y));y+=h;}
    if(page.Count>0)pages.Add(page);}
   bool big=a3;foreach(var p in pages){var items=p;doc.Sheets.Add(g=>{Frame(big);foreach(var item in items)item.Key.Draw(g,item.Value);});}
   if(doc.Sheets.Count==0)doc.Sheets.Add(g=>{});return doc;}

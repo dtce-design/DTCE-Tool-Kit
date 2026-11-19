@@ -14,7 +14,9 @@ static class SiteSheets {
  static Font F(float pt,bool bold=false){return new Font("Segoe UI",pt,bold?FontStyle.Bold:FontStyle.Regular,GraphicsUnit.Point);}
  static void Boxes(Graphics g,float x,float y,int count,int max,Font f,Brush ink){using(var pen=new Pen(PowTheme.Ink,.7f)){int n=Math.Min(count,max);for(int k=0;k<n;k++)g.DrawRectangle(pen,x+(k%10)*11,y+(k/10)*11,8,8);if(count>max)g.DrawString("+"+(count-max)+" more",f,ink,x,y+((n+9)/10)*11);}}
  public static CalculationDocument Build(CutResult r,CutSettings s,BbsInfo info){if(r==null)throw new Exception("Nothing to print yet: load a schedule and enter the beam lines.");
-  var rep=new RichReport("Rebar Site Sheets - Beams (cutting, bending, placing)",true);float width=RichReport.ContentWidth(true);var shown=r.Pieces.Where(p=>p.PerLine>0).ToList();
+  var rep=new RichReport("Rebar Site Sheets - Beams (cutting, bending, placing)",true);AddCrew(rep,r,s,info,true);return rep.Build();}
+ /* the crew sheets; in the combined BBS document the placing drawings are those of section 3 */
+ internal static void AddCrew(RichReport rep,CutResult r,CutSettings s,BbsInfo info,bool placing){float width=RichReport.ContentWidth(true);var shown=r.Pieces.Where(p=>p.PerLine>0).ToList();
   /* how to read */
   rep.Heading("HOW TO READ / PAANO BASAHIN").Figure(150,(g,rect)=>{using(var big=F(11,true))using(var f=F(8.5f))using(var b=F(8.5f,true))using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted)){
     g.DrawString("All sizes in millimetres (mm) / Lahat ng sukat ay milimetro (mm).   BBS "+info.Number+" rev. "+info.Revision+" - "+info.Status,big,ink,rect.Left+10,rect.Top+8);
@@ -55,13 +57,13 @@ static class SiteSheets {
      g.DrawString(p.Location,f,muted,new RectangleF(card.X+6,card.Bottom-28,card.Width-60,26));g.DrawString("done:",f,muted,card.Right-52,card.Bottom-24);using(var pen=new Pen(PowTheme.Ink,.7f))g.DrawRectangle(pen,card.Right-22,card.Bottom-25,12,12);
      if(p.ShapeCode=="HOOK1"||p.ShapeCode=="HOOK2")g.DrawString("not to scale - lengths govern",f,muted,shapeBox.X,shapeBox.Y-2);}}});}
   /* placing */
-  rep.Heading("PLACING / PAGLALAGAY  -  where each bar mark goes");
+  if(!placing)rep.Heading("PLACING / PAGLALAGAY").Paragraph("Use the elevation and sections of section 3 (Beam details): they show where each bar mark goes, the laps and the hoops. / Tingnan ang section 3 para sa lokasyon ng bawat bar mark, laps at hoops.",false,true);
+  else{rep.Heading("PLACING / PAGLALAGAY  -  where each bar mark goes");
   foreach(var geo0 in r.Geometry){var geo=geo0;foreach(var st0 in BeamDetailPaper.Strips(geo)){var st=st0;rep.Figure(300,(g,rect)=>BeamDetailPaper.DrawElevation(g,rect,r,geo,st[0],st[1]));}
-   int rowsS=BeamDetailPaper.SectionRows(r,geo,width);for(int first=0;first<rowsS;first+=2){int f0=first,n=Math.Min(2,rowsS-first);rep.Figure(BeamDetailPaper.SectionsHeight(n),(g,rect)=>BeamDetailPaper.DrawSections(g,rect,r,geo,f0,n));}}
+   int rowsS=BeamDetailPaper.SectionRows(r,geo,width);for(int first=0;first<rowsS;first+=2){int f0=first,n=Math.Min(2,rowsS-first);rep.Figure(BeamDetailPaper.SectionsHeight(n),(g,rect)=>BeamDetailPaper.DrawSections(g,rect,r,geo,f0,n));}}}
   int open=r.Errors.Count+r.Splices.Count(c=>!c.Ok)+r.Smf.Count(c=>!c.Ok);
   rep.Paragraph(open==0?"Issued from BBS "+info.Number+" rev. "+info.Revision+". Use only the latest revision approved by the engineer.":"WARNING / BABALA: "+open+" open review item(s) in BBS "+info.Number+" - do not cut until the engineer resolves them.",open>0?false:true,open>0);
-  rep.Signatures(string.IsNullOrWhiteSpace(info.Approved)?"Released for cutting by (engineer)":"Released for cutting by: "+info.Approved.Trim(),"Received by (foreman)","Checked on site by");
-  return rep.Build();}
+  rep.Signatures(string.IsNullOrWhiteSpace(info.Approved)?"Released for cutting by (engineer)":"Released for cutting by: "+info.Approved.Trim(),"Received by (foreman)","Checked on site by");}
  /* bending cards draw hooked bars with a shortened straight part so the hook reads; the written lengths are the real ones */
  static CutPiece Schematic(CutPiece p){double hook=p.ShapeCode=="HOOK1"?p.DimB:Math.Max(p.DimA,p.DimC);double straight=p.ShapeCode=="HOOK1"?p.DimA:p.DimB;double shown=Math.Max(hook*3,Math.Min(straight,hook*5));
   var c=new CutPiece{ShapeCode=p.ShapeCode,DimA=p.DimA,DimB=p.DimB,DimC=p.DimC};BarShapesScale.Set(c,shown);return c;}
