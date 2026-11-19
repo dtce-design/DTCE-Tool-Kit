@@ -1,0 +1,14 @@
+DTCE Tool Kit v1.33.0 test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+
+Construction Schedule drawings ("ayusin talaga yung pdm at pert-cpm... ibalik mo sa dati, alisin mo na
+yung every next page ipapakita yung last"; "pero yung logic ganon pa din")
+- The PDM and PERT-CPM drawings are back to the v1.28.1 layout: one continuous drawing
+  cut into A3 sheets that join at the match lines. Continuation sheets no longer repeat
+  the last column of boxes / events of the sheet before. Sample project: PDM 4 sheets
+  (was 6), PERT-CPM 3 sheets (was 4).
+- The construction logic is unchanged (v1.30.0 and later, including the fallbacks when an
+  item is missing); the sample project stays at 193 working days.
+
+Includes everything in v1.32.0 (see TEST-BUILD-v1.32.0.txt).
