@@ -71,7 +71,7 @@ readonly Dictionary<string,double> boqExcludedQuantities=new Dictionary<string,d
  // Runs at the end of BackupQuantities: excluded mapped quantities count as 0; LS items get their 1 LS control.
  /* Metal painting is listed per member type (purlins, angle bars, metal fascia, crossbracing) instead of one total
     (owner, 18 November 2026). A project that mapped the old total keeps that pay item for the new lines. */
- void InheritSteelPaintRoutes(List<BackupDemand> list){string totalKey="Structural Steel Works|"+SteelPaintingTotal+"|"+BackupMapping.Unit("m2");string slot;if(!backupBillRoutes.TryGetValue(totalKey,out slot))return;
+ void InheritSteelPaintRoutes(List<BackupDemand> list){string slot;if(!backupBillRoutes.TryGetValue("Structural Steel Works|"+SteelPaintingTotal+"|"+BackupMapping.Unit("m2"),out slot)&&!backupBillRoutes.TryGetValue("Structural Steel Works|"+SteelPaintingTotalLabel+"|"+BackupMapping.Unit("m2"),out slot))return;
   foreach(var d in list){if(!d.Key.StartsWith("Structural Steel Works|Metal painting - ",StringComparison.Ordinal)||backupBillRoutes.ContainsKey(d.Key)||boqUnmapped.Contains(d.Key))continue;backupBillRoutes[d.Key]=slot;boqRouteOverrides[d.Key]=slot;}}
  void ApplyBoqIncludes(List<BackupDemand> list){InheritSteelPaintRoutes(list);DefaultOpeningRoutes(list);list.RemoveAll(d=>d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal));if(backupBill==null||backupBill.Count==0)return;
   var items=backupBill.GroupBy(b=>b.Slot).ToDictionary(g=>g.Key,g=>g.First());

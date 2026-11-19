@@ -25,3 +25,11 @@ Bill of Quantities
 - Windows: quantity cells of the Bill of Quantities that should accept a typed quantity
   (Part A / B, LS and other items without computed quantities) could stay read-only;
   they are made editable again once the table is filled (found by the Windows tests).
+
+Metal painting (checked on request: "paki double check yung quantity calculation ng metal paintings")
+- Areas per metre, all exposed faces: lipped C purlin 2H + 4B + 4 x lip (e.g. C3"x1.5"x0.5" =
+  0.3556 m2/m); angle 2(H + B) (L50x50 = 0.200 m2/m); flat bar 2(B + t); rectangular HSS
+  2(H + B) outside only; pipe pi x OD outside only; crossbracing rod pi x d x diagonal length.
+  Area = per metre x installed length x quantity. Checked against 248 test cases; no
+  quantity change was needed.
+- The total line now says that it includes crossbracing rods (it always did).

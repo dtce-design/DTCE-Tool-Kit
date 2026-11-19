@@ -2101,7 +2101,7 @@ namespace BeamScheduleFormatter
 				return MergeSources(StockPurchaseSources(steelStocks).Concat(GridWeightSources(machineBolts, 7)).Concat(GridWeightSources(anchorBolts, 7)).Concat(GridWeightSources(steelPlates, 11))
 					.Concat(GridWeightSources(crossBracing, 9)));
 			}
-			if (name == SteelPaintingTotal)
+			if (name == SteelPaintingTotal || name == SteelPaintingTotalLabel)
 			{
 				return steelPaintDetails.ToList();
 			}
