@@ -22,3 +22,6 @@ Reports ("wala naman pinagbago ang detailed at extensive")
 Bill of Quantities
 - A quantity left unmapped by hand stays unmapped even when the app has its own pay item
   for it.
+- Windows: quantity cells of the Bill of Quantities that should accept a typed quantity
+  (Part A / B, LS and other items without computed quantities) could stay read-only;
+  they are made editable again once the table is filled (found by the Windows tests).
