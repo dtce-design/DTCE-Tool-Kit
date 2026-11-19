@@ -862,7 +862,7 @@ public List<BackupTarget> RegisterBackupBillItems(){backupNameRows=null;backupNa
 				BackupTarget backupTarget;
 				if (d.TargetSlotId != null)
 				{
-					backupTarget = targets.SingleOrDefault((BackupTarget x) => x.SlotId == d.TargetSlotId && BackupMapping.Identity(x) == d.TargetIdentity);
+					backupTarget = BackupMapping.ResolveTarget(d, targets);
 					if (backupTarget == null)
 					{
 						/* owner (19 November 2026): the item read again under another id - follow its item no., description and unit */

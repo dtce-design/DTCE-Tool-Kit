@@ -57,6 +57,11 @@ class BoqSavedRoutesTests {
    Check(control!=null&&control.Quantity==0&&control.ManualPriority==1&&lsList[0].Quantity==0&&BackupMapping.FinalQuantity(lsList.Where(d=>d.TargetSlotId=="ls-0"||d.Key==closet),"l.s.")==0,"unchecking every mapped quantity of an LS item gives 0 LS");
    /* "The manual BOQ item was removed or changed: Project Billboard" when mapping: a BACKUP row without the app's name keeps the same id on every read */
    string id1=ExcelLiveLink.StableSlotId(120,"B.5(1)","Project Billboard / Signboard (DPWH Billboard)","ea"),id2=ExcelLiveLink.StableSlotId(120,"B.5(1)","Project Billboard / Signboard (DPWH Billboard)","ea");
-   Check(id1==id2&&id1.Length==32&&id1.All(c=>"0123456789abcdef".IndexOf(c)>=0)&&id1!=ExcelLiveLink.StableSlotId(121,"B.5(1)","Project Billboard / Signboard (COA Billboard)","ea"),"BACKUP rows without a name keep a stable id between reads");}
+   Check(id1==id2&&id1.Length==32&&id1.All(c=>"0123456789abcdef".IndexOf(c)>=0)&&id1!=ExcelLiveLink.StableSlotId(121,"B.5(1)","Project Billboard / Signboard (COA Billboard)","ea"),"BACKUP rows without a name keep a stable id between reads");
+   /* "hindi pa din niya namamap sa BACKUP": a typed quantity whose item is read again under another id is still written to it */
+   var typedDemand=new BackupDemand{Key="BOQ manual|old-id",Description="Project Billboard",Unit="ea",Quantity=2,TargetSlotId="old-id",TargetIdentity=BackupMapping.Identity(new BackupTarget{Code="B.5(1)",Description="Project Billboard",Unit="ea"}),ManualOverride=true,ManualPriority=2};
+   var reread=new List<BackupTarget>{new BackupTarget{Row=60,EndRow=60,Code="B.5(1)",Description="Project Billboard",Unit="ea",SlotId="new-id"},new BackupTarget{Row=63,EndRow=63,Code="B.5(1)",Description="COA Billboard",Unit="ea",SlotId="coa"}};
+   var resolved=BackupMapping.ResolveTarget(typedDemand,reread);bool valid=true;try{BackupMapping.Validate(new[]{typedDemand},new Dictionary<string,BackupTarget>{{typedDemand.Key,resolved}});}catch(Exception){valid=false;}
+   Check(resolved!=null&&resolved.SlotId=="new-id"&&valid,"a typed quantity follows its BACKUP item read under another id and passes the write check");}
   Console.WriteLine("PASS: "+checks+" saved BACKUP mapping checks");}
 }

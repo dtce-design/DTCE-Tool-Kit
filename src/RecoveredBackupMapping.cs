@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
@@ -51,6 +51,18 @@ namespace BeamScheduleFormatter
 			{
 				return "_DTCE_BACKUP_MAP_" + BitConverter.ToString(sHA.ComputeHash(Encoding.UTF8.GetBytes(key))).Replace("-", "").Substring(0, 24);
 			}
+		}
+
+		/* the BACKUP item a typed / app quantity belongs to: its id when it is still that item, else the one item with the same
+		   item no., description and unit (owner, 19 November 2026: "hindi pa din niya namamap sa BACKUP") */
+		public static BackupTarget ResolveTarget(BackupDemand d, IEnumerable<BackupTarget> targets)
+		{
+			if (d == null || d.TargetSlotId == null) return null;
+			var list = targets.ToList();
+			var exact = list.FirstOrDefault(x => x.SlotId == d.TargetSlotId && Identity(x) == d.TargetIdentity);
+			if (exact != null) return exact;
+			var same = list.Where(x => Identity(x) == d.TargetIdentity).ToList();
+			return same.Count == 1 ? same[0] : null;
 		}
 
 		public static string Identity(BackupTarget target)
@@ -253,7 +265,8 @@ namespace BeamScheduleFormatter
 				{
 					throw new Exception(d.Description + ": " + reason + ".");
 				}
-				if (d.TargetSlotId != null && (t.SlotId != d.TargetSlotId || Identity(t) != d.TargetIdentity))
+				/* the same BACKUP item read under another id (owner, 19 November 2026) is accepted by its item no., description and unit */
+				if (d.TargetSlotId != null && Identity(t) != d.TargetIdentity)
 				{
 					throw new Exception("The BOQ manual quantity target changed; review " + d.Description);
 				}

@@ -1,0 +1,16 @@
+DTCE Tool Kit v1.31.1 test build (19 November 2026) - bug fix
+
+Not tested on Windows yet (Linux/Mono checks only). GitHub test build, not a Microsoft
+Store release (the Store still has v1.5.0).
+
+"hindi pa din niya namamap sa BACKUP" (owner's workbook Book1.xlsm checked)
+- The workbook layout is read correctly: 266 BACKUP items (item no. in B, description
+  in H, quantity box BC:BJ, unit in BK). 41 items already carry the app's names from
+  earlier writes, all consistent. The Project Billboard rows (B.5, rows 74 and 77) had
+  never been written.
+- Cause: a typed quantity remembers its BACKUP item by id. A row without the app's name
+  was read with a new id, and the last check before writing ("The BOQ manual quantity
+  target changed") then refused it. A typed quantity now goes to the BACKUP item with
+  the same item no., description and unit when the id differs, on every write.
+- If a typed quantity still cannot be written (its item is missing or appears twice),
+  the status bar names it.
