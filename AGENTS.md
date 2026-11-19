@@ -164,3 +164,7 @@ after the app version they carry (tag v<version>-build-<run>). The Store package
 the Store still shows v1.5.0 because no later upload was accepted - a newer Store upload needs a new explicit request.
 Macros: a workbook the app opens for a visible link follows the Excel Trust Center (AutomationSecurity by UI, events on,
 Excel shown first); never force macros off for the owner's linked workbook.
+BOQ mapping: the mapping saved in the Program of Works wins over the linked workbook's names and suggestions; linking or
+refreshing BACKUP must never erase it (items are followed by item no., description and unit).
+Part A / B (owner, "Pareho"): the app fills B.3, B.4 staking, B.7, B.9 (1 ls), B.5 billboards (1 ea each), A.1.4 progress
+photographs and field office / vehicle operation months from the schedule; every value can be typed over (0 removes it).

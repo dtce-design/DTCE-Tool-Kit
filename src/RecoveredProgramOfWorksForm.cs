@@ -1101,6 +1101,8 @@ namespace BeamScheduleFormatter
 					select d);
 			}
 			if(flag)list.AddRange(ConcretePayQuantities().Select(BackupDemand.From));
+            /* Part A / B quantities filled by the app; a typed BOQ quantity still wins (owner, 19 November 2026) */
+            if(flag)list.AddRange(GeneralRequirementSuggestions(list.Where(d=>d.Key==null||!d.Key.StartsWith("BOQ manual|",StringComparison.Ordinal)).ToList(),true));
             RouteRequiredQuantities(list);
             ApplyBoqIncludes(list);
             return list;
