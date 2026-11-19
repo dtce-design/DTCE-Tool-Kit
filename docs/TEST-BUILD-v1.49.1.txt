@@ -1,0 +1,18 @@
+DTCE Tool Kit v1.49.1 test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: extends the existing Truss Support on RC design sheet (owner's numbering rule).
+
+Truss Support on RC - designs supports like the owner's Detail 6 ("Yung kaya magdesign ng ganitong support")
+- "Typical detail" button fills Detail 6: 250 x 300 x 16 mm base plate (250 along the truss), 2-20 mm L anchor bolts
+  each side of the truss at 50 mm from the plate edges and 90 mm apart (300 mm long: hef 240, hook 80), 6 mm gusset
+  320 x 250, on a 300 x 300 RC column; every value stays editable.
+- A gusset longer than the plate is allowed; it is welded to the plate (and checked in shear) over the plate length only.
+- Other members at the joint (bottom chord, vertical post, diagonal): a table with name, 2L / 1L, angle section, STAAD
+  axial force (+ tension / - compression), heel / toe weld lengths and weld size. Each member gets its weld, angle and
+  gusset base metal, tension yielding / rupture (tension) or Whitmore buckling (compression) and Whitmore yielding checks,
+  with the balanced heel / toe weld lengths, in Results and in the report. Saved with the sheet.
+- Plan and elevation drawing of the support from the inputs (plate, RC support, gusset, anchor positions and hooks,
+  dimensions), updated as you type.
+
+Includes v1.49.0 and earlier local builds (see their notes).

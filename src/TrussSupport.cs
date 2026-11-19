@@ -13,8 +13,11 @@ class TrussSupportInput {
  public int BoltDia=20,BoltColumns=1;public double BoltS1=100,BoltS2=150,Hef=300,Futa=400,Fya=250,HookEh=80;public bool Headed=true,Cracked=true,GroutPad=true;
  public double GussetT=10,GussetL=200,GussetFy=248,GussetFu=400,PlateWeld=6,Fexx=482,Lc=150;public bool BearingCompression=true;
  public SteelProfile Angle;public int Angles=2;public double MemberForce=double.NaN,HeelWeld=100,ToeWeld=60,AngleWeld=6,AngleFy=248,AngleFu=400;
- public string Vertical="Y";
+ public string Vertical="Y";public List<JointMember> Others=new List<JointMember>();
 }
+/* other truss members welded to the same gusset - chord, vertical, diagonal (owner, 19 November 2026: "Yung kaya magdesign ng
+   ganitong support", Detail 6: bottom chord, post and diagonal on a gusset over a base plate with 2-20 mm L anchor bolts each side) */
+class JointMember {public string Name="Member";public int Angles=2;public SteelProfile Angle;public double Force,HeelWeld=100,ToeWeld=60,Weld=6;}
 class SupportCheck {public string Name,Clause,Node="",Case="",Note="";public double Demand,Capacity,Ratio;public string Unit="kN";public bool Ok{get{return Ratio<=1+1e-9;}}}
 static class TrussSupport {
  static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
@@ -65,7 +68,7 @@ static class TrussSupport {
   double U=Math.Max(0,1-xbar/Math.Max(1,lw));double phiTy=.9*i.AngleFy*ag*i.Angles/1000,phiTr=.75*i.AngleFu*U*ag*i.Angles/1000;
   double weldCap=phiRwA*(i.HeelWeld+i.ToeWeld)*i.Angles,baseAngle=.75*.6*i.AngleFu*t*(i.HeelWeld+i.ToeWeld)*i.Angles/1000,baseGusset=.75*.6*i.GussetFu*i.GussetT*(i.HeelWeld+i.ToeWeld)*(i.Angles==2?1:1)/1000;
   double whitmore=Math.Min(legH+2*Math.Max(i.HeelWeld,i.ToeWeld)*Math.Tan(Math.PI/6),i.GussetL);double phiWy=.9*i.GussetFy*whitmore*i.GussetT/1000;double r=i.GussetT/Math.Sqrt(12),kl=.65*i.Lc/r,Fe=Math.PI*Math.PI*200000/(kl*kl),Fcr=kl<=4.71*Math.Sqrt(200000/i.GussetFy)?Math.Pow(.658,i.GussetFy/Fe)*i.GussetFy:.877*Fe;double phiWc=.9*Fcr*whitmore*i.GussetT/1000;
-  double phiRwP=.75*.6*i.Fexx*.707*i.PlateWeld/1000*2;/* both sides, kN per mm of gusset */double gussetShear=1.0*.6*i.GussetFy*i.GussetT*i.GussetL/1000;
+  double phiRwP=.75*.6*i.Fexx*.707*i.PlateWeld/1000*2;/* both sides, kN per mm of gusset */double weldOnPlate=Math.Min(i.GussetL,i.PlateN);/* a gusset longer than the plate is welded only over the plate */double gussetShear=1.0*.6*i.GussetFy*i.GussetT*weldOnPlate/1000;if(i.GussetL>i.PlateN+1e-9)notes.Add("The gusset ("+F(i.GussetL,"0")+" mm) is longer than the plate ("+F(i.PlateN,"0")+" mm): it is welded to the plate over "+F(weldOnPlate,"0")+" mm.");
   notes.Add("Angle "+i.Angle.Name+" ("+(i.Angles==2?"2L back to back":"1L")+"): Ag = "+F(ag)+" mm2 each, x̄ = "+F(xbar)+" mm, heel-to-centroid "+F(yHeel)+" mm on the "+F(legH)+" mm connected leg; U = 1 - x̄/l = "+F(U,"0.000")+" (AISC Table D3.1 case 4 with l = mean weld length "+F(lw)+" mm).");
   notes.Add("Gusset: Whitmore width "+F(whitmore)+" mm; compression KL/r = 0.65 x "+F(i.Lc)+" / "+F(r)+" = "+F(kl,"0.0")+", Fcr = "+F(Fcr)+" MPa.");
   /* each reaction row; the governing row is kept for every check */
@@ -78,7 +81,7 @@ static class TrussSupport {
    keep("Anchor steel - tension","417.4.1",rx,tu,phiNsa,"kN","φ 0.75 x n Ase futa");keep("Concrete breakout - tension","417.4.2",rx,tu,phiNcbg,"kN","φ 0.70 (ANc/ANco) ψed,N ψc,N Nb; ANc = "+F(ANc,"0")+" mm2, ψed,N = "+F(psiEdN,"0.00"));keep("Anchor pullout","417.4.3",rx,tu,phiNpn,"kN",i.Headed?"φ 0.70 x n x 8 Abrg fc'":"φ 0.70 x n x 0.9 fc' eh da");
    keep("Anchor steel - shear","417.5.1",rx,h,phiVsa,"kN","φ 0.65 x n 0.6 Ase futa"+(i.GroutPad?" x 0.8 (grout pad)":""));keep("Concrete breakout - shear","417.5.2",rx,h,phiVcbg,"kN","φ 0.70 (AVc/AVco) ψed,V ψc,V ψh,V Vb; ca1 = "+F(ca1)+" mm");keep("Concrete pryout","417.5.3",rx,h,phiVcpg,"kN","φ 0.70 kcp Ncbg");
    double phiN=Math.Min(phiNsa,Math.Min(phiNcbg,phiNpn)),phiV=Math.Min(phiVsa,Math.Min(phiVcbg,phiVcpg));double nr=tu/phiN,vr=h/phiV;double inter=nr<=.2?vr:vr<=.2?nr:(nr+vr)/1.2;keep("Tension-shear interaction","417.6",rx,inter,1,"ratio",nr<=.2||vr<=.2?"one ratio ≤ 0.2: the other governs":"(Nua/φNn + Vua/φVn) / 1.2");
-   double flow=Math.Sqrt(h*h+(i.BearingCompression?tu*tu:v*v))/(2*i.GussetL);keep("Gusset-to-plate welds","AISC J2.4",rx,flow,phiRwP/2,"kN/mm","resultant per weld per mm; "+(i.BearingCompression?"compression by bearing":"all forces in the welds"));keep("Gusset shear yielding","AISC J4.2",rx,h,gussetShear,"kN","1.0 x 0.6 Fy tg Lg");
+   double flow=Math.Sqrt(h*h+(i.BearingCompression?tu*tu:v*v))/(2*weldOnPlate);keep("Gusset-to-plate welds","AISC J2.4",rx,flow,phiRwP/2,"kN/mm","resultant per weld per mm; "+(i.BearingCompression?"compression by bearing":"all forces in the welds"));keep("Gusset shear yielding","AISC J4.2",rx,h,gussetShear,"kN","1.0 x 0.6 Fy tg Lg");
    double P=double.IsNaN(i.MemberForce)?Math.Sqrt(v*v+h*h):i.MemberForce;bool tension=!double.IsNaN(i.MemberForce)?i.MemberForce>=0:tu>0;double pa=Math.Abs(P);
    keep("Angle welds (heel + toe)","AISC J2.4",rx,pa,weldCap,"kN","φ 0.6 FEXX 0.707 w (Lh + Lt) x "+i.Angles);keep("Angle base metal at welds","AISC J4.2",rx,pa,baseAngle,"kN","φ 0.6 Fu t (Lh + Lt) x "+i.Angles);keep("Gusset base metal at welds","AISC J4.2",rx,pa,baseGusset,"kN","φ 0.6 Fu tg (Lh + Lt)");
    if(tension){keep("Angle tension yielding","AISC D2",rx,pa,phiTy,"kN","φ 0.9 Fy Ag");keep("Angle tension rupture","AISC D2/D3",rx,pa,phiTr,"kN","φ 0.75 Fu U Ag");keep("Gusset Whitmore yielding","AISC J4.1",rx,pa,phiWy,"kN","φ 0.9 Fy Lw tg");}else keep("Gusset Whitmore buckling","AISC J4.4",rx,pa,phiWc,"kN","φ 0.9 Fcr Lw tg");}
@@ -86,7 +89,17 @@ static class TrussSupport {
   double paMax=reactions.Max(rx=>double.IsNaN(i.MemberForce)?Math.Sqrt(Math.Pow(Vertical(rx,i.Vertical),2)+Math.Pow(Horizontal(rx,i.Vertical),2)):Math.Abs(i.MemberForce))/i.Angles;notes.Add("Balanced welds for "+F(paMax)+" kN per angle: heel "+F(paMax*(legH-yHeel)/legH/phiRwA,"0")+" mm, toe "+F(paMax*yHeel/legH/phiRwA,"0")+" mm (provided "+F(i.HeelWeld,"0")+" / "+F(i.ToeWeld,"0")+" mm).");
   if(double.IsNaN(i.MemberForce))notes.Add("No member force entered: the angle and gusset checks use the support reaction resultant (√(V² + H²)) of each row, taken as tension when the row is uplift.");
   string[] order={"Concrete bearing","Plate thickness - bearing","Plate thickness - uplift","Anchor steel - tension","Concrete breakout - tension","Anchor pullout","Anchor steel - shear","Concrete breakout - shear","Concrete pryout","Tension-shear interaction","Gusset-to-plate welds","Gusset shear yielding","Angle welds (heel + toe)","Angle base metal at welds","Gusset base metal at welds","Angle tension yielding","Angle tension rupture","Gusset Whitmore yielding","Gusset Whitmore buckling"};
-  return order.Where(best.ContainsKey).Select(k2=>best[k2]).ToList();}
+  var list=order.Where(best.ContainsKey).Select(k2=>best[k2]).ToList();
+  /* the other members at the joint, each with its own STAAD force (+ tension, - compression) */
+  foreach(var m in i.Others??new List<JointMember>()){if(m==null||m.Angle==null)continue;if(m.Angles!=1&&m.Angles!=2)throw new Exception(m.Name+": choose 1L or 2L.");if(!(m.HeelWeld>0)||m.ToeWeld<0||!(m.Weld>0))throw new Exception(m.Name+": enter the weld lengths and size.");
+   var mp=AngleProperties(m.Angle);double rw=.75*.6*i.Fexx*.707*m.Weld/1000,ml=(m.HeelWeld+m.ToeWeld)/2,mu=Math.Max(0,1-mp[1]/Math.Max(1,ml)),force=Math.Abs(m.Force);bool mt=m.Force>=0;
+   Func<string,string,double,double,string,SupportCheck> add=(name,clause,demand,capacity,note)=>new SupportCheck{Name=m.Name+": "+name,Clause=clause,Node="-",Case=(mt?"+":"")+F(m.Force,"0.0")+" kN",Demand=demand,Capacity=capacity,Ratio=capacity<=0?double.PositiveInfinity:demand/capacity,Unit="kN",Note=note};
+   list.Add(add("angle welds","AISC J2.4",force,rw*(m.HeelWeld+m.ToeWeld)*m.Angles,"φ 0.6 FEXX 0.707 w (Lh + Lt) x "+m.Angles+"; balanced: heel "+F(force/m.Angles*(m.Angle.H-mp[2])/m.Angle.H/rw,"0")+" mm, toe "+F(force/m.Angles*mp[2]/m.Angle.H/rw,"0")+" mm"));
+   list.Add(add("angle base metal","AISC J4.2",force,.75*.6*i.AngleFu*m.Angle.T*(m.HeelWeld+m.ToeWeld)*m.Angles/1000,"φ 0.6 Fu t (Lh + Lt)"));list.Add(add("gusset base metal","AISC J4.2",force,.75*.6*i.GussetFu*i.GussetT*(m.HeelWeld+m.ToeWeld)/1000,"φ 0.6 Fu tg (Lh + Lt)"));
+   double lwm=Math.Min(m.Angle.H+2*Math.Max(m.HeelWeld,m.ToeWeld)*Math.Tan(Math.PI/6),i.GussetL);
+   if(mt){list.Add(add("tension yielding","AISC D2",force,.9*i.AngleFy*mp[0]*m.Angles/1000,"φ 0.9 Fy Ag"));list.Add(add("tension rupture","AISC D2/D3",force,.75*i.AngleFu*mu*mp[0]*m.Angles/1000,"φ 0.75 Fu U Ag, U = "+F(mu,"0.000")));list.Add(add("Whitmore yielding","AISC J4.1",force,.9*i.GussetFy*lwm*i.GussetT/1000,"Lw = "+F(lwm,"0")+" mm"));}
+   else list.Add(add("Whitmore buckling","AISC J4.4",force,.9*Fcr*lwm*i.GussetT/1000,"Lw = "+F(lwm,"0")+" mm, Fcr = "+F(Fcr,"0")+" MPa"));}
+  return list;}
  internal static string F(double v,string format="0.0"){return v.ToString(format,Inv);}
 }
 }
