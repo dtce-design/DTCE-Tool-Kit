@@ -12,7 +12,7 @@ class BoqGeneralRequirementsTests {
    Func<string,string,BackupBillItem> item=(code,word)=>bill.First(b=>b.Code==code&&(word==null||b.Description.IndexOf(word,StringComparison.OrdinalIgnoreCase)>=0));
    Check(!f.BackupQuantities().Any(ProgramOfWorksForm.IsGeneralSuggestion),"an empty project gets no Part A / B quantities");
    var g=Get<DataGridView>(f,"wood");var r=g.Rows[g.Rows.Add()];r.Cells[0].Value="D-01";r.Cells[1].Value="Test door";r.Cells[3].Value="Door";r.Cells[25].Value="Wood";r.Cells[4].Value="0.9";r.Cells[5].Value="2.1";r.Cells[6].Value="2";
-   f.Recalculate();Set(f,"projectQuantitiesKnown",true);f.Recalculate();
+   item("803(1)a",null).ManualQuantity=400;/* one scheduled work item: Part A / B run over the whole project, not as activities */   f.Recalculate();Set(f,"projectQuantitiesKnown",true);f.Recalculate();
    /* owner (19 November 2026, "iallow na lang maginput ng qty sa boq ng app for part A and B"): the app does not fill Part A / B; typed quantities go to the same BACKUP item */
    Check(!ProgramOfWorksForm.FillGeneralRequirements&&!f.BackupQuantities().Any(ProgramOfWorksForm.IsGeneralSuggestion),"Part A / B are not filled by the app");
    {var board=item("B.5(1)","DPWH");board.ManualQuantity=2;var mobilization=item("B.9(1)",null);mobilization.ManualQuantity=1;f.Recalculate();
@@ -37,7 +37,7 @@ class BoqGeneralRequirementsTests {
    Check(suggested.All(d=>d.Sources.Count==1&&d.Sources[0].Description.StartsWith("Filled by the app")),"each filled quantity explains where it comes from");
    /* typed quantities win; 0 removes; blank returns to the app's value */
    var mob=item("B.9(1)",null);Check(Final(f,mob)==1,"mobilization shows 1 ls");mob.ManualQuantity=0;f.Recalculate();Check(Final(f,mob)==0,"typing 0 removes it");
-   var photos=item("A.1.4(1)",null);photos.ManualQuantity=12;f.Recalculate();Check(Final(f,photos)==12,"a typed number of months wins");photos.ManualQuantity=null;f.Recalculate();Check(Final(f,photos)==months,"blank returns to the app's months");
+   var photos=item("A.1.4(1)",null);photos.ManualQuantity=12;f.Recalculate();Check(Final(f,photos)==12,"a typed number of months wins");photos.ManualQuantity=null;f.Recalculate();Check(Final(f,photos)==months,"blank returns to the app's months ("+Final(f,photos)+" vs "+months+", days "+f.ScheduleRows().Where(x=>x.Days>0&&!x.Span).Select(x=>x.Finish).DefaultIfEmpty(0).Max()+")");
    Call(f,"UpdateBackupBillDashboard");var grid=Get<DataGridView>(f,"boqGrid");var row=grid.Rows.Cast<DataGridViewRow>().First(x=>x.Tag==photos);
    Check(!row.Cells[2].ReadOnly&&Convert.ToString(row.Cells[2].Value)==months.ToString()&&row.Cells[2].ToolTipText.StartsWith("Filled by the app"),"the filled months stay editable in the Bill of Quantities");
    Check(f.ScheduleRows().Any(x=>x.Code=="B.5(1)"&&x.Days>0),"billboards appear in the construction schedule");
@@ -51,6 +51,6 @@ class BoqGeneralRequirementsTests {
   /* permits and clearances and mobilization from day 1 alongside the work; demobilization after the last work (owner, 19 November 2026) */
   {var f3=new ProgramOfWorksForm();var bill3=Get<List<BackupBillItem>>(f3,"backupBill");foreach(var b in bill3.Where(b=>b.Code=="B.3(1)"||b.Code=="B.9(1)"))b.ManualQuantity=1;foreach(var b in bill3.Where(b=>b.Code=="803(1)a"))b.ManualQuantity=400;f3.Recalculate();
    var rows3=f3.ScheduleRows();var permit=rows3.First(x=>x.Code=="B.3(1)");var mob=rows3.First(x=>x.Description.EndsWith("- mobilization"));var demob=rows3.First(x=>x.Description.EndsWith("- demobilization"));var work=rows3.First(x=>x.Code=="803(1)a");
-   Check(permit.Days==10&&permit.Start==1&&mob.Days==7&&mob.Start==1&&work.Start==1&&demob.Days==5&&demob.Start==work.Finish+1,"permits and mobilization from day 1, demobilization after the last work: "+string.Join("; ",rows3.Where(x=>x.Days>0).Select(x=>x.Code+" "+x.Days+" "+x.Start+"-"+x.Finish)));}
+   Check(permit.Span&&permit.Start==1&&permit.Finish==demob.Finish&&mob.Days==7&&mob.Start==1&&work.Start==1&&demob.Days==5&&demob.Start==work.Finish+1,"Part A / B over the whole project, mobilization from day 1, demobilization after the last work: "+string.Join("; ",rows3.Where(x=>x.Days>0).Select(x=>x.Code+" "+x.Days+" "+x.Start+"-"+x.Finish)));}
   ProgramOfWorksForm.FillGeneralRequirements=false;Console.WriteLine("PASS: "+checks+" Part A / B checks");}
 }

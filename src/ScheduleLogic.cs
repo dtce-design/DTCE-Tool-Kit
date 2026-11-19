@@ -229,7 +229,7 @@ static class ScheduleLogic {
     way to keep a network readable; the times are exactly the same: FS lag L: p -> M FS 0, M -> s FS L; FF lag L: p -> M
     FF 0, M -> s FF L; SS (lag depending on the predecessor): p -> M SS l(p), M -> s SS 0 */
  internal static List<ScheduleLink> Network(List<ScheduleRow> rows,out List<PdmNode> nodes,bool milestones=false){nodes=new List<PdmNode>();int id=0;
-  foreach(var r in rows){id++;if(r.Days<=0)continue;nodes.Add(new PdmNode{Row=r,Id=id,Trade=Trade(r)});}
+  foreach(var r in rows){id++;if(r.Days<=0||r.Span)continue;nodes.Add(new PdmNode{Row=r,Id=id,Trade=Trade(r)});}
   var present=new HashSet<string>(nodes.Select(n=>n.Trade));foreach(var nd in nodes)nd.Trade=Resolve(nd,present);
   var byTrade=nodes.GroupBy(n=>n.Trade).ToDictionary(g=>g.Key,g=>g.ToList());var links=new List<ScheduleLink>();
   var uses=new Dictionary<string,KeyValuePair<Cand,List<PdmNode>>>();
