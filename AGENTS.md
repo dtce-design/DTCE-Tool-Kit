@@ -154,3 +154,11 @@ Later versions again need a new explicit request.
 Owner: use MAJOR.MINOR.PATCH properly. New features or noticeable behaviour changes raise MINOR and reset PATCH
 (1.5.0 -> 1.6.0); bug-fix-only builds raise PATCH (1.5.0 -> 1.5.1); MAJOR only for incompatible changes. The next
 build after v1.4.135 is v1.5.0. Keep src/Program.cs Version, src/AssemblyInfo.cs (x.y.z.0) and docs/TEST-BUILD-*.txt in step.
+
+## Linked Excel workbook and version names (19 November 2026)
+
+Owner: "hindi isasave ng app, manual save ang excel". The Program of Works writes quantities into the open linked
+workbook but never saves it; the owner saves it in Excel (the status bar and the close message say so). Only creating a
+new workbook file at a chosen path and the explicit design-report export still write the file. GitHub releases are named
+after the app version they carry (tag v<version>-build-<run>). The Store package version is the app version (x.y.z.0);
+the Store still shows v1.5.0 because no later upload was accepted - a newer Store upload needs a new explicit request.
