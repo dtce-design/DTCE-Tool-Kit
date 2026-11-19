@@ -1,4 +1,4 @@
-using System;using System.Drawing;using System.Linq;using System.Windows.Forms;using System.Collections.Generic;
+﻿using System;using System.Drawing;using System.Linq;using System.Windows.Forms;using System.Collections.Generic;
 namespace BeamScheduleFormatter {
 class LauncherForm:Form {
  Form formatter,slabFormatter,lengths,project,works;
@@ -34,7 +34,7 @@ class LauncherForm:Form {
   #if ADMIN_APP
   AddCard(cards,"Access Code Generator","Manage program access and generate activation codes.",()=>UseTool(ref generator,()=>new CodeGeneratorForm(),"Access Code Generator",null,8));
   #endif
-  Action sizeCards=()=>{int width=Math.Max(270,(cards.ClientSize.Width-32)/2);foreach(Control item in cards.Controls)item.Width=width;};
+  Action sizeCards=()=>{int columns=cards.ClientSize.Width>=900?3:2;int width=Math.Max(250,(cards.ClientSize.Width-14*columns-6)/columns);foreach(Control item in cards.Controls)item.Width=width;};
   cards.Resize+=(sender,args)=>sizeCards();sizeCards();
   dashboard.Controls.Add(new Label{Text="v"+Engine.Version+"  /  Developed by Engr. Daryl O. Tomaneng",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,ForeColor=PowTheme.Muted,Font=new Font("Segoe UI",8.5f),Margin=Padding.Empty},0,3);
   var header=PremiumControls.WorkspaceHeader(groupTitle,ShowStart);groupHost.Controls.Add(groupContent);groupHost.Controls.Add(header);
@@ -67,11 +67,11 @@ class LauncherForm:Form {
  void LoadSelectedFormatter(){if(loadingFormatter||formatterTabs.SelectedTab==null)return;Action open;if(!formatterLoaders.TryGetValue(formatterTabs.SelectedTab.Text,out open))return;loadingFormatter=true;try{open();}finally{loadingFormatter=false;}}
  void AddFormatterEntry(string title,Action open){formatterLoaders.Add(title,open);formatterTabs.TabPages.Add(new TabPage(title));}
  void AddDesignEntry(string title,Action open){designLoaders.Add(title,open);var page=new TabPage(title);page.Controls.Add(new Label{Text="This design sheet requires its own program access.",Dock=DockStyle.Top,Height=60,Padding=new Padding(20)});designTabs.TabPages.Add(page);}
- void AddCard(FlowLayoutPanel panel,string title,string description,Action action){var card=new ToolModuleButton{ModuleIndex=panel.Controls.Count,Text=title,Description=description,Height=160,Width=470,Margin=new Padding(0,0,14,14)};card.Click+=(s,e)=>action();panel.Controls.Add(card);}
+ void AddCard(FlowLayoutPanel panel,string title,string description,Action action){var card=new ToolModuleButton{ModuleIndex=panel.Controls.Count,Text=title,Description=description,Height=86,Width=330,Margin=new Padding(0,0,14,12)};card.Click+=(s,e)=>action();panel.Controls.Add(card);}
  void AddEntry(TabControl tabs,string title,string buttonText,Action action){var page=new TabPage(title);var open=new Button{Text=buttonText,Left=24,Top=28,Width=300,Height=42};open.Click+=(s,e)=>action();page.Controls.Add(open);tabs.TabPages.Add(page);}
 }
 class ToolModuleButton:Button {
- public int ModuleIndex;public string Description;bool hover;
+ public int ModuleIndex;public string Description;bool hover;static readonly Font SmallBody=new Font("Segoe UI",9f);
  static readonly string[] descriptions={"Format and review beam schedules from DXF files.","Beam, slab and footing takeoffs, earthworks and project reports.","Development, lap splice and standard hook calculations.","Set the project name and location for your reports.","Generate access codes and manage approved tools.","Group identical slab schedules and export the final DXF layout."};
  public ToolModuleButton(){SetStyle(ControlStyles.UserPaint|ControlStyles.OptimizedDoubleBuffer|ControlStyles.AllPaintingInWmPaint,true);Cursor=Cursors.Hand;FlatStyle=FlatStyle.Flat;TabStop=true;MouseEnter+=(s,e)=>{hover=true;Invalidate();};MouseLeave+=(s,e)=>{hover=false;Invalidate();};GotFocus+=(s,e)=>Invalidate();LostFocus+=(s,e)=>Invalidate();}
  protected override void OnPaint(PaintEventArgs e){
@@ -81,12 +81,12 @@ class ToolModuleButton:Button {
   using(var path=ModernUi.Rounded(bounds,12))using(var fill=new SolidBrush(hover?ModernUi.Soft:ModernUi.Surface))using(var border=new Pen(hover||Focused?PowTheme.Teal:PowTheme.Line,Focused?2:1)){
    e.Graphics.FillPath(fill,path);e.Graphics.DrawPath(border,path);
   }
-  using(var path=ModernUi.Rounded(new RectangleF(20,19,38,38),9))using(var fill=new SolidBrush(ModernUi.Selection))e.Graphics.FillPath(fill,path);
-  DrawGlyph(e.Graphics,new Rectangle(28,27,22,22));
-  using(var title=new Font("Segoe UI",12,FontStyle.Bold))TextRenderer.DrawText(e.Graphics,Text,title,new Rectangle(72,20,Width-113,35),PowTheme.Ink,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.NoPrefix);
-  TextRenderer.DrawText(e.Graphics,"›",ModernUi.Heading,new Rectangle(Width-40,20,25,35),PowTheme.Teal,TextFormatFlags.VerticalCenter);
-  TextRenderer.DrawText(e.Graphics,Description??descriptions[Math.Min(5,ModuleIndex)],ModernUi.Body,new Rectangle(22,76,Width-50,65),PowTheme.Muted,TextFormatFlags.Left|TextFormatFlags.WordBreak|TextFormatFlags.NoPrefix);
-  if(Focused)FocusHighlight.Draw(e.Graphics,new Rectangle(7,7,Width-14,Height-14),WorksheetColors.Focus);
+  using(var path=ModernUi.Rounded(new RectangleF(14,14,30,30),8))using(var fill=new SolidBrush(ModernUi.Selection))e.Graphics.FillPath(fill,path);
+  DrawGlyph(e.Graphics,new Rectangle(19,19,20,20));
+  using(var title=new Font("Segoe UI",10.5f,FontStyle.Bold))TextRenderer.DrawText(e.Graphics,Text,title,new Rectangle(54,12,Width-90,24),PowTheme.Ink,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.NoPrefix);
+  TextRenderer.DrawText(e.Graphics,"›",ModernUi.Heading,new Rectangle(Width-32,12,22,28),PowTheme.Teal,TextFormatFlags.VerticalCenter);
+  TextRenderer.DrawText(e.Graphics,Description??descriptions[Math.Min(5,ModuleIndex)],SmallBody,new Rectangle(54,38,Width-70,42),PowTheme.Muted,TextFormatFlags.Left|TextFormatFlags.WordBreak|TextFormatFlags.EndEllipsis|TextFormatFlags.NoPrefix);
+  if(Focused)FocusHighlight.Draw(e.Graphics,new Rectangle(5,5,Width-10,Height-10),WorksheetColors.Focus);
  }
  void DrawGlyph(Graphics g,Rectangle r){
   using(var pen=new Pen(PowTheme.Teal,1.7f)){

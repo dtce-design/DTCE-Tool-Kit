@@ -1,4 +1,4 @@
-using System;using System.Linq;using System.Collections.Generic;using System.Globalization;
+﻿using System;using System.Linq;using System.Collections.Generic;using System.Globalization;
 namespace BeamScheduleFormatter {
 // Beam Deflection Check engine. Geometry is stored in metres and translations in metres; reports convert to mm.
 class BeamNode {public int Id;public double X,Y,Z;}
@@ -9,6 +9,8 @@ class BeamDeflectionData {
  public readonly Dictionary<int,BeamNode> Nodes=new Dictionary<int,BeamNode>();
  public readonly Dictionary<int,BeamMember> Members=new Dictionary<int,BeamMember>();
  public readonly List<BeamDisplacement> Displacements=new List<BeamDisplacement>();
+ /* rectangular member sections from STAAD MEMBER PROPERTY ... PRIS YD (depth h) ZD (width b), in mm */
+ public readonly Dictionary<int,double[]> Sections=new Dictionary<int,double[]>();
  public IEnumerable<string> Cases(){return Displacements.Select(d=>d.Case).Distinct(StringComparer.OrdinalIgnoreCase);}
 }
 class PhysicalBeamInput {public string Name,Members,DeadCases,LiveCases,Criterion,IeBasis="",SpanType="Between supports";public int Start,End;public double RhoPrime,StiffnessFactor=1,Xi=2,CustomRatio;public string Vertical="Y";public bool ServiceBasis,SupportsVerified;}
