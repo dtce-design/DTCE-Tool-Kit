@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.IO;using System.Linq;using System.Reflection;using System.Text;using System.Windows.Forms;using System.Xml;using BeamScheduleFormatter;
+﻿using System;using System.Collections.Generic;using System.IO;using System.Linq;using System.Reflection;using System.Text;using System.Windows.Forms;using System.Xml;using BeamScheduleFormatter;
 // Owner (19 November 2026): "alisin yung naka link na table sa dxf" - AutoCAD tables linked to another project's Excel file are
 // not kept in the beam / slab estimate copy of a DXF; "lagyan mo ng save as option" - Program of Works has a Save As command.
 class DxfLinkedTablesTests {
@@ -45,7 +45,7 @@ class DxfLinkedTablesTests {
   string previous=ProjectInfoStore.DirectoryPath,dir=Path.Combine(Path.GetTempPath(),"DTCE-linked-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(dir);ProjectInfoStore.DirectoryPath=dir;
   try{string xml,beamState,slabSnapshot;
    using(var f=new ProgramOfWorksForm()){
-    var saveAs=Find(f,"Save Program of Works As…");Check(saveAs is Button&&Find(f,"Save Program of Works") is Button,"Save As sits beside Save on the command bar");
+    /* owner (19 November 2026, "isummarize yung buttons"): Save on the bar, Save As in the File menu */var fileMenu=Find(f,"File  ▾") as Button;var menu=fileMenu==null?null:fileMenu.Tag as ContextMenuStrip;Check(Find(f,"Save Program of Works") is Button&&menu!=null&&menu.Items.Cast<ToolStripItem>().Any(i=>i.Text=="Save Program of Works As…"&&((ToolStripMenuItem)i).ShortcutKeyDisplayString=="Ctrl+Shift+S")&&Find(f,"Undo")==null&&Find(f,"Report  ▾") is Button,"Save on the bar; Save As in the File menu; no Undo button");
     var beam=Get<EstimatorForm>(f,"beam");beam.LoadCatalog(dirty,"Mabanguc Schedule of Beams.dxf");beamState=(string)Call(beam,"State");
     Check(!beamState.Contains("Lal-lo")&&!beamState.Contains("0\nTABLECONTENT\n")&&beamState.Contains("NORTH"),"beam estimate keeps the drawing without the linked table");
     var slab=Get<SlabEstimatorForm>(f,"slab");Call(slab,"AddSource",Inject(SlabDxf(),true),"Slab Schedule.dxf");slabSnapshot=(string)Call(slab,"Snapshot");

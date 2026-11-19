@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Drawing;using System.Linq;using System.Runtime.CompilerServices;using System.Windows.Forms;
+﻿using System;using System.Collections.Generic;using System.Drawing;using System.Linq;using System.Runtime.CompilerServices;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 sealed class GridRowSnapshot {
  internal object Extra;
@@ -64,7 +64,9 @@ sealed class GridEditHistory {
  internal void Undo(){if(commandTarget!=null){commandTarget.Undo();return;}if(!Commit()||!history.CanUndo)return;Apply(()=>history.Undo(action=>Restore(action.Before)));}
  internal void Redo(){if(commandTarget!=null){commandTarget.Redo();return;}if(!Commit()||!history.CanRedo)return;if(history.NextRedo.Deleted>0&&!ConfirmDelete(grid.FindForm(),history.NextRedo.Deleted))return;Apply(()=>history.Redo(action=>Restore(action.After)));}
  internal bool CanUndo{get{return commandTarget!=null?commandTarget.CanUndo:history.CanUndo;}}internal bool CanRedo{get{return commandTarget!=null?commandTarget.CanRedo:history.CanRedo;}}
- internal static void AddCommands(Form owner,FlowLayoutPanel panel){var undo=new Button{Text="Undo",AutoSize=true};var redo=new Button{Text="Redo",AutoSize=true};undo.Click+=(s,e)=>Safe(owner,h=>h.Undo());redo.Click+=(s,e)=>Safe(owner,h=>h.Redo());panel.Controls.AddRange(new Control[]{undo,redo});Action refresh=()=>{if(owner.IsDisposed)return;var h=For(owner);undo.Enabled=h!=null&&h.CanUndo;redo.Enabled=h!=null&&h.CanRedo;};StateChanged+=refresh;owner.Disposed+=(s,e)=>StateChanged-=refresh;refresh();}
+ /* owner (19 November 2026, "huwag na yung undo redo", "pwede naman shortcut key"): no Undo / Redo buttons; Ctrl+Z / Ctrl+Y (and Ctrl+Shift+Z) stay */
+ internal static void AddCommands(Form owner,FlowLayoutPanel panel){HookKeys(owner);}
+ static void AddCommandButtons(Form owner,FlowLayoutPanel panel){var undo=new Button{Text="Undo",AutoSize=true};var redo=new Button{Text="Redo",AutoSize=true};undo.Click+=(s,e)=>Safe(owner,h=>h.Undo());redo.Click+=(s,e)=>Safe(owner,h=>h.Redo());panel.Controls.AddRange(new Control[]{undo,redo});Action refresh=()=>{if(owner.IsDisposed)return;var h=For(owner);undo.Enabled=h!=null&&h.CanUndo;redo.Enabled=h!=null&&h.CanRedo;};StateChanged+=refresh;owner.Disposed+=(s,e)=>StateChanged-=refresh;refresh();}
  static void Safe(Form owner,Action<GridEditHistory> action){try{var editor=For(owner);if(editor!=null)action(editor);}catch(Exception error){MessageBox.Show(owner,error.Message,"Edit rows",MessageBoxButtons.OK,MessageBoxIcon.Information);}}
 }
 }

@@ -4497,14 +4497,10 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			base.Controls.Add(flowLayoutPanel);
 			GridEditHistory.AddCommands(this,flowLayoutPanel);
             Button(flowLayoutPanel, "Save Program of Works", Save);
-            Button(flowLayoutPanel, "Save Program of Works As…", SaveAs);/* owner, 19 November 2026: "lagyan mo ng save as option" - save a copy under another file name (Ctrl+Shift+S) */
-            Button(flowLayoutPanel,"Project files",ManageProjectFiles);/* Save status lives in the bottom status bar (owner, 17 November 2026), not between the command buttons. */powSaveIndicator=new Label{Name="PowSaveStatus",AccessibleName="Program of Works save status",Text=""};
-            Button(flowLayoutPanel, "Export report file", ExportEngineeringReport);
-			Button(flowLayoutPanel, "Open Program of Works", Open);
-			Button(flowLayoutPanel, "Close Program of Works", CloseProgramOfWorks);
-			Button(flowLayoutPanel, "Restore backup", RestoreBackup);
-			Button(flowLayoutPanel, "Print preview", PreviewQuantityEngineeringReport);
-            Button(flowLayoutPanel, "Save PDF", SaveQuantityEngineeringPdf);
+            /* owner (19 November 2026, "isummarize yung buttons"): Undo, Redo and Save stay on the bar; the other commands are grouped
+               in a File menu and a Report menu */
+            MenuButton(flowLayoutPanel,"File",new KeyValuePair<string,Action>("Open Program of Works…\tCtrl+O",Open),new KeyValuePair<string,Action>("Save Program of Works As…\tCtrl+Shift+S",SaveAs),new KeyValuePair<string,Action>("Close Program of Works",CloseProgramOfWorks),null,new KeyValuePair<string,Action>("Project files…",ManageProjectFiles),new KeyValuePair<string,Action>("Restore backup…",RestoreBackup));
+            MenuButton(flowLayoutPanel,"Report",new KeyValuePair<string,Action>("Print preview\tCtrl+P",PreviewQuantityEngineeringReport),new KeyValuePair<string,Action>("Save PDF…\tCtrl+Shift+P",SaveQuantityEngineeringPdf),new KeyValuePair<string,Action>("Export report file…",ExportEngineeringReport));/* Save status lives in the bottom status bar (owner, 17 November 2026), not between the command buttons. */powSaveIndicator=new Label{Name="PowSaveStatus",AccessibleName="Program of Works save status",Text=""};
 			beam = new EstimatorForm(null);
 			slab = new SlabEstimatorForm();
 			AddHome();
@@ -5294,6 +5290,17 @@ worksExcelTimer.Tick += async delegate
             heading.SetGuide(note);
             tabPage.Controls.Add(heading);
 			tabs.TabPages.Add(tabPage);
+		}
+
+		/* a command-bar button that opens a menu (null = separator); the menu is kept in Tag */
+		private static void MenuButton(FlowLayoutPanel panel, string text, params KeyValuePair<string,Action>?[] items)
+		{
+			var menu=new ContextMenuStrip();
+			foreach(var item in items){if(item==null){menu.Items.Add(new ToolStripSeparator());continue;}var pair=item.Value;string[] parts=pair.Key.Split('\t');var entry=new ToolStripMenuItem(parts[0]);if(parts.Length>1)entry.ShortcutKeyDisplayString=parts[1];entry.Click+=(s,e)=>{try{pair.Value();}catch(Exception ex){MessageBox.Show(ex.Message,"Program of Works");}};menu.Items.Add(entry);}
+			var button=new Button{Text=text+"  ▾",AutoSize=true,Height=30,Tag=menu,AccessibleName=text+" menu"};
+			button.Click+=(s,e)=>menu.Show(button,new System.Drawing.Point(0,button.Height));
+			button.Disposed+=(s,e)=>menu.Dispose();
+			panel.Controls.Add(button);
 		}
 
 		private static void Button(FlowLayoutPanel panel, string text, Action action)

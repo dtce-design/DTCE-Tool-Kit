@@ -33,3 +33,10 @@ Metal painting (checked on request: "paki double check yung quantity calculation
   Area = per metre x installed length x quantity. Checked against 248 test cases; no
   quantity change was needed.
 - The total line now says that it includes crossbracing rods (it always did).
+
+Program of Works command bar ("isummarize yung buttons", "huwag na yung undo redo", "pwede naman shortcut key")
+- The bar now has Save Program of Works, a File menu (Open Ctrl+O, Save As Ctrl+Shift+S,
+  Close, Project files, Restore backup) and a Report menu (Print preview Ctrl+P, Save PDF
+  Ctrl+Shift+P, Export report file). Save is Ctrl+S.
+- No Undo / Redo buttons (also in the estimates and design sheets); Ctrl+Z undoes and
+  Ctrl+Y (or Ctrl+Shift+Z) redoes row edits as before.
