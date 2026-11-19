@@ -33,5 +33,11 @@ class ContractDurationTests {
   Check(last.Count==1&&last[2026][11]==12,"the last records entered are used");System.IO.File.Delete(ContractDurationCalc.RainStorePath);
   /* moving average: a month without the newest year uses the five years before it */
   Check(avg[8]==7&&used[8]==5,"September 2026 not recorded yet: 2021-2025 are averaged");
+  /* only rainy-day values entered on or before the POW preparation date are used */
+  var entered=ContractDurationCalc.AparriEntered();Check(entered[2026][7]==new DateTime(2026,9,1)&&entered[2021][0]==new DateTime(2021,2,1),"built-in records count as entered after their month");
+  var early=ContractDurationCalc.Filter(ContractDurationCalc.AparriRecords(),entered,new DateTime(2026,6,15));Check(!early[2026][5].HasValue&&early[2026][4]==0&&early[2025][11]==10,"a POW prepared on June 15, 2026 uses the records entered by then");
+  var rec2=new Dictionary<int,int?[]>(ContractDurationCalc.AparriRecords());var ent2=ContractDurationCalc.AparriEntered();rec2[2026]=(int?[])rec2[2026].Clone();rec2[2026][8]=20;ent2[2026]=(DateTime?[])ent2[2026].Clone();ent2[2026][8]=new DateTime(2026,12,5);
+  int[] u3;var before=ContractDurationCalc.Averages(ContractDurationCalc.Filter(rec2,ent2,new DateTime(2026,11,19)),out u3);var after=ContractDurationCalc.Averages(ContractDurationCalc.Filter(rec2,ent2,new DateTime(2026,12,10)),out u3);
+  Check(before[8]==7&&after[8]!=7,"a value entered after the POW was prepared does not change its rainy days");
   Console.WriteLine("PASS: "+checks+" contract duration checks");}
 }
