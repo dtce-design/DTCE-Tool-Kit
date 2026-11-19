@@ -20,6 +20,8 @@ class TrussSupportForm:DesignSheetForm {
   NumberField(plate,"Hef","Embedment hef (mm)","300");Choice(plate,"AnchorType","Anchor type",new[]{"Headed (nut / head)","Hooked J or L bolt"});NumberField(plate,"HookEh","Hook length eh (mm, J/L bolt)","80");NumberField(plate,"Futa","Anchor futa (MPa)","400");NumberField(plate,"Fya","Anchor fya (MPa)","250");
   Toggle(plate,"Cracked","Cracked concrete (normal assumption)",true);Toggle(plate,"Grout","Grout pad under the plate (0.8 Vsa)",true);
   var presets=new FlowLayoutPanel{Width=1000,Height=46,Tag="FullWidth"};var typical=new Button{Text="Typical detail: 300 x 250 x 16 plate, 2-20 mm L anchor bolts each side",AutoSize=true,Height=32};typical.Click+=(s,e)=>Typical();presets.Controls.Add(typical);plate.Controls.Add(presets);plate.Controls.Add(sketch);
+  /* the model sits at the top of the tab and edits the inputs it shows */plate.Controls.SetChildIndex(sketch,1);plate.Controls.SetChildIndex(presets,2);
+  sketch.ValueChanged+=(key,value)=>{Control box;if(Inputs.TryGetValue(key,out box))box.Text=value.ToString("0.###",Inv);};
   var member=Section("Gusset and angle","The truss end member (1L or 2L angle) is welded to the gusset with heel and toe fillet welds; the gusset is fillet welded on both sides to the plate. Enter the member force from STAAD (Beam End Forces, axial; + tension, - compression) or leave it blank to use the support reaction.");
   NumberField(member,"GussetT","Gusset thickness tg (mm)","10");NumberField(member,"GussetL","Gusset length Lg (mm)","250");NumberField(member,"GussetH","Gusset height (mm, drawing only)","250");NumberField(member,"GussetFy","Gusset Fy (MPa)","248");NumberField(member,"GussetFu","Gusset Fu (MPa)","400");NumberField(member,"PlateWeld","Gusset-to-plate fillet weld (mm)","6");NumberField(member,"Lc","Gusset free length for buckling Lc (mm)","150");Toggle(member,"Bearing","Compression transferred by bearing",true);
   Choice(member,"Angles","Angle member",new[]{"2L (back to back)","1L"});angle=Choice(member,"Angle","Angle section (Regan handbook)",SteelCatalog.Profiles.Where(p=>p.Kind=="Angle bar").Select(p=>p.Name).ToArray());NumberField(member,"MemberForce","Member force from STAAD (kN, blank = reaction)","");
@@ -43,10 +45,11 @@ class TrussSupportForm:DesignSheetForm {
  internal TrussSupportInput Input(){Func<string,double> n=Number;string force=Value("MemberForce");return new TrussSupportInput{PlateB=n("PlateB"),PlateN=n("PlateN"),PlateT=n("PlateT"),PlateFy=n("PlateFy"),Fc=n("Fc"),SupportB=n("SupportB"),SupportN=n("SupportN"),SupportDepth=n("SupportDepth"),BoltDia=int.Parse(Value("BoltDia").Substring(1),Inv),BoltColumns=int.Parse(Value("BoltColumns"),Inv),BoltS1=n("BoltS1"),BoltS2=n("BoltS2"),Hef=n("Hef"),Futa=n("Futa"),Fya=n("Fya"),HookEh=n("HookEh"),Headed=Value("AnchorType").StartsWith("Headed"),Cracked=((CheckBox)Inputs["Cracked"]).Checked,GroutPad=((CheckBox)Inputs["Grout"]).Checked,
   GussetT=n("GussetT"),GussetL=n("GussetL"),GussetFy=n("GussetFy"),GussetFu=n("GussetFu"),PlateWeld=n("PlateWeld"),Fexx=n("Fexx"),Lc=n("Lc"),BearingCompression=((CheckBox)Inputs["Bearing"]).Checked,Angle=SteelCatalog.Find(Value("Angle")),Angles=Value("Angles").StartsWith("2L")?2:1,MemberForce=force==""?double.NaN:n("MemberForce"),HeelWeld=n("HeelWeld"),ToeWeld=n("ToeWeld"),AngleWeld=n("AngleWeld"),AngleFy=n("AngleFy"),AngleFu=n("AngleFu"),Vertical=Value("Vertical"),Others=OtherMembers()};}
  List<SupportCheck> lastChecks;List<string> lastNotes;
- void Refresh0(){try{double gh;sketch.Show(Input(),double.TryParse(Value("GussetH"),NumberStyles.Float,Inv,out gh)?gh:250);}catch(Exception){sketch.Show(null,0);}results.Rows.Clear();if(reactions.Text.Trim()==""){loaded.Text="No reactions yet. Paste or import the STAAD Support Reactions table.";return;}
+ void Refresh0(){sketch.Failing.Clear();try{double gh;sketch.Show(Input(),double.TryParse(Value("GussetH"),NumberStyles.Float,Inv,out gh)?gh:250);}catch(Exception){sketch.Show(null,0);}results.Rows.Clear();if(reactions.Text.Trim()==""){loaded.Text="No reactions yet. Paste or import the STAAD Support Reactions table.";return;}
   try{string unit;var rows=Rows(out unit);loaded.ForeColor=PowTheme.Muted;loaded.Text=rows.Count+" reaction rows, "+rows.Select(r=>r.Node).Distinct().Count()+" node(s), "+rows.Select(r=>r.Case).Distinct().Count()+" load case(s); unit "+unit+". Largest downward "+TrussSupport.F(rows.Max(r=>Value("Vertical")=="Z"?r.Fz:r.Fy))+" kN, largest uplift "+TrussSupport.F(Math.Max(0,-rows.Min(r=>Value("Vertical")=="Z"?r.Fz:r.Fy)))+" kN.";
    var notes=new List<string>();var checks=TrussSupport.Check(Input(),rows,notes);lastChecks=checks;lastNotes=notes;
    foreach(var c in checks){int i=results.Rows.Add(c.Name,c.Clause,c.Node,c.Case,TrussSupport.F(c.Demand,"0.00")+" "+c.Unit,TrussSupport.F(c.Capacity,"0.00")+" "+c.Unit,TrussSupport.F(c.Ratio,"0.00"),c.Ok?"OK":"NG");if(!c.Ok)results.Rows[i].DefaultCellStyle.ForeColor=Color.Firebrick;}
+   sketch.Failing.Clear();foreach(var c in checks.Where(x=>!x.Ok)){string n=c.Name.ToLowerInvariant();if(n.Contains("anchor")||n.Contains("breakout")||n.Contains("pullout")||n.Contains("pryout")||n.Contains("interaction"))sketch.Failing.Add("anchors");else if(n.Contains("plate thickness")||n.Contains("bearing"))sketch.Failing.Add("plate");else if(n.Contains("gusset")||n.Contains("whitmore"))sketch.Failing.Add("gusset");else sketch.Failing.Add("welds / members");}sketch.Invalidate();
    int ng=checks.Count(c=>!c.Ok);loaded.ForeColor=ng>0?Color.Firebrick:PowTheme.Teal;loaded.Text+="\r\n"+(ng>0?ng+" check(s) NG - see Results.":"All checks pass - largest ratio "+TrussSupport.F(checks.Max(c=>c.Ratio),"0.00")+".");}
   catch(Exception ex){lastChecks=null;loaded.ForeColor=Color.Firebrick;loaded.Text=ex.Message;}}
  protected override void AfterRestore(){Refresh0();}
@@ -60,41 +63,5 @@ class TrussSupportForm:DesignSheetForm {
   b.AppendLine("## 04  CHECKS (governing reaction row for each)");b.AppendLine("Check                          Clause          Node    L/C           Demand        Capacity      Ratio  Result");foreach(var c in checks)b.AppendLine(c.Name.PadRight(31)+c.Clause.PadRight(16)+c.Node.PadRight(8)+(c.Case.Length>12?c.Case.Substring(0,12):c.Case).PadRight(14)+(TrussSupport.F(c.Demand,"0.00")+" "+c.Unit).PadRight(14)+(TrussSupport.F(c.Capacity,"0.00")+" "+c.Unit).PadRight(14)+TrussSupport.F(c.Ratio,"0.00").PadRight(7)+(c.Ok?"OK":"NG")+"   "+c.Note);
   b.AppendLine();int ng=checks.Count(c=>!c.Ok);b.AppendLine(ng==0?"All checks satisfied for the reactions given.":ng+" check(s) not satisfied - revise the plate, anchors, gusset or welds.");b.AppendLine("Design calculation prepared with DTCE Tool Kit; it is not an engineer's approval. Confirm the support detail, anchor layout and reinforcement around the anchors on the structural drawings.");
   return b.ToString();}
-}
-}
-
-namespace BeamScheduleFormatter {
-/* plan and elevation of the support, drawn from the inputs */
-class TrussSupportSketch:Control {
- TrussSupportInput input;double gussetH;static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
- public TrussSupportSketch(){DoubleBuffered=true;ResizeRedraw=true;Width=1000;Height=380;Tag="FullWidth";BackColor=Color.White;}
- public void Show(TrussSupportInput i,double h){input=i;gussetH=h;Invalidate();}
- static string F(double v){return v.ToString("0",Inv);}
- void Dim(Graphics g,Font f,Brush b,Pen p,PointF a,PointF c,string text,bool vertical){g.DrawLine(p,a,c);if(vertical){g.DrawLine(p,a.X-3,a.Y,a.X+3,a.Y);g.DrawLine(p,c.X-3,c.Y,c.X+3,c.Y);var size=g.MeasureString(text,f);g.DrawString(text,f,b,a.X-size.Width-4,(a.Y+c.Y)/2-size.Height/2);}else{g.DrawLine(p,a.X,a.Y-3,a.X,a.Y+3);g.DrawLine(p,c.X,c.Y-3,c.X,c.Y+3);var size=g.MeasureString(text,f);g.DrawString(text,f,b,(a.X+c.X)/2-size.Width/2,a.Y-size.Height-1);}}
- protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;var font=new Font("Segoe UI",8f);var bold=ModernUi.Strong;
-  using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted))using(var line=new Pen(PowTheme.Ink,1.3f))using(var dim=new Pen(PowTheme.Muted)){
-   if(input==null){g.DrawString("Enter the plate, anchor and gusset sizes to see the detail.",font,muted,12,12);return;}var i=input;
-   float half=Width/2f;g.DrawString("PLAN",bold,ink,12,8);g.DrawString("ELEVATION",bold,ink,half+12,8);
-   /* plan: N along the truss (horizontal), B across */
-   double spanX=Math.Max(i.SupportN,Math.Max(i.PlateN,i.GussetL))+120,spanY=Math.Max(i.SupportB,i.PlateB)+120;float k=(float)Math.Min((half-60)/spanX,(Height-80)/spanY);float cx=half/2,cy=Height/2f+10;
-   Func<double,float> X=x=>cx+(float)(x*k);Func<double,float> Y=y=>cy+(float)(y*k);
-   using(var dash=new Pen(Color.Gray){DashStyle=DashStyle.Dash})g.DrawRectangle(dash,X(-i.SupportN/2),Y(-i.SupportB/2),(float)(i.SupportN*k),(float)(i.SupportB*k));
-   using(var plate=new SolidBrush(Color.FromArgb(225,232,240)))g.FillRectangle(plate,X(-i.PlateN/2),Y(-i.PlateB/2),(float)(i.PlateN*k),(float)(i.PlateB*k));g.DrawRectangle(line,X(-i.PlateN/2),Y(-i.PlateB/2),(float)(i.PlateN*k),(float)(i.PlateB*k));
-   using(var gus=new SolidBrush(Color.FromArgb(90,110,140)))g.FillRectangle(gus,X(-i.GussetL/2),Y(-i.GussetT/2)-1,(float)(i.GussetL*k),Math.Max(3,(float)(i.GussetT*k)));
-   double run=(i.BoltColumns-1)*i.BoltS1;using(var bolt=new SolidBrush(Color.Black))for(int c=0;c<i.BoltColumns;c++)foreach(int side in new[]{-1,1}){double x=-run/2+c*i.BoltS1,y=side*i.BoltS2/2;float r=Math.Max(3,(float)(i.BoltDia*k/2));g.FillEllipse(bolt,X(x)-r,Y(y)-r,2*r,2*r);}
-   Dim(g,font,muted,dim,new PointF(X(-i.PlateN/2),Y(-i.PlateB/2)-18),new PointF(X(i.PlateN/2),Y(-i.PlateB/2)-18),F(i.PlateN),false);Dim(g,font,muted,dim,new PointF(Math.Min(X(-i.PlateN/2),X(-i.SupportN/2))-20,Y(-i.PlateB/2)),new PointF(Math.Min(X(-i.PlateN/2),X(-i.SupportN/2))-20,Y(i.PlateB/2)),F(i.PlateB),true);
-   double edge=(i.PlateB-i.BoltS2)/2;float left=Math.Min(X(-i.PlateN/2),X(-i.SupportN/2))-58;Dim(g,font,muted,dim,new PointF(left,Y(-i.PlateB/2)),new PointF(left,Y(-i.BoltS2/2)),F(edge),true);Dim(g,font,muted,dim,new PointF(left,Y(-i.BoltS2/2)),new PointF(left,Y(i.BoltS2/2)),F(i.BoltS2),true);
-   if(i.BoltColumns>1)Dim(g,font,muted,dim,new PointF(X(-run/2),Y(i.PlateB/2)+18),new PointF(X(run/2),Y(i.PlateB/2)+18),F(i.BoltS1),false);
-   g.DrawString(F(i.PlateN)+" x "+F(i.PlateB)+" x "+F(i.PlateT)+" mm plate, "+(2*i.BoltColumns)+" - "+i.BoltDia+" mm "+(i.Headed?"headed":"L")+" anchors ("+i.BoltColumns+" each side)",font,ink,12,Height-22);
-   /* elevation: along the truss */
-   double ew=Math.Max(i.SupportN,i.GussetL)+160,eh=gussetH+i.PlateT+i.Hef+140;float ke=(float)Math.Min((half-60)/ew,(Height-70)/eh);float ex=half+half/2,ey=30+(float)(gussetH*ke)+20;
-   Func<double,float> EX=x=>ex+(float)(x*ke);Func<double,float> EY=y=>ey+(float)(y*ke);
-   using(var conc=new HatchBrush(HatchStyle.Percent10,Color.Gray,Color.FromArgb(240,240,236)))g.FillRectangle(conc,EX(-i.SupportN/2),EY(i.PlateT),(float)(i.SupportN*ke),(float)((i.Hef+80)*ke));g.DrawRectangle(dim,EX(-i.SupportN/2),EY(i.PlateT),(float)(i.SupportN*ke),(float)((i.Hef+80)*ke));
-   using(var plate=new SolidBrush(Color.FromArgb(120,140,170)))g.FillRectangle(plate,EX(-i.PlateN/2),EY(0),(float)(i.PlateN*ke),Math.Max(3,(float)(i.PlateT*ke)));
-   using(var gus=new HatchBrush(HatchStyle.BackwardDiagonal,Color.FromArgb(150,160,180),Color.FromArgb(235,238,244)))g.FillRectangle(gus,EX(-i.GussetL/2),EY(-gussetH),(float)(i.GussetL*ke),(float)(gussetH*ke));g.DrawRectangle(line,EX(-i.GussetL/2),EY(-gussetH),(float)(i.GussetL*ke),(float)(gussetH*ke));
-   using(var bolt=new Pen(Color.Black,2f))for(int c=0;c<i.BoltColumns;c++){float x=EX(-run/2+c*i.BoltS1);g.DrawLine(bolt,x,EY(-25),x,EY(i.PlateT+i.Hef));if(i.Headed)g.DrawLine(bolt,x-5,EY(i.PlateT+i.Hef),x+5,EY(i.PlateT+i.Hef));else g.DrawLine(bolt,x,EY(i.PlateT+i.Hef),x+(float)(i.HookEh*ke)*(c==0&&i.BoltColumns>1?-1:1),EY(i.PlateT+i.Hef));}
-   Dim(g,font,muted,dim,new PointF(EX(-i.GussetL/2),EY(-gussetH)-12),new PointF(EX(i.GussetL/2),EY(-gussetH)-12),F(i.GussetL),false);Dim(g,font,muted,dim,new PointF(EX(i.GussetL/2)+18,EY(-gussetH)),new PointF(EX(i.GussetL/2)+18,EY(0)),F(gussetH),true);
-   Dim(g,font,muted,dim,new PointF(EX(-i.SupportN/2)-14,EY(i.PlateT)),new PointF(EX(-i.SupportN/2)-14,EY(i.PlateT+i.Hef)),"hef "+F(i.Hef),true);
-   g.DrawString("gusset "+F(i.GussetT)+" mm, "+F(i.PlateWeld)+" mm fillet both sides",font,ink,half+12,Height-22);}}
 }
 }
