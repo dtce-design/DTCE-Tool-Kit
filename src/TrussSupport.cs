@@ -44,7 +44,7 @@ static class TrussSupport {
  public static List<SupportCheck> Check(TrussSupportInput i,IList<SupportReaction> reactions,List<string> notes){
   if(reactions==null||reactions.Count==0)throw new Exception("Enter the STAAD support reactions.");
   Func<double,bool> pos=v=>v>0&&!double.IsNaN(v)&&!double.IsInfinity(v);foreach(var v in new[]{i.PlateB,i.PlateN,i.PlateT,i.PlateFy,i.Fc,i.SupportB,i.SupportN,i.SupportDepth,i.BoltS2,i.Hef,i.Futa,i.Fya,i.GussetT,i.GussetL,i.GussetFy,i.GussetFu,i.PlateWeld,i.Fexx,i.AngleWeld,i.AngleFy,i.AngleFu})if(!pos(v))throw new Exception("Every dimension and strength must be greater than zero.");
-  if(i.BoltColumns<1||i.BoltColumns>4)throw new Exception("Use 1 to 4 bolts on each side of the gusset.");if(i.BoltColumns>1&&!pos(i.BoltS1))throw new Exception("Enter the bolt spacing along the plate.");if(i.Angles!=1&&i.Angles!=2)throw new Exception("Choose 1L or 2L.");
+  if(i.BoltColumns<1||i.BoltColumns>8)throw new Exception("Use 1 to 8 bolts on each side of the gusset.");if(i.BoltColumns>1&&!pos(i.BoltS1))throw new Exception("Enter the bolt spacing along the plate.");if(i.Angles!=1&&i.Angles!=2)throw new Exception("Choose 1L or 2L.");
   if(i.PlateB>i.SupportB+1e-9||i.PlateN>i.SupportN+1e-9)throw new Exception("The plate is larger than the top of the RC support.");if(i.BoltS2<=i.GussetT+2*i.PlateWeld)throw new Exception("The bolt gauge across the plate must clear the gusset and its welds.");
   double futa=Math.Min(i.Futa,Math.Min(1.9*i.Fya,860));if(futa<i.Futa)notes.Add("futa limited to min(1.9 fya, 860 MPa) = "+F(futa)+" MPa (417.4.1.2).");
   int n=2*i.BoltColumns;double ase=StressArea(i.BoltDia),da=i.BoltDia,fc=i.Fc,sq=Math.Sqrt(fc),run=(i.BoltColumns-1)*i.BoltS1;
