@@ -42,7 +42,9 @@ class BoqGeneralRequirementsTests {
    /* "hindi ba pwede paiksiin yung working days": more crews on an item shorten it */
    {var item0=f.ScheduleRows().First(x=>x.Rate>0&&x.Days>0);var overrides=Get<System.Collections.IDictionary>(f,"scheduleOverrides");var type=typeof(ProgramOfWorksForm).Assembly.GetType("BeamScheduleFormatter.ScheduleOverride");
     Func<double,int?,object> make=(rate,crews)=>{var o=Activator.CreateInstance(type,true);type.GetField("Rate",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(o,(double?)rate);type.GetField("Crews",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(o,crews);return o;};
-    double slow=item0.Quantity/(8*30.0);overrides[item0.Key]=make(slow,null);var one=f.ScheduleRows().First(x=>x.Key==item0.Key);overrides[item0.Key]=make(slow,3);var three=f.ScheduleRows().First(x=>x.Key==item0.Key);
-    Check(one.Days==30&&three.Crews==3&&three.Days==10,"3 crews shorten "+item0.Code+" from "+one.Days+" to "+three.Days+" days");overrides.Remove(item0.Key);}}
+    /* output per hour stays fixed at the DUPA value ("fix yung output per hour"); a saved output from v1.32.0 is ignored */
+    overrides[item0.Key]=make(item0.Rate/10,null);var fixedRate=f.ScheduleRows().First(x=>x.Key==item0.Key);Check(fixedRate.Rate==item0.Rate&&fixedRate.Days==item0.Days,"output per hour is fixed");
+    overrides[item0.Key]=make(0,3);var three=f.ScheduleRows().First(x=>x.Key==item0.Key);
+    Check(three.Crews==3&&three.Rate==item0.Rate&&three.Days==(int)Math.Ceiling(item0.Quantity/(item0.Rate*8*3)-1e-9)&&three.Days<=item0.Days,"3 crews: "+item0.Code+" "+item0.Days+" -> "+three.Days+" days");overrides.Remove(item0.Key);}}
   ProgramOfWorksForm.FillGeneralRequirements=false;Console.WriteLine("PASS: "+checks+" Part A / B checks");}
 }

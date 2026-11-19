@@ -148,6 +148,9 @@ editable: Certification"). Nothing was changed in Partner Center. Re-run the fai
 v1.5.0 certification finishes, or - only if the owner asks - with replace_pending_store_submission=true after the owner
 cancels the v1.5.0 certification in Partner Center.
 Later versions again need a new explicit request.
+New owner request (19 November 2026, "paki upload na sa microsoft store"): publish v1.32.0 (User and Admin) the same way after
+its Windows CI passes (publish_microsoft_store=true; replace_pending_store_submission stays false unless the owner asks).
+Later versions again need a new explicit request.
 
 ## Version numbers (18 November 2026)
 

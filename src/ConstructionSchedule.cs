@@ -79,7 +79,7 @@ partial class ProgramOfWorksForm {
  const double ScheduleHoursPerDay=8;/* fixed (owner, 18 November 2026: "fix at 8 hrs/day") */
  void AddConstructionSchedule(){var page=new TabPage("Construction Schedule");
   scheduleSummary=new Label{Dock=DockStyle.Top,Height=34,Padding=new Padding(14,8,14,2),Font=new Font("Segoe UI",10f,FontStyle.Bold),ForeColor=PowTheme.Ink};
-  var note=new Label{Dock=DockStyle.Top,Height=28,Padding=new Padding(14,2,14,2),ForeColor=PowTheme.Muted,Text="No. of days = quantity / (output per hour x 8 hours x crews), rounded up; double-click an item to add crews or change its output and shorten the schedule; working days only. Items keep the Bill of Quantities order. Construction logic: each item follows the trades it depends on (FS / SS / FF with lags, e.g. formworks overlap the rebar, trusses 7 days after the frame is poured); non-critical items are started within their float so the daily manpower stays level. LS items are listed without a duration."};
+  var note=new Label{Dock=DockStyle.Top,Height=28,Padding=new Padding(14,2,14,2),ForeColor=PowTheme.Muted,Text="No. of days = quantity / (output per hour x 8 hours x crews), rounded up; output per hour is fixed at the DUPA value; double-click an item to add crews and shorten the schedule; working days only. Items keep the Bill of Quantities order. Construction logic: each item follows the trades it depends on (FS / SS / FF with lags, e.g. formworks overlap the rebar, trusses 7 days after the frame is poured); non-critical items are started within their float so the daily manpower stays level. LS items are listed without a duration."};
   scheduleChart=new ScheduleChart{Height=200,Width=1200,Cursor=Cursors.Hand};scheduleChart.RowDoubleClicked=EditScheduleItem;var host=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Color.White};host.Controls.Add(scheduleChart);
   var bar=new FlowLayoutPanel{Dock=DockStyle.Top,Height=44,Padding=new Padding(10,4,10,0)};
   Button(bar,"Print preview",()=>PrintSchedule(true));Button(bar,"Print",()=>PrintSchedule(false));bar.Controls.Add(new Label{AutoSize=true,Padding=new Padding(10,10,0,0),ForeColor=PowTheme.Muted,Text="Prints the complete set for issue: summary, bar chart with manpower per day, manpower loading and schedule, PDM, PERT table and PERT-CPM network (A3 landscape, title block). Red = critical path."});
@@ -95,17 +95,16 @@ partial class ProgramOfWorksForm {
   using(var f=new Form{Text="Schedule - "+row.Code,FormBorderStyle=FormBorderStyle.FixedDialog,MinimizeBox=false,MaximizeBox=false,StartPosition=FormStartPosition.CenterParent,ClientSize=new Size(520,250),Font=Font}){AppBrand.Apply(f);
    var info=new Label{Left=14,Top=12,Width=490,Height=40,Text=row.Code+"  "+row.Description+"\r\nQuantity "+row.Quantity.ToString("N2")+" "+row.Unit+" - now "+row.Days+" working day(s)"};
    var crews=new NumericUpDown{Left=260,Top=62,Width=90,Minimum=1,Maximum=50,Value=Math.Max(1,Math.Min(50,row.Crews))};
-   var rate=new TextBox{Left=260,Top=96,Width=90,Text=o!=null&&o.Rate.HasValue?o.Rate.Value.ToString("0.####",CultureInfo.InvariantCulture):""};
    var preview=new Label{Left=14,Top=132,Width=490,Height=44,ForeColor=PowTheme.Muted};
-   Func<double> perHour=()=>{double v;return double.TryParse(rate.Text.Trim(),NumberStyles.Float,CultureInfo.InvariantCulture,out v)&&v>0?v:(standard!=null?standard.PerHour:row.Rate);};
+   Func<double> perHour=()=>standard!=null?standard.PerHour:row.Rate;
    Action show=()=>{double r=perHour();int days=r>0?(int)Math.Ceiling(row.Quantity/(r*ScheduleHoursPerDay*(int)crews.Value)-1e-9):0;preview.Text="New duration: "+days+" working day(s) with "+crews.Value+" crew(s) at "+r.ToString("0.###",CultureInfo.InvariantCulture)+" "+row.Unit+"/hour each. Each crew adds its workers to the daily manpower.";};
-   crews.ValueChanged+=(s,e)=>show();rate.TextChanged+=(s,e)=>show();show();
+   crews.ValueChanged+=(s,e)=>show();show();
    var ok=new Button{Text="Apply",Left=300,Top=200,Width=100,DialogResult=DialogResult.OK};var reset=new Button{Text="Reset",Left=192,Top=200,Width=100};var cancel=new Button{Text="Cancel",Left=408,Top=200,Width=100,DialogResult=DialogResult.Cancel};
-   reset.Click+=(s,e)=>{crews.Value=1;rate.Text="";};
-   f.Controls.AddRange(new Control[]{info,new Label{Left=14,Top=65,Width=240,Text="No. of crews working at the same time"},crews,new Label{Left=14,Top=99,Width=240,Text="Output per hour per crew (blank = DUPA "+(standard!=null?standard.PerHour.ToString("0.###",CultureInfo.InvariantCulture):"-")+")"},rate,preview,reset,ok,cancel});f.AcceptButton=ok;f.CancelButton=cancel;
-   if(f.ShowDialog(this)!=DialogResult.OK)return;double typed;bool hasRate=double.TryParse(rate.Text.Trim(),NumberStyles.Float,CultureInfo.InvariantCulture,out typed)&&typed>0;
-   var next=new ScheduleOverride{Crews=crews.Value>1?(int?)crews.Value:null,Rate=hasRate?(double?)typed:null,Start=o!=null?o.Start:null};
-   if(!next.Crews.HasValue&&!next.Rate.HasValue&&!next.Start.HasValue)scheduleOverrides.Remove(key);else scheduleOverrides[key]=next;
+   reset.Click+=(s,e)=>{crews.Value=1;};
+   f.Controls.AddRange(new Control[]{info,new Label{Left=14,Top=65,Width=240,Text="No. of crews working at the same time"},crews,new Label{Left=14,Top=99,Width=490,Text="Output per hour per crew (fixed, DUPA): "+perHour().ToString("0.###",CultureInfo.InvariantCulture)+" "+row.Unit+"/hour"},preview,reset,ok,cancel});f.AcceptButton=ok;f.CancelButton=cancel;
+   if(f.ShowDialog(this)!=DialogResult.OK)return;
+   var next=new ScheduleOverride{Crews=crews.Value>1?(int?)crews.Value:null,Start=o!=null?o.Start:null};
+   if(!next.Crews.HasValue&&!next.Start.HasValue)scheduleOverrides.Remove(key);else scheduleOverrides[key]=next;
    dashboardDirty=reportPreviewDirty=true;RefreshSchedule();}}
  /* Quantity of each pay item as shown in Bill of Quantities */
  List<KeyValuePair<BackupBillItem,double>> SchedulePayQuantities(){var result=new List<KeyValuePair<BackupBillItem,double>>();if(backupBill==null||backupBill.Count==0)return result;
@@ -116,7 +115,7 @@ partial class ProgramOfWorksForm {
  internal List<ScheduleRow> ScheduleRows(){var rows=new List<ScheduleRow>();double hours=ScheduleHoursPerDay;int finish=0;
   foreach(var pair in SchedulePayQuantities()){var item=pair.Key;string u=(item.Unit??"").Trim().ToLowerInvariant().Replace(".","");bool lumpSum=BackupMapping.Unit(item.Unit)=="ls";if(!lumpSum&&(u=="ps"||u=="mo"||u=="veh-mo"))continue;/* time-based items (months) are not work output; LS items are listed (owner, 18 November 2026: "isama pa din yung mga LS, pero leave muna yung output per hour") with the output per hour left blank */
    string key=ScheduleKey(item.Code,item.Description);ScheduleOverride o;scheduleOverrides.TryGetValue(key,out o);var rate=ScheduleRates.Find(item.Code,item.Description);
-   var r=new ScheduleRow{Code=item.Code,Description=item.Description,Unit=item.Unit,Key=key,Quantity=pair.Value,Crews=o!=null&&o.Crews.HasValue?o.Crews.Value:1,Rate=o!=null&&o.Rate.HasValue?o.Rate.Value:rate!=null&&!lumpSum?rate.PerHour:0,Crew=rate!=null?rate.Crew??"":""};
+   var r=new ScheduleRow{Code=item.Code,Description=item.Description,Unit=item.Unit,Key=key,Quantity=pair.Value,Crews=o!=null&&o.Crews.HasValue?o.Crews.Value:1,/* output per hour fixed at the DUPA value (owner, 19 November 2026: "fix yung output per hour"); only crews change */Rate=rate!=null&&!lumpSum?rate.PerHour:0,Crew=rate!=null?rate.Crew??"":""};
    r.Note=o!=null&&o.Rate.HasValue?"Output per hour entered for this project":lumpSum?"Lump sum - output per hour left blank for now (not counted)":rate!=null?"DUPA: "+rate.Description+(rate.Crew==""?"":" | "+rate.Crew):"No output per hour found - enter it";
    r.PhaseIndex=SchedulePhases.Of(item.Code);r.Phase=SchedulePhases.Names[r.PhaseIndex];
    /* 804(7) gravel: the bedding under the footings and tie beams (automatic) goes in before the lean concrete, the gravel
