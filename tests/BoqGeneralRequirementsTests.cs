@@ -48,5 +48,9 @@ class BoqGeneralRequirementsTests {
     overrides[item0.Key]=make(item0.Rate/10,null);var fixedRate=f.ScheduleRows().First(x=>x.Key==item0.Key);Check(fixedRate.Rate==item0.Rate&&fixedRate.Days==item0.Days,"output per hour is fixed");
     overrides[item0.Key]=make(0,3);var three=f.ScheduleRows().First(x=>x.Key==item0.Key);
     Check(three.Crews==3&&three.Rate==item0.Rate&&three.Days==(int)Math.Ceiling(item0.Quantity/(item0.Rate*8*3)-1e-9)&&three.Days<=item0.Days,"3 crews: "+item0.Code+" "+item0.Days+" -> "+three.Days+" days");overrides.Remove(item0.Key);}}
+  /* permits and clearances and mobilization from day 1 alongside the work; demobilization after the last work (owner, 19 November 2026) */
+  {var f3=new ProgramOfWorksForm();var bill3=Get<List<BackupBillItem>>(f3,"backupBill");foreach(var b in bill3.Where(b=>b.Code=="B.3(1)"||b.Code=="B.9(1)"))b.ManualQuantity=1;foreach(var b in bill3.Where(b=>b.Code=="803(1)a"))b.ManualQuantity=400;f3.Recalculate();
+   var rows3=f3.ScheduleRows();var permit=rows3.First(x=>x.Code=="B.3(1)");var mob=rows3.First(x=>x.Description.EndsWith("- mobilization"));var demob=rows3.First(x=>x.Description.EndsWith("- demobilization"));var work=rows3.First(x=>x.Code=="803(1)a");
+   Check(permit.Days==10&&permit.Start==1&&mob.Days==7&&mob.Start==1&&work.Start==1&&demob.Days==5&&demob.Start==work.Finish+1,"permits and mobilization from day 1, demobilization after the last work: "+string.Join("; ",rows3.Where(x=>x.Days>0).Select(x=>x.Code+" "+x.Days+" "+x.Start+"-"+x.Finish)));}
   ProgramOfWorksForm.FillGeneralRequirements=false;Console.WriteLine("PASS: "+checks+" Part A / B checks");}
 }

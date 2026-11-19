@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Globalization;using System.Linq;
+﻿using System;using System.Collections.Generic;using System.Globalization;using System.Linq;
 namespace BeamScheduleFormatter {
 // Realistic construction logic (owner, 18 November 2026: "gusto ko yung makatotohanan na construction schedule at
 // manpower"). Instead of running every item of a phase at the same time, each pay item is given a trade (clearing,
@@ -31,8 +31,8 @@ static class ScheduleLogic {
     a trade below; an item of no known trade follows the work phase of its item no. */
  internal static readonly string[] Order={"PRE","CLR","INVEST","GIMP","PILEF","PILE","PTEST","SPOIL","PEXC","PPIPE","PBACK","EXC","FFILL","GRAVF","LEAN","RB","FW","CFTG","FWS","CFRAME","CROOF","ANCHOR","RWALL","BACK",
   "SANIT","POIS","GRAV","VB","CSOF","DRAIN","BACKS","SITEW","MAS","JAMB","CSEC","GLASSB","STEEL","PURL","WPRES","PAINTM","ROOF","ROOFACC","STORM","INSUL","PLUMB","ELEC","FPROT","WP","PLAST","CLAD","PART","CEIL","TRIM",
-  "ELEC2","TILE","FLOOR","DOOR","HW","RAIL","PAINTMF","PAINT","PAINTW","FCOAT","CAB","FIXT","LIGHT","EQUIP","MECH","LIFT","FITOUT","SWEXC","SUBG","SUBB","PAVE","MARK","LAND","OTHER"};
- internal static readonly Dictionary<string,string> Names=new Dictionary<string,string>{{"PRE","General requirements (offices, billboard, safety)"},{"CLR","Site clearing and removal"},{"INVEST","Site investigation, survey and staking"},
+  "ELEC2","TILE","FLOOR","DOOR","HW","RAIL","PAINTMF","PAINT","PAINTW","FCOAT","CAB","FIXT","LIGHT","EQUIP","MECH","LIFT","FITOUT","SWEXC","SUBG","SUBB","PAVE","MARK","LAND","OTHER","DEMOB"};
+ internal static readonly Dictionary<string,string> Names=new Dictionary<string,string>{{"PRE","General requirements (offices, billboard, safety)"},{"DEMOB","Demobilization"},{"CLR","Site clearing and removal"},{"INVEST","Site investigation, survey and staking"},
   {"GIMP","Ground improvement"},{"PILEF","Piles furnished"},{"PILE","Piling"},{"PTEST","Pile / load tests"},{"SPOIL","Surplus excavation"},{"PEXC","Pipeline trench excavation"},{"PPIPE","Pipeline pipes"},{"PBACK","Pipeline backfill"},
   {"EXC","Structure excavation"},{"FFILL","Foundation fill"},{"GRAVF","Gravel bedding (footings, tie beams)"},{"LEAN","Lean / seal concrete"},{"RB","Reinforcing steel"},{"FW","Formworks"},{"CFTG","Footing concrete"},
   {"FWS","Slab forms, steel decking, falsework"},{"CFRAME","Frame concrete (columns, beams, slabs, walls)"},{"CROOF","Roof deck / roof slab concrete"},{"ANCHOR","Anchor bolts"},{"RWALL","Stone masonry / gabion walls"},
@@ -48,6 +48,8 @@ static class ScheduleLogic {
  sealed class Cand {internal string Trade,Type;internal double Lag;}
  static Cand C(string trade,string type,double lag){return new Cand{Trade=trade,Type=type,Lag=lag};}
  static Cand[] Any(params Cand[] c){return c;}
+ /* demobilization (owner, 19 November 2026): after the last work of every trade in the project */
+ static ScheduleLogic(){Rules["DEMOB"]=Order.Where(t=>t!="PRE"&&t!="DEMOB").Select(t=>Any(C(t,"FS",0))).ToArray();}
  /* the work starts at least d days after the frame pours (without frame items: the footing pours) begin - concrete cured,
     forms and shores off; in a normal job the other links already give this and Reduce drops it from the drawing, it only
     holds a small or incomplete Bill of Quantities to a realistic minimum */
@@ -169,6 +171,7 @@ static class ScheduleLogic {
   Func<string,bool> has=t=>d.Contains(t);
   if(n<0){/* general requirements A.x / B.x (written with or without the dots); survey, staking and soil investigation are site work */
    string k=new string(code.Where(c=>char.IsLetterOrDigit(c)||c=='(').ToArray());if(k.StartsWith("B19(")||k.StartsWith("B4(")||has("geotechnical")||has("staking")||has("soil investigation")||has("soil boring"))return "INVEST";
+   if(k.StartsWith("B9(")&&d.EndsWith("- demobilization"))return "DEMOB";
    return k.Length>1&&(k[0]=='A'||k[0]=='B')&&char.IsDigit(k[1])?"PRE":"OTHER";}
   if(n==800||n==801||n==100||n==101)return "CLR";if(n==802)return "SPOIL";if(n==102)return "SWEXC";if(n==104)return !has("backfill")?"SWEXC":has("structure")||has("culvert")||has("abutment")?"BACKS":"BACK";if(n==105)return "SUBG";if(n==200||n==201||n==202)return "SUBB";
   if(n==103)return has("excavation")?"EXC":"FFILL";if(n==803)return "EXC";
