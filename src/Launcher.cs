@@ -8,7 +8,7 @@ class LauncherForm:Form {
  readonly Panel home=new Panel{Dock=DockStyle.Fill},groupHost=new Panel{Dock=DockStyle.Fill,Visible=false},groupContent=new Panel{Dock=DockStyle.Fill};
  readonly Label groupTitle=new Label{AutoSize=true,Padding=new Padding(18,8,0,0),Font=new Font("Segoe UI",13,FontStyle.Bold)};
  readonly TabControl formatterTabs=new NavigationTabs{Dock=DockStyle.Fill},designTabs=new NavigationTabs{Dock=DockStyle.Fill};readonly Dictionary<string,Form> designModules=new Dictionary<string,Form>();readonly Dictionary<string,Action> designLoaders=new Dictionary<string,Action>();bool loadingDesign,loadingFormatter;readonly Dictionary<string,Action> formatterLoaders=new Dictionary<string,Action>();
- public LauncherForm(){AppBrand.Apply(this);Text="DTCE Tool Kit v"+Engine.Version;ClientSize=new Size(1100,800);MinimumSize=new Size(900,650);Font=new Font("Segoe UI",10);StartPosition=FormStartPosition.CenterScreen;Controls.Add(home);Controls.Add(groupHost);
+ public LauncherForm(){AppBrand.Apply(this);Text="DTCE Tool Kit v"+Engine.Version;/* owner (19 November 2026, "mas compact na window sa startup 2 columns lang") */ClientSize=new Size(780,580);MinimumSize=new Size(640,520);Font=new Font("Segoe UI",10);StartPosition=FormStartPosition.CenterScreen;Controls.Add(home);Controls.Add(groupHost);
   home.Padding=new Padding(24,20,24,0);
   var dashboard=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=4,Margin=Padding.Empty,Padding=Padding.Empty};
   dashboard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
@@ -34,7 +34,7 @@ class LauncherForm:Form {
   #if ADMIN_APP
   AddCard(cards,"Access Code Generator","Manage program access and generate activation codes.",()=>UseTool(ref generator,()=>new CodeGeneratorForm(),"Access Code Generator",null,8));
   #endif
-  /* owner (19 November 2026, "hindi pantay yung edge niya sa right"): the last card of each row ends on the same right edge as the header and Workspace settings */Action sizeCards=()=>{const int gap=14;int space=cards.ClientSize.Width-cards.Padding.Horizontal;int columns=space>=900?3:2;int width=Math.Max(250,(space-gap*(columns-1))/columns);int extra=Math.Max(0,space-width*columns-gap*(columns-1));for(int i=0;i<cards.Controls.Count;i++){var item=cards.Controls[i];bool last=i%columns==columns-1;item.Width=width+(last?extra:0);item.Margin=new Padding(0,0,last?0:gap,12);}};
+  /* owner (19 November 2026, "hindi pantay yung edge niya sa right"): the last card of each row ends on the same right edge as the header and Workspace settings */Action sizeCards=()=>{const int gap=14;int space=cards.ClientSize.Width-cards.Padding.Horizontal;int columns=2;int width=Math.Max(240,(space-gap*(columns-1))/columns);int extra=Math.Max(0,space-width*columns-gap*(columns-1));for(int i=0;i<cards.Controls.Count;i++){var item=cards.Controls[i];bool last=i%columns==columns-1;item.Width=width+(last?extra:0);item.Margin=new Padding(0,0,last?0:gap,12);}};
   cards.Resize+=(sender,args)=>sizeCards();sizeCards();
   dashboard.Controls.Add(new Label{Text="v"+Engine.Version+"  /  Developed by Engr. Daryl O. Tomaneng",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,ForeColor=PowTheme.Muted,Font=new Font("Segoe UI",8.5f),Margin=Padding.Empty},0,3);
   var header=PremiumControls.WorkspaceHeader(groupTitle,ShowStart);groupHost.Controls.Add(groupContent);groupHost.Controls.Add(header);
