@@ -40,7 +40,20 @@ class BoqSavedRoutesTests {
    missing=(List<string>)Call(f,"RestoreSavedBoqMapping",saved);
    Check(missing.Count==0&&routes[metal]=="wb-0"&&routes[tiles]=="wb-1"&&overrides[tiles]=="wb-1","a mapping made with other wording follows the item no. and unit of the linked workbook");
    var typed=BackupBill.Capture(catalogue,new List<BackupBillItem>());typed[0].ManualQuantity=12;
-   var rebound=(List<BackupBillItem>)typeof(ProgramOfWorksForm).GetMethod("RebindCatalogueManuals",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,new object[]{book,typed});
-   Check(rebound.Count==1&&rebound[0].Slot=="wb-0"&&rebound[0].ManualQuantity==12,"a typed quantity follows its item into a workbook with other wording");}
+   var rebound=(List<BackupBillItem>)typeof(ProgramOfWorksForm).GetMethod("RebindCatalogueManuals",BindingFlags.Static|BindingFlags.NonPublic,null,new[]{typeof(List<BackupTarget>),typeof(List<BackupBillItem>)},null).Invoke(null,new object[]{book,typed});
+   Check(rebound.Count==1&&rebound[0].Slot=="wb-0"&&rebound[0].ManualQuantity==12,"a typed quantity follows its item into a workbook with other wording");
+   var lostTyped=new List<BackupBillItem>();var typedMissing=BackupBill.Capture(catalogue,new List<BackupBillItem>());typedMissing[2].ManualQuantity=1;
+   var kept=(List<BackupBillItem>)typeof(ProgramOfWorksForm).GetMethod("RebindCatalogueManuals",BindingFlags.Static|BindingFlags.NonPublic,null,new[]{typeof(List<BackupTarget>),typeof(List<BackupBillItem>),typeof(List<BackupBillItem>)},null).Invoke(null,new object[]{book,typedMissing,lostTyped});
+   Check(kept.Count==0&&lostTyped.Count==1&&lostTyped[0].Code=="1200(1)","a typed quantity whose item is not in the workbook is reported instead of stopping the link");
+   /* Excel busy (edit mode / dialog): the call is tried again instead of pausing the sync */
+   int calls=0;int result=ExcelBusyFilter.Retry(()=>{calls++;if(calls<3)throw new System.Runtime.InteropServices.COMException("busy",ExcelBusyFilter.ExcelBusy);return 7;});
+   Check(result==7&&calls==3,"a busy Excel call is retried");bool other=false;try{ExcelBusyFilter.Retry<int>(()=>{throw new InvalidOperationException("x");});}catch(InvalidOperationException){other=true;}Check(other,"other errors are not retried");
+   var filter=new ExcelBusyFilter();Check(filter.RetryRejectedCall(IntPtr.Zero,1000,2)==250&&filter.RetryRejectedCall(IntPtr.Zero,ExcelBusyFilter.RetryMilliseconds+1,2)==-1&&filter.RetryRejectedCall(IntPtr.Zero,0,1)==-1,"rejected calls wait and retry for up to a minute");
+   /* "naka uncheck yung check box pero may qty": an LS item whose mapped quantities are all unchecked is 0, not the workbook's old quantity */
+   var lsBill=BackupBill.Capture(new List<BackupTarget>{new BackupTarget{Row=50,EndRow=50,Code="1200(1)",Description="Plumbing Fixtures",Unit="l.s.",SlotId="ls-0"}},new List<BackupBillItem>());lsBill[0].WorkbookQuantity=5;Set(f,"backupBill",lsBill);
+   routes.Clear();overrides.Clear();unmapped.Clear();includes.Clear();lsAuto.Clear();const string closet="Plumbing|Water closet|set";routes[closet]="ls-0";includes[closet]=false;
+   var lsList=new List<BackupDemand>{new BackupDemand{Key=closet,Description="Water closet",Unit="set",Quantity=4}};Call(f,"ApplyBoqIncludes",lsList);
+   var control=lsList.FirstOrDefault(d=>d.Key==ProgramOfWorksForm.LsIncludePrefix+"ls-0");
+   Check(control!=null&&control.Quantity==0&&control.ManualPriority==1&&lsList[0].Quantity==0&&BackupMapping.FinalQuantity(lsList.Where(d=>d.TargetSlotId=="ls-0"||d.Key==closet),"l.s.")==0,"unchecking every mapped quantity of an LS item gives 0 LS");}
   Console.WriteLine("PASS: "+checks+" saved BACKUP mapping checks");}
 }
