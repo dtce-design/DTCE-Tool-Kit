@@ -16,15 +16,22 @@ namespace BeamScheduleFormatter {
    bottom bars over the interior supports. */
 class CutSpan {public string Line="",Mark="";public double Ln,LeftSupport,RightSupport,Slab;public bool Include=true;public int Quantity=1;}
 class CutSettings {
- public LengthConfiguration Config;public double Cover=40,MaxBar=12,EndZone=.25,TopExtension=1.0/3,BottomCut=1.0/6,TieOffset=.05,HookFactor=6;public bool SpecialMomentFrame=true;
+ public LengthConfiguration Config;public double Cover=40,MaxBar=12,EndZone=.25,TopExtension=.25,BottomCut=1.0/6,TieOffset=.05,HookFactor=6;
+ /* curtailment standard of the Program of Works beam estimate (owner, 19 November 2026: "Yung curtail kunin yung standard sa pow"):
+    extra top bars L/4 past the support face, extra bottom bars from L/6 off each face, plus the POW main piece allowance at cut ends -
+    0 none, 1 Ld at both piece ends, 2 one lap per piece, 3 hook Ldh / cut-end Ld */
+ public int Allowance=1;
+ /* edits made on the cutting list (owner: "Gawin interactive yung sa cutting list dapat minomodify din") */
+ public Dictionary<string,CutOverride> Overrides=new Dictionary<string,CutOverride>(StringComparer.OrdinalIgnoreCase);public List<CutPiece> Added=new List<CutPiece>();public bool SpecialMomentFrame=true;
  public List<double> Stocks=new List<double>{6,7.5,9,10.5,12};
 }
-class CutPiece {public string Line,BarMark,Location,Shape;public int Diameter,Grade,PerLine,Lines;public double Length,Start,End;public bool Top;public long Pieces{get{return (long)PerLine*Lines;}}public double Kg{get{return Pieces*Length*EstimatorEngine.UnitMass(Diameter);}}}
+class CutOverride {public double? Length;public int? PerLine;public bool Deleted;}
+class CutPiece {public string Line,BarMark,Location,Shape,ShapeCode="STRAIGHT";public double DimA,DimB,DimC,SecB,SecH;public int Span;public bool Edited,Manual;public double? CalculatedLength;public int? CalculatedPerLine;public string Member{get{return Line+(Span>0?" span "+Span:"");}}public int Diameter,Grade,PerLine,Lines;public double Length,Start,End;public bool Top;public long Pieces{get{return (long)PerLine*Lines;}}public double Kg{get{return Pieces*Length*EstimatorEngine.UnitMass(Diameter);}}}
 class CutSplice {public string Line,Bar,Status,Note;public int Diameter,Span;public double From,To,Lap,ZoneFrom,ZoneTo;public bool Ok;}
 class CutSpanEstimate {public string Line,Mark;public int Span,Quantity;public bool Include;public double Ln,Concrete,Formwork,Kg;public int Ties;public Dictionary<int,double> KgByDiameter=new Dictionary<int,double>();}
 class CutPurchase {public int Grade,Diameter;public double Cut;public long Pieces;public StockChoice Choice;}
 class CutResult {
- public List<CutPiece> Pieces=new List<CutPiece>();public List<CutSplice> Splices=new List<CutSplice>();public List<CutSpanEstimate> Spans=new List<CutSpanEstimate>();public List<string> Notes=new List<string>(),Errors=new List<string>();public List<CutPurchase> Purchases=new List<CutPurchase>();
+ public List<CutPiece> Pieces=new List<CutPiece>(),Deleted=new List<CutPiece>();public List<CutSplice> Splices=new List<CutSplice>();public List<CutSpanEstimate> Spans=new List<CutSpanEstimate>();public List<string> Notes=new List<string>(),Errors=new List<string>();public List<CutPurchase> Purchases=new List<CutPurchase>();
  public double IncludedKg{get{return Spans.Where(s=>s.Include).Sum(s=>s.Kg);}}public double IncludedConcrete{get{return Spans.Where(s=>s.Include).Sum(s=>s.Concrete);}}public double IncludedFormwork{get{return Spans.Where(s=>s.Include).Sum(s=>s.Formwork);}}
 }
 static class BeamCutting {
@@ -78,7 +85,13 @@ static class BeamCutting {
   double x=0;for(int j=0;j<n;j++){g.SupportWidth[j]=spans[j].LeftSupport;g.SupportStart[j]=x;x+=spans[j].LeftSupport;g.FaceLeft[j]=x;x+=spans[j].Ln;g.FaceRight[j]=x;}g.SupportWidth[n]=spans[n-1].RightSupport;g.SupportStart[n]=x;g.Total=x+spans[n-1].RightSupport;
   double cover=s.Cover/1000;var estimates=new CutSpanEstimate[n];for(int j=0;j<n;j++){var sp=spans[j];double depthBelow=g.Depth[j]-sp.Slab;estimates[j]=new CutSpanEstimate{Line=id,Mark=sp.Mark,Span=j+1,Include=sp.Include,Ln=sp.Ln,Quantity=lineQty,Concrete=g.Width[j]*depthBelow*sp.Ln*lineQty,Formwork=(g.Width[j]+2*depthBelow)*sp.Ln*lineQty};}
   int mark=0;Func<string> nextMark=()=>{mark++;return id+"-"+mark.ToString(Inv);};
-  Action<CutPiece> add=p=>{p.Line=id;p.Lines=lineQty;p.Grade=GradeOf(s.Config,p.Diameter);if(p.Length>s.MaxBar+1e-9)result.Errors.Add("Beam line "+id+" "+p.Location+": "+F(p.Length)+" m piece is longer than the "+s.MaxBar.ToString("0.##",Inv)+" m bar.");result.Pieces.Add(p);
+  Action<CutPiece> add=p=>{p.Line=id;p.Lines=lineQty;p.Grade=GradeOf(s.Config,p.Diameter);
+   /* the span a piece belongs to (0 = runs over several spans) */
+   if(p.Span==0)for(int j=0;j<n;j++){double from=j==0?0:g.SupportStart[j]+g.SupportWidth[j]/2,to=j==n-1?g.Total:g.SupportStart[j+1]+g.SupportWidth[j+1]/2;if(p.Start>=from-1e-9&&p.End<=to+1e-9){p.Span=j+1;break;}}
+   if(p.SecB<=0&&p.Span>0){p.SecB=g.Width[p.Span-1]*1000;p.SecH=g.Depth[p.Span-1]*1000;}
+   CutOverride edit;if(!p.Manual&&s.Overrides.TryGetValue(p.BarMark,out edit)){if(edit.Deleted){result.Deleted.Add(p);return;}if(edit.Length.HasValue&&Math.Abs(edit.Length.Value-p.Length)>1e-9){p.CalculatedLength=p.Length;p.Length=edit.Length.Value;p.Edited=true;}if(edit.PerLine.HasValue&&edit.PerLine.Value!=p.PerLine){p.CalculatedPerLine=p.PerLine;p.PerLine=edit.PerLine.Value;p.Edited=true;}}
+   if(p.Length<=0||p.PerLine<0)throw new Exception(p.BarMark+": cut length must be more than 0 and pieces 0 or more.");
+   Shape(p,s);if(p.Length>s.MaxBar+1e-9)result.Errors.Add("Beam line "+id+" "+p.Location+": "+F(p.Length)+" m piece is longer than the "+s.MaxBar.ToString("0.##",Inv)+" m bar.");result.Pieces.Add(p);
    /* steel shared to spans by length; a span region runs from the middle of its left support to the middle of its right support */
    double kg=p.Kg,len=Math.Max(1e-9,p.End-p.Start);for(int j=0;j<n;j++){double from=j==0?0:g.SupportStart[j]+g.SupportWidth[j]/2,to=j==n-1?g.Total:g.SupportStart[j+1]+g.SupportWidth[j+1]/2;double overlap=Math.Max(0,Math.Min(to,p.End)-Math.Max(from,p.Start));if(overlap<=0)continue;double share=kg*overlap/len;estimates[j].Kg+=share;double v;estimates[j].KgByDiameter[p.Diameter]=(estimates[j].KgByDiameter.TryGetValue(p.Diameter,out v)?v:0)+share;}};
   for(int face=0;face<2;face++){bool top=face==1;int first=top?5:2;string name=top?"Top":"Bottom";
@@ -87,11 +100,11 @@ static class BeamCutting {
    foreach(int dia in dias){int cont=int.MaxValue;for(int j=0;j<n;j++)for(int z=0;z<3;z++)cont=Math.Min(cont,Count(counts[j,z],dia));
     if(cont>0)Continuous(g,s,result,add,nextMark(),name,top,dia,cont,cover);
     if(top){for(int i=0;i<=n;i++){int left=i>0?Count(counts[i-1,2],dia)-cont:0,right=i<n?Count(counts[i,0],dia)-cont:0;int through=Math.Min(left,right);double ld=Ld(s,dia,true);
-      if(through>0){double a=g.FaceLeft[i-1]+spans[i-1].Ln-s.TopExtension*spans[i-1].Ln,b2=g.FaceLeft[i]+s.TopExtension*spans[i].Ln;add(new CutPiece{BarMark=nextMark(),Location="Top extra over support "+(i+1),Diameter=dia,Top=true,PerLine=through,Length=b2-a,Start=a,End=b2,Shape="Straight"});}
-      int one=Math.Max(left,right)-through;if(one<=0)continue;bool toLeft=left>right;int j2=toLeft?i-1:i;double ext=s.TopExtension*spans[j2].Ln;bool exterior=i==0||i==n;double hook=exterior?Hook(s,dia):0,inSupport=exterior?g.SupportWidth[i]-cover:g.SupportWidth[i]+ld;double start=toLeft?g.FaceRight[i-1]-ext:(i==0?cover:g.SupportStart[i]-ld),end=toLeft?(i==n?g.Total-cover:g.SupportStart[i]+g.SupportWidth[i]+ld):g.FaceLeft[i]+ext;
+      if(through>0){double end1=EndAllowance(s,dia,true,2);double a=g.FaceLeft[i-1]+spans[i-1].Ln-s.TopExtension*spans[i-1].Ln-end1,b2=g.FaceLeft[i]+s.TopExtension*spans[i].Ln+end1;add(new CutPiece{BarMark=nextMark(),Location="Top extra over support "+(i+1),Diameter=dia,Top=true,PerLine=through,Length=b2-a,Start=a,End=b2,Shape="Straight"});}
+      int one=Math.Max(left,right)-through;if(one<=0)continue;bool toLeft=left>right;int j2=toLeft?i-1:i;double ext=s.TopExtension*spans[j2].Ln+EndAllowance(s,dia,true,1);bool exterior=i==0||i==n;double hook=exterior?Hook(s,dia):0,inSupport=exterior?g.SupportWidth[i]-cover:g.SupportWidth[i]+ld;double start=toLeft?g.FaceRight[i-1]-ext:(i==0?cover:g.SupportStart[i]-ld),end=toLeft?(i==n?g.Total-cover:g.SupportStart[i]+g.SupportWidth[i]+ld):g.FaceLeft[i]+ext;
       add(new CutPiece{BarMark=nextMark(),Location="Top extra at support "+(i+1)+(exterior?" (exterior, 90° hook)":" (one side)"),Diameter=dia,Top=true,PerLine=one,Length=ext+inSupport+hook,Start=start,End=end,Shape=exterior?"90° hook one end":"Straight"});}}
-    else{for(int j=0;j<n;j++){int mid=Count(counts[j,1],dia)-cont;if(mid>0){double a=g.FaceLeft[j]+s.BottomCut*spans[j].Ln,b2=g.FaceRight[j]-s.BottomCut*spans[j].Ln;add(new CutPiece{BarMark=nextMark(),Location="Bottom extra, span "+(j+1),Diameter=dia,PerLine=mid,Length=b2-a,Start=a,End=b2,Shape="Straight"});}
-      for(int side=0;side<2;side+=1){int extra=Count(counts[j,side==0?0:2],dia)-cont-Math.Max(0,mid);if(extra<=0)continue;int i=side==0?j:j+1;bool exterior=i==0||i==n;double ld=Ld(s,dia,false),ext=.25*spans[j].Ln,hook=exterior?Hook(s,dia):0,inSupport=exterior?g.SupportWidth[i]-cover:g.SupportWidth[i]+ld;double start=side==0?(exterior?cover:g.SupportStart[i]-ld):g.FaceRight[j]-ext,end=side==0?g.FaceLeft[j]+ext:(exterior?g.Total-cover:g.SupportStart[i]+g.SupportWidth[i]+ld);
+    else{for(int j=0;j<n;j++){int mid=Count(counts[j,1],dia)-cont;if(mid>0){double end1=EndAllowance(s,dia,false,2);double a=g.FaceLeft[j]+s.BottomCut*spans[j].Ln-end1,b2=g.FaceRight[j]-s.BottomCut*spans[j].Ln+end1;add(new CutPiece{BarMark=nextMark(),Location="Bottom extra, span "+(j+1),Diameter=dia,PerLine=mid,Length=b2-a,Start=a,End=b2,Shape="Straight"});}
+      for(int side=0;side<2;side+=1){int extra=Count(counts[j,side==0?0:2],dia)-cont-Math.Max(0,mid);if(extra<=0)continue;int i=side==0?j:j+1;bool exterior=i==0||i==n;double ld=Ld(s,dia,false),ext=.25*spans[j].Ln+EndAllowance(s,dia,false,1),hook=exterior?Hook(s,dia):0,inSupport=exterior?g.SupportWidth[i]-cover:g.SupportWidth[i]+ld;double start=side==0?(exterior?cover:g.SupportStart[i]-ld):g.FaceRight[j]-ext,end=side==0?g.FaceLeft[j]+ext:(exterior?g.Total-cover:g.SupportStart[i]+g.SupportWidth[i]+ld);
        add(new CutPiece{BarMark=nextMark(),Location="Bottom extra at support "+(i+1)+", span "+(j+1),Diameter=dia,PerLine=extra,Length=ext+inSupport+hook,Start=start,End=end,Shape=exterior?"90° hook one end":"Straight"});}}}}}
   /* side-face bars: each span, developed into both supports */
   for(int j=0;j<n;j++)foreach(var bar in EstimatorEngine.Bars(g.Rows[j].Cells[11],true)){double ld=Ld(s,bar.Key,false);add(new CutPiece{BarMark=nextMark(),Location="Side-face bars, span "+(j+1),Diameter=bar.Key,PerLine=bar.Value,Length=spans[j].Ln+2*ld,Start=g.FaceLeft[j]-ld,End=g.FaceRight[j]+ld,Shape="Straight"});}
@@ -99,9 +112,11 @@ static class BeamCutting {
   var o=new EstimateOptions{LengthConfig=s.Config,Cover=s.Cover,Hook=s.HookFactor,Fc=s.Config.Input.Fc,GradeSmall=s.Config.GradeSmall,Grade=s.Config.GradeLarge};
   for(int j=0;j<n;j++){var row=g.Rows[j];double ln=spans[j].Ln;List<TieZone> zones;try{zones=TieZones(row,ln,s);}catch(Exception ex){throw new Exception("Span "+(j+1)+": "+ex.Message);}
    foreach(var t in zones){if(t.Count<=0)continue;var shape=HookGeometry.TieParts(g.Width[j]*1000,g.Depth[j]*1000,t.Dia,t.Legs,o);estimates[j].Ties+=t.Count*lineQty;double a=g.FaceLeft[j]+t.From,b2=g.FaceLeft[j]+t.To;
-    add(new CutPiece{BarMark=nextMark(),Location="Stirrups, span "+(j+1)+" "+t.Name+" ("+t.Legs+"L @ "+(t.Spacing*1000).ToString("0",Inv)+" mm)",Diameter=t.Dia,PerLine=t.Count,Length=shape.MainHoop,Start=a,End=b2,Shape="Hoop, 135° hooks"});
-    if(t.Legs>2)add(new CutPiece{BarMark=nextMark(),Location="Crossties, span "+(j+1)+" "+t.Name,Diameter=t.Dia,PerLine=t.Count*(t.Legs-2),Length=shape.AdditionalLeg,Start=a,End=b2,Shape="Crosstie 90°/135°"});}
+    add(new CutPiece{BarMark=nextMark(),Location="Stirrups, span "+(j+1)+" "+t.Name+" ("+t.Legs+"L @ "+(t.Spacing*1000).ToString("0",Inv)+" mm)",Diameter=t.Dia,PerLine=t.Count,Length=shape.MainHoop,Start=a,End=b2,Shape="Hoop, 135° hooks",SecB=g.Width[j]*1000,SecH=g.Depth[j]*1000,Span=j+1});
+    if(t.Legs>2)add(new CutPiece{BarMark=nextMark(),Location="Crossties, span "+(j+1)+" "+t.Name,Diameter=t.Dia,PerLine=t.Count*(t.Legs-2),Length=shape.AdditionalLeg,Start=a,End=b2,Shape="Crosstie 90°/135°",SecB=g.Width[j]*1000,SecH=g.Depth[j]*1000,Span=j+1});}
    if(s.SpecialMomentFrame&&string.IsNullOrEmpty(row.RevisedSpacing)){double need=2*g.Depth[j];if(ln*s.EndZone+1e-9<need)result.Errors.Add("Beam line "+id+" span "+(j+1)+": the end stirrup zone ("+F(ln*s.EndZone)+" m) is shorter than 2h = "+F(need)+" m (NSCP 418.6.4.1).");if(s.TieOffset>.05+1e-9)result.Errors.Add("Beam line "+id+": first hoop is more than 50 mm from the support face (NSCP 418.6.4.4).");}}
+  /* bars added by hand on the cutting list: they count in the estimate of their span */
+  foreach(var m in s.Added.Where(a=>string.Equals(a.Line,id,StringComparison.OrdinalIgnoreCase))){int j=Math.Max(1,Math.Min(n,m.Span))-1;var copy=new CutPiece{BarMark=m.BarMark,Location=m.Location,Diameter=m.Diameter,PerLine=m.PerLine,Length=m.Length,Shape=m.Shape,ShapeCode=m.ShapeCode,Manual=true,Edited=true,Span=j+1,Start=g.FaceLeft[j],End=g.FaceRight[j]};add(copy);}
   result.Spans.AddRange(estimates);
  }
  static void Continuous(Geo g,CutSettings s,CutResult result,Action<CutPiece> add,string barMark,string face,bool top,int dia,int count,double cover){
@@ -126,6 +141,15 @@ static class BeamCutting {
    else check.Note=top?"Top bars spliced in the middle third.":"Bottom bars spliced over the interior support.";
    result.Splices.Add(check);p=best;piece++;if(piece>200)throw new Exception("Too many splices; check the span lengths.");}
  }
+ /* POW main piece allowance at the cut ends of a curtailed bar (per end), the same choices as the beam estimate */
+ internal static double EndAllowance(CutSettings s,int dia,bool top,int cutEnds){if(cutEnds<=0)return 0;switch(s.Allowance){case 1:case 3:return Ld(s,dia,top);case 2:return Lap(s,dia,top)/cutEnds;default:return 0;}}
+ internal static readonly string[] AllowanceNames={"None (detail required)","Ld at both piece ends","1 x lap (config A/B)","Hook Ldh / cut-end Ld"};
+ /* bar bending schedule shape and outside dimensions (mm); the cut length stays the authority */
+ internal static void Shape(CutPiece p,CutSettings s){string sh=(p.Shape??"").ToUpperInvariant();p.ShapeCode=sh.StartsWith("HOOP")?"HOOP":sh.StartsWith("CROSSTIE")?"CROSSTIE":sh.Contains("HOOKS BOTH")?"HOOK2":sh.Contains("HOOK ONE")?"HOOK1":"STRAIGHT";double db=p.Diameter,L=p.Length*1000;LengthResult v=null;try{v=s.Config.Values(p.Diameter,false);}catch(Exception){}
+  double r=v==null?3*db:v.MainInside/2,leg=v==null?12*db+r+db:v.Tail90+r+db,hook=v==null?0:s.Config.Rounded(v.Cut90);double cover=s.Cover;
+  switch(p.ShapeCode){case "HOOK1":p.DimB=Math.Round(leg);p.DimA=Math.Round(L-hook+r+db);p.DimC=0;break;case "HOOK2":p.DimA=Math.Round(leg);p.DimC=Math.Round(leg);p.DimB=Math.Round(L-2*hook+2*(r+db));break;
+   case "HOOP":p.DimA=Math.Round(p.SecB-2*cover);p.DimB=Math.Round(p.SecH-2*cover);p.DimC=v==null?Math.Max(6*db,75):Math.Round(v.Tail135);break;case "CROSSTIE":p.DimA=Math.Round(p.SecH-2*cover);p.DimB=v==null?Math.Max(6*db,75):Math.Round(v.Tail135);p.DimC=v==null?Math.Max(6*db,75):Math.Round(v.Tail90);break;default:p.DimA=Math.Round(L);p.DimB=p.DimC=0;break;}}
+ internal static string ShapeName(string code){switch(code){case "HOOK1":return "L-bar (90° hook one end)";case "HOOK2":return "U-bar (90° hooks both ends)";case "HOOP":return "Closed hoop, 135° hooks";case "CROSSTIE":return "Crosstie 135° / 90°";default:return "Straight";}}
  internal static int GradeOf(LengthConfiguration c,int dia){if(dia<=12)return c.GradeSmall;if(dia>=16)return c.GradeLarge;throw new Exception("13-15 mm bars need a project-specific grade.");}
  public static string Report(CutResult r,CutSettings s,IEnumerable<CutSpan> spans){var b=new StringBuilder();
   b.AppendLine("BEAM CUTTING LIST AND ESTIMATE");b.AppendLine();b.AppendLine("## 01  BASIS");foreach(var note in r.Notes)b.AppendLine(note);b.AppendLine("Cover "+s.Cover.ToString("0",Inv)+" mm; longest bar "+s.MaxBar.ToString("0.##",Inv)+" m; commercial lengths "+CommercialBars.FormatLengths(s.Stocks)+" m; stirrup end zones "+(s.EndZone*100).ToString("0.#",Inv)+"% of the clear span.");b.AppendLine();
