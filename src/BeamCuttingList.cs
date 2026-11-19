@@ -30,7 +30,10 @@ class CutPiece {public string Line,BarMark,Location,Shape,ShapeCode="STRAIGHT";p
 class CutSplice {public string Line,Bar,Status,Note;public int Diameter,Span;public double From,To,Lap,ZoneFrom,ZoneTo;public bool Ok;}
 class CutSpanEstimate {public string Line,Mark;public int Span,Quantity;public bool Include;public double Ln,Concrete,Formwork,Kg;public int Ties;public Dictionary<int,double> KgByDiameter=new Dictionary<int,double>();}
 class CutPurchase {public int Grade,Diameter;public double Cut;public long Pieces;public StockChoice Choice;}
-class CutResult {
+/* geometry of one beam line for the interactive model (owner, 19 November 2026: "Gawin interactive yung model na kayang magmodel yung
+   cross section ng beam or elevation niya nakikita mo pano yung splicing details niya lahat") */
+class CutLineGeometry {public string Line;public double[] SupportStart,SupportWidth,FaceLeft,FaceRight,Width,Depth,Slab,Ln;public double Total,Cover;public List<double[]> TopZones=new List<double[]>(),BottomZones=new List<double[]>();public List<List<BeamCutting.TieZone>> Ties=new List<List<BeamCutting.TieZone>>();public string[] Marks;}
+class CutResult {public List<CutLineGeometry> Geometry=new List<CutLineGeometry>();
  public List<CutPiece> Pieces=new List<CutPiece>(),Deleted=new List<CutPiece>();public List<CutSplice> Splices=new List<CutSplice>();public List<CutSpanEstimate> Spans=new List<CutSpanEstimate>();public List<string> Notes=new List<string>(),Errors=new List<string>();public List<CutPurchase> Purchases=new List<CutPurchase>();
  public double IncludedKg{get{return Spans.Where(s=>s.Include).Sum(s=>s.Kg);}}public double IncludedConcrete{get{return Spans.Where(s=>s.Include).Sum(s=>s.Concrete);}}public double IncludedFormwork{get{return Spans.Where(s=>s.Include).Sum(s=>s.Formwork);}}
 }
@@ -39,7 +42,7 @@ static class BeamCutting {
  internal static string F(double v){return v.ToString("0.000",Inv);}
  sealed class Tie {public int Legs,Dia;public double Spacing;}
  static Tie ParseTie(string raw){if(string.IsNullOrWhiteSpace(raw)||raw.Trim()=="-"||raw.Trim()=="--")return null;var m=Regex.Match(Engine.Normal(raw).Replace("#","O").Replace("Ø","O"),@"^(\d+)-(\d+)L-O(\d+)@(\d+)C/C$");if(!m.Success)throw new Exception("Unsupported stirrup: "+raw);return new Tie{Legs=int.Parse(m.Groups[2].Value),Dia=int.Parse(m.Groups[3].Value),Spacing=double.Parse(m.Groups[4].Value,Inv)/1000};}
- sealed class TieZone {public double From,To,Spacing;public int Count,Legs,Dia;public string Name;}
+ internal sealed class TieZone {public double From,To,Spacing;public int Count,Legs,Dia;public string Name;}
  /* stirrup zones of one span measured from the left face: the left / middle / right cells of a manual schedule, or the
     "1-50mm, n-s mm, REST AT r mm C/C" spacing of a formatted (revised) schedule */
  static List<TieZone> TieZones(BeamRow row,double ln,CutSettings s){var list=new List<TieZone>();
@@ -117,16 +120,20 @@ static class BeamCutting {
    if(s.SpecialMomentFrame&&string.IsNullOrEmpty(row.RevisedSpacing)){double need=2*g.Depth[j];if(ln*s.EndZone+1e-9<need)result.Errors.Add("Beam line "+id+" span "+(j+1)+": the end stirrup zone ("+F(ln*s.EndZone)+" m) is shorter than 2h = "+F(need)+" m (NSCP 418.6.4.1).");if(s.TieOffset>.05+1e-9)result.Errors.Add("Beam line "+id+": first hoop is more than 50 mm from the support face (NSCP 418.6.4.4).");}}
   /* bars added by hand on the cutting list: they count in the estimate of their span */
   foreach(var m in s.Added.Where(a=>string.Equals(a.Line,id,StringComparison.OrdinalIgnoreCase))){int j=Math.Max(1,Math.Min(n,m.Span))-1;var copy=new CutPiece{BarMark=m.BarMark,Location=m.Location,Diameter=m.Diameter,PerLine=m.PerLine,Length=m.Length,Shape=m.Shape,ShapeCode=m.ShapeCode,Manual=true,Edited=true,Span=j+1,Start=g.FaceLeft[j],End=g.FaceRight[j]};add(copy);}
+  var geo=new CutLineGeometry{Line=id,SupportStart=g.SupportStart,SupportWidth=g.SupportWidth,FaceLeft=g.FaceLeft,FaceRight=g.FaceRight,Width=g.Width,Depth=g.Depth,Slab=spans.Select(q=>q.Slab).ToArray(),Ln=spans.Select(q=>q.Ln).ToArray(),Total=g.Total,Cover=s.Cover/1000,Marks=spans.Select(q=>q.Mark).ToArray()};
+  for(int j=0;j<n;j++){try{geo.Ties.Add(TieZones(g.Rows[j],spans[j].Ln,s));}catch(Exception){geo.Ties.Add(new List<TieZone>());}}
+  foreach(bool top in new[]{true,false})(top?geo.TopZones:geo.BottomZones).AddRange(SpliceZones(g,s,top));result.Geometry.Add(geo);
   result.Spans.AddRange(estimates);
  }
+ static List<double[]> SpliceZones(Geo g,CutSettings s,bool top){int n=g.Spans.Count;var zones=new List<double[]>();for(int j=0;j<n;j++){double ln=g.Spans[j].Ln;
+   if(s.SpecialMomentFrame){double h2=2*g.Depth[j];if(ln>2*h2)zones.Add(new[]{g.FaceLeft[j]+h2,g.FaceRight[j]-h2,j});}
+   else if(top)zones.Add(new[]{g.FaceLeft[j]+ln/3,g.FaceRight[j]-ln/3,j});
+   else if(j<n-1)zones.Add(new[]{g.FaceRight[j]-ln/4,g.FaceLeft[j+1]+g.Spans[j+1].Ln/4,j});}return zones;}
  static void Continuous(Geo g,CutSettings s,CutResult result,Action<CutPiece> add,string barMark,string face,bool top,int dia,int count,double cover){
   int n=g.Spans.Count;double lap=Lap(s,dia,top),hook=Hook(s,dia),xs=cover,xe=g.Total-cover;
   /* development into the exterior supports: straight length available before the hook */
   var ldh=s.Config.Rounded(s.Config.Values(dia,top).Ldh)/1000;foreach(int i in new[]{0,n})if(g.SupportWidth[i]-cover+1e-9<ldh)result.Errors.Add("Beam line "+g.Spans[0].Line+" "+face.ToLowerInvariant()+" "+dia+" mm: support "+(i+1)+" ("+(g.SupportWidth[i]*1000).ToString("0",Inv)+" mm) is narrower than Ldh "+(ldh*1000).ToString("0",Inv)+" mm + cover for the hooked end.");
-  var zones=new List<double[]>();for(int j=0;j<n;j++){double ln=g.Spans[j].Ln;
-   if(s.SpecialMomentFrame){double h2=2*g.Depth[j];if(ln>2*h2)zones.Add(new[]{g.FaceLeft[j]+h2,g.FaceRight[j]-h2,j});}
-   else if(top)zones.Add(new[]{g.FaceLeft[j]+ln/3,g.FaceRight[j]-ln/3,j});
-   else if(j<n-1)zones.Add(new[]{g.FaceRight[j]-ln/4,g.FaceLeft[j+1]+g.Spans[j+1].Ln/4,j});}
+  var zones=SpliceZones(g,s,top);
   double p=xs;int piece=0;
   while(true){bool firstPiece=piece==0;double startHook=firstPiece?hook:0;
    if(xe-p+startHook+hook<=s.MaxBar+1e-9){add(new CutPiece{BarMark=barMark+(piece>0?"."+(piece+1):""),Location=face+" continuous "+(piece==0?"(one length)":"(last piece)"),Diameter=dia,Top=top,PerLine=count,Length=xe-p+startHook+hook,Start=p,End=xe,Shape=firstPiece?"90° hooks both ends":"90° hook one end"});break;}

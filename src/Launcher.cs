@@ -31,7 +31,7 @@ class LauncherForm:Form {
   AddCard(cards,"Project Information","Set the project details used in your calculations and reports.",()=>UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8));
   AddCard(cards,"Formatters","Prepare beam and slab schedules from your DXF drawings.",ShowFormatters);
   AddCard(cards,"Program of Works","Estimate quantities and keep your Bill of Quantities connected.",()=>UseTool(ref works,()=>new ProgramOfWorksForm(),"Program of Works",null,2));
-  AddCard(cards,"Cutting List","Beam cutting lists from the beam schedule: spans, splice zones and estimates.",()=>UseTool(ref cutting,()=>new CuttingListForm(),"Cutting List",null,ProgramAccess.ProgramOfWorks));
+  AddCard(cards,"Bar Bending Schedule","Bar bending schedules, cutting lists and splice details from the beam schedule, with an interactive model.",()=>UseTool(ref cutting,()=>new CuttingListForm(),"Bar Bending Schedule",null,ProgramAccess.ProgramOfWorks));
   AddCard(cards,"Design Sheets","Reinforcement, purlins, truss connections and supports, wind, earthquake and beam deflection calculations.",ShowDesignSheets);
   #if ADMIN_APP
   AddCard(cards,"Access Code Generator","Manage program access and generate activation codes.",()=>UseTool(ref generator,()=>new CodeGeneratorForm(),"Access Code Generator",null,8));

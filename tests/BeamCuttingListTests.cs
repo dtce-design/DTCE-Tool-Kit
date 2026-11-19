@@ -29,6 +29,8 @@ class BeamCuttingListTests {
   var bad=line(new[]{true,true,true});bad[1].LeftSupport=.5;Check(BeamCutting.Build(bad,find,s).Errors.Any(e=>e.Contains("same support")),"different widths for one support are reported");
   var shortBar=BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg,MaxBar=6});Check(shortBar.Pieces.All(p=>p.Length<=6+1e-9||p.Shape=="REVIEW")||shortBar.Errors.Count>0,"6 m bars: pieces fit or the line is flagged");
   Check(BeamCutting.Report(r,s,line(new[]{true,true,true})).Contains("SPLICE ZONE CHECK"),"report");
+  var geo=r.Geometry.Single();Check(geo.Line=="B1"&&geo.Ln.Length==3&&Math.Abs(geo.Total-20.6)<1e-9&&geo.Ties.Count==3&&geo.TopZones.Count==3,"model geometry for the interactive view");
+  using(var view=new BeamModelView()){view.SetResult(r,"B1");view.Selected=r.Pieces[0].BarMark;Check(view.Line=="B1"&&view.Selected==r.Pieces[0].BarMark,"model view takes the result and a selected bar");}
   AccessCodes.Granted=true;using(var form=new CuttingListForm()){form.AddSources(new[]{new[]{BeamDxf(),"b.dxf"}},true);var grid=(DataGridView)typeof(CuttingListForm).GetField("spans",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).GetValue(form);
    var marks=((DataGridViewComboBoxColumn)grid.Columns["Mark"]).Items.Cast<object>().Select(o=>o.ToString()).ToList();Check(marks.Count==3,"schedule marks offered");
    foreach(var ln in new[]{"5","6"}){int i=grid.Rows.Add();var g=grid.Rows[i];g.Cells["Line"].Value="G1";g.Cells["Mark"].Value=marks[0];g.Cells["Ln"].Value=ln;g.Cells["Left"].Value="400";g.Cells["Right"].Value="400";g.Cells["Slab"].Value="100";g.Cells["Qty"].Value="2";g.Cells["Include"].Value=ln=="5";}
