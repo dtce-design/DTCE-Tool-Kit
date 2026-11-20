@@ -1,0 +1,13 @@
+DTCE Tool Kit v6.0.7 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Bar Bending Schedule): cranked bars at lap splices as in the RCDC column BBS ("hindi nagaya yung bbs ng mga splices";
+"may bent yung paglap").
+- New shape K4 "cranked bar at lap" in the bar shape reference: A = lap at the offset, B = crank, C = offset, D = straight part.
+- Column main bars are scheduled as K4: A = compression lap per NSCP 2015 425.5.5.1 (0.071 fy db for fy up to 420 MPa, (0.13 fy - 24)
+  db above, at least 300 mm, rounded up to 10 mm: 600 mm for 20 mm G60, 480 mm for 16 mm), B = crank at 1:6 (sqrt(37) db: 122 mm for
+  20 mm, 98 mm for 16 mm), C = one bar diameter, D = the rest of the take-off cut length. The element schedule has a D column.
+- The cut length still comes from the column take-off (height less covers plus the end allowance); enter the lap in the column's end
+  allowance where the bars continue to the next level.
+Checked on Linux/Mono only. Tests: MemberBbsTests (10), BeamCuttingListTests (78).
+
+Includes v6.0.6 and earlier builds.

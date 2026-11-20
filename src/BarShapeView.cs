@@ -10,6 +10,8 @@ static class BarShapes {
   case "HOOK2":return new[]{new[]{new PointF(0,(float)a),new PointF(0,0),new PointF((float)b,0),new PointF((float)b,(float)c)}};
   case "HOOP":{float w=(float)a,h=(float)b,t=(float)(c*.7071);return new[]{new[]{new PointF(t,h-t),new PointF(0,h),new PointF(w,h),new PointF(w,0),new PointF(0,0),new PointF(0,h),new PointF(t,h-t+0)},new[]{new PointF(0,h),new PointF(t*1.0f,h-t*1.0f)}};}
   case "CROSSTIE":{float h=(float)a,t=(float)(b*.7071);return new[]{new[]{new PointF(t,h-t),new PointF(0,h),new PointF(0,0),new PointF((float)c,0)}};}
+  case "CRANK":{/* lap A at the offset, crank B, straight D; the offset is drawn larger so the bend reads */float run=(float)(6*Math.Max(c,1)),off=(float)Math.Max(c,0.14*(a+(p.DrawnStraight>0?p.DrawnStraight:p.DimD)+run)),d=(float)(p.DrawnStraight>0?p.DrawnStraight:p.DimD);
+   return new[]{new[]{new PointF(0,off),new PointF((float)a,off),new PointF((float)a+run,0),new PointF((float)a+run+Math.Max(d,1),0)}};}
   default:return new[]{new[]{new PointF(0,0),new PointF((float)Math.Max(a,1),0)}};}}
  /* draws the outline fitted in the box; scaled = the same mm-to-pixel scale both ways and dimension labels */
  internal static void Draw(Graphics g,RectangleF box,CutPiece p,bool labels,Color color,Font font,bool plainLabels=false,float lineWidth=0,bool lettersOnly=false){var lines=Outline(p);var all=lines.SelectMany(l=>l).ToList();float minX=all.Min(q=>q.X),maxX=all.Max(q=>q.X),minY=all.Min(q=>q.Y),maxY=all.Max(q=>q.Y);
@@ -21,6 +23,7 @@ static class BarShapes {
     case "HOOK2":label("A",p.DimA,map(new PointF(0,(float)p.DimA/2)),-1,0);label("B",p.DimB,map(new PointF((float)sb/2,0)),0,1);label("C",p.DimC,map(new PointF((float)sb,(float)p.DimC/2)),1,0);break;
     case "HOOP":label("A",p.DimA,map(new PointF((float)p.DimA/2,0)),0,1);label("B",p.DimB,map(new PointF((float)p.DimA,(float)p.DimB/2)),1,0);label("C",p.DimC,map(new PointF((float)p.DimC,(float)p.DimB)),1,-1);break;
     case "CROSSTIE":label("A",p.DimA,map(new PointF(0,(float)p.DimA/2)),-1,0);label("B",p.DimB,map(new PointF(0,(float)p.DimA)),1,-1);label("C",p.DimC,map(new PointF((float)p.DimC/2,0)),0,1);break;
+    case "CRANK":{var o=Outline(p)[0];label("A",p.DimA,map(new PointF(o[1].X/2,o[1].Y)),0,-1);label("B",p.DimB,map(new PointF((o[1].X+o[2].X)/2,(o[1].Y+o[2].Y)/2)),0,1);label("C",p.DimC,map(new PointF(0,o[1].Y/2)),-1,0);label("D",p.DimD,map(new PointF((o[2].X+o[3].X)/2,0)),0,1);break;}
     default:label("A",p.DimA,map(new PointF((float)p.DimA/2,0)),0,1);break;}}}
 }
 class BarShapeView:Control {
