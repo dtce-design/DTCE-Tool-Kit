@@ -1,0 +1,13 @@
+DTCE Tool Kit v6.0.24 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (beam elevation; "di naman maayos yung elevation"): a cleaner elevation in the BBS report -
+- allowed splice zones as a thin band along the face concerned instead of a green fill over the whole beam;
+- stirrup ticks kept off the bar lines (middle of the depth, lighter);
+- laps as an orange bracket beside the lapped bars with LAP length, no filled box;
+- the section cut names (1A, 1B ...) at mid-depth, clear of the bar labels;
+- layer spacer dots left to the sections (removed from the elevation and its legend).
+In the model the splice zones are the same thin bands, and only the selected bar carries its label (true scale leaves no room for
+every label; the section panel lists the bars).
+Checked on Linux/Mono only (B_Schedule_-_Revised.dxf, B-001 over three spans). Tests: BeamCuttingListTests, MemberBbsTests.
+
+Includes v6.0.23 and earlier builds.
