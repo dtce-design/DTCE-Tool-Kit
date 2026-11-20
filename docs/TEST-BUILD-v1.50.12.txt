@@ -1,0 +1,24 @@
+DTCE Tool Kit v1.50.12 test build (20 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: manual column and footing schedules; beam manual schedules managed like slabs.
+
+- Column and footing schedules ("maglagay na lang ng manual schedule sa column at footing"; "hindi siya tab button siya kagaya
+  sa beam at slab"; "tapos may manage para pwede mag edit and delete"): Column Estimate has a "Manual column schedules" button
+  and Footing Estimate a "Manual footing schedules" button. Each opens a manager with Add new schedule, Edit selected and
+  Delete selected. A column type holds width, depth, main bar groups, ties and open ties; a footing type holds L, B, D, cover,
+  the four bar groups and the extra ends.
+  On the estimate rows choose the type in the new "Schedule mark" column: the row takes its section and bars from the schedule
+  (those cells are shaded and locked) and a change to the type updates every row that uses it. Height, quantity, excavation,
+  side forms and materials stay on each row. Renaming a mark follows on the rows; deleting a type leaves its rows as ordinary
+  rows with the values they last took. A mark that is not on the schedule is flagged on the row.
+- Older files ("dapat yung ibang files bago itong update mababasa parin niya yung lumang format"): projects saved before this
+  version open unchanged - their schedules are empty and every row keeps its own typed values. Marks and schedules are saved as
+  new, separate entries, so the existing row data is stored exactly as before.
+- Beam manual schedules ("ayusin din yung sa beam kagaya ng slab sa manage schedule"): the Beam Estimate button is now
+  "Manual schedules" and opens a manager like the slab one - Add new schedule, Edit selected (opens the saved values; a renamed
+  mark follows on the takeoff rows) and Delete selected (asks first and removes the takeoff rows that use it, as for slabs).
+  Estimates saved before open unchanged.
+- DXF column / footing schedules ("or add dxf file"): waiting for the owner's template file.
+
+Includes v1.50.11 and earlier local builds (see their notes).

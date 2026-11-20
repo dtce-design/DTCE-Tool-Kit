@@ -6797,6 +6797,7 @@ worksExcelTimer.Tick += async delegate
 			{
 				return;
 			}
+			ApplyMemberSchedules(); /* manual column / footing schedules (v1.50.12) */
 			filling = true;
 			try
 			{
