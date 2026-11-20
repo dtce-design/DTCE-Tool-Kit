@@ -1,4 +1,4 @@
-DTCE Tool Kit v5.0.19 (was v1.50.19, briefly numbered v2.0.0) - 20 November 2026 - release for the Microsoft Store (owner request).
+DTCE Tool Kit v5.0.19 (was v1.50.19, briefly numbered v2.0.0) - 20 November 2026.
 
 Windows checks: GitHub Windows CI must pass before the Store upload. A Store upload is not certification.
 Numbering (owner, 20 November 2026): a new design sheet or workspace raises MAJOR; versions since v1.44.0 were renumbered (see
@@ -23,8 +23,4 @@ extensions, manual column / footing schedules, separate access for the new works
   deducted from it with its units, size and, for wooden doors / windows, the jamb depth taken from that wall's thickness.
 - The POW preparation date (from Project Information) is also set when the POW is created or opened, so opening the Contract
   Duration tab does not mark the project as changed.
-- "(No Top Coat)" ("alisin mo yung (No Top Coat)"): no longer shown in pay-item text - Bill of Quantities, mapping lists,
-  status, construction schedule and reports show "1032(1)a Masonary/Concrete Painting Works". The stored description (BACKUP
-  workbook text and saved mappings) is unchanged, so linked workbooks and saved projects keep matching.
-
 Includes v1.50.18 and earlier builds (see their notes).
