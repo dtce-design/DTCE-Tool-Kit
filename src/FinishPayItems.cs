@@ -35,18 +35,28 @@ partial class ProgramOfWorksForm {
  DataGridView FinishGroupTotalsGrid(){var g=new DataGridView{Name="FinishGroupTotals",Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,SelectionMode=DataGridViewSelectionMode.FullRowSelect,BackgroundColor=Color.White,AutoSizeRowsMode=DataGridViewAutoSizeRowsMode.AllCells};
   foreach(var h in new[]{"BOQ group / item no.","Finish IDs","Measured entries","Total m2"})g.Columns.Add(h,h);
   g.AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill;g.Columns[0].FillWeight=44;g.Columns[1].FillWeight=14;g.Columns[2].FillWeight=28;g.Columns[3].FillWeight=14;g.BorderStyle=BorderStyle.None;g.ScrollBars=ScrollBars.Vertical;g.Columns[2].DefaultCellStyle.WrapMode=DataGridViewTriState.True;g.Columns[0].DefaultCellStyle.WrapMode=DataGridViewTriState.True;g.Columns[3].DefaultCellStyle.Alignment=DataGridViewContentAlignment.MiddleRight;
-  foreach(DataGridViewColumn c in g.Columns)c.SortMode=DataGridViewColumnSortMode.NotSortable;finishGroupTotals=g;return g;}
+  foreach(DataGridViewColumn c in g.Columns)c.SortMode=DataGridViewColumnSortMode.NotSortable;
+  /* BOQ style (owner, 20 November 2026: "parang boq style na lang na may drop down arrow ilagay doon yung mga kasama sa group"):
+     a group row with an arrow; clicking it shows the measured entries of the group below it */
+  g.RowHeadersVisible=true;g.RowHeadersWidth=34;g.RowHeadersWidthSizeMode=DataGridViewRowHeadersWidthSizeMode.DisableResizing;
+  g.CellPainting+=(s,e)=>{if(e.ColumnIndex!=-1||e.RowIndex<0)return;var key=g.Rows[e.RowIndex].Tag as string;if(key==null||!key.StartsWith("group:"))return;e.PaintBackground(e.CellBounds,false);bool open=finishGroupOpen.Contains(key);var c=new Point(e.CellBounds.Left+e.CellBounds.Width/2,e.CellBounds.Top+e.CellBounds.Height/2);
+   var pts=open?new[]{new Point(c.X-5,c.Y-2),new Point(c.X+5,c.Y-2),new Point(c.X,c.Y+4)}:new[]{new Point(c.X-2,c.Y-5),new Point(c.X+4,c.Y),new Point(c.X-2,c.Y+5)};e.Graphics.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;using(var b=new SolidBrush(PowTheme.Teal))e.Graphics.FillPolygon(b,pts);e.Handled=true;};
+  Action<int> toggle=r=>{if(r<0)return;var key=g.Rows[r].Tag as string;if(key==null||!key.StartsWith("group:"))return;if(!finishGroupOpen.Remove(key))finishGroupOpen.Add(key);RefreshFinishGroupTotals();};
+  g.RowHeaderMouseClick+=(s,e)=>toggle(e.RowIndex);g.CellClick+=(s,e)=>{if(e.ColumnIndex==0)toggle(e.RowIndex);};g.CellDoubleClick+=(s,e)=>{if(e.ColumnIndex>0)toggle(e.RowIndex);};
+  finishGroupTotals=g;return g;}
+ readonly HashSet<string> finishGroupOpen=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
  void RefreshFinishGroupTotals(){var g=finishGroupTotals;if(g==null||g.IsDisposed)return;g.Rows.Clear();var chart=new List<KeyValuePair<string,double>>();
   Func<FinishItem,double> area=f=>{try{return f.Total(FindWall(f.Wall),wallOpenings,finishItems);}catch(Exception){return 0;}};
   foreach(var total in FinishTypeRegistry.Totals(finishItems,area).OrderBy(t=>t.Name)){var items=finishItems.Where(f=>FinishTypeRegistry.Key(f.MaterialName)==total.Key).ToList();
    string ids=string.Join(", ",items.Select(f=>f.Code).Where(c=>c!="").Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c=>c));
    string entries=string.Join("; ",items.GroupBy(f=>f.Category).Select(c=>c.Key+": "+string.Join(", ",c.Select(f=>f.Id))));
    string slot;var std=FinishStandard.Find(total.Name);string caption=std!=null?std.Caption:total.Name;if(std==null){var bill=backupBillRoutes.TryGetValue(FinishGroupKey(total.Name),out slot)?backupBill.FirstOrDefault(b=>b.Slot==slot):null;caption=bill!=null?bill.Code+" | "+total.Name:total.Name+"  (not mapped yet)";}
-   int r=g.Rows.Add(caption,ids,entries,total.Area.ToString("N2"));chart.Add(new KeyValuePair<string,double>(caption,total.Area));if(caption.EndsWith("(not mapped yet)"))g.Rows[r].Cells[0].Style.ForeColor=Color.FromArgb(176,96,0);}
+   string gkey="group:"+total.Key;bool open=finishGroupOpen.Contains(gkey);int r=g.Rows.Add(caption,ids,items.Count+" entr"+(items.Count==1?"y":"ies")+(open?"":"  -  "+entries),total.Area.ToString("N2"));g.Rows[r].Tag=gkey;g.Rows[r].DefaultCellStyle.Font=new Font(g.Font,FontStyle.Bold);g.Rows[r].DefaultCellStyle.BackColor=DesktopAppearance.Palette.Soft;chart.Add(new KeyValuePair<string,double>(caption,total.Area));if(caption.EndsWith("(not mapped yet)"))g.Rows[r].Cells[0].Style.ForeColor=Color.FromArgb(176,96,0);
+   if(open)foreach(var f in items.OrderBy(x=>x.Category).ThenBy(x=>x.Id)){int c=g.Rows.Add("      "+f.Id+"  -  "+f.Category,f.Code,f.Description??"",area(f).ToString("N2"));g.Rows[c].Tag="item";g.Rows[c].DefaultCellStyle.ForeColor=PowTheme.Muted;}}
   var loose=finishItems.Where(f=>FinishTypeRegistry.Key(f.MaterialName)=="").ToList();
   if(loose.Count>0){int r=g.Rows.Add("No Finish ID yet - choose one on the sheet","",string.Join("; ",loose.GroupBy(f=>f.Category).Select(c=>c.Key+": "+string.Join(", ",c.Select(f=>f.Id)))),loose.Sum(area).ToString("N2"));g.Rows[r].DefaultCellStyle.ForeColor=Color.FromArgb(176,96,0);}
   /* an adjustment larger than the measured area of its group is reported; the group counts as 0 */
   foreach(var grp in finishItems.Where(f=>FinishTypeRegistry.Key(f.MaterialName)!="").GroupBy(f=>FinishTypeRegistry.Key(f.MaterialName))){double raw=grp.Sum(area);if(raw< -1e-9)errors.Add("Finish group "+grp.First().MaterialName+": adjustment exceeds the measured area by "+(-raw).ToString("N2")+" m2; counted as 0.");}
-  if(finishGroupChart!=null&&!finishGroupChart.IsDisposed)finishGroupChart.SetData(chart);}
+  if(finishGroupChart!=null&&!finishGroupChart.IsDisposed)finishGroupChart.SetData(chart);g.ClearSelection();}
 }
 }

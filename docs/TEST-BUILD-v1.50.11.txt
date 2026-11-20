@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.50.11 test build (20 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: Finish Works totals per group in BOQ style.
+
+- TOTALS PER GROUP ("parang boq style na lang na may drop down arrow ilagay doon yung mga kasama sa group"): each BOQ group
+  is a bold row with an arrow in the row header. Click the arrow (or the group name, or double-click the row) to show the
+  measured entries of that group below it: entry ID and location, Finish ID, description and area (m2). Click again to
+  hide them. Open groups stay open when the sheet refreshes. A closed group still lists its entries in one line.
+
+Includes v1.50.10 and earlier local builds (see their notes).
