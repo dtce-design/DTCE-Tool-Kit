@@ -15,7 +15,7 @@ static partial class BbsReport {
  static string Fy(CutSettings s,IEnumerable<int> dias){var g=dias.Select(d=>d<=12?s.Config.FySmall:s.Config.FyLarge).Distinct().OrderBy(x=>x).Select(x=>x.ToString("0",Inv));return "Fy"+string.Join("/",g);}
  internal static void AddElementSchedules(RichReport rep,CutResult r,CutSettings s,string number){
   rep.Heading(number+"  BAR BENDING SCHEDULE PER ELEMENT");
-  rep.Paragraph("Each element: sketch, schedule and summary. Bar nos. = bars in one element x identical elements. Cutting length and A - F in mm (outside dimensions); R = inside bend radius per NSCP 2015 Table 425.3.1 / 425.3.2. LGT = total length, WT = weight at the nominal unit mass.",true);
+  rep.Paragraph("Each element: sketch, schedule and summary. Bar nos. = bars in one element x identical elements. The length of every leg (outside dimension, mm) is written on the bar shape; long straight legs are drawn shortened. R = inside bend radius per NSCP 2015 Table 425.3.1 / 425.3.2. LGT = total length, WT = weight at the nominal unit mass.",true);
   int n=0;foreach(var group in ElementOrder){foreach(var el in r.Pieces.Where(p=>p.Group==group).GroupBy(ElementKey).OrderBy(g=>g.Key,StringComparer.OrdinalIgnoreCase)){var pieces=el.ToList();n++;
     string size=pieces.Where(p=>p.SecB>0&&p.SecH>0).Select(p=>(p.SecB).ToString("0",Inv)+"x"+(p.SecH).ToString("0",Inv)).FirstOrDefault();var geo=r.Geometry.FirstOrDefault(g=>g.Line==el.Key);
     if(size==null&&geo!=null&&geo.Width.Length>0)size=(geo.Width[0]*1000).ToString("0",Inv)+"x"+(geo.Depth[0]*1000).ToString("0",Inv);string title=el.Key+(size!=null?" : "+size:"");
@@ -24,9 +24,11 @@ static partial class BbsReport {
     else if(group=="Column")rep.Figure(170,(g,rect)=>DrawColumnSketch(g,rect,pieces),"Section of "+el.Key+": main bars and hoops (not to scale).");
     else if(group=="Footing"||group=="Wall footing")rep.Figure(190,(g,rect)=>DrawFootingSketch(g,rect,pieces,s.Cover),"Plan and section of "+el.Key+": bars both ways (not to scale).");
     var rows=pieces.OrderBy(p=>p.Top?0:1).ThenBy(p=>p.BarMark,StringComparer.OrdinalIgnoreCase).ToList();bool first=true;
-    rep.Table(new[]{"ELEMENT","BAR MARK","BAR NOS.","REBAR","BAR SHAPE","CUTTING LENGTH (mm)","A","B","C","D","E","F","R"},
-     rows.Select(p=>{var row=new[]{first?el.Key:"",p.BarMark+(p.Manual?" *":p.Edited?" †":""),p.Pieces.ToString(Inv)+(p.Lines>1?"  ("+p.PerLine+" x "+p.Lines+")":""),"Ø"+p.Diameter,"",(p.Length*1000).ToString("0",Inv),Dim(p.DimA),Dim(p.DimB),Dim(p.DimC),"","","",Dim(BendRadius(p))};first=false;return row;}),
-     new float[]{10,11,11,6,16,9,6,6,6,4,4,4,5},4,24,(g,cell,i)=>{var p=Schematic(rows[i]);BarShapes.Draw(g,new RectangleF(cell.X+4,cell.Y+1,cell.Width-8,cell.Height-2),p,false,Color.FromArgb(25,90,160),null);});
+    /* owner (20 November 2026, "ilagay yung letters para di na ilagay sa table"): the leg lengths are written on the bar sketch itself,
+       so the table has no A - F columns */
+    rep.Table(new[]{"ELEMENT","BAR MARK","BAR NOS.","REBAR","BAR SHAPE  (leg lengths in mm, outside dimensions)","CUTTING LENGTH (mm)","R (mm)"},
+     rows.Select(p=>{var row=new[]{first?el.Key:"",p.BarMark+(p.Manual?" *":p.Edited?" †":""),p.Pieces.ToString(Inv)+(p.Lines>1?"  ("+p.PerLine+" x "+p.Lines+")":""),"Ø"+p.Diameter,"",(p.Length*1000).ToString("0",Inv),Dim(BendRadius(p))};first=false;return row;}),
+     new float[]{9,10,10,6,42,10,6},4,50,(g,cell,i)=>DrawLabelled(g,cell,rows[i]));
     var dias=pieces.Select(p=>p.Diameter).Distinct().OrderBy(d=>d).ToList();var lgt=dias.Select(d=>pieces.Where(p=>p.Diameter==d).Sum(p=>p.Pieces*p.Length)).ToList();var wt=dias.Select(d=>pieces.Where(p=>p.Diameter==d).Sum(p=>p.Kg)).ToList();
     var summary=new List<string[]>{new[]{"LGT (m)"}.Concat(lgt.Select(v=>v.ToString("0",Inv))).Concat(new[]{lgt.Sum().ToString("0",Inv)}).ToArray(),new[]{"WT (kg)"}.Concat(wt.Select(v=>v.ToString("0",Inv))).Concat(new[]{wt.Sum().ToString("0",Inv)}).ToArray()};
     double concrete=group=="Beam"?r.Spans.Where(x=>x.Line==el.Key).Sum(x=>x.Concrete):0;if(concrete>0)summary.Add(new[]{"kg / m³ concrete"}.Concat(dias.Select(d=>"")).Concat(new[]{(wt.Sum()/concrete).ToString("0",Inv)}).ToArray());
@@ -38,6 +40,11 @@ static partial class BbsReport {
   table.Add(new[]{"TOTAL LGT (m)"}.Concat(all.Select(d=>r.Pieces.Where(p=>p.Diameter==d).Sum(p=>p.Pieces*p.Length).ToString("0",Inv))).Concat(new[]{r.Pieces.Sum(p=>p.Pieces*p.Length).ToString("0",Inv)}).ToArray());
   table.Add(new[]{"No. of pieces"}.Concat(all.Select(d=>r.Pieces.Where(p=>p.Diameter==d).Sum(p=>p.Pieces).ToString(Inv))).Concat(new[]{r.Pieces.Sum(p=>p.Pieces).ToString(Inv)}).ToArray());
   rep.Paragraph(number+"."+(n+1)+"  PROJECT SUMMARY BY ELEMENT TYPE AND BAR SIZE",false,true).Table(new[]{"ELEMENT TYPE"}.Concat(all.Select(d=>"Ø"+d)).Concat(new[]{"TOTAL"}).ToArray(),table,new float[]{30}.Concat(all.Select(d=>10f)).Concat(new float[]{12}).ToArray(),row=>row[0].StartsWith("TOTAL")||row[0]=="No. of pieces"?(Color?)Color.FromArgb(232,236,240):null);}
+ /* bar sketch with the length of each leg written on it (long straight legs drawn shortened, the values stay true) */
+ internal static void DrawLabelled(Graphics g,RectangleF cell,CutPiece p){var q=new CutPiece{ShapeCode=p.ShapeCode,DimA=p.DimA,DimB=p.DimB,DimC=p.DimC,Diameter=p.Diameter};
+  double hook=Math.Max(p.ShapeCode=="HOOK1"?p.DimB:p.ShapeCode=="HOOK2"?Math.Max(p.DimA,p.DimC):0,1);if(p.ShapeCode=="HOOK1"&&p.DimA>4*hook)q.DrawnStraight=4*hook;if(p.ShapeCode=="HOOK2"&&p.DimB>4*hook)q.DrawnStraight=4*hook;
+  if(p.ShapeCode=="STRAIGHT"&&p.DimA<=0)q.DimA=p.Length*1000;
+  using(var f=new Font("Segoe UI",7f,FontStyle.Regular,GraphicsUnit.Point))BarShapes.Draw(g,new RectangleF(cell.X+6,cell.Y+2,cell.Width-12,cell.Height-4),q,true,Color.FromArgb(25,90,160),f,true,1.4f);}
  /* column cross-section: main bars along the faces and the hoop */
  static void DrawColumnSketch(Graphics g,RectangleF rect,List<CutPiece> pieces){g.SmoothingMode=SmoothingMode.AntiAlias;var hoop=pieces.FirstOrDefault(p=>p.ShapeCode=="HOOP")??pieces.FirstOrDefault(p=>p.SecB>0);double b=hoop!=null&&hoop.SecB>0?hoop.SecB:400,h=hoop!=null&&hoop.SecH>0?hoop.SecH:400;
   var mains=pieces.Where(p=>p.ShapeCode=="STRAIGHT"||p.ShapeCode.StartsWith("HOOK")).Where(p=>p.Location==null||!p.Location.Contains("crosstie")).OrderByDescending(p=>p.Length).ToList();var main=mains.FirstOrDefault();int count=main==null?4:Math.Max(4,main.PerLine);
