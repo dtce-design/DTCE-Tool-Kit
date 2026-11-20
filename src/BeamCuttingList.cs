@@ -249,6 +249,12 @@ static class BeamCutting {
      C = offset (one bar diameter), D = straight to the hook, E = hook leg */
     p.DimA=Math.Ceiling(p.LapMm/10)*10;p.DimC=db;p.DimB=Math.Ceiling(Math.Sqrt(37)*db);p.DimE=Math.Round(leg);p.DimD=Math.Max(0,Math.Round(L-hook+r+db-p.DimA-p.DimB));break;}
    default:p.DimA=Math.Round(L);p.DimB=p.DimC=0;break;}}
+ /* the bars of a section as the schedule gives them (owner, 20 November 2026: "hindi niya accurately na dradrawing yung cross
+    section"): one line of a schedule cell is one layer - line 1 = 1st layer, line 2 = 2nd layer; left / midspan / right by the
+    position in the span (quarter points, in a support: the cell at that end) */
+ internal static List<List<int>> SectionLayers(CutLineGeometry geo,double x,bool top){var layers=new List<List<int>>();if(geo==null||geo.Rows==null)return layers;int j=0;for(int k=0;k<geo.Ln.Length;k++)if(x>=geo.SupportStart[k])j=k;var row=j<geo.Rows.Length?geo.Rows[j]:null;if(row==null)return layers;
+  double local=x-geo.FaceLeft[j],ln=geo.Ln[j];int zone=local<.25*ln?0:local>.75*ln?2:1;foreach(var entry in row.Cells[(top?5:2)+zone]){Dictionary<int,int> bars;try{bars=EstimatorEngine.Bars(new[]{entry});}catch(Exception){continue;}var list=new List<int>();foreach(var kv in bars.OrderByDescending(q=>q.Key))for(int i=0;i<kv.Value;i++)list.Add(kv.Key);if(list.Count>0)layers.Add(list);}return layers;}
+ internal static string LayersText(List<List<int>> layers){return string.Join(" / ",layers.Select(l=>string.Join(" + ",l.GroupBy(d=>d).OrderByDescending(q=>q.Key).Select(q=>q.Count()+"-Ø"+q.Key))));}
  internal static string ShapeName(string code){switch(code){case "CRANK":return "Cranked bar at lap splice";case "CRANKHOOK":return "Cranked at lap, 90° hook other end";case "HOOK1":return "L-bar (90° hook one end)";case "HOOK2":return "U-bar (90° hooks both ends)";case "HOOP":return "Closed hoop, 135° hooks";case "CROSSTIE":return "Crosstie 135° / 90°";default:return "Straight";}}
  internal static int GradeOf(LengthConfiguration c,int dia){if(dia<=12)return c.GradeSmall;if(dia>=16)return c.GradeLarge;throw new Exception("13-15 mm bars need a project-specific grade.");}
  public static string Report(CutResult r,CutSettings s,IEnumerable<CutSpan> spans){var b=new StringBuilder();
