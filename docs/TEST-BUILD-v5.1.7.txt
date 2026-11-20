@@ -1,4 +1,4 @@
-DTCE Tool Kit v5.1.7 test build (20 November 2026) - not uploaded to the Microsoft Store (owner: "yung mga susunod huwag na muna iupload")
+DTCE Tool Kit v5.1.7 test build (20 November 2026) - Microsoft Store upload requested by the owner (see the end of this note)
 
 Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
 PATCH: bars per layer for every width; effective depth with layers checked.
@@ -14,3 +14,7 @@ PATCH: bars per layer for every width; effective depth with layers checked.
   and a larger required steel. Example: 800 mm strap, 8-25 in 6 + 2 layers -> d = 725 mm (one layer of 4-25: d = 737.5 mm). Tests added.
 
 Includes v5.1.6 and earlier builds (see their notes).
+
+Store (owner, 20 November 2026: "ito na ang iupload sa microsoft store", chose v5.1.7): v5.1.7 User and Admin are to be uploaded
+after the Windows CI passes. The v5.0.20 upload was refused (HTTP 409 InvalidState on a leftover uncommitted draft); the Store
+upload script now deletes such a stale draft and creates a new submission. Upload is not certification.

@@ -118,5 +118,25 @@ class DraftTests(EditionTests):
                 self.assertFalse(any(method in ('POST','DELETE') and 'oauth2/token' not in url for url,method,_ in calls))
                 if status in ('Certification','Publishing'):self.assertFalse(any(method=='PUT' for _,method,_ in calls))
 
+    def test_stale_draft_is_replaced_only_after_invalid_state(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).parents[1] / 'test-results') as folder:
+            package=self.make_package(folder,'Admin')
+            env={'STORE_EDITION':'Admin','STORE_TENANT_ID':'fixture','STORE_CLIENT_ID':'fixture','STORE_CLIENT_SECRET':'fixture','STORE_APP_ID':'9P53CR08ZSZ3','STORE_CERTIFICATION_NOTES':'notes'}
+            calls=[];state={'deleted':False}
+            def fake(url, method='GET', headers=None, data=None, body=None):
+                calls.append((url,method))
+                if 'oauth2/token' in url:return {'access_token':'fixture'}
+                if url.endswith('/applications/9P53CR08ZSZ3'):return {'lastPublishedApplicationSubmission':{'id':'pub'}} if state['deleted'] else {'pendingApplicationSubmission':{'id':'draft'}}
+                if url.endswith('/status'):return {'status':'PendingCommit'}
+                if method=='DELETE':self.assertTrue(url.endswith('/submissions/draft'));state['deleted']=True;return None
+                if method=='POST' and url.endswith('/submissions'):return {'id':'fresh','applicationPackages':[{'version':'1.4.23.0'}]}
+                if method=='GET':return {'id':url.rsplit('/',1)[1],'applicationPackages':[{'version':'1.4.23.0'}]}
+                if method=='PUT' and url.endswith('/submissions/draft'):raise RuntimeError("Store request failed: HTTP 409 during PUT. InvalidState: Cannot update the submission because it is in the state 'None'.")
+                if method=='PUT' and url.endswith('/submissions/fresh'):raise RuntimeError('STOP_AFTER_FRESH_PUT')
+                raise AssertionError('Unexpected call '+method+' '+url)
+            with patch.dict(store.os.environ,env,clear=True),patch.object(store.sys,'argv',['submit',str(package)]),patch.object(store,'request',side_effect=fake):
+                with self.assertRaisesRegex(RuntimeError,'STOP_AFTER_FRESH_PUT'):store.main()
+            self.assertEqual(1,sum(1 for _,m in calls if m=='DELETE'))
+
 if __name__ == '__main__': unittest.main()
 
