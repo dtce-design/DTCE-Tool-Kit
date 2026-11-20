@@ -12,7 +12,7 @@ partial class ProgramOfWorksForm {
  internal sealed class BoqStatusNote {internal string Kind,Text;internal BackupDemand Demand;internal BackupBillItem Item;internal List<BackupDemand> Demands;}
  readonly List<BoqStatusNote> boqStatusNotes=new List<BoqStatusNote>();
  // Collected while the BOQ is rebuilt; shown in the status panel under the table.
- void NoteBoqStatus(BackupBillItem item,List<BackupDemand> sources){string head=item.Code+" "+item.Description;
+ void NoteBoqStatus(BackupBillItem item,List<BackupDemand> sources){string head=item.Code+" "+PayItemText.Display(item.Description);
   if(item.ManualInputText!=null)boqStatusNotes.Add(new BoqStatusNote{Kind="Error",Text=head+": invalid manual quantity \""+item.ManualInputText+"\"",Item=item});
   foreach(var d in sources){if(d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal)){/* owner, 20 November 2026 ("alisin mo na ito sa status, yung mga na exclude lang and other issues"): a working automatic LS
      (1 LS) is not listed; only an LS item left at 0 is, because nothing mapped is included */if(d.Quantity<=0)boqStatusNotes.Add(new BoqStatusNote{Kind="Automatic LS",Text=head+": 0 LS - no mapped quantity included",Item=item});continue;}

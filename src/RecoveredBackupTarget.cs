@@ -23,7 +23,7 @@
 		{
 			get
 			{
-				return Code + " | " + Description + " | " + Unit + " | BC" + Row;
+				return Code + " | " + PayItemText.Display(Description) + " | " + Unit + " | BC" + Row;
 			}
 		}
 	}

@@ -9615,7 +9615,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 						where BackupMapping.Unit(d.Unit) == BackupMapping.Unit(item.Unit)
 						select d).ToList();
 					double? num = item.ManualQuantity ?? (((BackupMapping.Unit(item.Unit) != "ls" && list.Count > 0) || list.Any((BackupDemand d) => d.ManualPriority >= 1)) ? new double?(BackupMapping.FinalQuantity(list, item.Unit)) : item.WorkbookQuantity);
-					b.AppendLine(item.Code + " | " + item.Description + " | " + (num.HasValue ? num.Value.ToString("0.########", CultureInfo.InvariantCulture) : "not entered") + " " + item.Unit);
+					b.AppendLine(item.Code + " | " + PayItemText.Display(item.Description) + " | " + (num.HasValue ? num.Value.ToString("0.########", CultureInfo.InvariantCulture) : "not entered") + " " + item.Unit);
 				}
 			}
 			foreach (BillQuantity item2 in ManualBoqQuantities())
@@ -10168,7 +10168,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 					DropDownWidth = 1400,
 					DropDownStyle = ComboBoxStyle.DropDownList
 				};
-				comboBox.Items.AddRange(backupBill.Select((BackupBillItem b) => b.Code + " | " + b.Description + " | " + b.Unit + " | BC" + b.Row).Cast<object>().ToArray());
+				comboBox.Items.AddRange(backupBill.Select((BackupBillItem b) => b.Code + " | " + PayItemText.Display(b.Description) + " | " + b.Unit + " | BC" + b.Row).Cast<object>().ToArray());
 				comboBox.SelectedIndex = 0;
 				Button button = new Button
 				{
