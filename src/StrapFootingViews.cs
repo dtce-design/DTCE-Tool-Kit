@@ -51,6 +51,24 @@ static class StrapVisuals {
    foreach(var set in new[]{new{B=top,Y=y0+h-cv-sd-top.Dia/2000.0,C=Color.FromArgb(200,45,45)},new{B=bot,Y=y0+cv+sd+bot.Dia/2000.0,C=Color.FromArgb(20,120,90)}})using(var pen=new Pen(set.C,1.6f)){int nb=Math.Max(2,set.B.Count);for(int i=0;i<nb;i++){double off=-w/2+cv+sd+set.B.Dia/2000.0+(w-2*(cv+sd)-set.B.Dia/1000.0)*i/(nb-1);g.DrawLine(pen,S(P(0,off,set.Y)),S(P(L,off,set.Y)));}}
    using(var pen=new Pen(Color.FromArgb(150,90,90,90),.7f)){double ss=Math.Max(.05,stir.Spacing/1000);int count=0;for(double x=.05;x<=L-.05&&count<200;x+=ss,count++){var q=new[]{S(P(x,-w/2+cv,y0+cv)),S(P(x,w/2-cv,y0+cv)),S(P(x,w/2-cv,y0+h-cv)),S(P(x,-w/2+cv,y0+h-cv))};g.DrawPolygon(pen,q);}}}}
 
+ /* strap cross-section with the bars in their layers, the spacer bars between layers and the stirrup (owner, 20 November 2026:
+    "yung arrangement din ng bars sana if ilan layers") */
+ public static void StrapSection(Graphics g,RectangleF area,StrapInput inp,StrapBeam st,float fontPt){g.SmoothingMode=SmoothingMode.AntiAlias;StrapFooting.Bars top,bot,stir;try{top=StrapFooting.ParseBars(st.Top);bot=StrapFooting.ParseBars(st.Bottom);stir=StrapFooting.ParseBars(st.Stirrups);}catch(Exception){return;}
+  double bw=st.Width*1000,h=st.Depth*1000,cv=inp.StrapCover;var rt=StrapFooting.Rows(top,bw,inp,stir.Dia);var rb=StrapFooting.Rows(bot,bw,inp,stir.Dia);
+  using(var font=new Font("Segoe UI",fontPt,FontStyle.Regular,GraphicsUnit.Point))using(var bold=new Font("Segoe UI",fontPt,FontStyle.Bold,GraphicsUnit.Point))using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted))using(var dimPen=new Pen(PowTheme.Muted,.6f)){
+   g.DrawString("STRAP S"+st.From+"-"+st.To+" SECTION  "+F(bw)+" x "+F(h),bold,ink,area.Left+6,area.Top+4);
+   float top0=area.Top+fontPt*6,avH=area.Height-fontPt*12,avW=area.Width-fontPt*22;double k=Math.Min(avW/bw,avH/h);float w=(float)(bw*k),hh=(float)(h*k),x0=area.Left+fontPt*7+(avW-w)/2,y0=top0+(avH-hh)/2;
+   using(var b=new HatchBrush(HatchStyle.Percent10,Color.Gray,Color.FromArgb(238,238,234)))g.FillRectangle(b,x0,y0,w,hh);g.DrawRectangle(Pens.Black,x0,y0,w,hh);
+   float c=(float)((cv+stir.Dia/2.0)*k),rad=(float)Math.Max(2,2*stir.Dia*k);using(var sp=new Pen(Color.FromArgb(80,80,80),(float)Math.Max(1,stir.Dia*k))){var path=new GraphicsPath();float L=x0+c,T=y0+c,R=x0+w-c,B=y0+hh-c;path.AddArc(L,T,2*rad,2*rad,180,90);path.AddArc(R-2*rad,T,2*rad,2*rad,270,90);path.AddArc(R-2*rad,B-2*rad,2*rad,2*rad,0,90);path.AddArc(L,B-2*rad,2*rad,2*rad,90,90);path.CloseFigure();g.DrawPath(sp,path);path.Dispose();float hk=(float)Math.Max(5,75*k);g.DrawLine(sp,L+rad,T+rad*.3f,L+rad+hk*.7f,T+rad*.3f+hk*.7f);}
+   Action<int[],StrapFooting.Bars,bool,Color> layers=(rows,bars,isTop,col)=>{double inner=bw-2*cv-2*stir.Dia;for(int r=0;r<rows.Length;r++){int n=rows[r];double off=cv+stir.Dia+bars.Dia/2.0+r*(bars.Dia+25.0);float cy=isTop?y0+(float)(off*k):y0+hh-(float)(off*k);float d=(float)Math.Max(3,bars.Dia*k);
+     int n0=rows[0];for(int i=0;i<n;i++){/* upper layers directly above bars of the first layer (NSCP 425.2.2) */int at=n==1?0:(int)Math.Round((double)i*(n0-1)/(n-1));double xm=n0==1?bw/2:cv+stir.Dia+bars.Dia/2.0+(inner-bars.Dia)*at/(n0-1);using(var b=new SolidBrush(col))g.FillEllipse(b,x0+(float)(xm*k)-d/2,cy-d/2,d,d);}
+     if(r>0){double offS=cv+stir.Dia+bars.Dia+(r-1)*(bars.Dia+25.0)+12.5;float sy=isTop?y0+(float)(offS*k):y0+hh-(float)(offS*k);using(var spc=new Pen(Color.FromArgb(150,110,60),(float)Math.Max(1.5,25*k)))g.DrawLine(spc,x0+(float)((cv+stir.Dia)*k),sy,x0+w-(float)((cv+stir.Dia)*k),sy);g.DrawString("spacer Ø25",font,new SolidBrush(Color.FromArgb(150,110,60)),x0+w+6,sy-fontPt*.7f);}}};
+   layers(rt,top,true,Color.FromArgb(200,45,45));layers(rb,bot,false,Color.FromArgb(20,120,90));
+   Func<int[],string> rowsText=rows=>rows.Length>1?" in "+rows.Length+" layers ("+string.Join(" + ",rows)+")":" in one layer";
+   g.DrawString("top "+st.Top+rowsText(rt),font,new SolidBrush(Color.FromArgb(200,45,45)),area.Left+6,y0-fontPt*3.2f);g.DrawString("bottom "+st.Bottom+rowsText(rb),font,new SolidBrush(Color.FromArgb(20,120,90)),area.Left+6,y0+hh+fontPt*2.6f);
+   g.DrawString("stirrups 2L-"+st.Stirrups+", cover "+F(cv),font,muted,area.Left+6,y0+hh+fontPt*4.3f);
+   g.DrawLine(dimPen,x0,y0+hh+fontPt*1.2f,x0+w,y0+hh+fontPt*1.2f);var bt=F(bw);var bsz=g.MeasureString(bt,font);g.DrawString(bt,font,muted,x0+w/2-bsz.Width/2,y0+hh+fontPt*1.2f);
+   float vx=x0-fontPt*1.2f;g.DrawLine(dimPen,vx,y0,vx,y0+hh);var stt=g.Save();g.TranslateTransform(vx-2,y0+hh/2);g.RotateTransform(-90);var hsz=g.MeasureString(F(h),font);g.DrawString(F(h),font,muted,-hsz.Width/2,-hsz.Height);g.Restore(stt);}}
  static double[] Sub(double[] a,double[] b){return new[]{a[0]-b[0],a[1]-b[1],a[2]-b[2]};}
  /* footing detail: plan with the bars both ways and a section along X with bars, cover and column */
  public static void Footing(Graphics g,RectangleF area,StrapInput inp,StrapNode n,float fontPt){g.SmoothingMode=SmoothingMode.AntiAlias;var bars=StrapFooting.ParseBars(n.Bars);
@@ -88,5 +106,9 @@ class StrapPlanView:Control {internal StrapInput Input;internal StrapCase Case;i
  protected override void OnMouseUp(MouseEventArgs e){base.OnMouseUp(e);dragging=null;rotating=false;}
  protected override void OnMouseWheel(MouseEventArgs e){base.OnMouseWheel(e);if(!ThreeD)return;View.Zoom=Math.Max(.4,Math.Min(5,View.Zoom*(e.Delta>0?1.15:1/1.15)));Invalidate();}
  protected override void OnDoubleClick(EventArgs e){base.OnDoubleClick(e);ThreeD=!ThreeD;Invalidate();}
+}
+class StrapSectionView:Control {internal StrapInput Input;internal int Index;
+ public StrapSectionView(){DoubleBuffered=true;ResizeRedraw=true;BackColor=Color.White;}
+ protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);if(Input==null||Input.Straps.Count==0){TextRenderer.DrawText(e.Graphics,"Select a strap to see its section and bar layers.",ModernUi.Body,new Point(10,10),PowTheme.Muted);return;}try{StrapVisuals.StrapSection(e.Graphics,new RectangleF(0,0,Width,Height),Input,Input.Straps[Math.Max(0,Math.Min(Input.Straps.Count-1,Index))],8.5f);}catch(Exception ex){TextRenderer.DrawText(e.Graphics,ex.Message,ModernUi.Body,new Point(10,10),Color.Firebrick);}}
 }
 }
