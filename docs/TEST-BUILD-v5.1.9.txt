@@ -1,0 +1,8 @@
+DTCE Tool Kit v5.1.9 test build (20 November 2026) - the build for the Microsoft Store upload (owner: "upload mo na yan"), replacing v5.1.8.
+Upload is not certification; Partner Center status is reported as returned.
+
+PATCH (fix): Program of Works files saved before v5.1.8 would not open ("Missing OtherFinishes data") because they have no Other
+Finishes section ("bat di mabuksan yung dati ko xml file porket wala akong other finishes"). They now open normally with an empty
+Other Finishes tab; nothing else in the file changes. Test added (an older file without the section opens without error).
+
+Includes v5.1.8 (Location Other, Other Finishes sub tab) and earlier builds.

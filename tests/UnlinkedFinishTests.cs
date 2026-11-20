@@ -45,5 +45,8 @@ class UnlinkedFinishTests {
    Check(fw.TabPages.Cast<TabPage>().Select(t=>t.Text).SequenceEqual(new[]{"Start","Wall Finishes","Ceiling Finishes","Floor Finishes","Other Finishes","Moulding","Railing Estimate"}),"Other Finishes sub tab after Floor Finishes");
    string xml=(string)typeof(ProgramOfWorksForm).GetMethod("DataXml",F).Invoke(pow,null);Check(xml.Contains("loc=\"Other\""),"Other location saved");
    var pow4=new ProgramOfWorksForm();pow4.OpenProjectXml(xml);var oth4=(DataGridView)typeof(ProgramOfWorksForm).GetField("otherFinishes",F).GetValue(pow4);
-   Check(oth4.Rows.Cast<DataGridViewRow>().Any(r=>!r.IsNewRow&&Convert.ToString(r.Cells[0].Value)=="OF001"&&Convert.ToString(r.Cells[2].Value)=="OT-1"),"Other Finishes rows read back");}
+   Check(oth4.Rows.Cast<DataGridViewRow>().Any(r=>!r.IsNewRow&&Convert.ToString(r.Cells[0].Value)=="OF001"&&Convert.ToString(r.Cells[2].Value)=="OT-1"),"Other Finishes rows read back");
+   var doc=new System.Xml.XmlDocument();doc.LoadXml(xml);var oe=doc.DocumentElement["OtherFinishes"];Check(oe!=null,"Other Finishes saved as its own section");oe.ParentNode.RemoveChild(oe);
+   var pow5=new ProgramOfWorksForm();string err="";try{pow5.OpenProjectXml(doc.OuterXml);}catch(Exception x){err=x.Message;}
+   var oth5=(DataGridView)typeof(ProgramOfWorksForm).GetField("otherFinishes",F).GetValue(pow5);Check(err==""&&oth5.Rows.Cast<DataGridViewRow>().All(r=>r.IsNewRow),"a file saved before v5.1.8 (no Other Finishes) opens with an empty tab"+(err==""?"":": "+err));}
   Console.WriteLine("PASS: "+checks+" wall finishes without Wall ID off plaster / paint checks.");Environment.Exit(0);}}
