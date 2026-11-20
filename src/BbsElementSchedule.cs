@@ -15,7 +15,7 @@ static partial class BbsReport {
  static string Fy(CutSettings s,IEnumerable<int> dias){var g=dias.Select(d=>d<=12?s.Config.FySmall:s.Config.FyLarge).Distinct().OrderBy(x=>x).Select(x=>x.ToString("0",Inv));return "Fy"+string.Join("/",g);}
  internal static void AddElementSchedules(RichReport rep,CutResult r,CutSettings s,string number){
   rep.Heading(number+"  BAR BENDING SCHEDULE PER ELEMENT");
-  rep.Paragraph("Each element: sketch, schedule and summary. Bar nos. = bars in one element x identical elements. The length of every leg (outside dimension, mm) is written on the bar shape; long straight legs are drawn shortened. R = inside bend radius per NSCP 2015 Table 425.3.1 / 425.3.2. LGT = total length, WT = weight at the nominal unit mass.",true);
+  rep.Paragraph("Each element: sketch, schedule and summary. Bar nos. = bars in one element x identical elements. SHAPE CODE refers to the bar shape reference in section 2 (shape key); A, B, C are the outside dimensions (mm) marked there. R = inside bend radius per NSCP 2015 Table 425.3.1 / 425.3.2. LGT = total length, WT = weight at the nominal unit mass.",true);
   int n=0;foreach(var group in ElementOrder){foreach(var el in r.Pieces.Where(p=>p.Group==group).GroupBy(ElementKey).OrderBy(g=>g.Key,StringComparer.OrdinalIgnoreCase)){var pieces=el.ToList();n++;
     string size=pieces.Where(p=>p.SecB>0&&p.SecH>0).Select(p=>(p.SecB).ToString("0",Inv)+"x"+(p.SecH).ToString("0",Inv)).FirstOrDefault();var geo=r.Geometry.FirstOrDefault(g=>g.Line==el.Key);
     if(size==null&&geo!=null&&geo.Width.Length>0)size=(geo.Width[0]*1000).ToString("0",Inv)+"x"+(geo.Depth[0]*1000).ToString("0",Inv);string title=el.Key+(size!=null?" : "+size:"");
@@ -24,11 +24,11 @@ static partial class BbsReport {
     else if(group=="Column")rep.Figure(170,(g,rect)=>DrawColumnSketch(g,rect,pieces),"Section of "+el.Key+": main bars and hoops (not to scale).");
     else if(group=="Footing"||group=="Wall footing")rep.Figure(190,(g,rect)=>DrawFootingSketch(g,rect,pieces,s.Cover),"Plan and section of "+el.Key+": bars both ways (not to scale).");
     var rows=pieces.OrderBy(p=>p.Top?0:1).ThenBy(p=>p.BarMark,StringComparer.OrdinalIgnoreCase).ToList();bool first=true;
-    /* owner (20 November 2026, "ilagay yung letters para di na ilagay sa table"): the leg lengths are written on the bar sketch itself,
-       so the table has no A - F columns */
-    rep.Table(new[]{"ELEMENT","BAR MARK","BAR NOS.","REBAR","BAR SHAPE  (leg lengths in mm, outside dimensions)","CUTTING LENGTH (mm)","R (mm)"},
-     rows.Select(p=>{var row=new[]{first?el.Key:"",p.BarMark+(p.Manual?" *":p.Edited?" †":""),p.Pieces.ToString(Inv)+(p.Lines>1?"  ("+p.PerLine+" x "+p.Lines+")":""),"Ø"+p.Diameter,"",(p.Length*1000).ToString("0",Inv),Dim(BendRadius(p))};first=false;return row;}),
-     new float[]{9,10,10,6,42,10,6},4,50,(g,cell,i)=>DrawLabelled(g,cell,rows[i]));
+    /* owner (20 November 2026, "reference bar shape na lang na iisa, doon na siya ireference, dimension na lang sa table"): the bar
+       shapes are drawn once in the shape key (section 2) with their letters; the table gives the shape code and A, B, C */
+    rep.Table(new[]{"ELEMENT","BAR MARK","BAR NOS.","REBAR","SHAPE CODE","CUTTING LENGTH (mm)","A","B","C","R"},
+     rows.Select(p=>{var row=new[]{first?el.Key:"",p.BarMark+(p.Manual?" *":p.Edited?" †":""),p.Pieces.ToString(Inv)+(p.Lines>1?"  ("+p.PerLine+" x "+p.Lines+")":""),"Ø"+p.Diameter,Code(p.ShapeCode),(p.Length*1000).ToString("0",Inv),Dim(p.ShapeCode=="STRAIGHT"&&p.DimA<=0?p.Length*1000:p.DimA),Dim(p.DimB),Dim(p.DimC),Dim(BendRadius(p))};first=false;return row;}),
+     new float[]{10,11,12,7,8,11,9,9,9,7});
     var dias=pieces.Select(p=>p.Diameter).Distinct().OrderBy(d=>d).ToList();var lgt=dias.Select(d=>pieces.Where(p=>p.Diameter==d).Sum(p=>p.Pieces*p.Length)).ToList();var wt=dias.Select(d=>pieces.Where(p=>p.Diameter==d).Sum(p=>p.Kg)).ToList();
     var summary=new List<string[]>{new[]{"LGT (m)"}.Concat(lgt.Select(v=>v.ToString("0",Inv))).Concat(new[]{lgt.Sum().ToString("0",Inv)}).ToArray(),new[]{"WT (kg)"}.Concat(wt.Select(v=>v.ToString("0",Inv))).Concat(new[]{wt.Sum().ToString("0",Inv)}).ToArray()};
     double concrete=group=="Beam"?r.Spans.Where(x=>x.Line==el.Key).Sum(x=>x.Concrete):0;if(concrete>0)summary.Add(new[]{"kg / m³ concrete"}.Concat(dias.Select(d=>"")).Concat(new[]{(wt.Sum()/concrete).ToString("0",Inv)}).ToArray());

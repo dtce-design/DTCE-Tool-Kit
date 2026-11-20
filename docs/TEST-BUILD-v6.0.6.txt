@@ -1,0 +1,9 @@
+DTCE Tool Kit v6.0.6 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Bar Bending Schedule report): one bar shape reference ("reference bar shape na lang na iisa, doon na siya ireference, dimension
+na lang sa table"). Section 2 "Shape key - bar shape reference" draws each shape (S0 straight, L1 90° hook one end, U2 90° hooks both
+ends, H5 closed hoop 135° hooks, X3 crosstie) with the letters A, B, C on its legs. The per-element schedule has no sketches:
+ELEMENT | BAR MARK | BAR NOS. | REBAR | SHAPE CODE | CUTTING LENGTH | A | B | C | R.
+Checked on Linux/Mono only.
+
+Includes v6.0.5 and earlier builds.
