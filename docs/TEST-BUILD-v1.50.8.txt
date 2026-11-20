@@ -1,0 +1,13 @@
+DTCE Tool Kit v1.50.8 test build (20 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: tabs and mouse scrolling.
+
+- Contract Duration (Computation / Holidays / Rainy days) and Construction Schedule (Bar Chart ...) tabs now use the same tab
+  control as the other workspaces ("ampangit nito, paki check pakisundan yung existing layouts ng tabs"): full captions, the
+  same colours and levels, rows when needed.
+- Horizontal scrolling with the mouse in the whole app ("bat ayaw mag horizontal scroll sa mouse?"): tilting the wheel or the
+  touchpad side scroll, and Shift + mouse wheel, scroll the grid or panel under the pointer sideways (WinForms grids and panels
+  do not do this on their own).
+
+Includes v1.50.7 and earlier local builds (see their notes).

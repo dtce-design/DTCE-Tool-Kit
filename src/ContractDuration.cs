@@ -90,7 +90,7 @@ partial class ProgramOfWorksForm {
   var preview=new Button{Text="Print preview",AutoSize=true,Margin=new Padding(16,0,0,0)};preview.Click+=(s,e)=>{try{CalculationPreview.Show(this,BuildContractDurationReport());}catch(Exception ex){MessageBox.Show(this,ex.Message,"Contract Duration");}};top.Controls.Add(preview);
   var pdf=new Button{Text="Save PDF",AutoSize=true};pdf.Click+=(s,e)=>{try{var report=BuildContractDurationReport();using(var dialog=new SaveFileDialog{Filter="PDF report (*.pdf)|*.pdf",FileName="Contract-Duration.pdf",OverwritePrompt=true})if(dialog.ShowDialog(this)==DialogResult.OK)EngineeringQuantityPdf.WriteFlattened(dialog.FileName,report);}catch(Exception ex){MessageBox.Show(this,ex.Message,"Contract Duration");}};top.Controls.Add(pdf);
   durationSummary=new Label{AutoSize=true,Padding=new Padding(16,6,0,0),Font=new Font("Segoe UI",10f,FontStyle.Bold),ForeColor=PowTheme.Ink};top.Controls.Add(durationSummary);
-  var views=new TabControl{Dock=DockStyle.Fill};
+  var views=new NavigationTabs{Dock=DockStyle.Fill};/* same tabs as the rest of the app (owner, 20 November 2026) */
   /* computation */
   durationMonths=new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill};
   foreach(var h in new[]{"Year","Month","Working days","Sundays","Holidays","Rainy days","Revised rainy days","Total days","No. of weeks"})durationMonths.Columns.Add(h.Replace(" ",""),h);GridAppearance.Apply(durationMonths);
