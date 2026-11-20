@@ -1,0 +1,22 @@
+DTCE Tool Kit v5.1.1 test build (20 November 2026) - not uploaded to the Microsoft Store (owner: "yung mga susunod huwag na muna iupload")
+
+Not tested on Windows yet (Linux/Mono checks only). AutoCAD link not tested (no AutoCAD here). Not a Microsoft Store release.
+PATCH: DXF viewer linked to CHB Estimate; AutoCAD pick; openings list shows IDs and counts.
+
+- DXF viewer ("upload DXF file, tapos mag open na lang ng window, tapos bubuksan sa app yung DXF tapos doon na magsusukat ng wall ID";
+  "yung DXF file sa masonry works kapag niload mag-open ng ibang window"): "Load walls from DXF" opens the drawing in its own window
+  beside the Program of Works (zoom with the wheel, pan with right / middle drag, Fit drawing).
+- Linked to CHB Estimate ("click ng row tapos magsusukat sa DXF viewer ilalapat niya agad yung wall ID"; "ng CHB thickness sa CHB
+  estimate na yun"): select a row on CHB Estimate, then click that wall's dimension or wall line in the viewer (or Measure 2 points,
+  which snaps to line ends). The measured length goes straight to the row's Width; the row's Wall ID is shown on the drawing; the
+  CHB thickness stays the row's; the next row is selected for the next wall. A blank new row becomes a new wall with the next ID.
+  "Take all dimensions" measures every dimension in plan order; "Undo last" removes the last label; "Save DXF with Wall IDs" writes
+  a copy of the drawing with the IDs as TEXT on layer DTCE-WALL-ID for AutoCAD.
+- Pick walls in AutoCAD ("may iclick ako sa app, tapos pupunta sa AutoCAD para ilapat ang wall ID at kukunin nito sa AutoCAD ang
+  dimension"): with the plan open in full AutoCAD (AutoCAD LT cannot be automated), the button switches to AutoCAD; pick one
+  dimension or wall line per wall run, Enter / Esc to finish. Each pick writes the Wall ID as TEXT on layer DTCE-WALL-ID and the
+  walls go to CHB Estimate after a review. Not tested here (needs AutoCAD on Windows).
+- Openings included ("yung opening ID na lang ang ilagay tapos yung bilang"): the column lists only the opening IDs and counts,
+  e.g. "D-03 x1; W-01 x2".
+
+Includes v5.1.0 and earlier builds (see their notes).

@@ -1,0 +1,13 @@
+DTCE Tool Kit v5.1.3 test build (20 November 2026) - not uploaded to the Microsoft Store (owner: "yung mga susunod huwag na muna iupload")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: Wall Finishes without Wall ID, Side and Area basis.
+
+- Wall Finishes ("sa wall finish hayaan mo na pala yung wall ID, huwag mo na isama. pati yung side and area basis"; "kasi pwedeng
+  madaming wall ID ang iassign ko sa isang finish sa isang room"): the Wall ID, Side and Area basis columns are hidden and the
+  "Show walls on DXF" button is not added. A wall finish is measured by its own Length x Height x Qty (one face); one row can cover
+  several walls of a room.
+- Saved projects open unchanged: the hidden values stay in the same columns and older rows keep computing with them (for example a
+  row on "Whole wall (auto)" or Side "Both"). Blank values are read as Side A and Dimensions.
+
+Includes v5.1.2 and earlier builds (see their notes).

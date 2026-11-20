@@ -164,7 +164,26 @@ def main():
     sid = submission['id']
     url = base + '/submissions/' + sid
     print('Updating submission metadata and requesting upload URL', flush=True)
-    updated = request(url, 'PUT', headers, body=prepare(submission, package.name, version, notes))
+    try:
+        updated = request(url, 'PUT', headers, body=prepare(submission, package.name, version, notes))
+    except RuntimeError as error:
+        # A leftover draft that was never committed can stop accepting updates (HTTP 409 InvalidState, state 'None';
+        # v5.0.20 run 44688569445). The Store says to delete it and create a new one. Only an uncommitted draft is
+        # removed here; a submission in certification never reaches this point.
+        if not pending or '409' not in str(error) or 'InvalidState' not in str(error): raise
+        print('Existing draft ' + sid + ' no longer accepts updates; deleting the uncommitted draft and creating a new submission', flush=True)
+        request(url, 'DELETE', headers)
+        app = request(base, headers=headers)
+        if app.get('pendingApplicationSubmission'):
+            raise ValueError('The stale draft is still pending after the delete request. Delete it in Partner Center, then run the upload again.')
+        published = app.get('lastPublishedApplicationSubmission')
+        if not published: raise ValueError('Complete the initial submission in Partner Center first')
+        prepare(request(base + '/submissions/' + published['id'], headers=headers), package.name, version, notes)
+        submission = request(base + '/submissions', 'POST', headers)
+        sid = submission['id']
+        url = base + '/submissions/' + sid
+        print('Created Store submission: ' + sid, flush=True)
+        updated = request(url, 'PUT', headers, body=prepare(submission, package.name, version, notes))
     upload = (updated or {}).get('fileUploadUrl')
     if not upload: raise ValueError('Updated draft has no upload URL; package not uploaded or committed')
     parsed = urllib.parse.urlsplit(upload)

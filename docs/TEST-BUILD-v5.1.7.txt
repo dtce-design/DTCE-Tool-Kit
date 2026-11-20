@@ -1,0 +1,20 @@
+DTCE Tool Kit v5.1.7 test build (20 November 2026) - Microsoft Store upload requested by the owner (see the end of this note)
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: bars per layer for every width; effective depth with layers checked.
+
+- Bars per layer ("sure ka for every width ng beam may certain no. lang ang kasya per layer"): yes - n = floor((inside + c) / (db + c)),
+  inside = b - 2 cover - 2 stirrup Ø, c = max(25 mm, db, 4/3 aggregate). With 40 mm cover, Ø10 stirrups and 20 mm aggregate:
+    b 250: Ø16 4, Ø20 3, Ø25 3 | b 300: Ø16 5, Ø20 4, Ø25 4 | b 350: Ø16 6, Ø20 5, Ø25 5 | b 400: Ø16 7, Ø20 7, Ø25 6
+    b 450: Ø16 8, Ø20 8, Ø25 7 | b 500: Ø16 10, Ø20 9, Ø25 8.
+  Fix: a section narrower than two bars plus one clear space used to report 2 bars per layer; it now reports 1 (used by the Strap
+  Foundation checks and the Bar Bending Schedule layering).
+- Effective depth with layers ("icheck din ba if pumasa yung no. of layers yung effective depth"): already in the strap flexure check -
+  d = h - cover - stirrup Ø - centroid of the bar layers (25 mm clear between layers), shown in the steps; more layers give a smaller d
+  and a larger required steel. Example: 800 mm strap, 8-25 in 6 + 2 layers -> d = 725 mm (one layer of 4-25: d = 737.5 mm). Tests added.
+
+Includes v5.1.6 and earlier builds (see their notes).
+
+Store (owner, 20 November 2026: "ito na ang iupload sa microsoft store", chose v5.1.7): v5.1.7 User and Admin are to be uploaded
+after the Windows CI passes. The v5.0.20 upload was refused (HTTP 409 InvalidState on a leftover uncommitted draft); the Store
+upload script now deletes such a stale draft and creates a new submission. Upload is not certification.

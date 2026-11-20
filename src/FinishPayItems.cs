@@ -20,6 +20,9 @@ partial class ProgramOfWorksForm {
    /* The owner's standard finish list with item numbers is always offered; with a BACKUP workbook linked, its group goes
       to the matching pay item automatically (RouteRequiredQuantities). */
    var choices=FinishStandard.All.Select((st,i)=>new BackupTarget{Row=0,Code=st.Code,Description=st.Name,Unit="sq.m.",SlotId="std:"+i}).ToList();
+   /* plus every Part I item no. of the catalogue and of the linked BACKUP (owner, 20 November 2026) */
+   int n=0;foreach(var t in FinishStandard.PartIItems(backupBill.Select(b=>b.Target)))if(!choices.Any(c=>c.Code==t.Code&&FinishTypeRegistry.Key(c.Description)==FinishTypeRegistry.Key(t.Description)))choices.Add(new BackupTarget{Row=t.Row,Code=t.Code,Description=t.Description,Unit=t.Unit,SlotId="part1:"+(n++)});
+   choices=choices.OrderBy(c=>{var m=System.Text.RegularExpressions.Regex.Match(c.Code??"",@"^\d+");return m.Success?int.Parse(m.Value):99999;}).ThenBy(c=>c.Code,StringComparer.OrdinalIgnoreCase).ThenBy(c=>c.Description).ToList();
    var current=FinishStandard.Find(Cell(row,2));var selected=current==null?null:choices.FirstOrDefault(t=>t.Description==current.Name);
    using(var picker=new BackupTargetPicker((Cell(row,0)+" "+Cell(row,1)).Trim(),choices,selected)){if(picker.ShowDialog(this)!=DialogResult.OK||picker.Selected==null)return;
     row.Cells[2].Value=picker.Selected.Description;Recalculate();}}

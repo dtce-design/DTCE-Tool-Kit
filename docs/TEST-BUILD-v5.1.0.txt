@@ -1,0 +1,19 @@
+DTCE Tool Kit v5.1.0 test build (20 November 2026) - not uploaded to the Microsoft Store (owner: "yung mga susunod huwag na muna iupload")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+MINOR: walls from a DXF; openings beside the gross area.
+
+- Load walls from DXF ("ilagay ko yung drawing sa DXF tapos, sa masonry works, may button akong iclick para iassign yung wall ...
+  pwedeng dimension para kapag susukatin automatic na din kukunin yung width niya"): CHB Estimate has a "Load walls from DXF"
+  button. Every dimension in the drawing is one wall run and its measured value is the wall width (length):
+  - Wall ID: the dimension's own text when it is an ID (W-01, W1 ...), else the nearest ID-like text label, else the next
+    free W number (W001 ...);
+  - CHB thickness: a number in the layer name (CHB-100, WALL_150 ...), else 150 mm;
+  - units from the drawing ($INSUNITS mm / m; without it, values above 50 are millimetres);
+  - without dimensions, lines / polylines on layers named WALL, CHB or MASONRY are used.
+  A preview lists the walls (tick, Wall ID, length, thickness, layer) before they are added. A Wall ID already on the sheet
+  gets its width and thickness updated. Height stays a manual input ("height is manual input"): new rows start blank.
+- Openings columns ("yung opening selector at opening list ilagay after ng gross area"): on CHB Estimate and the other masonry
+  sheets the Openings button and the "Openings included" list now sit right after "OR Gross area m2", before Less openings.
+
+Includes v5.0.20 and earlier builds (see their notes).

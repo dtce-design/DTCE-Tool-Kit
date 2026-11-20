@@ -156,7 +156,16 @@ its Windows CI passes (merge PR #11 to main, then publish_microsoft_store=true; 
 unless the owner asks). It supersedes the v1.32.0 request. Owner (20 November 2026) chose to release v1.50.19 instead (includes the BOQ status
 change), renumbered v5.0.19 at the owner's request (versions since v1.44.0 renumbered, see docs/VERSION-RENUMBER-2026-11-20.txt).
 The owner then asked for the "(No Top Coat)" wording change as its own PATCH: the Store release is v5.0.20.
-Later versions again need a new explicit request.
+Owner (20 November 2026, "yung mga susunod huwag na muna iupload"): after v5.0.20, do not upload later versions to the
+Microsoft Store until the owner asks again (GitHub pushes to the development branch are still fine).
+Result 20 November 2026: v5.0.20 merged to main (GitHub release OK). Store run 44688569445: both uploads were refused with
+HTTP 409 InvalidState (a leftover uncommitted draft in state 'None'); nothing was changed in Partner Center.
+New owner request (20 November 2026, "ito na ang iupload sa microsoft store"; chose v5.1.7): publish v5.1.7 (User and Admin)
+instead of v5.0.20, the same way after its Windows CI passes. Owner then added Location Other / Other Finishes and said
+"final na yan tapos i-upload na sa Microsoft Store": v5.1.8 would not open older files (no
+OtherFinishes section), fixed in v5.1.9; owner "upload mo na yan": the Store release is v5.1.9 (User and Admin). scripts/submit_store.py now deletes only an uncommitted draft that
+the Store refuses with 409 InvalidState and creates a new submission; a submission in certification is still never cancelled
+unless replace_pending_store_submission=true is asked for. Later versions again need a new explicit request.
 
 ## Version numbers (18 November 2026)
 
