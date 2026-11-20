@@ -179,6 +179,14 @@ Store jobs of run 44698831499. Nothing was changed in Partner Center.
 Owner: "palitan yung Program of Works ng Bill of Quantities". The workspace and every user-visible "Program of Works" text are named
 Bill of Quantities. Internal class names (ProgramOfWorksForm), the .pow.xml file format and the linked workbook sheet names stay.
 
+## POW workbook workspace (20 November 2026)
+
+Owner: the DPWH POW/ABC workbook (V6.02 .xlsm) is reproduced in the app ("buong worksheet sa app, kamukha niyan mismo, para iprint
+na lang thru the app"), keeping every formula and where labor, equipment and materials come from, as a separate workspace that needs
+no password or access code. src/Wb*.cs read and recalculate the workbook; PowWorkbookForm shows and prints it. Never commit the
+owner's workbook (project data, ~100 MB); tests generate their own small workbook. Next: BOQ quantities to BACKUP, Project
+Information to FRONT PAGE.
+
 ## Version numbers (18 November 2026)
 
 Owner: use MAJOR.MINOR.PATCH properly. New features or noticeable behaviour changes raise MINOR and reset PATCH

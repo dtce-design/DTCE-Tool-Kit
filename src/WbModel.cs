@@ -25,7 +25,7 @@ sealed partial class WbBook {
  public static string ColumnName(int c){var sb=new StringBuilder();while(c>0){int m=(c-1)%26;sb.Insert(0,(char)('A'+m));c=(c-1)/26;}return sb.ToString();}
  public static bool ParseA1(string a1,out int row,out int col){row=0;col=0;int i=0;a1=a1.Replace("$","");while(i<a1.Length&&char.IsLetter(a1[i]))i++;if(i==0||i==a1.Length)return false;col=ColumnNumber(a1.Substring(0,i));return int.TryParse(a1.Substring(i),out row);}
  /* Reads cells (values, formulas incl. shared / array), sheet names, defined names and tables. Styles and print layout are read by WbLayout. */
- public static WbBook Load(string path,Func<string,bool> keepSheet=null){using(var fs=File.OpenRead(path))return Load(fs,keepSheet);}
+ public static WbBook Load(string path,Func<string,bool> keepSheet=null){using(var fs=File.OpenRead(path)){var b=Load(fs,keepSheet);b.SourcePath=path;return b;}}
  public static WbBook Load(Stream stream,Func<string,bool> keepSheet=null){var book=new WbBook();using(var zip=new ZipArchive(stream,ZipArchiveMode.Read)){
   Func<string,ZipArchiveEntry> entry=p=>zip.GetEntry(p.TrimStart('/'));
   var shared=new List<string>();var sse=entry("xl/sharedStrings.xml");if(sse!=null)using(var r=XmlReader.Create(sse.Open(),new XmlReaderSettings{IgnoreWhitespace=false})){var sb=new StringBuilder();bool inSi=false,inRph=false;

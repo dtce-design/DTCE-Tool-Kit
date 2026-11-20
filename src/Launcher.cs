@@ -1,7 +1,7 @@
 ﻿using System;using System.Drawing;using System.Linq;using System.Windows.Forms;using System.Collections.Generic;
 namespace BeamScheduleFormatter {
 class LauncherForm:Form {
- Form formatter,slabFormatter,lengths,project,works,cutting;
+ Form formatter,slabFormatter,lengths,project,works,cutting,powWorkbook;
  #if ADMIN_APP
  Form generator;
  #endif
@@ -31,6 +31,8 @@ class LauncherForm:Form {
   AddCard(cards,"Project Information","Set the project details used in your calculations and reports.",()=>UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8));
   AddCard(cards,"Formatters","Prepare beam and slab schedules from your DXF drawings.",ShowFormatters);
   AddCard(cards,"Bill of Quantities","Measure quantities and build the Bill of Quantities with its linked workbook.",()=>UseTool(ref works,()=>{var f=new ProgramOfWorksForm();ProgramOfWorksForm.Live=new WeakReference(f);GridFormulas.AttachAll(f);return f;},"Bill of Quantities",null,2));
+  /* owner (20 November 2026, "gawin yung POW as separate worksheet walang password or code access"): opens without an access code */
+  AddCard(cards,"Program of Works (POW)","DPWH POW workbook: DUPA, Detailed, ABC and BOQ computed and printed in the app.",()=>{try{if(powWorkbook==null||powWorkbook.IsDisposed)powWorkbook=new PowWorkbookForm();ShowTool(powWorkbook,"Program of Works (POW)",null);}catch(Exception ex){MessageBox.Show(this,ex.Message,"Program of Works (POW)");}});
   AddCard(cards,"Bar Bending Schedule","Cutting lists, bar bending and splice details with an interactive model.",()=>UseTool(ref cutting,()=>new CuttingListForm(),"Bar Bending Schedule",null,ProgramAccess.BarBendingSchedule));
   AddCard(cards,"Design Sheets","Rebar, purlins, trusses, strap foundations, wind, earthquake, deflection.",ShowDesignSheets);
   #if ADMIN_APP

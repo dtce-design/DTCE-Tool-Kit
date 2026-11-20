@@ -1,0 +1,25 @@
+DTCE Tool Kit v6.0.0 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+MAJOR: new workspace "Program of Works (POW)" (owner: "buong worksheet sa app, kamukha niyan mismo, para iprint na lang thru the
+app"; "yung mga labor, equipment, materials, sundan kung saan kinuha, i-maintain ang formulas"; "gawin yung POW as separate
+worksheet walang password or code access").
+- Workspaces card "Program of Works (POW)" opens without an access code (and without Project Information first).
+- "Open POW workbook..." takes the DPWH POW/ABC workbook (.xlsm / .xlsx, e.g. V6.02) once; the app keeps a copy in
+  %LocalAppData%\DTCE Tool Kit\POW and opens it from there, so Excel does not have to be linked or even installed.
+- The app reads every sheet, formula, table and name and computes them itself: DUPA labor rates follow Labor, equipment follows
+  PERR, materials follow CMPD / Hauling, OCM / profit / VAT follow Indirect Cost, and DETAILED, ABC, SUM, BOQ, SOQ and Contract
+  Duration follow BACKUP and FRONT PAGE. Check on the owner's Piggatan V6.02 workbook: all 106,296 formula cells recomputed by the
+  app equal Excel's saved values (grand total 4,950,000.00, 117 C.D.).
+- Sheets are shown like Excel (fonts, fills, borders, merged cells, number formats, column widths, pictures) with full sheet tabs at
+  the top; the 268 DUPA sheets are under the "DUPA" tab with a pay-item list. Rows marked X are hidden as the workbook's
+  HideRowsWithX macro does (switch "Hide rows marked X").
+- Print / Print preview of the shown sheet on A4 with the sheet's print area, orientation, fit-to-width, margins, manual page
+  breaks and footer text; "Print DUPA of items with quantity" prints the DUPA of every pay item with a quantity in DETAILED.
+- Double-click an input cell to change it (formula cells stay formulas); all formulas are recomputed and the typed inputs are kept
+  with the imported workbook.
+Not done yet: linking the app's Bill of Quantities quantities to BACKUP and Project Information to FRONT PAGE (next step);
+Excel macros are not run (the X-row hiding is done by the app); conditional formatting and charts are not drawn.
+Checked on Linux/Mono only (rendering with substitute fonts; Windows uses the workbook's Arial / Arial Narrow).
+Test: tests/PowWorkbookEngineTests.cs (31 checks on a generated workbook; the owner's workbook is not in the repository).
+
+Includes v5.1.10 and earlier builds.
