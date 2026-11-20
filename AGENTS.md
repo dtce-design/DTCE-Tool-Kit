@@ -156,6 +156,8 @@ its Windows CI passes (merge PR #11 to main, then publish_microsoft_store=true; 
 unless the owner asks). It supersedes the v1.32.0 request. Owner (20 November 2026) chose to release v1.50.19 instead (includes the BOQ status
 change), renumbered v5.0.19 at the owner's request (versions since v1.44.0 renumbered, see docs/VERSION-RENUMBER-2026-11-20.txt).
 The owner then asked for the "(No Top Coat)" wording change as its own PATCH: the Store release is v5.0.20.
+Owner (20 November 2026, "yung mga susunod huwag na muna iupload"): after v5.0.20, do not upload later versions to the
+Microsoft Store until the owner asks again (GitHub pushes to the development branch are still fine).
 Later versions again need a new explicit request.
 
 ## Version numbers (18 November 2026)
