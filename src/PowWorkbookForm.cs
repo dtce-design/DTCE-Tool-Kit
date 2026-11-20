@@ -19,13 +19,18 @@ sealed class PowWorkbookForm : Form {
  readonly CheckBox hideX=new CheckBox{Text="Hide rows marked X",Checked=true,AutoSize=true};readonly ComboBox zoom=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Width=80};
  /* typed values (the POW project) and the template values they replaced */
  readonly Dictionary<string,object> edits=new Dictionary<string,object>(StringComparer.OrdinalIgnoreCase);readonly Dictionary<string,object> originals=new Dictionary<string,object>(StringComparer.OrdinalIgnoreCase);
- string projectPath;bool dirty;string templateName="";
+ string projectPath;bool dirty;string templateName="";string boqSignature;
+ readonly CheckBox linkBoq=new CheckBox{Text="BACKUP linked to Bill of Quantities",Checked=true,AutoSize=true};
  public PowWorkbookForm(){Text="Program of Works (POW)";Font=new Font("Segoe UI",9.5f);BackColor=PowTheme.Background;Width=1280;Height=820;KeyPreview=true;
   var bar=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,Padding=new Padding(8,6,8,4),WrapContents=true};
   Func<string,EventHandler,Button> btn=(t,h)=>{var b=new Button{Text=t,AutoSize=true,Height=30,Margin=new Padding(0,0,8,0)};b.Click+=h;bar.Controls.Add(b);return b;};
   btn("New POW",(s,e)=>NewProject());btn("Open POW…",(s,e)=>OpenProject());btn("Save POW",(s,e)=>SaveProject(false));btn("Save POW As…",(s,e)=>SaveProject(true));
-  btn("Print…",(s,e)=>PrintSheets(false));btn("Print preview",(s,e)=>PrintSheets(true));btn("Print DUPA of items with quantity…",(s,e)=>PrintDupas());btn("Recalculate",(s,e)=>Recalculate(null));btn("Use another POW workbook…",(s,e)=>ImportWorkbook());
-  bar.Controls.Add(new Label{Text="Zoom",AutoSize=true,Margin=new Padding(12,7,4,0)});zoom.Items.AddRange(new object[]{"50%","75%","100%","125%","150%","200%"});zoom.SelectedIndex=2;bar.Controls.Add(zoom);hideX.Margin=new Padding(12,6,0,0);bar.Controls.Add(hideX);
+  btn("Print…",(s,e)=>PrintSheets(false));btn("Print preview",(s,e)=>PrintSheets(true));btn("Print DUPA of items with quantity…",(s,e)=>PrintDupas());btn("Recalculate",(s,e)=>Recalculate(null));btn("Update BACKUP from Bill of Quantities",(s,e)=>SyncBoq(true));btn("Use another POW workbook…",(s,e)=>ImportWorkbook());
+  bar.Controls.Add(new Label{Text="Zoom",AutoSize=true,Margin=new Padding(12,7,4,0)});zoom.Items.AddRange(new object[]{"50%","75%","100%","125%","150%","200%"});zoom.SelectedIndex=2;bar.Controls.Add(zoom);hideX.Margin=new Padding(12,6,0,0);bar.Controls.Add(hideX);linkBoq.Margin=new Padding(12,6,0,0);bar.Controls.Add(linkBoq);
+  try{linkBoq.Checked=!File.Exists(Path.Combine(DataFolder,"BoqLinkOff.txt"));}catch(IOException){}
+  linkBoq.CheckedChanged+=(s,e)=>{try{var f=Path.Combine(DataFolder,"BoqLinkOff.txt");if(linkBoq.Checked){if(File.Exists(f))File.Delete(f);boqSignature=null;SyncBoq(false);}else File.WriteAllText(f,"off");}catch(IOException){}};
+  /* the link follows the Bill of Quantities whenever this window comes to the front */
+  ParentChanged+=(s,e)=>HookHost();VisibleChanged+=(s,e)=>{HookHost();if(Visible)SyncBoq(false);};
   zoom.SelectedIndexChanged+=(s,e)=>{view.Zoom=float.Parse(zoom.Text.TrimEnd('%'),CultureInfo.InvariantCulture)/100f;};hideX.CheckedChanged+=(s,e)=>view.Invalidate();
   dupaBar.Controls.Add(dupaList);dupaList.Dock=DockStyle.Left;dupaList.SelectedIndexChanged+=(s,e)=>{if(book!=null&&dupaList.SelectedItem!=null)ShowSheet(book.Sheet(((DupaItem)dupaList.SelectedItem).Sheet));};
   tabs.SelectedIndexChanged+=(s,e)=>ShowTab();tabs.SizeChanged+=(s,e)=>FitTabs();
@@ -50,7 +55,7 @@ sealed class PowWorkbookForm : Form {
    if(error!=null){status.Text="Could not open the POW workbook: "+error.Message;MessageBox.Show(this,error.Message,Text);return;}
    book=loaded;calc=c;templateName=custom!=null?Path.GetFileName(custom):"built-in DPWH POW V6.02";render=new WbRender(book,calc);render.RowHidden=RowHidden;view.Render=render;edits.Clear();originals.Clear();
    string note="";if(projectEdits!=null){int applied=Apply(projectEdits);projectPath=project;note=", "+applied+" saved value(s) from "+Path.GetFileName(project);WbCalc.RunWithLargeStack(()=>{calc.Reset();calc.CalculateAll();});}else projectPath=null;
-   dirty=false;BuildTabs();UpdateTitle();status.Text=templateName+": "+book.Sheets.Count+" sheets, "+calc.Evaluated.ToString("N0")+" formulas computed"+note+". Double-click an input cell to change it.";};timer.Start();}
+   dirty=false;boqSignature=null;BuildTabs();UpdateTitle();status.Text=templateName+": "+book.Sheets.Count+" sheets, "+calc.Evaluated.ToString("N0")+" formulas computed"+note+". Double-click an input cell to change it.";SyncBoq(false);};timer.Start();}
  bool RowHidden(WbSheet s,int r){if(!hideX.Checked)return false;var c=s.Get(r,1);if(c==null)return false;var v=c.Formula!=null||c.ArrayMaster!=null?calc.CellValue(s,c):c.Cached;return v is string&&((string)v).Trim().Equals("X",StringComparison.OrdinalIgnoreCase);}
  void BuildTabs(){tabs.TabPages.Clear();var order=Front.Where(n=>book.Sheet(n)!=null).ToList();foreach(var s in book.Sheets)if(!s.Hidden&&!IsDupa(s)&&!order.Contains(s.Name,StringComparer.OrdinalIgnoreCase))order.Add(s.Name);
   foreach(var n in order){var sh=book.Sheet(n);if(sh.Hidden&&!Front.Contains(n))continue;tabs.TabPages.Add(new TabPage(n){Tag=sh});}
@@ -93,6 +98,18 @@ sealed class PowWorkbookForm : Form {
    Dictionary<string,object> values;try{values=ReadProject(d.FileName);}catch(Exception ex){MessageBox.Show(this,ex.Message,Text);return;}
    foreach(var at in originals.Keys.ToList()){var o=originals[at];SetValue(at,o);}edits.Clear();originals.Clear();Apply(values);projectPath=d.FileName;dirty=false;Remember(d.FileName);Recalculate(null);UpdateTitle();status.Text="Opened "+Path.GetFileName(d.FileName)+" ("+values.Count+" saved value(s)).";}}
  void NewProject(){if(book==null||!ConfirmDiscard())return;foreach(var at in originals.Keys.ToList())SetValue(at,originals[at]);edits.Clear();originals.Clear();projectPath=null;dirty=false;try{File.Delete(LastProjectPath);}catch(IOException){}Recalculate(null);UpdateTitle();status.Text="New POW from the template. Change input cells, then Save POW.";}
+ Form hookedHost;
+ void HookHost(){var host=TopLevelControl as Form;if(host==null||host==hookedHost)return;hookedHost=host;host.Activated+=(s,e)=>SyncBoq(false);}
+ /* BACKUP column BC follows the Bill of Quantities workspace: each pay item's quantity goes to its BACKUP row (matched by row and item no.);
+    item rows not in the Bill of Quantities are cleared. Nothing happens while the link is off or no Bill of Quantities is open. */
+ void SyncBoq(bool interactive){if(book==null||calc==null)return;if(!linkBoq.Checked&&!interactive)return;var boq=ProgramOfWorksForm.OpenWorkspace;
+  if(boq==null){if(interactive)MessageBox.Show(this,"Open the Bill of Quantities workspace (and its .boq.xml) first; its quantities then fill BACKUP here.",Text);return;}
+  List<BoqPowItem> items;try{items=boq.PowBackupItems();}catch(Exception ex){if(interactive)MessageBox.Show(this,"The Bill of Quantities could not give its quantities: "+ex.Message,Text);return;}
+  string sig=PowBackupLink.Signature(items);if(!interactive&&sig==boqSignature)return;boqSignature=sig;
+  var plan=PowBackupLink.Plan(book,calc,items);int changed=0;foreach(var kv in plan.Values){var cur=CurrentValue(kv.Key);if(Same(cur,kv.Value))continue;SetValue(kv.Key,kv.Value);changed++;}
+  if(changed>0){dirty=true;UpdateTitle();Recalculate(null);}
+  status.Text="BACKUP linked to Bill of Quantities: "+plan.Matched+" pay item(s) placed"+(changed>0?", "+changed+" BACKUP quantity cell(s) updated":", no change")+(plan.Unmatched.Count>0?"; not found in BACKUP: "+string.Join(", ",plan.Unmatched.Take(6).Select(u=>u.Code))+(plan.Unmatched.Count>6?" …":""):"")+".";}
+ object CurrentValue(string at){int bang=at.LastIndexOf('!');var s=book.Sheet(at.Substring(0,bang));int r,c;if(s==null||!WbBook.ParseA1(at.Substring(bang+1),out r,out c))return null;var cell=s.Get(r,c);return cell==null?null:cell.Cached;}
  static void Remember(string path){try{File.WriteAllText(LastProjectPath,path);}catch(IOException){}catch(UnauthorizedAccessException){}}
  /* printing */
  void PrintSheets(bool preview){if(view.Sheet==null)return;Print(new List<WbSheet>{view.Sheet},preview);}

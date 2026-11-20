@@ -190,7 +190,8 @@ no password or access code. src/Wb*.cs read and recalculate the workbook; PowWor
 Owner (20 November 2026, "independent na siya sa .xlsm"; "saka lang mapapalitan kapag binago ko, masasave na parang xml"): the
 workbook is built in as src/PowTemplate.xlsx (slim copy of the owner's V6.02 Piggatan workbook made for the app: no macros/printer
 settings; embedded resource "PowTemplate.xlsx" in every build script). Its values stay until the owner types new ones; typed values
-are saved as POW project files *.pow.xml (root <PowWorkbook>). Do not commit the original .xlsm. Bill of Quantities files are now
+are saved as POW project files *.pow.xml (root <PowWorkbook>). Do not commit the original .xlsm. BACKUP!BC follows the open Bill
+of Quantities workspace (src/BoqPowLink.cs; owner: "yung backup sa pow nakalink sa boq workspace"). Bill of Quantities files are now
 *.boq.xml (root <ProgramOfWorks>) and older *.pow.xml Bill of Quantities files must keep opening. Next: BOQ quantities to BACKUP,
 Project Information to FRONT PAGE.
 

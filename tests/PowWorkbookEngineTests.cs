@@ -66,6 +66,14 @@ static class PowWorkbookEngineTests {
   foreach(var sh in pow.Sheets)foreach(var cell in sh.Cells.Values){if(cell.Formula==null)continue;formulas++;object x=cell.Cached,y=cell.Value;bool ok=x is double&&y is double?Math.Abs((double)x-(double)y)<=1e-6*Math.Max(1,Math.Abs((double)x)):x==null?(y==null||"".Equals(y)||(y is double&&(double)y==0)):Convert.ToString(x)==Convert.ToString(y);if(ok)same++;else if(first==null)first=sh.Name+"!"+WbBook.ColumnName(cell.Col)+cell.Row+" excel="+x+" app="+y;}
   Check(formulas>100000&&same==formulas,"all "+formulas+" template formulas equal Excel's values"+(first==null?"":" (first difference "+first+")"));
   Near(pc.CellValue(pow.Sheet("SUM"),45,106),4950000,"template grand total");var dupaPage=new WbPrintJob(new WbRender(pow,pc),new List<WbSheet>{pow.Sheet("900(1)c")});Check(dupaPage.PageCount>=1,"template DUPA paginates");
+  /* Bill of Quantities -> BACKUP link: quantities go to the item's BACKUP row (by row and item no.), other item rows are cleared */
+  var items=new List<BoqPowItem>{new BoqPowItem{Code="102(2)",Row=105,Quantity=50,Unit="cu.m."},new BoqPowItem{Code="B.5(1)",Row=77,Quantity=2,Unit="ea"},new BoqPowItem{Code="900(1)c",Row=1,Quantity=12.5,Unit="cu.m."},new BoqPowItem{Code="999(9)",Row=9,Quantity=1,Unit="ls"}};
+  var plan=PowBackupLink.Plan(pow,pc,items);Check(plan.Matched==3&&plan.Unmatched.Count==1&&plan.Unmatched[0].Code=="999(9)","three pay items placed, unknown item reported");
+  Check((double)plan.Values["BACKUP!BC105"]==50&&(double)plan.Values["BACKUP!BC77"]==2&&plan.Values["BACKUP!BC74"]==null,"by row: 102(2) row 105, COA billboard row 77; DPWH billboard row 74 cleared");
+  var concreteRow=plan.Values.Where(kv=>kv.Value is double&&(double)kv.Value==12.5).Select(kv=>kv.Key).ToList();Check(concreteRow.Count==1,"900(1)c found by item no. when its row differs ("+string.Join(",",concreteRow)+")");
+  Check(!plan.Values.ContainsKey("BACKUP!BC59"),"formula quantity cells (A.1.4(1) months) are left alone");
+  var backup=pow.Sheet("BACKUP");foreach(var kv in plan.Values){int r,c;WbBook.ParseA1(kv.Key.Substring(7),out r,out c);backup.GetOrAdd(r,c).Cached=kv.Value;}WbCalc.RunWithLargeStack(()=>{pc.Reset();pc.CalculateAll();});
+  var det=pow.Sheet("DETAILED");Near(pc.CellValue(det,71,51),50,"DETAILED quantity of 102(2) follows BACKUP");Check(pc.CellValue(det,71,1) as string=="","102(2) row shown (no X)");Check("X".Equals(pc.CellValue(det,18,1)),"item without quantity hidden (X)");
   Console.WriteLine("PASS: "+checks+" POW worksheet engine checks (formulas, shared formulas, tables, names, recalculation, formats, A4 pages).");}
   finally{try{File.Delete(path);}catch(IOException){}}}
 }
