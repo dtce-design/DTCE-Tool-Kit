@@ -1,0 +1,14 @@
+DTCE Tool Kit v5.1.2 test build (20 November 2026) - not uploaded to the Microsoft Store (owner: "yung mga susunod huwag na muna iupload")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: DXF viewer layout; Wall Finishes opens the DXF viewer.
+
+- DXF viewer look ("magandang GUI/UI sa DXF viewer"): heading with the file, dimension / line counts and units; a green chip shows
+  which row the next pick goes to ("Measuring for: W002 · 150 mm · Right wall"); the dimension or line under the mouse is
+  highlighted and the cursor is a crosshair; zoom + / - buttons; a colour legend (CHB 150, CHB 100, dimension, measured, Wall ID);
+  a narrower "Walls measured" list with full column captions.
+- Wall Finishes ("sa wall finishes pwedeng iopen ito para makita yung wall ID ng wall finishes"): a "Show walls on DXF" button opens
+  the DXF viewer (the drawing last loaded, or a DXF you choose - for example the one saved with Wall IDs). Select a finish row, then
+  click a wall or its Wall ID label on the drawing: the Wall ID goes to that row. The chip shows the finish row ("Wall ID for: WF001").
+
+Includes v5.1.1 and earlier builds (see their notes).

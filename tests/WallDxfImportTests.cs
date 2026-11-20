@@ -44,6 +44,12 @@ class WallDxfImportTests {
    grid.CurrentCell=grid.Rows[grid.NewRowIndex].Cells[1];int before=grid.Rows.Cast<DataGridViewRow>().Count(r=>!r.IsNewRow);var fresh=new DxfWall{Id="W009",LengthM=2.75,ThicknessMm=150};pow.AssignFromViewer(fresh);
    Check(grid.Rows.Cast<DataGridViewRow>().Count(r=>!r.IsNewRow)==before+1&&grid.Rows.Cast<DataGridViewRow>().Any(r=>Convert.ToString(r.Cells[0].Value)==fresh.Id&&Convert.ToString(r.Cells[2].Value)=="2.75"),"a blank new row becomes a new wall");
    host.Controls.Remove(grid);host.Close();}
+  /* Wall Finishes: the Wall ID at a clicked wall / label goes to the selected finish row */
+  {var dw2=DxfDrawing.Parse(header+ents);var v2=new WallDxfViewer(dw2,"plan.dxf",new HashSet<string>(StringComparer.OrdinalIgnoreCase),150);var pk=v2.Pick(v2.HitTest(1750,40,200));
+   Check(v2.WallIdAt(1750,40,200)=="W-05"&&v2.WallIdAt(300,7000,200)=="W-07"&&v2.WallIdAt(50000,50000,10)==null,"Wall ID found from a measured wall and from a text label");
+   var fin=(DataGridView)typeof(ProgramOfWorksForm).GetField("wallFinishes",F).GetValue(pow);var host2=new Form();host2.Controls.Add(fin);host2.Show();Application.DoEvents();
+   int fr=fin.Rows.Add();fin.CurrentCell=fin.Rows[fr].Cells[1];Check(pow.ChooseFinishWall("W-05")&&Convert.ToString(fin.Rows[fr].Cells[3].Value)=="W-05","Wall ID given to the selected Wall Finishes row");
+   host2.Controls.Remove(fin);host2.Close();}
   /* the Openings button and the openings list come right after the gross area */
   var g19=grid.Columns[19];var action=grid.Columns["EditWallOpeningsAction"];var list=grid.Columns[ProgramOfWorksForm.OpeningsIncludedColumn];
   Check(action.DisplayIndex==g19.DisplayIndex+1&&list.DisplayIndex==action.DisplayIndex+1&&!action.Frozen,"Openings button and list after OR Gross area");
