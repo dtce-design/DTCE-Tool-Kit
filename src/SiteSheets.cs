@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.Linq;
+﻿using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.Linq;
 namespace BeamScheduleFormatter {
 /* Site sheets for the rebar crew (owner, 19 November 2026: "Wala na bang masmaganda at mas maayos na presentation para magets ng
    mga construction workers?"). One A3 packet, one sheet per job: how to read it, CUTTING (each commercial bar drawn with its cut
@@ -52,10 +52,10 @@ static class SiteSheets {
      {var t=p.Pieces+" pcs";g.DrawString(t,huge,ink,card.X+6,card.Y+30);g.DrawString(p.PerLine+" per beam x "+p.Lines+" beam"+(p.Lines>1?"s":""),f,muted,card.X+8,card.Y+54);}
      {var t="CUT  "+Mm(p.Length)+" mm";var sz=g.MeasureString(t,mid);g.DrawString(t,mid,ink,card.Right-sz.Width-6,card.Y+32);var t2=BeamCutting.ShapeName(p.ShapeCode);var sz2=g.MeasureString(t2,f);g.DrawString(t2,f,muted,card.Right-sz2.Width-6,card.Y+46);}
      var shapeBox=new RectangleF(card.X+10,card.Y+66,card.Width-20,card.Height-66-30);
-     var draw=p.ShapeCode=="STRAIGHT"?new CutPiece{ShapeCode="STRAIGHT",DimA=p.DimA}:p.ShapeCode=="HOOK1"||p.ShapeCode=="HOOK2"?Schematic(p):p;
+     var draw=p.ShapeCode=="STRAIGHT"?new CutPiece{ShapeCode="STRAIGHT",DimA=p.DimA}:p.ShapeCode=="HOOK1"||p.ShapeCode=="HOOK2"?Schematic(p):p.ShapeCode.StartsWith("CRANK")?new CutPiece{ShapeCode=p.ShapeCode,DimA=p.DimA,DimB=p.DimB,DimC=p.DimC,DimD=p.DimD,DimE=p.DimE,DrawnStraight=Math.Min(p.DimD,2*Math.Max(p.DimA,1))}:p;
      BarShapes.Draw(g,shapeBox,draw,true,color,dimFont,true,3.2f);
      g.DrawString(p.Location,f,muted,new RectangleF(card.X+6,card.Bottom-28,card.Width-60,26));g.DrawString("done:",f,muted,card.Right-52,card.Bottom-24);using(var pen=new Pen(PowTheme.Ink,.7f))g.DrawRectangle(pen,card.Right-22,card.Bottom-25,12,12);
-     if(p.ShapeCode=="HOOK1"||p.ShapeCode=="HOOK2")g.DrawString("not to scale - lengths govern",f,muted,shapeBox.X,shapeBox.Y-2);}}});}
+     if(p.ShapeCode=="HOOK1"||p.ShapeCode=="HOOK2"||p.ShapeCode.StartsWith("CRANK"))g.DrawString("not to scale - lengths govern",f,muted,shapeBox.X,shapeBox.Y-2);}}});}
   /* placing */
   if(!placing)rep.Heading("PLACING").Paragraph("Use the elevation and sections of section 3 (Beam details): they show where each bar mark goes, the laps and the hoops.",false,true);
   else{rep.Heading("PLACING  -  where each bar mark goes");

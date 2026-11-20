@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Globalization;using System.Linq;using System.Text;using System.Text.RegularExpressions;
+﻿using System;using System.Collections.Generic;using System.Globalization;using System.Linq;using System.Text;using System.Text.RegularExpressions;
 namespace BeamScheduleFormatter {
 /* Beam cutting list (owner, 19 November 2026: "Upload lang ng schedule, set up na lang ng dimensions span supports etc. lagyan na
    lang ng check if ano yung isasama sa estimate per span. Splice same na sa design sheet ng splices. Icheck yung splicing zones
@@ -29,7 +29,7 @@ class CutSettings {
  public List<double> Stocks=new List<double>{6,7.5,9,10.5,12};
 }
 class CutOverride {public double? Length;public int? PerLine;public bool Deleted;}
-class CutPiece {/* "Beam", "Column", "Slab", "Footing", "Wall footing" */public string Group="Beam";public string Line,BarMark,Location,Shape,ShapeCode="STRAIGHT";public double DimA,DimB,DimC,DimD,SecB,SecH;/* drawing only: shortened straight leg of a hooked bar */public double DrawnStraight;public int Span;public bool Edited,Manual;public double? CalculatedLength;public int? CalculatedPerLine;public string Member{get{return Line+(Span>0?" span "+Span:"");}}public int Diameter,Grade,PerLine,Lines;public double Length,Start,End;public bool Top;public long Pieces{get{return (long)PerLine*Lines;}}public double Kg{get{return Pieces*Length*EstimatorEngine.UnitMass(Diameter);}}}
+class CutPiece {/* "Beam", "Column", "Slab", "Footing", "Wall footing" */public string Group="Beam";public string Line,BarMark,Location,Shape,ShapeCode="STRAIGHT";public double DimA,DimB,DimC,DimD,DimE,SecB,SecH;/* lap length at a cranked end (mm); 0 = compression lap of a column bar */public double LapMm;/* drawing only: shortened straight leg of a hooked bar */public double DrawnStraight;public int Span;public bool Edited,Manual;public double? CalculatedLength;public int? CalculatedPerLine;public string Member{get{return Line+(Span>0?" span "+Span:"");}}public int Diameter,Grade,PerLine,Lines;public double Length,Start,End;public bool Top;public long Pieces{get{return (long)PerLine*Lines;}}public double Kg{get{return Pieces*Length*EstimatorEngine.UnitMass(Diameter);}}}
 class CutSplice {public string Line,Bar,Status,Note;public int Diameter,Span;public double From,To,Lap,ZoneFrom,ZoneTo;public bool Ok;}
 class CutSpanEstimate {public string Line,Mark;public int Span,Quantity;public bool Include;public double Ln,Concrete,Formwork,Kg;public int Ties;public Dictionary<int,double> KgByDiameter=new Dictionary<int,double>();}
 class CutPurchase {public int Grade,Diameter;public double Cut;public long Pieces;public StockChoice Choice;}
@@ -172,7 +172,7 @@ static class BeamCutting {
   var zones=SpliceZones(g,s,top);
   double p=xs;int piece=0;
   while(true){bool firstPiece=piece==0;double startHook=firstPiece?hook:0;
-   if(xe-p+startHook+hook<=s.MaxBar+1e-9){add(new CutPiece{BarMark=barMark+(piece>0?"."+(piece+1):""),Location=face+" continuous "+(piece==0?"(one length)":"(last piece)"),Diameter=dia,Top=top,PerLine=count,Length=xe-p+startHook+hook,Start=p,End=xe,Shape=firstPiece?"90° hooks both ends":"90° hook one end"});break;}
+   if(xe-p+startHook+hook<=s.MaxBar+1e-9){add(new CutPiece{BarMark=barMark+(piece>0?"."+(piece+1):""),Location=face+" continuous "+(piece==0?"(one length)":"(last piece)"),Diameter=dia,Top=top,PerLine=count,Length=xe-p+startHook+hook,Start=p,End=xe,Shape=firstPiece?"90° hooks both ends":"Cranked lap splice, 90° hook one end",LapMm=firstPiece?0:lap*1000});break;}
    double reach=p+s.MaxBar-startHook;double best=double.NaN;double[] chosen=null;bool preferred=true;
    /* lap position (owner, 19 November 2026: "Sure ka sa mga lap location?"): special moment frames - top bars lapped about midspan,
       bottom bars near the ends of the allowed zone (just outside 2h, away from the midspan positive moment); the farthest such
@@ -182,7 +182,7 @@ static class BeamCutting {
     foreach(double c in cands){if(c+1e-9<z[0]||c+lap>limit+1e-9||c<=p+lap)continue;if(double.IsNaN(best)||c>best){best=c;chosen=z;}}}
    if(chosen==null){preferred=!s.SpecialMomentFrame;foreach(var z in zones){double end=Math.Min(z[1],reach);double start=end-lap;if(start+1e-9<z[0]||start<=p+lap)continue;if(double.IsNaN(best)||start>best){best=start;chosen=z;}}}
    if(chosen==null){result.Errors.Add("Beam line "+g.Spans[0].Line+" "+face.ToLowerInvariant()+" "+dia+" mm: no allowed splice zone within reach of a "+s.MaxBar.ToString("0.##",Inv)+" m bar from "+F(p)+" m (lap "+F(lap)+" m). Use a longer bar or review the splice zones.");add(new CutPiece{BarMark=barMark+"."+(piece+1),Location=face+" continuous (NO VALID SPLICE)",Diameter=dia,Top=top,PerLine=count,Length=Math.Min(s.MaxBar,xe-p+startHook),Start=p,End=Math.Min(xe,reach),Shape="REVIEW"});break;}
-   int span=(int)chosen[2];add(new CutPiece{BarMark=barMark+"."+(piece+1),Location=face+" continuous piece "+(piece+1)+" (lap in span "+(span+1)+")",Diameter=dia,Top=top,PerLine=count,Length=best+lap-p+startHook,Start=p,End=best+lap,Shape=firstPiece?"90° hook one end":"Straight"});
+   int span=(int)chosen[2];add(new CutPiece{BarMark=barMark+"."+(piece+1),Location=face+" continuous piece "+(piece+1)+" (lap in span "+(span+1)+")",Diameter=dia,Top=top,PerLine=count,Length=best+lap-p+startHook,Start=p,End=best+lap,Shape=firstPiece?"90° hook one end":"Cranked lap splice",LapMm=firstPiece?0:lap*1000});
    var check=new CutSplice{Line=g.Spans[0].Line,Bar=barMark,Diameter=dia,Span=span+1,From=best,To=best+lap,Lap=lap,ZoneFrom=chosen[0],ZoneTo=chosen[1],Ok=true,Status="OK"};
    if(s.SpecialMomentFrame){var row=g.Rows[span];double local=best-g.FaceLeft[span],localEnd=local+lap;var spacings=TieZones(row,g.Spans[span].Ln,s).Where(z=>localEnd>z.From&&local<z.To).Select(z=>z.Spacing).ToList();
     double d=g.Depth[span]-cover-.010-dia/2000.0,limit=Math.Min(d/4,.100),worst=spacings.Count==0?double.NaN:spacings.Max();
@@ -200,15 +200,19 @@ static class BeamCutting {
  internal static double EndAllowance(CutSettings s,int dia,bool top,int cutEnds){if(cutEnds<=0)return 0;switch(s.Allowance){case 1:case 3:return Ld(s,dia,top);case 2:return Lap(s,dia,top)/cutEnds;default:return 0;}}
  internal static readonly string[] AllowanceNames={"None (detail required)","Ld at both piece ends","1 x lap (config A/B)","Hook Ldh / cut-end Ld"};
  /* bar bending schedule shape and outside dimensions (mm); the cut length stays the authority */
- internal static void Shape(CutPiece p,CutSettings s){string sh=(p.Shape??"").ToUpperInvariant();p.ShapeCode=sh.StartsWith("CRANKED")?"CRANK":sh.StartsWith("HOOP")?"HOOP":sh.StartsWith("CROSSTIE")?"CROSSTIE":sh.Contains("HOOKS BOTH")?"HOOK2":sh.Contains("HOOK ONE")?"HOOK1":"STRAIGHT";double db=p.Diameter,L=p.Length*1000;LengthResult v=null;try{v=s.Config.Values(p.Diameter,false);}catch(Exception){}
+ internal static void Shape(CutPiece p,CutSettings s){string sh=(p.Shape??"").ToUpperInvariant();p.ShapeCode=sh.StartsWith("CRANKED")?(sh.Contains("HOOK ONE")?"CRANKHOOK":"CRANK"):sh.StartsWith("HOOP")?"HOOP":sh.StartsWith("CROSSTIE")?"CROSSTIE":sh.Contains("HOOKS BOTH")?"HOOK2":sh.Contains("HOOK ONE")?"HOOK1":"STRAIGHT";double db=p.Diameter,L=p.Length*1000;LengthResult v=null;try{v=s.Config.Values(p.Diameter,false);}catch(Exception){}
   double r=v==null?3*db:v.MainInside/2,leg=v==null?12*db+r+db:v.Tail90+r+db,hook=v==null?0:s.Config.Rounded(v.Cut90);double cover=s.Cover;
   switch(p.ShapeCode){case "HOOK1":p.DimB=Math.Round(leg);p.DimA=Math.Round(L-hook+r+db);p.DimC=0;break;case "HOOK2":p.DimA=Math.Round(leg);p.DimC=Math.Round(leg);p.DimB=Math.Round(L-2*hook+2*(r+db));break;
    case "HOOP":p.DimA=Math.Round(p.SecB-2*cover);p.DimB=Math.Round(p.SecH-2*cover);p.DimC=v==null?Math.Max(6*db,75):Math.Round(v.Tail135);break;case "CROSSTIE":p.DimA=Math.Round(p.SecH-2*cover);p.DimB=v==null?Math.Max(6*db,75):Math.Round(v.Tail135);p.DimC=v==null?Math.Max(6*db,75):Math.Round(v.Tail90);break;case "CRANK":{/* owner (20 November 2026, "may bent yung paglap", RCDC column bars): A = compression lap (NSCP 2015 425.5.5.1:
      0.071 fy db for fy up to 420 MPa, (0.13 fy - 24) db above, at least 300 mm), B = crank at 1:6, C = offset (one bar diameter),
-     D = the rest of the cut length */double fy=p.Diameter<=12?s.Config.FySmall:s.Config.FyLarge;double lap=Math.Max(300,fy<=420?0.071*fy*db:(0.13*fy-24)*db);
+     D = the rest of the cut length */double fy=p.Diameter<=12?s.Config.FySmall:s.Config.FyLarge;double lap=p.LapMm>0?p.LapMm:Math.Max(300,fy<=420?0.071*fy*db:(0.13*fy-24)*db);
     p.DimA=Math.Ceiling(lap/10)*10;p.DimC=db;p.DimB=Math.Ceiling(Math.Sqrt(37)*db);p.DimD=Math.Max(0,Math.Round(L-p.DimA-p.DimB));break;}
+   case "CRANKHOOK":{/* owner (20 November 2026, "again yung bend sa lap zone"): the beam bar that enters a lap is cranked there; the
+     last piece of a line also has the 90° hook at the exterior support. A = lap (Class B, from the configuration), B = crank at 1:6,
+     C = offset (one bar diameter), D = straight to the hook, E = hook leg */
+    p.DimA=Math.Ceiling(p.LapMm/10)*10;p.DimC=db;p.DimB=Math.Ceiling(Math.Sqrt(37)*db);p.DimE=Math.Round(leg);p.DimD=Math.Max(0,Math.Round(L-hook+r+db-p.DimA-p.DimB));break;}
    default:p.DimA=Math.Round(L);p.DimB=p.DimC=0;break;}}
- internal static string ShapeName(string code){switch(code){case "CRANK":return "Cranked bar at lap splice";case "HOOK1":return "L-bar (90° hook one end)";case "HOOK2":return "U-bar (90° hooks both ends)";case "HOOP":return "Closed hoop, 135° hooks";case "CROSSTIE":return "Crosstie 135° / 90°";default:return "Straight";}}
+ internal static string ShapeName(string code){switch(code){case "CRANK":return "Cranked bar at lap splice";case "CRANKHOOK":return "Cranked at lap, 90° hook other end";case "HOOK1":return "L-bar (90° hook one end)";case "HOOK2":return "U-bar (90° hooks both ends)";case "HOOP":return "Closed hoop, 135° hooks";case "CROSSTIE":return "Crosstie 135° / 90°";default:return "Straight";}}
  internal static int GradeOf(LengthConfiguration c,int dia){if(dia<=12)return c.GradeSmall;if(dia>=16)return c.GradeLarge;throw new Exception("13-15 mm bars need a project-specific grade.");}
  public static string Report(CutResult r,CutSettings s,IEnumerable<CutSpan> spans){var b=new StringBuilder();
   b.AppendLine("BEAM CUTTING LIST AND ESTIMATE");b.AppendLine();b.AppendLine("## 01  BASIS");foreach(var note in r.Notes)b.AppendLine(note);b.AppendLine("Cover "+s.Cover.ToString("0",Inv)+" mm; longest bar "+s.MaxBar.ToString("0.##",Inv)+" m; commercial lengths "+CommercialBars.FormatLengths(s.Stocks)+" m; stirrup end zones "+(s.EndZone*100).ToString("0.#",Inv)+"% of the clear span.");b.AppendLine();

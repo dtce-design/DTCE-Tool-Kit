@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.Linq;
+﻿using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.Linq;
 namespace BeamScheduleFormatter {
 /* Bar bending schedule per element in the STAAD RCDC layout (owner, 20 November 2026: sample RCDC BBS DXFs for beams, columns,
    footings and slabs - "ganito ang gusto ko makita sa report, pero dagdagan mo if ano pa kailangan"): for every element a sketch,
@@ -9,7 +9,7 @@ static partial class BbsReport {
  static readonly string[] ElementOrder={"Beam","Column","Footing","Wall footing","Slab"};
  /* inside bend radius: NSCP 2015 Table 425.3.1 (standard hooks 6db up to 25 mm, 8db for 28-36 mm, 10db above); Table 425.3.2
     (stirrups and ties 16 mm and smaller 4db); straight bars have none */
- internal static double BendRadius(CutPiece p){if(p.ShapeCode=="STRAIGHT"||p.ShapeCode=="CRANK")return 0;int d=p.Diameter;bool tie=p.ShapeCode=="HOOP"||p.ShapeCode=="CROSSTIE";
+ internal static double BendRadius(CutPiece p){if(p.ShapeCode=="STRAIGHT"||p.ShapeCode=="CRANK")return 0;/* CRANKHOOK: the radius of its 90° hook */int d=p.Diameter;bool tie=p.ShapeCode=="HOOP"||p.ShapeCode=="CROSSTIE";
   double dia=tie&&d<=16?4*d:d<=25?6*d:d<=36?8*d:10*d;return dia/2;}
  static string ElementKey(CutPiece p){return string.IsNullOrEmpty(p.Line)?p.Member:p.Line;}
  static string Fy(CutSettings s,IEnumerable<int> dias){var g=dias.Select(d=>d<=12?s.Config.FySmall:s.Config.FyLarge).Distinct().OrderBy(x=>x).Select(x=>x.ToString("0",Inv));return "Fy"+string.Join("/",g);}
@@ -20,15 +20,15 @@ static partial class BbsReport {
     string size=pieces.Where(p=>p.SecB>0&&p.SecH>0).Select(p=>(p.SecB).ToString("0",Inv)+"x"+(p.SecH).ToString("0",Inv)).FirstOrDefault();var geo=r.Geometry.FirstOrDefault(g=>g.Line==el.Key);
     if(size==null&&geo!=null&&geo.Width.Length>0)size=(geo.Width[0]*1000).ToString("0",Inv)+"x"+(geo.Depth[0]*1000).ToString("0",Inv);string title=el.Key+(size!=null?" : "+size:"");
     rep.Paragraph(number+"."+n+"  "+group.ToUpperInvariant()+"  "+title+"   ("+Fy(s,pieces.Select(p=>p.Diameter))+")",false,true);
-    if(group=="Beam"&&geo!=null){var strips=BeamDetailPaper.Strips(geo);var g0=geo;foreach(var st0 in strips){var st=st0;rep.Figure(230,(g,rect)=>BeamDetailPaper.DrawElevation(g,rect,r,g0,st[0],st[1]),"Elevation "+el.Key+(strips.Count>1?" (strip "+(strips.IndexOf(st)+1)+" of "+strips.Count+")":"")+": bar marks as in the schedule below.");}}
+    if(group=="Beam"&&geo!=null){var strips=BeamDetailPaper.Strips(geo);var g0=geo;foreach(var st0 in strips){var st=st0;rep.Figure(280,(g,rect)=>BeamDetailPaper.DrawElevation(g,rect,r,g0,st[0],st[1]),"Elevation "+el.Key+(strips.Count>1?" (strip "+(strips.IndexOf(st)+1)+" of "+strips.Count+")":"")+": bar marks as in the schedule below.");}}
     else if(group=="Column")rep.Figure(170,(g,rect)=>DrawColumnSketch(g,rect,pieces),"Section of "+el.Key+": main bars and hoops (not to scale).");
     else if(group=="Footing"||group=="Wall footing")rep.Figure(190,(g,rect)=>DrawFootingSketch(g,rect,pieces,s.Cover),"Plan and section of "+el.Key+": bars both ways (not to scale).");
     var rows=pieces.OrderBy(p=>p.Top?0:1).ThenBy(p=>p.BarMark,StringComparer.OrdinalIgnoreCase).ToList();bool first=true;
     /* owner (20 November 2026, "reference bar shape na lang na iisa, doon na siya ireference, dimension na lang sa table"): the bar
        shapes are drawn once in the shape key (section 2) with their letters; the table gives the shape code and A, B, C */
-    rep.Table(new[]{"ELEMENT","BAR MARK","BAR NOS.","REBAR","SHAPE CODE","CUTTING LENGTH (mm)","A","B","C","D","R"},
-     rows.Select(p=>{var row=new[]{first?el.Key:"",p.BarMark+(p.Manual?" *":p.Edited?" †":""),p.Pieces.ToString(Inv)+(p.Lines>1?"  ("+p.PerLine+" x "+p.Lines+")":""),"Ø"+p.Diameter,Code(p.ShapeCode),(p.Length*1000).ToString("0",Inv),Dim(p.ShapeCode=="STRAIGHT"&&p.DimA<=0?p.Length*1000:p.DimA),Dim(p.DimB),Dim(p.DimC),Dim(p.DimD),Dim(BendRadius(p))};first=false;return row;}),
-     new float[]{10,11,12,7,8,11,8,8,8,8,7});
+    rep.Table(new[]{"ELEMENT","BAR MARK","BAR NOS.","REBAR","SHAPE CODE","CUTTING LENGTH (mm)","A","B","C","D","E","R"},
+     rows.Select(p=>{var row=new[]{first?el.Key:"",p.BarMark+(p.Manual?" *":p.Edited?" †":""),p.Pieces.ToString(Inv)+(p.Lines>1?"  ("+p.PerLine+" x "+p.Lines+")":""),"Ø"+p.Diameter,Code(p.ShapeCode),(p.Length*1000).ToString("0",Inv),Dim(p.ShapeCode=="STRAIGHT"&&p.DimA<=0?p.Length*1000:p.DimA),Dim(p.DimB),Dim(p.DimC),Dim(p.DimD),Dim(p.DimE),Dim(BendRadius(p))};first=false;return row;}),
+     new float[]{10,11,12,7,8,11,7,7,7,7,7,7});
     var dias=pieces.Select(p=>p.Diameter).Distinct().OrderBy(d=>d).ToList();var lgt=dias.Select(d=>pieces.Where(p=>p.Diameter==d).Sum(p=>p.Pieces*p.Length)).ToList();var wt=dias.Select(d=>pieces.Where(p=>p.Diameter==d).Sum(p=>p.Kg)).ToList();
     var summary=new List<string[]>{new[]{"LGT (m)"}.Concat(lgt.Select(v=>v.ToString("0",Inv))).Concat(new[]{lgt.Sum().ToString("0",Inv)}).ToArray(),new[]{"WT (kg)"}.Concat(wt.Select(v=>v.ToString("0",Inv))).Concat(new[]{wt.Sum().ToString("0",Inv)}).ToArray()};
     double concrete=group=="Beam"?r.Spans.Where(x=>x.Line==el.Key).Sum(x=>x.Concrete):0;if(concrete>0)summary.Add(new[]{"kg / m³ concrete"}.Concat(dias.Select(d=>"")).Concat(new[]{(wt.Sum()/concrete).ToString("0",Inv)}).ToArray());
@@ -41,13 +41,13 @@ static partial class BbsReport {
   table.Add(new[]{"No. of pieces"}.Concat(all.Select(d=>r.Pieces.Where(p=>p.Diameter==d).Sum(p=>p.Pieces).ToString(Inv))).Concat(new[]{r.Pieces.Sum(p=>p.Pieces).ToString(Inv)}).ToArray());
   rep.Paragraph(number+"."+(n+1)+"  PROJECT SUMMARY BY ELEMENT TYPE AND BAR SIZE",false,true).Table(new[]{"ELEMENT TYPE"}.Concat(all.Select(d=>"Ø"+d)).Concat(new[]{"TOTAL"}).ToArray(),table,new float[]{30}.Concat(all.Select(d=>10f)).Concat(new float[]{12}).ToArray(),row=>row[0].StartsWith("TOTAL")||row[0]=="No. of pieces"?(Color?)Color.FromArgb(232,236,240):null);}
  /* bar sketch with the length of each leg written on it (long straight legs drawn shortened, the values stay true) */
- internal static void DrawLabelled(Graphics g,RectangleF cell,CutPiece p){var q=new CutPiece{ShapeCode=p.ShapeCode,DimA=p.DimA,DimB=p.DimB,DimC=p.DimC,Diameter=p.Diameter};
+ internal static void DrawLabelled(Graphics g,RectangleF cell,CutPiece p){var q=new CutPiece{ShapeCode=p.ShapeCode,DimA=p.DimA,DimB=p.DimB,DimC=p.DimC,DimD=p.DimD,DimE=p.DimE,Diameter=p.Diameter};if(p.ShapeCode.StartsWith("CRANK"))q.DrawnStraight=Math.Min(p.DimD,2*Math.Max(p.DimA,1));
   double hook=Math.Max(p.ShapeCode=="HOOK1"?p.DimB:p.ShapeCode=="HOOK2"?Math.Max(p.DimA,p.DimC):0,1);if(p.ShapeCode=="HOOK1"&&p.DimA>4*hook)q.DrawnStraight=4*hook;if(p.ShapeCode=="HOOK2"&&p.DimB>4*hook)q.DrawnStraight=4*hook;
   if(p.ShapeCode=="STRAIGHT"&&p.DimA<=0)q.DimA=p.Length*1000;
   using(var f=new Font("Segoe UI",7f,FontStyle.Regular,GraphicsUnit.Point))BarShapes.Draw(g,new RectangleF(cell.X+6,cell.Y+2,cell.Width-12,cell.Height-4),q,true,Color.FromArgb(25,90,160),f,true,1.4f);}
  /* column cross-section: main bars along the faces and the hoop */
  static void DrawColumnSketch(Graphics g,RectangleF rect,List<CutPiece> pieces){g.SmoothingMode=SmoothingMode.AntiAlias;var hoop=pieces.FirstOrDefault(p=>p.ShapeCode=="HOOP")??pieces.FirstOrDefault(p=>p.SecB>0);double b=hoop!=null&&hoop.SecB>0?hoop.SecB:400,h=hoop!=null&&hoop.SecH>0?hoop.SecH:400;
-  var mains=pieces.Where(p=>p.ShapeCode=="STRAIGHT"||p.ShapeCode=="CRANK"||p.ShapeCode.StartsWith("HOOK")).Where(p=>p.Location==null||!p.Location.Contains("crosstie")).OrderByDescending(p=>p.Length).ToList();var main=mains.FirstOrDefault();int count=main==null?4:Math.Max(4,main.PerLine);
+  var mains=pieces.Where(p=>p.ShapeCode=="STRAIGHT"||p.ShapeCode.StartsWith("CRANK")||p.ShapeCode.StartsWith("HOOK")).Where(p=>p.Location==null||!p.Location.Contains("crosstie")).OrderByDescending(p=>p.Length).ToList();var main=mains.FirstOrDefault();int count=main==null?4:Math.Max(4,main.PerLine);
   float scale=(float)Math.Min((rect.Height-34)/h,(rect.Width*0.45f)/b);float w=(float)(b*scale),hh=(float)(h*scale),x=rect.Left+20,y=rect.Top+10;
   using(var ink=new Pen(Color.FromArgb(40,40,40),1.2f))using(var tie=new Pen(Color.FromArgb(25,90,160),1.4f))using(var bar=new SolidBrush(Color.FromArgb(200,40,40)))using(var f=new Font("Segoe UI",7.5f,GraphicsUnit.Point))using(var t=new SolidBrush(Color.FromArgb(40,40,40))){
    g.DrawRectangle(ink,x,y,w,hh);float c=Math.Max(6,40*scale);g.DrawRectangle(tie,x+c,y+c,w-2*c,hh-2*c);

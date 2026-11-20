@@ -1,4 +1,4 @@
-using System;using System.Linq;using System.Collections.Generic;using System.Windows.Forms;using BeamScheduleFormatter;
+﻿using System;using System.Linq;using System.Collections.Generic;using System.Windows.Forms;using BeamScheduleFormatter;
 class BeamCuttingListTests {
  static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}static void Near(double a,double b,string why){Check(Math.Abs(a-b)<1e-6,why+" ("+a+" vs "+b+")");}
  static BeamRow Row(){var r=new BeamRow{Mark="B-1"};r.Cells[0].Add("300");r.Cells[1].Add("500");r.Cells[2].Add("2-#16");r.Cells[3].Add("3-#16");r.Cells[4].Add("2-#16");r.Cells[5].Add("4-#20");r.Cells[6].Add("2-#20");r.Cells[7].Add("4-#20");r.Cells[8].Add("1-2L-#10@100 C/C");r.Cells[9].Add("1-2L-#10@200 C/C");r.Cells[10].Add("1-2L-#10@100 C/C");r.Cells[11].Add("--");r.Cells[12].Add("--");r.Cells[13].Add("--");return r;}
@@ -23,6 +23,11 @@ class BeamCuttingListTests {
   var none=BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg,Allowance=0});Near(none.Pieces.First(p=>p.Location.StartsWith("Bottom extra, span 2")).Length,7*2/3.0,"no allowance: 2/3 L only");
   var est=r.Spans;Check(est.Count==3,"three span estimates");Check(est[0].Ties==15+15+16,"6 m span stirrups: 15 + 15 + 16 sets ("+est[0].Ties+")");
   Near(est.Sum(e=>e.Kg),r.Pieces.Sum(p=>p.Kg),"all steel is shared to the spans");
+  /* owner (20 November 2026, "again yung bend sa lap zone"): the bar entering a lap is cranked there, A = the lap length */
+  foreach(var dia in new[]{20,16}){var cont=r.Pieces.Where(p=>p.Location.Contains("continuous")&&p.Diameter==dia).ToList();bool topBar=cont[0].Top;double lapMm=Math.Ceiling(BeamCutting.SpliceLap(s,dia,topBar)*100-1e-9)*10;
+   Check(cont[0].ShapeCode=="HOOK1"&&cont.Last().ShapeCode=="CRANKHOOK"&&cont.Skip(1).Take(cont.Count-2).All(p=>p.ShapeCode=="CRANK"),dia+" mm: first piece hooked, middle cranked, last cranked and hooked");
+   Check(cont.Skip(1).All(p=>Math.Abs(p.DimA-lapMm)<1e-6&&p.DimC==dia&&p.DimB==Math.Ceiling(Math.Sqrt(37)*dia)),dia+" mm crank: A = lap "+lapMm+", B = crank, C = db");
+   var last=cont.Last();Check(last.DimE>0&&last.DimD>0&&BbsReport.Code(last.ShapeCode)=="K5",dia+" mm last piece: hook leg E, code K5");}
   Check(r.Splices.All(c=>c.Ok)&&r.Pieces.Any(p=>p.Location.StartsWith("Extra hoops over lap")&&p.PerLine>0),"laps in the 200 mm stirrup zone get extra hoops at min(d/4, 100 mm) (418.6.3.3)");
   foreach(var c in r.Splices){double face=.4+(c.Span==1?0:c.Span==2?6.4:13.8),ln=c.Span==2?7:6,mid=face+ln/2,center=(c.From+c.To)/2;bool top=c.Diameter==20;
    Check(top?Math.Abs(center-mid)<=ln/6+1e-9:Math.Abs(center-mid)>=ln/6-1e-9,(top?"top laps about midspan":"bottom laps away from midspan")+" (span "+c.Span+", centre "+center.ToString("0.00")+")");}

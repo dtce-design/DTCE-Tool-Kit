@@ -1,0 +1,16 @@
+DTCE Tool Kit v6.0.11 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Cutting List / BBS, beams): the bend at the lap zone ("again yung bend sa lap zone"). The beam bar that enters a lap is now
+cranked there, like the column bars:
+- middle pieces of a continuous line: K4 (cranked bar at lap), A = the Class B lap from the configuration, B = crank at 1:6
+  (ceil(sqrt(37) db)), C = offset (one bar diameter), D = the rest;
+- the last piece: new shape K5 (cranked at lap, 90° hook at the other end), with E = hook leg and R = hook bend radius;
+- the first piece keeps its 90° hook (L1); a line in one length is unchanged (U2).
+The shape key shows K5, the BBS table has an E column, the Cutting List BBS grid has D and E columns, and the site sheets draw
+the cranked bars. The beam elevation in section 4 of the BBS report is taller so its legend no longer covers the dimensions.
+
+Schedule DXF B_Schedule_-_Revised.dxf (bottom/top reinforcement, two lines per cell = 1st and 2nd layer): read on Linux/Mono in the
+Cutting List, the beam estimator and the cutting engine - 46 marks, no read error. Cut bars = support count - continuous count.
+Checked on Linux/Mono only. Tests: BeamCuttingListTests (84 checks), MemberBbsTests.
+
+Includes v6.0.10 and earlier builds.
