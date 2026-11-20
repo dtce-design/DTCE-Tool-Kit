@@ -1,0 +1,14 @@
+DTCE Tool Kit v6.0.18 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Strap Foundation; "pagandahin at ayusin ang Strap Foundation"):
+- Footings and straps: one compact command row - Add footings from the reaction nodes, Paste STAAD node coordinates, Examples
+  (exterior + interior footing, corner footing) and View (plan / 3D, reinforcement in 3D, reset 3D view). The tables and the plan /
+  strap section fill the page height (no second scroll bar).
+- Results: a pass / fail band above the table (all checks pass, or how many do not pass and that they are red in the plan, with the
+  largest ratio).
+- Design sheets: the live report and the Calculation report tab no longer run before every input exists (the "The given key 'Fc'
+  was not present" message at start is gone).
+Note: the tab caption "Purlin Design" seen on a Strap Foundation screenshot came from the screenshot harness, not from the app.
+Checked on Linux/Mono only. Tests: StrapFootingTests, BeamDeflectionTests, SteelSectionRefreshUiTests.
+
+Includes v6.0.17 and earlier builds.
