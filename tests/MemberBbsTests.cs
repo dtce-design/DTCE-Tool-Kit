@@ -18,6 +18,9 @@ class MemberBbsTests {
   /* RCDC-style schedule per element (v6.0.4): bend radius per NSCP 2015 Table 425.3.1 / 425.3.2 */
   Check(BbsReport.BendRadius(new CutPiece{ShapeCode="STRAIGHT",Diameter=20})==0&&BbsReport.BendRadius(new CutPiece{ShapeCode="HOOK1",Diameter=20})==60&&BbsReport.BendRadius(new CutPiece{ShapeCode="HOOP",Diameter=10})==20&&BbsReport.BendRadius(new CutPiece{ShapeCode="HOOK2",Diameter=28})==112,"bend radius 3db hooks up to 25 mm, 2db ties, 4db 28-36 mm");
   var crank=r.Pieces.First(p=>p.Location.StartsWith("Column longitudinal"));Check(crank.ShapeCode=="CRANK"&&crank.DimA==600&&crank.DimB==122&&crank.DimC==20&&Math.Abs(crank.DimA+crank.DimB+crank.DimD-crank.Length*1000)<=1&&BbsReport.Code("CRANK")=="K4","column main bars cranked at the lap: A 600 (0.071 fy db), B 122 (1:6), C 20 (db), D the rest ("+crank.DimA+"/"+crank.DimB+"/"+crank.DimC+"/"+crank.DimD+")");
+  /* cut lengths rounded up to 25 mm (v6.0.8) */
+  foreach(double step in new[]{5.0,25.0}){var s25=new CutSettings{Config=cfg,CutRounding=step};var r25=new CutResult();BeamCutting.AddMembers(r25,MemberBbs.Pieces(sources,new List<string>()),s25);
+   Check(r25.Pieces.All(p=>Math.Abs(Math.Round(p.Length*1000/step)*step-p.Length*1000)<1e-6)&&r25.Pieces.Zip(r.Pieces,(x,y)=>x.Length>=y.Length-1e-9&&x.Length-y.Length<step/1000+1e-9).All(ok=>ok),"cut lengths rounded up to "+step+" mm");}
   var rep=new RichReport("BBS",true);BbsReport.AddElementSchedules(rep,r,s,"4");using(var d2=rep.Build())Check(d2.Sheets.Count>=1,"element schedules print for columns and footings");
   Console.WriteLine("PASS: "+checks+" member bar bending schedule checks");}
 }

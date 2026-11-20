@@ -16,6 +16,7 @@ namespace BeamScheduleFormatter {
    bottom bars over the interior supports. */
 class CutSpan {public string Line="",Mark="";public double Ln,LeftSupport,RightSupport,Slab;public bool Include=true;public int Quantity=1;}
 class CutSettings {
+ /* cut lengths rounded up to this step in mm (owner, 20 November 2026: "option yung cutting by 5 or by 25mm or input"); 0 = exact */public double CutRounding;
  public LengthConfiguration Config;public double Cover=40,MaxBar=12,EndZone=.25,TopExtension=.25,BottomCut=1.0/6,TieOffset=.05,HookFactor=6;
  /* curtailment standard of the Program of Works beam estimate (owner, 19 November 2026: "Yung curtail kunin yung standard sa pow"):
     extra top bars L/4 past the support face, extra bottom bars from L/6 off each face, plus the POW main piece allowance at cut ends -
@@ -86,7 +87,8 @@ static class BeamCutting {
   return result;
  }
  /* commercial bars and cutting patterns of all pieces (beams and any columns, slabs, footings added) */
- internal static void Purchase(CutResult result,CutSettings s){result.Purchases.Clear();
+ internal static void RoundCuts(CutResult result,CutSettings s){if(s.CutRounding<=0)return;foreach(var p in result.Pieces){double mm=p.Length*1000,up=Math.Ceiling(mm/s.CutRounding-1e-9)*s.CutRounding;if(up-mm<1e-6)continue;p.Length=up/1000;Shape(p,s);}}
+ internal static void Purchase(CutResult result,CutSettings s){RoundCuts(result,s);result.Purchases.Clear();
   foreach(var g in result.Pieces.GroupBy(p=>new{p.Grade,p.Diameter,Cut=Math.Round(p.Length,3)})){long pieces=g.Sum(p=>p.Pieces);var best=CommercialBars.Best(CommercialBars.Choices(g.Key.Cut,pieces,0,s.Stocks));if(best==null)result.Errors.Add("No commercial length fits a "+F(g.Key.Cut)+" m cut ("+g.Key.Diameter+" mm).");result.Purchases.Add(new CutPurchase{Grade=g.Key.Grade,Diameter=g.Key.Diameter,Cut=g.Key.Cut,Pieces=pieces,Choice=best});}
   result.Purchases=result.Purchases.OrderBy(p=>p.Grade).ThenBy(p=>p.Diameter).ThenByDescending(p=>p.Cut).ToList();
   result.Patterns=CuttingPatterns.Plan(result.Pieces,s.Stocks,result.Errors);}

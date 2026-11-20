@@ -1,0 +1,10 @@
+DTCE Tool Kit v6.0.8 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Bar Bending Schedule): cut length rounding ("option yung cutting by 5 or by 25mm or input").
+- New setting "Round cut lengths up to (mm)": Exact (default, 1 mm), 5, 25, or type any step from 1 to 500 mm. Every cut length in
+  the schedule, cutting patterns, weights and site sheets is rounded UP to that step (never shortened); the shape dimensions are
+  worked out again from the rounded length. The setting is saved with the cutting list and printed in the schedule information.
+- Not changed: the per-span estimate (kg per span) still uses the exact lengths.
+Checked on Linux/Mono only. Tests: MemberBbsTests (12, incl. 5 mm and 25 mm rounding), BeamCuttingListTests (78).
+
+Includes v6.0.7 and earlier builds.
