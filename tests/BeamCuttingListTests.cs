@@ -84,5 +84,14 @@ class BeamCuttingListTests {
    Check(r5.Pieces.Where(p=>p.Location.StartsWith("Layer spacer")).All(p=>!BeamCutting.Longitudinal(p)),"spacers are not main bars");
    Check(BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg}).Pieces.All(p=>!p.Location.StartsWith("Layer spacer")),"no spacers when every face fits one layer");
    Check(r5.Smf.Any(c=>c.Note.Contains("2 layers")),"SMF d uses the two layers");}
+  /* column and footing schedules of the BBS (owner, 20 November 2026): a column mark per level range, footings by mark */
+  using(var form=new CuttingListForm()){var flags=System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance;Func<string,DataGridView> G=n=>(DataGridView)typeof(CuttingListForm).GetField(n,flags).GetValue(form);
+   G("columnSchedule").Rows.Add("C1","0","3.5","400","400","8-Ø20","10","100");G("columnSchedule").Rows.Add("C1","3.5","7","400","400","8-Ø16","10","150");G("footingSchedule").Rows.Add("F1","2","2","400","Ø16@150","10-Ø16","","");
+   foreach(var k in new[]{"Column","Footing"})typeof(CuttingListForm).GetMethod("RefreshMarks",flags).Invoke(form,new object[]{k});G("columnList").Rows.Add("C1","C1","4");G("footingList").Rows.Add("F1","F1","6");form.Calculate();
+   var res=(CutResult)typeof(CuttingListForm).GetField("last",flags).GetValue(form);var low=res.Pieces.First(p=>p.Group=="Column"&&p.Diameter==20);var up=res.Pieces.First(p=>p.Group=="Column"&&p.Diameter==16);
+   Check(Math.Abs(low.Length-4.1)<1e-9&&low.ShapeCode=="CRANK"&&low.PerLine==8&&low.Lines==4,"lower column range: height + compression lap (cranked), 8 bars x 4 columns");Check(Math.Abs(up.Length-(3.5-.04+cfg.Rounded(cfg.Values(16,false).Cut90)/1000))<1e-9&&up.ShapeCode=="HOOK1","top column range ends in a 90° hook");
+   Check(res.Pieces.Count(p=>p.Group=="Column"&&p.ShapeCode=="HOOP")==2&&res.Pieces.First(p=>p.Group=="Column"&&p.ShapeCode=="HOOP").PerLine==35,"ties per level range at their spacing");
+   var fb=res.Pieces.Where(p=>p.Group=="Footing").ToList();Check(fb.Count==2&&fb.All(p=>p.Lines==6&&Math.Abs(p.Length-1.85)<1e-9)&&fb.Any(p=>p.PerLine==10),"footing bars by schedule mark (spacing or number of bars)");
+   string xml=form.ProjectXml();using(var again=new CuttingListForm()){again.OpenProjectXml(xml);Check(again.ProjectXml()==xml,"column and footing schedules are saved with the cutting list");}}
   Console.WriteLine("PASS: "+checks+" beam cutting list checks");}
 }

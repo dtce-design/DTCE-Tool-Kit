@@ -1,0 +1,15 @@
+DTCE Tool Kit v6.0.26 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Bar Bending Schedule; "hiwalay ang bbs sa boq. manual schedule ng column at footing ... para di na i-type paulit ulit. pero
+sa column dapat per elevation siya kasi baka magbago rebar per height"):
+- Column tab: Column schedules (one row per mark and level range: from / to level, b x h, main bars such as 8-Ø20 or
+  4-Ø20+4-Ø16, tie Ø and spacing) and a columns list (column ID, schedule mark, identical columns). For each level range: main bars
+  = range height + compression lap into the range above (NSCP 425.5.5.1, cranked K4), the top range ends in a 90° hook (L1); ties
+  at the range spacing (50 mm from each end), closed hoops with 135° hooks. Starter bars into the footing are not included (note).
+- Footing tab: Footing schedules (mark, L x B, thickness, bottom bars parallel to L and B as Ø16@150 or 10-Ø16, optional top
+  bars) and a footings list (footing ID, schedule mark, identical footings); cover 75 mm.
+- The schedules and lists are saved with the cutting list file; the BBS no longer needs the Bill of Quantities for columns and
+  footings (Slab and Wall Footing still load from it).
+Checked on Linux/Mono only. Tests: BeamCuttingListTests (94, with the new column / footing schedule checks), MemberBbsTests.
+
+Includes v6.0.25 and earlier builds.
