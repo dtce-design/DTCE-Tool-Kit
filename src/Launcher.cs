@@ -30,7 +30,7 @@ class LauncherForm:Form {
   /* owner (19 November 2026): Project Information always comes first */
   AddCard(cards,"Project Information","Set the project details used in your calculations and reports.",()=>UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8));
   AddCard(cards,"Formatters","Prepare beam and slab schedules from your DXF drawings.",ShowFormatters);
-  AddCard(cards,"Program of Works","Estimate quantities and keep your Bill of Quantities connected.",()=>UseTool(ref works,()=>new ProgramOfWorksForm(),"Program of Works",null,2));
+  AddCard(cards,"Program of Works","Estimate quantities and keep your Bill of Quantities connected.",()=>UseTool(ref works,()=>{var f=new ProgramOfWorksForm();ProgramOfWorksForm.Live=new WeakReference(f);return f;},"Program of Works",null,2));
   AddCard(cards,"Bar Bending Schedule","Bar bending schedules, cutting lists and splice details from the beam schedule, with an interactive model.",()=>UseTool(ref cutting,()=>new CuttingListForm(),"Bar Bending Schedule",null,ProgramAccess.ProgramOfWorks));
   AddCard(cards,"Design Sheets","Reinforcement, purlins, truss connections and supports, base plates, wind, earthquake and beam deflection calculations.",ShowDesignSheets);
   #if ADMIN_APP
@@ -125,15 +125,20 @@ class ToolModuleButton:Button {
   TextRenderer.DrawText(e.Graphics,Description??descriptions[Math.Min(5,ModuleIndex)],SmallBody,new Rectangle(54,38,Width-92,42),PowTheme.Muted,TextFormatFlags.Left|TextFormatFlags.WordBreak|TextFormatFlags.EndEllipsis|TextFormatFlags.NoPrefix);
   if(Focused)FocusHighlight.Draw(e.Graphics,new Rectangle(5,5,Width-10,Height-10),WorksheetColors.Focus);
  }
+ /* one glyph per workspace, chosen by the card title (owner, 20 November 2026: "bakit same ang logo ng design sheet at access
+    generator") */
  void DrawGlyph(Graphics g,Rectangle r){
-  using(var pen=new Pen(PowTheme.Teal,1.7f)){
-   if(ModuleIndex==0){g.DrawRectangle(pen,r.X,r.Y,r.Width,r.Height);g.DrawLine(pen,r.X,r.Y+7,r.Right,r.Y+7);g.DrawLine(pen,r.X+8,r.Y,r.X+8,r.Bottom);g.DrawLine(pen,r.X,r.Y+14,r.Right,r.Y+14);}
-   else if(ModuleIndex==1){g.DrawRectangle(pen,r.X+2,r.Y,r.Width-4,r.Height);for(int i=0;i<3;i++)g.DrawLine(pen,r.X+7,r.Y+6+i*5,r.Right-4,r.Y+6+i*5);}
-   else if(ModuleIndex==2){g.DrawPolygon(pen,new[]{new Point(r.X,r.Bottom),new Point(r.X+11,r.Y),new Point(r.Right,r.Bottom)});g.DrawLine(pen,r.X+5,r.Y+12,r.Right-5,r.Y+12);}
-   else if(ModuleIndex==3){g.DrawRectangle(pen,r.X,r.Y+4,r.Width,r.Height-4);g.DrawLine(pen,r.X+7,r.Y+4,r.X+7,r.Y);g.DrawLine(pen,r.Right-7,r.Y+4,r.Right-7,r.Y);g.DrawLine(pen,r.X+5,r.Y+11,r.Right-5,r.Y+11);}
-   else {g.DrawEllipse(pen,r.X,r.Y,11,11);g.DrawLine(pen,r.X+10,r.Y+10,r.Right,r.Bottom);g.DrawLine(pen,r.Right-5,r.Bottom-5,r.Right,r.Bottom-10);}
+  using(var pen=new Pen(PowTheme.Teal,1.7f){LineJoin=System.Drawing.Drawing2D.LineJoin.Round,StartCap=System.Drawing.Drawing2D.LineCap.Round,EndCap=System.Drawing.Drawing2D.LineCap.Round})using(var dot=new SolidBrush(PowTheme.Teal)){string t=Text??"";
+   if(t.StartsWith("Project")){/* information: circle with i */g.DrawEllipse(pen,r.X,r.Y,r.Width,r.Height);g.FillEllipse(dot,r.X+r.Width/2-1.6f,r.Y+4,3.2f,3.2f);g.DrawLine(pen,r.X+r.Width/2f,r.Y+9,r.X+r.Width/2f,r.Bottom-4);}
+   else if(t.StartsWith("Formatter")){/* drawing sheet with lines */g.DrawRectangle(pen,r.X+2,r.Y,r.Width-4,r.Height);for(int i=0;i<3;i++)g.DrawLine(pen,r.X+7,r.Y+6+i*5,r.Right-6,r.Y+6+i*5);}
+   else if(t.StartsWith("Program")){/* bill of quantities grid */g.DrawRectangle(pen,r.X,r.Y,r.Width,r.Height);g.DrawLine(pen,r.X,r.Y+7,r.Right,r.Y+7);g.DrawLine(pen,r.X+8,r.Y,r.X+8,r.Bottom);g.DrawLine(pen,r.X,r.Y+14,r.Right,r.Y+14);}
+   else if(t.StartsWith("Bar Bending")){/* bent bar with a hook */g.DrawLines(pen,new[]{new Point(r.X+2,r.Y+3),new Point(r.X+2,r.Bottom-3),new Point(r.Right-3,r.Bottom-3),new Point(r.Right-3,r.Y+8)});g.DrawLine(pen,r.Right-3,r.Y+8,r.Right-8,r.Y+3);}
+   else if(t.StartsWith("Design")){/* set square and pencil */g.DrawPolygon(pen,new[]{new Point(r.X,r.Bottom),new Point(r.X,r.Y+2),new Point(r.Right-6,r.Bottom)});g.DrawLine(pen,r.X+4,r.Bottom-4,r.X+4,r.Y+10);g.DrawLine(pen,r.Right-1,r.Y,r.X+11,r.Y+12);}
+   else if(t.StartsWith("Access")){/* key */g.DrawEllipse(pen,r.X,r.Y,11,11);g.DrawLine(pen,r.X+10,r.Y+10,r.Right,r.Bottom);g.DrawLine(pen,r.Right-5,r.Bottom-5,r.Right,r.Bottom-10);}
+   else {g.DrawRectangle(pen,r.X+3,r.Y+3,r.Width-6,r.Height-6);}
   }
  }
+
 
 }
 

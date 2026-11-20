@@ -28,7 +28,7 @@ class CutSettings {
  public List<double> Stocks=new List<double>{6,7.5,9,10.5,12};
 }
 class CutOverride {public double? Length;public int? PerLine;public bool Deleted;}
-class CutPiece {public string Line,BarMark,Location,Shape,ShapeCode="STRAIGHT";public double DimA,DimB,DimC,SecB,SecH;/* drawing only: shortened straight leg of a hooked bar */public double DrawnStraight;public int Span;public bool Edited,Manual;public double? CalculatedLength;public int? CalculatedPerLine;public string Member{get{return Line+(Span>0?" span "+Span:"");}}public int Diameter,Grade,PerLine,Lines;public double Length,Start,End;public bool Top;public long Pieces{get{return (long)PerLine*Lines;}}public double Kg{get{return Pieces*Length*EstimatorEngine.UnitMass(Diameter);}}}
+class CutPiece {/* "Beam", "Column", "Slab", "Footing", "Wall footing" */public string Group="Beam";public string Line,BarMark,Location,Shape,ShapeCode="STRAIGHT";public double DimA,DimB,DimC,SecB,SecH;/* drawing only: shortened straight leg of a hooked bar */public double DrawnStraight;public int Span;public bool Edited,Manual;public double? CalculatedLength;public int? CalculatedPerLine;public string Member{get{return Line+(Span>0?" span "+Span:"");}}public int Diameter,Grade,PerLine,Lines;public double Length,Start,End;public bool Top;public long Pieces{get{return (long)PerLine*Lines;}}public double Kg{get{return Pieces*Length*EstimatorEngine.UnitMass(Diameter);}}}
 class CutSplice {public string Line,Bar,Status,Note;public int Diameter,Span;public double From,To,Lap,ZoneFrom,ZoneTo;public bool Ok;}
 class CutSpanEstimate {public string Line,Mark;public int Span,Quantity;public bool Include;public double Ln,Concrete,Formwork,Kg;public int Ties;public Dictionary<int,double> KgByDiameter=new Dictionary<int,double>();}
 class CutPurchase {public int Grade,Diameter;public double Cut;public long Pieces;public StockChoice Choice;}
@@ -77,9 +77,7 @@ static class BeamCutting {
   var seen=new HashSet<string>(StringComparer.OrdinalIgnoreCase);foreach(var line in lines)if(!seen.Add(line[0].Line))result.Errors.Add("Beam line "+line[0].Line+": its spans must be listed together, one after the other.");
   if(result.Errors.Count>0)return result;
   foreach(var line in lines){try{BuildLine(line,schedule,s,result);}catch(Exception ex){result.Errors.Add("Beam line "+line[0].Line+": "+ex.Message);}}
-  foreach(var g in result.Pieces.GroupBy(p=>new{p.Grade,p.Diameter,Cut=Math.Round(p.Length,3)})){long pieces=g.Sum(p=>p.Pieces);var best=CommercialBars.Best(CommercialBars.Choices(g.Key.Cut,pieces,0,s.Stocks));if(best==null)result.Errors.Add("No commercial length fits a "+F(g.Key.Cut)+" m cut ("+g.Key.Diameter+" mm).");result.Purchases.Add(new CutPurchase{Grade=g.Key.Grade,Diameter=g.Key.Diameter,Cut=g.Key.Cut,Pieces=pieces,Choice=best});}
-  result.Purchases=result.Purchases.OrderBy(p=>p.Grade).ThenBy(p=>p.Diameter).ThenByDescending(p=>p.Cut).ToList();
-  result.Patterns=CuttingPatterns.Plan(result.Pieces,s.Stocks,result.Errors);result.Smf=BeamSmf.Check(result,s);
+  Purchase(result,s);result.Smf=BeamSmf.Check(result,s);
   result.Notes.Add("Lap lengths: "+s.Config.Name+" (Splice, Development & Hooks), "+(s.Config.Input.Simplified?"simplified method":"general bond-ratio method")+"; top-bar factor applied to top bars.");
   result.Notes.Add(s.SpecialMomentFrame?"Splice zones per NSCP 2015 418.6.3.3 (special moment frame): no lap within a joint or within 2h of a joint face; hoops over the lap at not more than d/4 or 100 mm.":"Ordinary frame: top bars spliced in the middle third of a span, bottom bars over interior supports. Confirm with the structural details.");
   result.Notes.Add("Exterior ends: 90-degree standard hooks (cut length from the configuration) at the far face of the exterior support less cover; the straight length in the support is compared with Ldh.");
@@ -87,6 +85,13 @@ static class BeamCutting {
   result.Notes.Add("Estimate per span: steel of bars that cross several spans is shared by length; concrete and forms use the beam below the slab (B x (D - slab)) over the clear span. Unticked spans are left out of the estimate only; the cutting list still covers the whole line.");
   return result;
  }
+ /* commercial bars and cutting patterns of all pieces (beams and any columns, slabs, footings added) */
+ internal static void Purchase(CutResult result,CutSettings s){result.Purchases.Clear();
+  foreach(var g in result.Pieces.GroupBy(p=>new{p.Grade,p.Diameter,Cut=Math.Round(p.Length,3)})){long pieces=g.Sum(p=>p.Pieces);var best=CommercialBars.Best(CommercialBars.Choices(g.Key.Cut,pieces,0,s.Stocks));if(best==null)result.Errors.Add("No commercial length fits a "+F(g.Key.Cut)+" m cut ("+g.Key.Diameter+" mm).");result.Purchases.Add(new CutPurchase{Grade=g.Key.Grade,Diameter=g.Key.Diameter,Cut=g.Key.Cut,Pieces=pieces,Choice=best});}
+  result.Purchases=result.Purchases.OrderBy(p=>p.Grade).ThenBy(p=>p.Diameter).ThenByDescending(p=>p.Cut).ToList();
+  result.Patterns=CuttingPatterns.Plan(result.Pieces,s.Stocks,result.Errors);}
+ /* columns, slabs and footings from the Program of Works join the schedule */
+ internal static void AddMembers(CutResult result,IEnumerable<CutPiece> members,CutSettings s){foreach(var m in members){var p=new CutPiece{Group=m.Group,Line=m.Line,BarMark=m.BarMark,Location=m.Location,Diameter=m.Diameter,Grade=m.Grade,PerLine=m.PerLine,Lines=m.Lines,Length=m.Length,Shape=m.Shape,SecB=m.SecB,SecH=m.SecH};Shape(p,s);if(p.Length>s.MaxBar+1e-9)result.Errors.Add(p.Line+" "+p.Location+": "+F(p.Length)+" m piece is longer than the "+s.MaxBar.ToString("0.##",Inv)+" m bar - splice it in the Program of Works.");result.Pieces.Add(p);}Purchase(result,s);}
  static void BuildLine(List<CutSpan> spans,Func<string,BeamRow> schedule,CutSettings s,CutResult result){
   string id=spans[0].Line;int lineQty=spans[0].Quantity;if(lineQty<1||lineQty>10000)throw new Exception("Line quantity must be 1 to 10000.");
   int n=spans.Count;var g=new Geo{Spans=spans,SupportStart=new double[n+1],SupportWidth=new double[n+1],FaceLeft=new double[n],FaceRight=new double[n],Rows=new BeamRow[n],Width=new double[n],Depth=new double[n]};
