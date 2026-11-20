@@ -45,7 +45,7 @@ static class BeamCutting {
  /* main bars along the beam (not hoops, crossties, side-face bars or layer spacers) */
  internal static bool Longitudinal(CutPiece p){return p.ShapeCode!="HOOP"&&p.ShapeCode!="CROSSTIE"&&!p.Location.StartsWith("Side-face")&&!p.Location.StartsWith("Layer spacer");}
  /* bars that fit in one layer of the inner width: clear spacing max(25 mm, db, 4/3 aggregate) (NSCP 425.2.1) */
- internal static int PerLayer(double innerMm,int db,double aggregate){double sc=Math.Max(25,Math.Max(db,4.0/3*aggregate));return Math.Max(2,(int)Math.Floor((innerMm-db)/(db+sc)+1e-9)+1);}
+ internal static int PerLayer(double innerMm,int db,double aggregate){double sc=Math.Max(25,Math.Max(db,4.0/3*aggregate));return Math.Max(1,(int)Math.Floor((innerMm-db)/(db+sc)+1e-9)+1);}/* honest count: a very narrow section may hold only one bar per layer (v5.1.7) */
  sealed class Tie {public int Legs,Dia;public double Spacing;}
  static Tie ParseTie(string raw){if(string.IsNullOrWhiteSpace(raw)||raw.Trim()=="-"||raw.Trim()=="--")return null;var m=Regex.Match(Engine.Normal(raw).Replace("#","O").Replace("Ø","O"),@"^(\d+)-(\d+)L-O(\d+)@(\d+)C/C$");if(!m.Success)throw new Exception("Unsupported stirrup: "+raw);return new Tie{Legs=int.Parse(m.Groups[2].Value),Dia=int.Parse(m.Groups[3].Value),Spacing=double.Parse(m.Groups[4].Value,Inv)/1000};}
  internal sealed class TieZone {public double From,To,Spacing,First;public int Count,Legs,Dia;public string Name;}
