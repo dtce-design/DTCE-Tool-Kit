@@ -5570,6 +5570,7 @@ worksExcelTimer.Tick += async delegate
 				wallFinishes.Columns.RemoveAt(3);
 				wallFinishes.Columns.Insert(3, dataGridViewComboBoxColumn);
 				dataGridViewComboBoxColumn.DefaultCellStyle.BackColor = ModernUi.Input;
+				dataGridViewComboBoxColumn.Visible = false; /* Wall ID not shown on Wall Finishes (owner, 20 November 2026) */
 			}
 			string[] source = (from id in (from r in MasonryGrids().SelectMany((DataGridView g) => g.Rows.Cast<DataGridViewRow>())
 					where !r.IsNewRow
@@ -6575,8 +6576,8 @@ worksExcelTimer.Tick += async delegate
 							Wall = (flag ? Cell(item, 3) : ""),
 							Kind = (flag ? Cell(item, 4) : "Other"),
 							MaterialName = (finishGroups.ContainsKey(Cell(item, 2)) ? finishGroups[Cell(item, 2)] : ""),
-							Side = (flag ? Cell(item, 5) : "A"),
-							Basis = (flag ? Cell(item, 6) : "Dimensions")
+							Side = (flag ? (Cell(item, 5) == "" ? "A" : Cell(item, 5)) : "A"), /* hidden on Wall Finishes (v5.1.3): blank = one face */
+							Basis = (flag ? (Cell(item, 6) == "" ? "Dimensions" : Cell(item, 6)) : "Dimensions")
 						};
 						if (!flag || !(finishItem.Basis == "Whole wall (auto)"))
 						{

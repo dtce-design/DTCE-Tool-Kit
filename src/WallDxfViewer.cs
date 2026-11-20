@@ -139,7 +139,11 @@ sealed class WallDxfViewer:Form {
 partial class ProgramOfWorksForm {
  /* "Load walls from DXF": the drawing opens in its own window, linked to CHB Estimate (owner, 20 November 2026) */
  WallDxfViewer wallViewer;bool wallViewerHooked,finishHooked;string lastWallDxf;
- void AddFinishDxfButton(){var page=tabs.TabPages.Cast<TabPage>().FirstOrDefault(p=>p.Text=="Wall Finishes");if(page==null)return;var bar=page.Controls.OfType<FlowLayoutPanel>().FirstOrDefault();if(bar==null)return;Button(bar,"Show walls on DXF",ShowWallsForFinishes);bar.Visible=true;}
+ /* owner, 20 November 2026 ("sa wall finish hayaan mo na pala yung wall ID, huwag mo na isama. pati yung side and area basis"):
+    Wall Finishes no longer shows Wall ID, Side and Area basis - finishes are measured by their own length x height x quantity.
+    The values stay in the same columns (new rows: no wall, side A, Dimensions), so saved projects open and compute as before.
+    The "Show walls on DXF" button is not added. */
+ void AddFinishDxfButton(){if(wallFinishes==null)return;foreach(int c in new[]{3,5,6})if(c<wallFinishes.Columns.Count)wallFinishes.Columns[c].Visible=false;}
  /* Wall Finishes: the drawing with its Wall IDs; a click gives the ID to the selected finish row */
  void ShowWallsForFinishes(){if(wallViewer==null||wallViewer.IsDisposed){string path=lastWallDxf;if(path==null||!File.Exists(path)){using(var open=new OpenFileDialog{Title="Open the floor plan DXF (with Wall IDs)",Filter="AutoCAD DXF (*.dxf)|*.dxf"}){if(open.ShowDialog(this)!=DialogResult.OK)return;path=open.FileName;}}
    try{OpenWallDxfViewer(path);}catch(Exception ex){MessageBox.Show(this,"Cannot open the DXF: "+ex.Message,"Show walls on DXF");return;}}

@@ -48,7 +48,7 @@ class WallDxfImportTests {
   {var dw2=DxfDrawing.Parse(header+ents);var v2=new WallDxfViewer(dw2,"plan.dxf",new HashSet<string>(StringComparer.OrdinalIgnoreCase),150);var pk=v2.Pick(v2.HitTest(1750,40,200));
    Check(v2.WallIdAt(1750,40,200)=="W-05"&&v2.WallIdAt(300,7000,200)=="W-07"&&v2.WallIdAt(50000,50000,10)==null,"Wall ID found from a measured wall and from a text label");
    var fin=(DataGridView)typeof(ProgramOfWorksForm).GetField("wallFinishes",F).GetValue(pow);var host2=new Form();host2.Controls.Add(fin);host2.Show();Application.DoEvents();
-   int fr=fin.Rows.Add();fin.CurrentCell=fin.Rows[fr].Cells[1];Check(pow.ChooseFinishWall("W-05")&&Convert.ToString(fin.Rows[fr].Cells[3].Value)=="W-05","Wall ID given to the selected Wall Finishes row");
+   Check(!fin.Columns[3].Visible&&!fin.Columns[5].Visible&&!fin.Columns[6].Visible,"Wall Finishes hides Wall ID, Side and Area basis (v5.1.3)");
    host2.Controls.Remove(fin);host2.Close();}
   /* the Openings button and the openings list come right after the gross area */
   var g19=grid.Columns[19];var action=grid.Columns["EditWallOpeningsAction"];var list=grid.Columns[ProgramOfWorksForm.OpeningsIncludedColumn];
