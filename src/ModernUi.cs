@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Drawing.Drawing2D;
@@ -8,9 +8,9 @@ using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 // Shared desktop presentation only. No calculation, persistence or access decisions.
 static class ModernUi {
- internal static readonly Font Body = new Font("Segoe UI", 10f);
- internal static readonly Font Strong = new Font("Segoe UI", 10f, FontStyle.Bold);
- internal static readonly Font Heading = new Font("Segoe UI", 20f, FontStyle.Bold);
+ /* one step smaller everywhere (owner, 20 November 2026: "bawasan mo yung font sizes ... para sa lahat") */internal static readonly Font Body = new Font("Segoe UI", 9.25f);
+ internal static readonly Font Strong = new Font("Segoe UI", 9.25f, FontStyle.Bold);
+ internal static readonly Font Heading = new Font("Segoe UI", 18f, FontStyle.Bold);
  internal static Color Surface {get{return DesktopAppearance.Palette.Surface;}}
  internal static Color Input {get{return DesktopAppearance.Palette.Input;}}
  internal static Color Selection {get{return DesktopAppearance.Palette.Selected;}}

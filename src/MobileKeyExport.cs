@@ -1,4 +1,4 @@
-#if ADMIN_APP
+﻿#if ADMIN_APP
 using System;using System.IO;using System.Text;using System.Security.Cryptography;using System.Drawing;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 static class MobileKeyExport {
@@ -33,7 +33,7 @@ class MobileExportPasswordForm:Form {
  TextBox password,confirm;
  public string ExportPassword {get;private set;}
  public MobileExportPasswordForm(){
-  AppBrand.Apply(this);Text="Export key for iPhone";ClientSize=new Size(460,305);StartPosition=FormStartPosition.CenterParent;FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;MinimizeBox=false;Font=new Font("Segoe UI",10);
+  AppBrand.Apply(this);Text="Export key for iPhone";ClientSize=new Size(460,305);StartPosition=FormStartPosition.CenterParent;FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;MinimizeBox=false;Font=new Font("Segoe UI",9.25f);
   Controls.Add(new Label{Text="Protect the mobile signing key with a strong password. Keep the exported file and password private.",Location=new Point(20,18),Size=new Size(420,55)});
   Controls.Add(new Label{Text="Password (at least 12 characters)",Location=new Point(20,82),Size=new Size(420,23)});
   password=new TextBox{UseSystemPasswordChar=true,Location=new Point(20,109),Size=new Size(420,28),MaxLength=256};Controls.Add(password);

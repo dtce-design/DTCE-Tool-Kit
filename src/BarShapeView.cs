@@ -4,6 +4,13 @@ namespace BeamScheduleFormatter {
    drawing"): a small sketch in each schedule row and a to-scale drawing of the selected bar with its A / B / C dimensions. */
 static class BarShapes {
  static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
+ /* the bar bending sketch (owner, 20 November 2026: "di accurate"): long straight parts are shortened the same way everywhere
+    (schedule grid, report, site sheets) so that hooks and cranks keep their real proportions to each other; A, B, C ... give the
+    lengths */
+ internal static CutPiece Sketch(CutPiece p){var q=new CutPiece{ShapeCode=p.ShapeCode,DimA=p.DimA,DimB=p.DimB,DimC=p.DimC,DimD=p.DimD,DimE=p.DimE,Diameter=p.Diameter,SecB=p.SecB,SecH=p.SecH};
+  if(p.ShapeCode.StartsWith("CRANK"))q.DrawnStraight=Math.Min(p.DimD,2*Math.Max(p.DimA,1));
+  double hook=Math.Max(p.ShapeCode=="HOOK1"?p.DimB:p.ShapeCode=="HOOK2"?Math.Max(p.DimA,p.DimC):0,1);if(p.ShapeCode=="HOOK1"&&p.DimA>4*hook)q.DrawnStraight=4*hook;if(p.ShapeCode=="HOOK2"&&p.DimB>4*hook)q.DrawnStraight=4*hook;
+  if(p.ShapeCode=="STRAIGHT"&&p.DimA<=0)q.DimA=p.Length*1000;return q;}
  /* outline points in mm (y up) for the shape of a piece */
  internal static PointF[][] Outline(CutPiece p){double a=p.DimA,b=p.DimB,c=p.DimC;if(p.DrawnStraight>0){if(p.ShapeCode=="HOOK1")a=p.DrawnStraight;else if(p.ShapeCode=="HOOK2")b=p.DrawnStraight;}switch(p.ShapeCode){
   case "HOOK1":return new[]{new[]{new PointF(0,(float)b),new PointF(0,0),new PointF((float)a,0)}};
@@ -41,7 +48,7 @@ class BarShapeView:Control {
  protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);var g=e.Graphics;var font=new Font("Segoe UI",8.5f);using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted)){
   using(var line=new Pen(PowTheme.Line))g.DrawLine(line,0,0,0,Height);if(piece==null){g.DrawString("Select a bar to see its shape.",font,muted,12,12);return;}var p=piece;
   g.DrawString(p.BarMark,ModernUi.Strong,ink,12,10);g.DrawString(BeamCutting.ShapeName(p.ShapeCode)+"\r\nG"+p.Grade+" "+p.Diameter+" mm, cut length "+(p.Length*1000).ToString("0",Inv)+" mm\r\n"+p.Pieces+" pcs ("+p.PerLine+" each x "+p.Lines+")  "+p.Kg.ToString("0.00",Inv)+" kg\r\n"+p.Location,font,muted,new RectangleF(12,32,Width-24,80));
-  BarShapes.Draw(g,new RectangleF(10,120,Width-20,Height-170),p,true,Color.FromArgb(25,90,160),font);
-  g.DrawString("Shape drawn to scale; A, B, C are outside dimensions in mm.",font,muted,new RectangleF(12,Height-44,Width-24,40));}}
+  BarShapes.Draw(g,new RectangleF(10,120,Width-20,Height-170),BarShapes.Sketch(p),true,Color.FromArgb(25,90,160),font);
+  g.DrawString("Long straight parts are drawn shorter; A, B, C, D, E are the outside dimensions in mm.",font,muted,new RectangleF(12,Height-44,Width-24,40));}}
 }
 }

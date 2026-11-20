@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.Linq;using System.Windows.Forms;
+﻿using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.Linq;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 /* POW Studio layout (owner, 20 November 2026: "ganitong UI pero huwag gagayahin yung print at dupa", with the POW Studio page as the
    model): a dark workflow sidebar (1 Project details, 2 Hauling & prices, 3 Pay items & quantities, 4 Review & print), a header with
@@ -118,7 +118,7 @@ sealed partial class PowWorkbookForm {
 sealed class StudioField{public string At,Kind;public Control Input;public bool Loading;}
 /* sidebar workflow step */
 sealed class StudioStep:Control{bool active,hover;public bool Active{get{return active;}set{active=value;Invalidate();}}
- public StudioStep(){SetStyle(ControlStyles.UserPaint|ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer|ControlStyles.ResizeRedraw,true);Cursor=Cursors.Hand;Font=new Font("Segoe UI",10f);BackColor=PowWorkbookForm.StudioDark;}
+ public StudioStep(){SetStyle(ControlStyles.UserPaint|ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer|ControlStyles.ResizeRedraw,true);Cursor=Cursors.Hand;Font=new Font("Segoe UI",9.25f);BackColor=PowWorkbookForm.StudioDark;}
  protected override void OnMouseEnter(EventArgs e){hover=true;Invalidate();base.OnMouseEnter(e);}protected override void OnMouseLeave(EventArgs e){hover=false;Invalidate();base.OnMouseLeave(e);}
  protected override void OnPaint(PaintEventArgs e){var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;g.Clear(PowWorkbookForm.StudioDark);var r=new RectangleF(0,2,Width-1,Height-5);
   if(active||hover)using(var path=ModernUi.Rounded(r,7))using(var b=new SolidBrush(active?PowWorkbookForm.StudioActive:Color.FromArgb(28,70,55)))g.FillPath(b,path);

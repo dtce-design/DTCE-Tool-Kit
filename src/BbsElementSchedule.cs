@@ -41,9 +41,7 @@ static partial class BbsReport {
   table.Add(new[]{"No. of pieces"}.Concat(all.Select(d=>r.Pieces.Where(p=>p.Diameter==d).Sum(p=>p.Pieces).ToString(Inv))).Concat(new[]{r.Pieces.Sum(p=>p.Pieces).ToString(Inv)}).ToArray());
   rep.Paragraph(number+"."+(n+1)+"  PROJECT SUMMARY BY ELEMENT TYPE AND BAR SIZE",false,true).Table(new[]{"ELEMENT TYPE"}.Concat(all.Select(d=>"Ø"+d)).Concat(new[]{"TOTAL"}).ToArray(),table,new float[]{30}.Concat(all.Select(d=>10f)).Concat(new float[]{12}).ToArray(),row=>row[0].StartsWith("TOTAL")||row[0]=="No. of pieces"?(Color?)Color.FromArgb(232,236,240):null);}
  /* bar sketch with the length of each leg written on it (long straight legs drawn shortened, the values stay true) */
- internal static void DrawLabelled(Graphics g,RectangleF cell,CutPiece p){var q=new CutPiece{ShapeCode=p.ShapeCode,DimA=p.DimA,DimB=p.DimB,DimC=p.DimC,DimD=p.DimD,DimE=p.DimE,Diameter=p.Diameter};if(p.ShapeCode.StartsWith("CRANK"))q.DrawnStraight=Math.Min(p.DimD,2*Math.Max(p.DimA,1));
-  double hook=Math.Max(p.ShapeCode=="HOOK1"?p.DimB:p.ShapeCode=="HOOK2"?Math.Max(p.DimA,p.DimC):0,1);if(p.ShapeCode=="HOOK1"&&p.DimA>4*hook)q.DrawnStraight=4*hook;if(p.ShapeCode=="HOOK2"&&p.DimB>4*hook)q.DrawnStraight=4*hook;
-  if(p.ShapeCode=="STRAIGHT"&&p.DimA<=0)q.DimA=p.Length*1000;
+ internal static void DrawLabelled(Graphics g,RectangleF cell,CutPiece p){var q=BarShapes.Sketch(p);
   using(var f=new Font("Segoe UI",7f,FontStyle.Regular,GraphicsUnit.Point))BarShapes.Draw(g,new RectangleF(cell.X+6,cell.Y+2,cell.Width-12,cell.Height-4),q,true,Color.FromArgb(25,90,160),f,true,1.4f);}
  /* column cross-section: main bars along the faces and the hoop */
  static void DrawColumnSketch(Graphics g,RectangleF rect,List<CutPiece> pieces){g.SmoothingMode=SmoothingMode.AntiAlias;var hoop=pieces.FirstOrDefault(p=>p.ShapeCode=="HOOP")??pieces.FirstOrDefault(p=>p.SecB>0);double b=hoop!=null&&hoop.SecB>0?hoop.SecB:400,h=hoop!=null&&hoop.SecH>0?hoop.SecH:400;

@@ -35,9 +35,9 @@ class CutSpanEstimate {public string Line,Mark;public int Span,Quantity;public b
 class CutPurchase {public int Grade,Diameter;public double Cut;public long Pieces;public StockChoice Choice;}
 /* geometry of one beam line for the interactive model (owner, 19 November 2026: "Gawin interactive yung model na kayang magmodel yung
    cross section ng beam or elevation niya nakikita mo pano yung splicing details niya lahat") */
-class CutLineGeometry {public string Line;public double[] SupportStart,SupportWidth,FaceLeft,FaceRight,Width,Depth,Slab,Ln;public double Total,Cover;public List<double[]> TopZones=new List<double[]>(),BottomZones=new List<double[]>();public List<List<BeamCutting.TieZone>> Ties=new List<List<BeamCutting.TieZone>>();public string[] Marks;public BeamRow[] Rows;}
+class CutLineGeometry {public string Line;public double[] SupportStart,SupportWidth,FaceLeft,FaceRight,Width,Depth,Slab,Ln;public double Total,Cover;public List<double[]> TopZones=new List<double[]>(),BottomZones=new List<double[]>();public List<List<BeamCutting.TieZone>> Ties=new List<List<BeamCutting.TieZone>>();public string[] Marks;public BeamRow[] Rows;/* spans in the estimate; a span left out keeps only the dowels of its neighbours */public bool[] Included;}
 class CutResult {public List<CutLineGeometry> Geometry=new List<CutLineGeometry>();
- public List<CutPiece> Pieces=new List<CutPiece>(),Deleted=new List<CutPiece>();public List<CutSplice> Splices=new List<CutSplice>();public List<CutSpanEstimate> Spans=new List<CutSpanEstimate>();public List<string> Notes=new List<string>(),Errors=new List<string>();public List<CutPurchase> Purchases=new List<CutPurchase>();public List<CutPattern> Patterns=new List<CutPattern>();public List<SmfCheck> Smf=new List<SmfCheck>();
+ public List<CutPiece> Pieces=new List<CutPiece>(),Deleted=new List<CutPiece>(),/* bars of spans left out of the estimate */Excluded=new List<CutPiece>();public List<CutSplice> Splices=new List<CutSplice>();public List<CutSpanEstimate> Spans=new List<CutSpanEstimate>();public List<string> Notes=new List<string>(),Errors=new List<string>();public List<CutPurchase> Purchases=new List<CutPurchase>();public List<CutPattern> Patterns=new List<CutPattern>();public List<SmfCheck> Smf=new List<SmfCheck>();
  public double IncludedKg{get{return Spans.Where(s=>s.Include).Sum(s=>s.Kg);}}public double IncludedConcrete{get{return Spans.Where(s=>s.Include).Sum(s=>s.Concrete);}}public double IncludedFormwork{get{return Spans.Where(s=>s.Include).Sum(s=>s.Formwork);}}
 }
 static class BeamCutting {
@@ -83,7 +83,7 @@ static class BeamCutting {
   result.Notes.Add(s.SpecialMomentFrame?"Splice zones per NSCP 2015 418.6.3.3 (special moment frame): no lap within a joint or within 2h of a joint face; hoops over the lap at not more than d/4 or 100 mm.":"Ordinary frame: top bars spliced in the middle third of a span, bottom bars over interior supports. Confirm with the structural details.");
   result.Notes.Add("Exterior ends: 90-degree standard hooks (cut length from the configuration) at the far face of the exterior support less cover; the straight length in the support is compared with Ldh.");
   result.Notes.Add("Extra top bars extend "+(s.TopExtension*100).ToString("0.#",Inv)+"% of the clear span past each support face; extra bottom bars start "+(s.BottomCut*100).ToString("0.#",Inv)+"% of the clear span from each face. Confirm cut-off points against the structural drawings.");
-  result.Notes.Add("Estimate per span: steel of bars that cross several spans is shared by length; concrete and forms use the beam below the slab (B x (D - slab)) over the clear span. Unticked spans are left out of the estimate only; the cutting list still covers the whole line.");
+  result.Notes.Add("Estimate per span: steel of bars that cross several spans is shared by length; concrete and forms use the beam below the slab (B x (D - slab)) over the clear span. Unticked spans are left out: their own bars are not listed and the bars beside them stop one lap length inside as dowels (abang).");
   return result;
  }
  /* commercial bars and cutting patterns of all pieces (beams and any columns, slabs, footings added) */
@@ -164,7 +164,36 @@ static class BeamCutting {
    foreach(var c in result.Splices.Where(c=>c.Line==id)){var a=mineAll.FirstOrDefault(p=>p.Id.StartsWith(c.Bar+".")&&Math.Abs(p.End-c.To)<1e-6);var b=mineAll.FirstOrDefault(p=>p.Id.StartsWith(c.Bar+".")&&Math.Abs(p.Start-c.From)<1e-6);if(a!=null&&b!=null)c.Mark=a.Short+"+"+b.Short;}}
   /* bars added by hand on the cutting list: they count in the estimate of their span */
   foreach(var m in s.Added.Where(a=>string.Equals(a.Line,id,StringComparison.OrdinalIgnoreCase))){int j=Math.Max(1,Math.Min(n,m.Span))-1;var copy=new CutPiece{BarMark=m.BarMark,Location=m.Location,Diameter=m.Diameter,PerLine=m.PerLine,Length=m.Length,Shape=m.Shape,ShapeCode=m.ShapeCode,Manual=true,Edited=true,Span=j+1,Start=g.FaceLeft[j],End=g.FaceRight[j]};add(copy);}
-  var geo=new CutLineGeometry{Line=id,SupportStart=g.SupportStart,SupportWidth=g.SupportWidth,FaceLeft=g.FaceLeft,FaceRight=g.FaceRight,Width=g.Width,Depth=g.Depth,Slab=spans.Select(q=>q.Slab).ToArray(),Ln=spans.Select(q=>q.Ln).ToArray(),Total=g.Total,Cover=s.Cover/1000,Marks=spans.Select(q=>q.Mark).ToArray(),Rows=g.Rows};
+  /* spans left out (owner, 20 November 2026: "kapag inuncheck ... hindi lang siya ibibilang yung mga cut bars, stirrups, abang na
+     lang ang matitira", "parang dowel na lang"): the bars of an unticked span are not listed; the bars of the neighbouring spans
+     stop one lap length (Class B) inside it as dowels (abang) for the later pour */
+  if(spans.Any(q=>!q.Include)){Func<CutPiece,bool> spanOnly=p=>{string sh=p.Shape??"";return sh.StartsWith("Hoop")||sh.StartsWith("Crosstie")||p.Location.StartsWith("Side-face")||p.Location.StartsWith("Layer spacer")||p.Location.StartsWith("Extra hoops")||p.Location.StartsWith("Extra crossties");};
+   Func<double,List<double[]>> kept=lap=>{var list=new List<double[]>();for(int j=0;j<n;j++){if(spans[j].Include)list.Add(new[]{g.SupportStart[j],g.SupportStart[j+1]+g.SupportWidth[j+1]});else{if(j>0&&spans[j-1].Include)list.Add(new[]{g.FaceLeft[j],Math.Min(g.FaceRight[j],g.FaceLeft[j]+lap)});if(j<n-1&&spans[j+1].Include)list.Add(new[]{Math.Max(g.FaceLeft[j],g.FaceRight[j]-lap),g.FaceRight[j]});}}
+    var merged=new List<double[]>();foreach(var iv in list.OrderBy(v=>v[0])){if(merged.Count>0&&iv[0]<=merged[merged.Count-1][1]+1e-9)merged[merged.Count-1][1]=Math.Max(merged[merged.Count-1][1],iv[1]);else merged.Add(new[]{iv[0],iv[1]});}return merged;};
+   /* a part that lies only in a dowel zone (a lapped piece starting there) is not kept */Func<double[],bool> inEstimate=iv=>Enumerable.Range(0,n).Any(j=>spans[j].Include&&Math.Min(iv[1],g.SupportStart[j+1]+g.SupportWidth[j+1])-Math.Max(iv[0],g.SupportStart[j])>1e-6);
+   Func<double,int> spanAt=pos=>{for(int j=0;j<n;j++)if(pos>=g.FaceLeft[j]-1e-9&&pos<=g.FaceRight[j]+1e-9)return j;return -1;};
+   foreach(var p in result.Pieces.Where(q=>q.Line==id&&!q.Manual).ToList()){
+    /* bars of the unticked span itself (stirrups, its extra bars, side-face bars, spacers) go; bars that cross into it become dowels */
+    if(p.Span>0&&!spans[p.Span-1].Include){result.Pieces.Remove(p);result.Excluded.Add(p);continue;}if(spanOnly(p)||p.Edited)continue;/* a bar edited on the cutting list keeps the length typed */
+    double lap=SpliceLap(s,p.Diameter,p.Top),h=Hook(s,p.Diameter);var parts=kept(lap).Select(iv=>new[]{Math.Max(iv[0],p.Start),Math.Min(iv[1],p.End)}).Where(iv=>iv[1]-iv[0]>1e-6&&inEstimate(iv)).ToList();
+    if(parts.Count==1&&Math.Abs(parts[0][0]-p.Start)<1e-9&&Math.Abs(parts[0][1]-p.End)<1e-9)continue;
+    int at=result.Pieces.IndexOf(p);result.Pieces.Remove(p);if(parts.Count==0){result.Excluded.Add(p);continue;}
+    string code=p.ShapeCode;bool hookStart=code=="HOOK2"||(code=="HOOK1"&&p.Start<=cover+1e-6),hookEnd=code=="HOOK2"||code=="CRANKHOOK"||(code=="HOOK1"&&p.Start>cover+1e-6),crank=code.StartsWith("CRANK");
+    double extra=Math.Max(0,p.Length-(p.End-p.Start)-((hookStart?1:0)+(hookEnd?1:0))*h);
+    for(int k=0;k<parts.Count;k++){var iv=parts[k];bool keepStart=Math.Abs(iv[0]-p.Start)<1e-9,keepEnd=Math.Abs(iv[1]-p.End)<1e-9;bool hs=hookStart&&keepStart,he=hookEnd&&keepEnd,ck=crank&&keepStart;
+     var q=k==0?p:new CutPiece{Group=p.Group,Line=p.Line,Key=p.Id+"~"+k,BarMark=p.BarMark+"~"+k,Diameter=p.Diameter,Grade=p.Grade,PerLine=p.PerLine,Lines=p.Lines,Top=p.Top,LapMm=p.LapMm,SecB=p.SecB,SecH=p.SecH};
+     q.Start=iv[0];q.End=iv[1];q.Span=0;q.Length=iv[1]-iv[0]+((hs?1:0)+(he?1:0))*h+(ck?extra:0);q.Shape=ck?(he?"Cranked lap splice, 90° hook one end":"Cranked lap splice"):hs&&he?"90° hooks both ends":hs||he?"90° hook one end":"Straight";
+     var ends=new List<string>();if(!keepStart){int j=spanAt(iv[0]);if(j>=0&&!spans[j].Include)ends.Add((j+1).ToString(Inv));}if(!keepEnd){int j=spanAt(iv[1]);if(j>=0&&!spans[j].Include)ends.Add((j+1).ToString(Inv));}
+     string baseLocation=System.Text.RegularExpressions.Regex.Replace(p.Location.Split(new[]{" - dowel"},StringSplitOptions.None)[0]," \\(lap in span \\d+\\)","");q.Location=baseLocation+(ends.Count>0?" - dowel (abang) into span "+string.Join(" and ",ends.Distinct()):"");
+     for(int j=0;j<n;j++){double from=j==0?0:g.SupportStart[j]+g.SupportWidth[j]/2,to=j==n-1?g.Total:g.SupportStart[j+1]+g.SupportWidth[j+1]/2;if(q.Start>=from-1e-9&&q.End<=to+1e-9){q.Span=j+1;break;}}
+     Shape(q,s);result.Pieces.Insert(Math.Min(at+k,result.Pieces.Count),q);}}
+   result.Splices.RemoveAll(c=>c.Line==id&&!kept(c.Lap).Any(iv=>c.From>=iv[0]-1e-9&&c.To<=iv[1]+1e-9));
+   /* steel shared to the spans again from the bars that remain */
+   foreach(var e in estimates){e.Kg=0;e.KgByDiameter.Clear();}
+   foreach(var p in result.Pieces.Where(q=>q.Line==id)){double kg=p.Kg,len=Math.Max(1e-9,p.End-p.Start);for(int j=0;j<n;j++){double from=j==0?0:g.SupportStart[j]+g.SupportWidth[j]/2,to=j==n-1?g.Total:g.SupportStart[j+1]+g.SupportWidth[j+1]/2;double overlap=Math.Max(0,Math.Min(to,p.End)-Math.Max(from,p.Start));if(overlap<=0)continue;double share=kg*overlap/len;estimates[j].Kg+=share;double v;estimates[j].KgByDiameter[p.Diameter]=(estimates[j].KgByDiameter.TryGetValue(p.Diameter,out v)?v:0)+share;}}
+   for(int j=0;j<n;j++)if(!spans[j].Include){estimates[j].Ties=0;}
+   result.Notes.Add("Beam line "+id+": span(s) "+string.Join(", ",Enumerable.Range(0,n).Where(j=>!spans[j].Include).Select(j=>(j+1).ToString(Inv)))+" left out - their own bars are not listed; the bars of the spans beside them stop one lap length inside as dowels (abang).");}
+  var geo=new CutLineGeometry{Line=id,SupportStart=g.SupportStart,SupportWidth=g.SupportWidth,FaceLeft=g.FaceLeft,FaceRight=g.FaceRight,Width=g.Width,Depth=g.Depth,Slab=spans.Select(q=>q.Slab).ToArray(),Ln=spans.Select(q=>q.Ln).ToArray(),Total=g.Total,Cover=s.Cover/1000,Marks=spans.Select(q=>q.Mark).ToArray(),Rows=g.Rows,Included=spans.Select(q=>q.Include).ToArray()};
   for(int j=0;j<n;j++){try{geo.Ties.Add(TieZones(g.Rows[j],spans[j].Ln,s));}catch(Exception){geo.Ties.Add(new List<TieZone>());}}
   foreach(bool top in new[]{true,false})(top?geo.TopZones:geo.BottomZones).AddRange(SpliceZones(g,s,top));result.Geometry.Add(geo);
   result.Spans.AddRange(estimates);
