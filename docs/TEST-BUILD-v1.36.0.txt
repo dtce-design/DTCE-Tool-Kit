@@ -1,0 +1,17 @@
+DTCE Tool Kit v1.36.0 test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+
+Construction Schedule - LS items
+- Finishing (and rough) hardware, item 1004, has no installation of its own ("kasama na siya sa wooden
+  doors and windows"): its bar runs with the door and window rows and it is not an activity of the
+  network.
+- The other LS items take the working hours entered by the owner ("input ko na lang if ilang hours"):
+  double-click the row and enter the hours; days = hours / 8 (per crew), rounded up. The logic places
+  the item with its trade. Mobilization and demobilization keep their durations in days.
+
+Includes v1.35.0, v1.34.0 and v1.33.0 (see their notes).
+
+Bar Chart ("sa bar chart ifix mo din yung manpower sa baba")
+- The manpower per day row stays at the bottom of the view while the rows scroll (the headings stay at
+  the top and the item columns at the left). The printed set is unchanged.

@@ -1,0 +1,31 @@
+DTCE Tool Kit v1.25.0 test build (18 November 2026) - new feature
+
+Construction Schedule - PERT-CPM and issue set (owner: "PERT CPM din, +/-20% ang
+optimistic at pessimistic", "gandahan mo naman yung presentation ng PDM", "ready
+na to issue sa construction", "sa A3 iprint", "use standard layouting ng lahat
+ng PDM, PERT CPM, bar chart", "isama pa din yung mga LS pero leave muna yung
+output per hour", watermark "same size lang, dadamihan lang")
+- Third view "PERT-CPM". a = 0.8 m, m = activity duration, b = 1.2 m;
+  te = (a + 4m + b) / 6; variance = ((b - a) / 6)^2. Project Te, standard
+  deviation over the critical path and completion at 90 % / 95 % confidence.
+- Standard layouts:
+  - Bar chart: item columns, week row (6 working days) over the numbered
+    working days, critical bars red. Days per sheet are whole weeks.
+  - PDM: activity on node with a node key (ES | D | EF, activity no. and item
+    no., description, LS | TF | LF). Textbook times: ES of the first activity
+    = 0, EF = ES + D, LS = LF - D, TF = LS - ES. START, end-of-phase
+    milestones (D = 0) and FINISH are nodes; every relation is its own
+    Finish-to-Start arrow.
+  - PERT-CPM: activity on arrow with an event key; events numbered 1, 2, 3 ...
+    left to right, each split into event no., TE and TL; dummies dashed.
+- Print / Print preview print the whole issue set on A3 landscape: summary
+  (durations, PERT figures, critical path, basis and notes), bar chart, PDM,
+  PERT time estimates and PERT-CPM network. Each sheet has a border and title
+  block: project, location, office, sheet title, date, sheet n of N and blank
+  Prepared / Checked / Approved lines (the app does not sign or approve).
+- User edition: DPWH logo watermark at the same size as other reports,
+  repeated over the A3 sheet. Admin edition: no watermark.
+- LS pay items are listed in BOQ order with the output per hour left blank
+  (no duration, not in the PDM / PERT network yet).
+
+Includes v1.24.0. Not tested on Windows. Not a Microsoft Store release.

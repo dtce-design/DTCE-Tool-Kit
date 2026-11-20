@@ -1,0 +1,41 @@
+DTCE Tool Kit v1.27.2 test build (18 November 2026) - fix
+
+Construction Schedule (owner: "ireview ang buong pay items ko, para kahit anong pay items
+man ang meron or mailagay tama at correct pa din", "yung continuity per page magulo")
+- Reviewed every pay item of the DUPA catalogue (268 lines). New / corrected trades
+  and logic:
+  - General requirements (A.*, B.*: billboard, survey, geotechnical ...) start on
+    day 1.
+  - 102 / 802 roadway and surplus excavation -> 105 subgrade -> 200 aggregate
+    subbase -> 311 / 601 pavement and sidewalk (pavement also after roofing).
+  - 1600 trench excavation -> 1602 pipes -> 1601 pipeline backfill.
+  - 808 / 1049 ground improvement before piles; 1052(5) furnished piles before
+    driving; 808(2), 1052(26), 1052(27) tests after the piles; 103 foundation fill
+    before lean concrete; 900(5) seal concrete as lean concrete.
+  - 1034 damp proofing / vapour barrier before the slab on fill.
+  - 1047(5)a anchor bolts with the frame pours; purlins, sagrods and bracing after
+    the trusses; roofing after the purlins; 1003(5)/(6) wood roof / floor frames
+    as roof framing; 1000(2) wood preservative with the framing.
+  - 1013(5) uPVC roofing sheets are roofing (not accessories); 1003(11) fascia
+    with the roof accessories.
+  - 900(1)i stiffeners, lintels, coping, canopy with the masonry.
+  - 1001 canal, catch basin, sewer, storm drainage and septic vault as site
+    drainage (before pavement); 1001 / 1002 pipes as plumbing; 1002(4) plumbing
+    fixtures at the end.
+  - 1100 conduits (rough-in), 1101 wires after plaster, 1103 lighting fixtures
+    after ceiling, 1102 / 1105-1107 equipment and systems, 1200s mechanical.
+  - 1003(2) drywall partitions; 1003(3)/(4)/(14)/(22), 1044, 1018(3) cabinets,
+    countertops and toilet partitions at the end; 1003(15) mouldings.
+  - 1019 / 1025 / 1027(3) / 1039 claddings and wall finishes; 1019 ceiling panels
+    as ceiling; 1020 vinyl tiles; 1032(1)a floor coatings as floor finish;
+    1032(2)/(4) varnish and ducco as wood painting; 807 softscape at the end.
+  Only 1003(17) Carpentry and Joinery (LS) has no trade of its own.
+- Continuity between sheets (PDM and PERT): every line that goes to another sheet
+  ends at the sheet edge with "to n (sheet s)"; on that sheet it starts at the edge
+  with "from n (sheet s)" and its relation. In the PERT network the tail event is
+  repeated at the left edge as a dashed circle with its sheet no., and the
+  activity arrow is drawn in full there. Each sheet shows only its own columns.
+- Tests: the whole catalogue is scheduled at once (CPM, levelling, PERT network
+  and issue set must stay valid).
+
+Includes v1.27.1. Not tested on Windows. Not a Microsoft Store release.

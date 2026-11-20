@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
@@ -1101,6 +1101,9 @@ namespace BeamScheduleFormatter
 					select d);
 			}
 			if(flag)list.AddRange(ConcretePayQuantities().Select(BackupDemand.From));
+            /* Part A / B quantities filled by the app; a typed BOQ quantity still wins (owner, 19 November 2026) */
+            /* owner (19 November 2026, "iallow na lang maginput ng qty sa boq ng app for part A and B"): the owner types Part A / B; the app no longer fills them */
+            if(flag&&FillGeneralRequirements)list.AddRange(GeneralRequirementSuggestions(list.Where(d=>d.Key==null||!d.Key.StartsWith("BOQ manual|",StringComparison.Ordinal)).ToList(),true));
             RouteRequiredQuantities(list);
             ApplyBoqIncludes(list);
             return list;
@@ -2098,7 +2101,7 @@ namespace BeamScheduleFormatter
 				return MergeSources(StockPurchaseSources(steelStocks).Concat(GridWeightSources(machineBolts, 7)).Concat(GridWeightSources(anchorBolts, 7)).Concat(GridWeightSources(steelPlates, 11))
 					.Concat(GridWeightSources(crossBracing, 9)));
 			}
-			if (name == SteelPaintingTotal)
+			if (name == SteelPaintingTotal || name == SteelPaintingTotalLabel)
 			{
 				return steelPaintDetails.ToList();
 			}
@@ -4488,19 +4491,17 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 				AutoSize = true,
 				AutoSizeMode = AutoSizeMode.GrowAndShrink,
 				WrapContents = true,
-				Padding = new Padding(8, 5, 8, 3)
+				Padding = new Padding(8, 5, 8, 3),
+				Name = "PowCommandBar"
 			};
 			base.Controls.Add(tabs);
 			base.Controls.Add(flowLayoutPanel);
 			GridEditHistory.AddCommands(this,flowLayoutPanel);
             Button(flowLayoutPanel, "Save Program of Works", Save);
-            Button(flowLayoutPanel,"Project files",ManageProjectFiles);/* Save status lives in the bottom status bar (owner, 17 November 2026), not between the command buttons. */powSaveIndicator=new Label{Name="PowSaveStatus",AccessibleName="Program of Works save status",Text=""};
-            Button(flowLayoutPanel, "Export report file", ExportEngineeringReport);
-			Button(flowLayoutPanel, "Open Program of Works", Open);
-			Button(flowLayoutPanel, "Close Program of Works", CloseProgramOfWorks);
-			Button(flowLayoutPanel, "Restore backup", RestoreBackup);
-			Button(flowLayoutPanel, "Print preview", PreviewQuantityEngineeringReport);
-            Button(flowLayoutPanel, "Save PDF", SaveQuantityEngineeringPdf);
+            /* owner (19 November 2026, "isummarize yung buttons"): Undo, Redo and Save stay on the bar; the other commands are grouped
+               in a File menu and a Report menu */
+            MenuButton(flowLayoutPanel,"File",new KeyValuePair<string,Action>("Open Program of Works…\tCtrl+O",Open),new KeyValuePair<string,Action>("Save Program of Works As…\tCtrl+Shift+S",SaveAs),new KeyValuePair<string,Action>("Close Program of Works",CloseProgramOfWorks),null,new KeyValuePair<string,Action>("Project files…",ManageProjectFiles),new KeyValuePair<string,Action>("Restore backup…",RestoreBackup));
+            /* No Report menu in the command bar: the Reports main tab has them (owner, 19 November 2026). *//* Save status lives in the bottom status bar (owner, 17 November 2026), not between the command buttons. */powSaveIndicator=new Label{Name="PowSaveStatus",AccessibleName="Program of Works save status",Text=""};
 			beam = new EstimatorForm(null);
 			slab = new SlabEstimatorForm();
 			AddHome();
@@ -4595,6 +4596,7 @@ worksExcelTimer.Tick += async delegate
             FormClosed += (s0, e0) => { if (!Automated) ProjectInfoStore.ClearProject(); };
             InstallStandardSettings();
             InstallRowInclusion();
+            AddConstructionSchedule();AddContractDuration();
             PlaceSteelSetColumns();
             if (wood != null) PlaceOpeningPaintColumns(wood);
 			tabs.Multiline = true;
@@ -4813,6 +4815,10 @@ worksExcelTimer.Tick += async delegate
 				{
 					dashboardDirty = false;
 					UpdateDashboard();
+				}
+				if (text == "Construction Schedule")
+				{
+					RefreshSchedule();
 				}
 				if (text == "Reports" && reportPreviewDirty)
 				{
@@ -5287,6 +5293,17 @@ worksExcelTimer.Tick += async delegate
 			tabs.TabPages.Add(tabPage);
 		}
 
+		/* a command-bar button that opens a menu (null = separator); the menu is kept in Tag */
+		private static void MenuButton(FlowLayoutPanel panel, string text, params KeyValuePair<string,Action>?[] items)
+		{
+			var menu=new ContextMenuStrip();
+			foreach(var item in items){if(item==null){menu.Items.Add(new ToolStripSeparator());continue;}var pair=item.Value;string[] parts=pair.Key.Split('\t');var entry=new ToolStripMenuItem(parts[0]);if(parts.Length>1)entry.ShortcutKeyDisplayString=parts[1];entry.Click+=(s,e)=>{try{pair.Value();}catch(Exception ex){MessageBox.Show(ex.Message,"Program of Works");}};menu.Items.Add(entry);}
+			var button=new Button{Text=text+"  ▾",AutoSize=true,Height=30,Tag=menu,AccessibleName=text+" menu"};
+			button.Click+=(s,e)=>menu.Show(button,new System.Drawing.Point(0,button.Height));
+			button.Disposed+=(s,e)=>menu.Dispose();
+			panel.Controls.Add(button);
+		}
+
 		private static void Button(FlowLayoutPanel panel, string text, Action action)
 		{
 			Button button = new Button
@@ -5473,9 +5490,14 @@ worksExcelTimer.Tick += async delegate
 			};
 			g.Columns[4].ToolTipText = "Overall rough-opening width including jamb. Wooden leaf width = opening width - 2 jamb thicknesses.";
 			g.Columns[5].ToolTipText = "Overall rough-opening height. Door leaf height subtracts top jamb; window subtracts top and sill.";
-			g.Columns[2].ToolTipText = "Must match one CHB Wall ID. Each opening belongs to exactly one wall group.";
+			g.Columns[2].ToolTipText = "Must match one CHB / masonry Wall ID. Each opening belongs to exactly one wall group. Wooden jamb depth follows this wall's thickness automatically.";
 			g.Columns[6].ToolTipText = "Total number of this opening in the linked wall group; already includes repeated walls.";
 			g.Columns[9].HeaderText = "Leaf thickness mm";
+			/* Owner (20 November 2026, "pwede ba alisin ito? sa system na lang? yung jamb depth based na lang sa chb or masonry"):
+			   jamb depth, jamb thickness and leaf thickness are set by the program and hidden. Jamb depth = thickness of the CHB /
+			   masonry wall the opening is assigned to (Unassigned CHB thickness setting when none); jamb thickness from Settings;
+			   wooden door leaf 45 mm. The values are still stored in the same columns, so saved projects open unchanged. */
+			foreach (int hidden in new[] { 7, 8, 9 }) g.Columns[hidden].Visible = false;
 			g.Columns[11].HeaderText = "Locksets/unit";
 			g.Columns[11].ToolTipText = "Automatic: one lockset per non-fixed door opening; windows use entered hardware quantities.";
 			g.Columns[12].ToolTipText = "Door hinges: minimum 2 per leaf; one per 762mm height or fraction, plus 1 for leaf width >940mm. Multiply by door leaves. Sliding/fixed: zero. This is a quantity allowance; final hinge model depends on load/specification.";
@@ -6780,6 +6802,7 @@ worksExcelTimer.Tick += async delegate
 			{
 				return;
 			}
+			ApplyMemberSchedules(); /* manual column / footing schedules (v1.50.12) */
 			filling = true;
 			try
 			{
@@ -6840,6 +6863,7 @@ worksExcelTimer.Tick += async delegate
 								Height = Number(item, 5),
 								Quantity = Count(item, 6),
 								JambDepth = (woodRow ? Number(item, 7) : 0.0),
+								JambGroups = (woodRow && woodJambGroups.ContainsKey(Cell(item, 0))) ? woodJambGroups[Cell(item, 0)] : null,
 								JambThickness = (woodRow ? Number(item, 8) : 0.0),
 								LeafThickness = (woodRow ? 0.045 : 0.0),
 								Faces = ((woodRow && OpeningPaint(item, PaintLeafColumn)) ? Count(item, 10) : 0), /* owner, 18 November 2026: Paint faces is only needed when the leaf is painted */
@@ -6901,7 +6925,8 @@ worksExcelTimer.Tick += async delegate
 					errors.Add(ex2.Message);
 				}
 				ids.Clear();
-				foreach (DataGridViewRow item2 in MasonryGrids().SelectMany((DataGridView g) => g.Rows.Cast<DataGridViewRow>()))
+				foreach (DataGridView masonryGrid in MasonryGrids()) EnsureOpeningsIncludedColumn(masonryGrid);
+				foreach (DataGridViewRow item2 in MasonryGrids().SelectMany((DataGridView g) => g.Rows.Cast<DataGridViewRow>()).ToList())
 				{
 					if (item2.IsNewRow)
 					{
@@ -6956,6 +6981,7 @@ worksExcelTimer.Tick += async delegate
 						item2.Cells[8].Value = wallItem.Deduction(wallOpenings).ToString("0.00");
 						item2.Cells[9].Value = num2.ToString("0.00");
 						item2.Cells[10].Value = wallItem.Blocks(wallOpenings);
+						ShowOpeningsIncluded(item2, wallItem.Id);
 						item2.Cells[11].Value = (WallHasOpeningIssue(wallItem.Id) ? "Review this wall's invalid opening before using quantities" : thicknessMissing ? "Select the CHB / block thickness (mm); 150 mm assumed for now" : "Ready");
 					}
 					catch (Exception ex3)
@@ -7489,7 +7515,7 @@ worksExcelTimer.Tick += async delegate
 						for (int i = 0; i < array.Length; i++)
 						{
 							int n = array[i];
-							xmlElement3.SetAttribute("c" + n, Cell(item2, n));
+							xmlElement3.SetAttribute("c" + n, Cell(item2, n));string formula = GridFormulas.Formula(item2.Cells[n]);if (formula != null) xmlElement3.SetAttribute("f" + n, formula);
 						}
 						WriteSteelSets(item.Key, item2, xmlElement3);
 						WriteSteelPaintOnly(item2, xmlElement3);
@@ -7503,6 +7529,7 @@ worksExcelTimer.Tick += async delegate
 			OpeningLinks.Write(xmlElement, openingAssignments);
 			BackupBill.Write(xmlElement, backupBill);
 			WriteBackupBillRoutes(xmlElement);
+			WriteSchedule(xmlElement);
 			WriteStructureConfigurations(xmlElement);
             WriteExtraProject(xmlElement);WriteRoofingSpecification(xmlElement);
             WriteSourceManifest(xmlElement);
@@ -7730,6 +7757,7 @@ worksExcelTimer.Tick += async delegate
 				projectQuantitiesKnown = xmlDocument.DocumentElement.HasAttribute("computedInputsKnown") && bool.Parse(xmlDocument.DocumentElement.GetAttribute("computedInputsKnown"));
 				backupBill = list;
 				ReadBackupBillRoutes(xmlDocument.DocumentElement);
+				ReadSchedule(xmlDocument.DocumentElement);
 				ReadStructureConfigurations(xmlDocument.DocumentElement);
 				finishTypeCells = finishTypeRegistry;
 				openingAssignments.Clear();ClearParkedWallOpenings();
@@ -7800,7 +7828,7 @@ worksExcelTimer.Tick += async delegate
 								obj = item4.GetAttribute("c" + num2);
 							}
 							string text = (string)obj;
-							item3.Value.Rows[index].Cells[num2].Value = ((item3.Value.Columns[num2] is DataGridViewCheckBoxColumn) ? ((object)(text != "" && bool.Parse(text))) : text);
+							item3.Value.Rows[index].Cells[num2].Value = ((item3.Value.Columns[num2] is DataGridViewCheckBoxColumn) ? ((object)(text != "" && bool.Parse(text))) : text);GridFormulas.Set(item3.Value.Rows[index].Cells[num2], item4.HasAttribute("f" + num2) ? item4.GetAttribute("f" + num2) : null);
 						}
 						ReadSteelSets(item3.Key, item3.Value.Rows[index], item4);
 						ReadSteelPaintOnly(item3.Value.Rows[index], item4);
@@ -7845,7 +7873,7 @@ worksExcelTimer.Tick += async delegate
             if(worksExcel!=null){string workbook=Path.GetFileName(worksExcel.PathName);savedSourceFiles.AddRange(ProjectSources().Files.Where(f=>f.Kind=="Excel workbook (imported original)"&&f.Name.Equals(workbook,StringComparison.OrdinalIgnoreCase)));}
             projectSourceFiles.Replace(savedSourceFiles);
             if(savedProjectInformation==null&&!Automated)ProjectInfoStore.ClearProject();
-            if(savedProjectInformation!=null)ProjectInfoStore.Save(savedProjectInformation.Name,savedProjectInformation.Location,savedProjectInformation.Office,savedProjectInformation.OfficeAddress);
+            if(savedProjectInformation!=null)ProjectInfoStore.Save(savedProjectInformation.Name,savedProjectInformation.Location,savedProjectInformation.Office,savedProjectInformation.OfficeAddress,savedProjectInformation.DatePrepared??"");
 			PowTiming.Mark("project info / sources");
 			Recalculate();
 			PowTiming.Mark("recalculation");
@@ -8419,27 +8447,63 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 			return numericUpDown;
 		}
 
+		/* wall thickness of a CHB / masonry row in mm (CHB 100 / 150, AAC 100 / 150, ...); 150 when not stated */
+		private static double WallThicknessMm(DataGridViewRow r)
+		{
+			double t;
+			return double.TryParse(Cell(r, 18), NumberStyles.Float, CultureInfo.InvariantCulture, out t) && t >= 50 && t <= 400 ? t : 150.0;
+		}
+
+		/* Owner (20 November 2026, "ipakita din yung mga opening na na-include sa masonry", "irerecord yung jamb based sa CHB wall"):
+		   each CHB / masonry wall row lists the openings deducted from it, with the jamb depth taken from that wall's thickness. */
+		internal const string OpeningsIncludedColumn = "OpeningsIncluded";
+
+		private void ShowOpeningsIncluded(DataGridViewRow row, string wallId)
+		{
+			var grid = row.DataGridView;
+			if (grid == null || !grid.Columns.Contains(OpeningsIncludedColumn)) return;
+			string jamb = WallThicknessMm(row).ToString("0", CultureInfo.InvariantCulture);
+			var lines = wallOpenings.Where(o => string.Equals((o.Wall ?? "").Trim(), (wallId ?? "").Trim(), StringComparison.OrdinalIgnoreCase)).GroupBy(o => o.Id, StringComparer.OrdinalIgnoreCase)
+				.Select(g => { var o = g.First(); int units = g.Sum(x => x.Quantity); return o.Id + " x" + units + " (" + o.Width.ToString("0.##", CultureInfo.InvariantCulture) + " x " + o.Height.ToString("0.##", CultureInfo.InvariantCulture) + " m" + (o.Wood ? ", jamb " + jamb + " mm" : "") + ")"; }).ToList();
+			row.Cells[OpeningsIncludedColumn].Value = lines.Count == 0 ? "" : string.Join("; ", lines);
+		}
+
+		private void EnsureOpeningsIncludedColumn(DataGridView grid)
+		{
+			if (grid != null && !grid.Columns.Contains(OpeningsIncludedColumn))
+			{
+				var column = new DataGridViewTextBoxColumn { Name = OpeningsIncludedColumn, HeaderText = "Openings included (jamb depth from this wall)", ReadOnly = true, Width = 280, SortMode = DataGridViewColumnSortMode.NotSortable };
+				column.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+				column.DefaultCellStyle.ForeColor = PowTheme.Muted;
+				grid.Columns.Add(column);
+				var after = grid.Columns.Cast<DataGridViewColumn>().FirstOrDefault(c => c.HeaderText == "Openings m2");
+				if (after != null) try { column.DisplayIndex = Math.Min(grid.Columns.Count - 1, after.DisplayIndex + 1); } catch (InvalidOperationException) { }
+			}
+		}
+
+		/* jamb depth groups per opening ID, from the thickness of each wall it is assigned to (v1.50.19) */
+		private readonly Dictionary<string, List<KeyValuePair<double, int>>> woodJambGroups = new Dictionary<string, List<KeyValuePair<double, int>>>(StringComparer.OrdinalIgnoreCase);
+
 		private void AutomaticWoodDimensions(DataGridViewRow row)
 		{
 			double num = ((jambDepthDefault == null) ? 150.0 : ((double)jambDepthDefault.Value));
-			string[] assigned = (from x in openingAssignments
-				where string.Equals(x.Schedule, Cell(row, 0), StringComparison.OrdinalIgnoreCase)
-				select x.Wall).ToArray();
-			if (assigned.Length == 0 && Cell(row, 2) != "")
+			Func<string, double?> thickness = wall => { var hit = MasonryGrids().SelectMany((DataGridView g) => g.Rows.Cast<DataGridViewRow>()).FirstOrDefault(r => !r.IsNewRow && string.Equals(Cell(r, 0), wall, StringComparison.OrdinalIgnoreCase)); return hit == null ? (double?)null : WallThicknessMm(hit); };
+			string id = Cell(row, 0);
+			/* the row's own Wall ID (or the setting) for units not assigned to a wall */
+			double rest = (Cell(row, 2) != "" ? thickness(Cell(row, 2)) : null) ?? num;
+			var groups = new Dictionary<double, int>();
+			int assignedUnits = 0;
+			foreach (var link in openingAssignments.Where(x => string.Equals(x.Schedule, id, StringComparison.OrdinalIgnoreCase)))
 			{
-				assigned = new string[1] { Cell(row, 2) };
+				double t = thickness(link.Wall) ?? rest;
+				int q; groups.TryGetValue(t, out q); groups[t] = q + link.Quantity; assignedUnits += link.Quantity;
 			}
-			double[] array = (from r in MasonryGrids().SelectMany((DataGridView g) => g.Rows.Cast<DataGridViewRow>())
-				where !r.IsNewRow && assigned.Contains(Cell(r, 0), StringComparer.OrdinalIgnoreCase)
-				select (!(Cell(r, 18) == "100")) ? 150.0 : 100.0).ToArray();
-			if (array.Distinct().Count() > 1)
-			{
-				throw new Exception("Opening " + Cell(row, 0) + " is assigned to both 100mm and 150mm walls. Use separate opening IDs so each jamb depth matches its wall.");
-			}
-			if (array.Length != 0)
-			{
-				num = array[0];
-			}
+			int units = 0; int.TryParse(Cell(row, 6), NumberStyles.Integer, CultureInfo.InvariantCulture, out units);
+			if (units > assignedUnits) { int q; groups.TryGetValue(rest, out q); groups[rest] = q + units - assignedUnits; }
+			if (groups.Count == 0) groups[rest] = Math.Max(units, 0);
+			num = groups.OrderByDescending(g => g.Value).ThenByDescending(g => g.Key).First().Key;
+			if (id != "") woodJambGroups[id] = groups.Count > 1 ? groups.OrderByDescending(g => g.Key).Select(g => new KeyValuePair<double, int>(g.Key / 1000.0, g.Value)).ToList() : null;
+			row.Cells[4].ToolTipText = groups.Count > 1 ? "Jamb depth by wall: " + string.Join(", ", groups.OrderByDescending(g => g.Key).Select(g => g.Value + " pc" + (g.Value == 1 ? "" : "s") + " at " + g.Key.ToString("0", CultureInfo.InvariantCulture) + " mm")) : "";
 			row.Cells[7].Value = (num / 1000.0).ToString("0.###", CultureInfo.InvariantCulture);
 			row.Cells[8].Value = (((jambThicknessDefault == null) ? 50.0 : ((double)jambThicknessDefault.Value)) / 1000.0).ToString("0.###", CultureInfo.InvariantCulture);
 			row.Cells[9].Value = "45";
@@ -9551,7 +9615,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 						where BackupMapping.Unit(d.Unit) == BackupMapping.Unit(item.Unit)
 						select d).ToList();
 					double? num = item.ManualQuantity ?? (((BackupMapping.Unit(item.Unit) != "ls" && list.Count > 0) || list.Any((BackupDemand d) => d.ManualPriority >= 1)) ? new double?(BackupMapping.FinalQuantity(list, item.Unit)) : item.WorkbookQuantity);
-					b.AppendLine(item.Code + " | " + item.Description + " | " + (num.HasValue ? num.Value.ToString("0.########", CultureInfo.InvariantCulture) : "not entered") + " " + item.Unit);
+					b.AppendLine(item.Code + " | " + PayItemText.Display(item.Description) + " | " + (num.HasValue ? num.Value.ToString("0.########", CultureInfo.InvariantCulture) : "not entered") + " " + item.Unit);
 				}
 			}
 			foreach (BillQuantity item2 in ManualBoqQuantities())
@@ -10104,7 +10168,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 					DropDownWidth = 1400,
 					DropDownStyle = ComboBoxStyle.DropDownList
 				};
-				comboBox.Items.AddRange(backupBill.Select((BackupBillItem b) => b.Code + " | " + b.Description + " | " + b.Unit + " | BC" + b.Row).Cast<object>().ToArray());
+				comboBox.Items.AddRange(backupBill.Select((BackupBillItem b) => b.Code + " | " + PayItemText.Display(b.Description) + " | " + b.Unit + " | BC" + b.Row).Cast<object>().ToArray());
 				comboBox.SelectedIndex = 0;
 				Button button = new Button
 				{

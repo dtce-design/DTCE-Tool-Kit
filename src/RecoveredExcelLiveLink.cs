@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -109,8 +109,17 @@ namespace BeamScheduleFormatter
 					bool flag = Convert.ToBoolean(app.EnableEvents);
 					try
 					{
-						app.AutomationSecurity = 3;
-						app.EnableEvents = false;
+						/* Owner (19 November 2026, "bakit di pwede gamitin yung macros ng excel ko"): a workbook the app opens itself used
+						   to be opened with macros forced off (AutomationSecurity 3) and events off, so its macros stayed disabled until
+						   it was closed and opened again. A visible link now opens it as a double-click would: Excel is shown first, the
+						   Trust Center settings decide on macros (AutomationSecurity 2, by UI, with the usual Enable Content bar) and
+						   Workbook_Open runs. Hidden helper instances and new files made from the template keep macros and events off. */
+						if (!isolated)
+						{
+							app.Visible = true;
+						}
+						app.AutomationSecurity = isolated ? 3 : 2;
+						app.EnableEvents = !isolated && File.Exists(PathName);
 						if (!File.Exists(PathName))
 						{
 							if (requireTemplate)
@@ -543,7 +552,7 @@ namespace BeamScheduleFormatter
 				WriteEstimate(xml, "DTCE_POW_Project", "DTCE Tool Kit - POW");
 			}
 			app.CalculateFull();
-			book.Save();
+			/* not saved: the owner saves the Program of Works workbook in Excel (19 November 2026) */
 		}
 
 		private static string[] DesignNames(string kind)
@@ -657,7 +666,7 @@ namespace BeamScheduleFormatter
 				app.EnableEvents = false;
 				WriteBill(quantities, project);
 				app.CalculateFull();
-				book.Save();
+				/* not saved: the owner saves the Program of Works workbook in Excel (19 November 2026) */
 			}
 			finally
 			{
@@ -758,6 +767,11 @@ namespace BeamScheduleFormatter
 			val.Activate();
 		}
 
+/* Owner (19 November 2026, "The manual BOQ item was removed or changed: Project Billboard / Signboard" when mapping): a BACKUP row
+   without a _DTCE_BACKUP_ITEM_ name got a new random id on every read, so a typed quantity on it (kept by the app under the id
+   of the earlier read) was "removed" when Map BACKUP items read the workbook again. The id of such a row is now derived from
+   its row, item no., description and unit, so it stays the same until the row itself changes. */
+internal static string StableSlotId(int row,string code,string description,string unit){using(var sha=System.Security.Cryptography.SHA256.Create())return BitConverter.ToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes("row|"+row+"|"+(code??"").Trim()+"|"+(description??"").Trim()+"|"+(unit??"").Trim()))).Replace("-","").Substring(0,32).ToLowerInvariant();}
 public List<BackupTarget> RegisterBackupBillItems(){backupNameRows=null;backupNameSignatures=null;nameIdentityCache=null;var targets=BackupTargets();registeredItemSlots=new HashSet<string>(CachedBackupNames(BackupMapping.ItemPrefix,null).Keys.Select(n=>n.Substring(BackupMapping.ItemPrefix.Length)),StringComparer.OrdinalIgnoreCase);targetCache=targets;routeCache=null;return targets;}
 
 
@@ -812,13 +826,14 @@ public List<BackupTarget> RegisterBackupBillItems(){backupNameRows=null;backupNa
 				{
 					string slotId = (from x in source
 						where x.Value == row
-						select x.Key.Substring("_DTCE_BACKUP_ITEM_".Length)).OrderBy((string x) => x, StringComparer.Ordinal).FirstOrDefault() ?? Guid.NewGuid().ToString("N");
+						select x.Key.Substring("_DTCE_BACKUP_ITEM_".Length)).OrderBy((string x) => x, StringComparer.Ordinal).FirstOrDefault() ?? StableSlotId(row, text, text2, text3);
 					list.Add(new BackupTarget
 					{
 						Row = row,
 						Code = text.Trim(),
 						Description = text2.Trim(),
-						Unit = text3.Trim(),
+						Unit = BackupMapping.EffectiveUnit(text.Trim(), text2.Trim(), text3.Trim()),
+						ReadUnit = text3.Trim(),
 						SlotId = slotId,
 						Quantity = BackupBill.ReadQuantity(array[lowerBound+row-1,lowerBound2+53])
 					});
@@ -848,10 +863,13 @@ public List<BackupTarget> RegisterBackupBillItems(){backupNameRows=null;backupNa
 				BackupTarget backupTarget;
 				if (d.TargetSlotId != null)
 				{
-					backupTarget = targets.SingleOrDefault((BackupTarget x) => x.SlotId == d.TargetSlotId && BackupMapping.Identity(x) == d.TargetIdentity);
+					backupTarget = BackupMapping.ResolveTarget(d, targets);
 					if (backupTarget == null)
 					{
-						if(d.ManualOverride)throw new Exception("The manual BOQ item was removed or changed: " + d.Description);
+						/* owner (19 November 2026): the item read again under another id - follow its item no., description and unit */
+						var same = targets.Where((BackupTarget x) => BackupMapping.SameIdentity(x, d.TargetIdentity)).ToList();
+						if (same.Count == 1) { dictionary3.Add(d.Key, same[0]); continue; }
+						if(d.ManualOverride)throw new Exception("The manual BOQ item was removed or changed: " + d.Description + ". Its BACKUP row (item no., description and unit) is no longer found once in the workbook; use Refresh BACKUP items and type the quantity again on the right item.");
                         continue;
 					}
 					dictionary3.Add(d.Key, backupTarget);
@@ -901,16 +919,19 @@ public List<BackupTarget> RegisterBackupBillItems(){backupNameRows=null;backupNa
 			WriteMappedBackup(list, targets, routes);
 		}
 
-internal void WriteMappedBackup(List<BackupDemand> demands,List<BackupTarget> targets,Dictionary<string,BackupTarget> routes){
- var saved=BackupNames(BackupMapping.MapPrefix);/* Unmapped or incomplete LS routes stay unmapped instead of stopping the write (owner, 17 November 2026). */routes=new Dictionary<string,BackupTarget>(routes);BackupMapping.DropIncomplete(demands,routes);demands=demands.Where(d=>routes.ContainsKey(d.Key)).ToList();BackupMapping.Validate(demands,routes);var identities=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);var owned=BackupNames(BackupMapping.BlockPrefix,identities);var groups=demands.GroupBy(d=>routes[d.Key].Row).ToDictionary(g=>g.Key,g=>g.ToList());foreach(var previous in owned){int row=previous.Value;if(KeepUnloadedBackupItems&&!groups.ContainsKey(row))continue;var target=targets.SingleOrDefault(t=>t.Row==row);if(target==null||previous.Key!=BackupMapping.BlockPrefix+target.SlotId||identities[previous.Key]!=BackupMapping.Identity(target))throw new Exception("Previously mapped BACKUP item was removed or changed; review its identity before writing.");if(!groups.ContainsKey(row)&&!KeepUnloadedBackupItems)groups[row]=new List<BackupDemand>();}
+internal void WriteMappedBackup(List<BackupDemand> demands,List<BackupTarget> targets,Dictionary<string,BackupTarget> routes){StaleBackupRows.Clear();
+ var saved=BackupNames(BackupMapping.MapPrefix);/* Unmapped or incomplete LS routes stay unmapped instead of stopping the write (owner, 17 November 2026). */routes=new Dictionary<string,BackupTarget>(routes);BackupMapping.DropIncomplete(demands,routes);demands=demands.Where(d=>routes.ContainsKey(d.Key)).ToList();BackupMapping.Validate(demands,routes);var identities=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);var owned=BackupNames(BackupMapping.BlockPrefix,identities);var groups=demands.GroupBy(d=>routes[d.Key].Row).ToDictionary(g=>g.Key,g=>g.ToList());foreach(var previous in owned){int row=previous.Value;if(KeepUnloadedBackupItems&&!groups.ContainsKey(row))continue;var target=targets.SingleOrDefault(t=>t.Row==row);string stored;identities.TryGetValue(previous.Key,out stored);if(target==null||previous.Key!=BackupMapping.BlockPrefix+target.SlotId||!BackupMapping.SameIdentity(target,stored)){/* owner (19 November 2026, Sync to Excel stopped with "Previously mapped BACKUP item was removed or changed"): a name left by an earlier write that no longer matches its row is removed and the sync goes on; nothing is written to that row unless it is mapped now */DropStaleBackupNames(previous.Key.Substring(BackupMapping.BlockPrefix.Length));StaleBackupRows.Add(row);continue;}if(!groups.ContainsKey(row)&&!KeepUnloadedBackupItems)groups[row]=new List<BackupDemand>();}
  if(groups.Count==0)return;VerifyQuantityTargets(targets,groups.Keys);var totals=groups.ToDictionary(g=>g.Key,g=>BackupMapping.FinalQuantity(g.Value,targets.Single(t=>t.Row==g.Key).Unit));var basisOnly=new HashSet<int>(groups.Where(g=>g.Value.Count>0&&BackupMapping.BasisOnly(targets.Single(t=>t.Row==g.Key),g.Value)).Select(g=>g.Key));if(totals.Values.Any(v=>double.IsNaN(v)||double.IsInfinity(v)||v<0))throw new Exception("Invalid final BACKUP quantity.");bool events=Convert.ToBoolean(app.EnableEvents),screen=Convert.ToBoolean(app.ScreenUpdating),changed=false;int? calculation=null;
  try{app.EnableEvents=false;app.ScreenUpdating=false;try{calculation=Convert.ToInt32(app.Calculation);app.Calculation=-4135;}catch{}dynamic sheet=FindEstimateSheet("BACKUP");foreach(int row in groups.Keys.OrderBy(x=>x)){var target=targets.Single(t=>t.Row==row);string identity=BackupMapping.Identity(target);double previous;bool unchanged=basisOnly.Contains(row)/* LS row without a manual LS quantity: keep the mapping, write nothing */||LastBackupTotals.TryGetValue(target.SlotId,out previous)&&previous==totals[row];if(!unchanged){double? current=BackupBill.ReadQuantity(sheet.Cells[row,55].Value2);if(!current.HasValue||current.Value!=totals[row]){try{sheet.Cells[row,55].Value2=totals[row];}catch(Exception ex){throw new Exception("Excel could not write BACKUP!BC"+row+" ("+target.Code+" "+target.Description+"). "+ex.Message,ex);}changed=true;}}SetBackupName(TotalPrefix+target.SlotId,row,identity);SetBackupName(BackupMapping.ItemPrefix+target.SlotId,row,identity);SetBackupName(BackupMapping.BlockPrefix+target.SlotId,row,identity);foreach(var demand in groups[row])SetBackupName(BackupMapping.Name(demand.Key),row,identity);}
- if(!detailsHidden){var hidden=targets.Where(t=>t.EndRow>=t.Row+1).Select(t=>"BC"+(t.Row+1)+":BC"+t.EndRow).ToList();foreach(string address in ExcelRangeBatches.Pack(hidden)){try{sheet.Range[address].EntireRow.Hidden=true;}catch(Exception ex){throw new Exception("Excel could not hide BACKUP detail rows at "+address+". Check worksheet protection and merged rows. "+ex.Message,ex);}}detailsHidden=true;QuantitySavePending=true;}var wanted=new HashSet<string>(demands.Select(d=>BackupMapping.Name(d.Key)),StringComparer.OrdinalIgnoreCase);foreach(string name in saved.Keys.Where(n=>!KeepUnloadedBackupItems&&!wanted.Contains(n))){book.Names.Item(name).Delete();if(nameIdentityCache!=null)nameIdentityCache.Remove(name);ForgetBackupName(name);QuantitySavePending=true;}if(changed){try{app.Calculate();}catch(Exception ex){throw new Exception("Excel could not recalculate the linked workbook after writing BACKUP quantities. "+ex.Message,ex);}QuantitySavePending=true;}LastBackupRoutes=new Dictionary<string,BackupTarget>(routes);LastBackupTotals.Clear();foreach(var pair in totals)if(!basisOnly.Contains(pair.Key))LastBackupTotals[targets.Single(t=>t.Row==pair.Key).SlotId]=pair.Value;if(!DeferQuantitySave)FlushQuantitySave();
+ if(!detailsHidden){var hidden=targets.Where(t=>t.EndRow>=t.Row+1).Select(t=>"BC"+(t.Row+1)+":BC"+t.EndRow).ToList();foreach(string address in ExcelRangeBatches.Pack(hidden)){try{sheet.Range[address].EntireRow.Hidden=true;}catch(Exception ex){throw new Exception("Excel could not hide BACKUP detail rows at "+address+". Check worksheet protection and merged rows. "+ex.Message,ex);}}detailsHidden=true;}var wanted=new HashSet<string>(demands.Select(d=>BackupMapping.Name(d.Key)),StringComparer.OrdinalIgnoreCase);foreach(string name in saved.Keys.Where(n=>!KeepUnloadedBackupItems&&!wanted.Contains(n))){book.Names.Item(name).Delete();if(nameIdentityCache!=null)nameIdentityCache.Remove(name);ForgetBackupName(name);}if(changed){try{app.Calculate();}catch(Exception ex){throw new Exception("Excel could not recalculate the linked workbook after writing BACKUP quantities. "+ex.Message,ex);}}LastBackupRoutes=new Dictionary<string,BackupTarget>(routes);LastBackupTotals.Clear();foreach(var pair in totals)if(!basisOnly.Contains(pair.Key))LastBackupTotals[targets.Single(t=>t.Row==pair.Key).SlotId]=pair.Value;/* not saved: the owner saves the workbook in Excel (19 November 2026) */
  }finally{if(calculation.HasValue)try{app.Calculation=calculation.Value;}catch{}app.EnableEvents=events;app.ScreenUpdating=screen;}
 }
 
 
-void SetBackupName(string name,int row,string identity){if(nameIdentityCache==null)nameIdentityCache=new Dictionary<string,string>();string saved;if(nameIdentityCache.TryGetValue(name,out saved)&&saved==identity)return;try{dynamic old=book.Names.Item(name);if(Convert.ToString(old.Comment)==identity&&Convert.ToInt32(old.RefersToRange.Row)==row){nameIdentityCache[name]=identity;return;}}catch{}dynamic range;try{range=book.Names.Add(Name:name,RefersTo:"='BACKUP'!$BC$"+row,Visible:false);}catch(Exception ex){throw new Exception("Excel could not save mapping "+name+" to BACKUP!BC"+row+". Check workbook protection or read-only mode. "+ex.Message,ex);}range.Comment=identity;nameIdentityCache[name]=identity;RememberBackupName(name,row,identity);QuantitySavePending=true;}
+/* rows whose old names were removed by the last write (reported in the status bar) */
+internal readonly List<int> StaleBackupRows=new List<int>();
+void DropStaleBackupNames(string slot){foreach(string prefix in new[]{BackupMapping.BlockPrefix,BackupMapping.ItemPrefix,TotalPrefix}){string name=prefix+slot;try{book.Names.Item(name).Delete();}catch{}if(nameIdentityCache!=null)nameIdentityCache.Remove(name);ForgetBackupName(name);}if(registeredItemSlots!=null)registeredItemSlots.Remove(slot);}
+void SetBackupName(string name,int row,string identity){if(nameIdentityCache==null)nameIdentityCache=new Dictionary<string,string>();string saved;if(nameIdentityCache.TryGetValue(name,out saved)&&saved==identity)return;try{dynamic old=book.Names.Item(name);if(Convert.ToString(old.Comment)==identity&&Convert.ToInt32(old.RefersToRange.Row)==row){nameIdentityCache[name]=identity;return;}}catch{}dynamic range;try{range=book.Names.Add(Name:name,RefersTo:"='BACKUP'!$BC$"+row,Visible:false);}catch(Exception ex){throw new Exception("Excel could not save mapping "+name+" to BACKUP!BC"+row+". Check workbook protection or read-only mode. "+ex.Message,ex);}range.Comment=identity;nameIdentityCache[name]=identity;RememberBackupName(name,row,identity);}
 
 
 		private ExcelLiveLink()

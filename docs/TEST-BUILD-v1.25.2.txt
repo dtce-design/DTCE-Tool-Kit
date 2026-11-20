@@ -1,0 +1,12 @@
+DTCE Tool Kit v1.25.2 test build (18 November 2026) - fix
+
+Construction Schedule descriptions fit (owner: "adjust mo yung description box para
+magkasya")
+- Bar chart: the Description column widens to the longest description (up to
+  4.0 in on the A3 sheet, 560 px on screen); a longer description wraps to two
+  lines and only that row is made taller. Sheets are split by the actual row
+  heights, and every bar chart sheet carries the same number of working days.
+- PDM: nodes are wider and the description (and milestone caption) has two
+  lines instead of one.
+
+Includes v1.25.1. Not tested on Windows. Not a Microsoft Store release.

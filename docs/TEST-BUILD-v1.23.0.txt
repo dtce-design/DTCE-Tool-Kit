@@ -1,0 +1,14 @@
+DTCE Tool Kit v1.23.0 test build (18 November 2026) - new feature
+
+Construction Schedule (owner: "printable, tapos ilagay lahat ng working days",
+"magkakasunod-sunod pa din ang item no., huwag i-rearrange")
+- Every working day has its own numbered column (1, 2, 3, ...) in the chart.
+- Items keep the Bill of Quantities order; only the start days follow the
+  automatic work phases (works of one phase in parallel).
+- Print preview and Print buttons: A4 landscape, text 7.5 pt. Each page
+  repeats Item no., Description, Quantity, Unit, Output / hour and No. of days;
+  the working days continue on the next pages side by side (about 36 days per
+  page) and long item lists continue on further pages. "Microsoft Print to
+  PDF" saves it as PDF.
+
+Includes v1.22.0. Not a Microsoft Store release.

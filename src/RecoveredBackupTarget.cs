@@ -1,4 +1,4 @@
-namespace BeamScheduleFormatter
+﻿namespace BeamScheduleFormatter
 {
 	internal class BackupTarget
 	{
@@ -12,6 +12,9 @@ namespace BeamScheduleFormatter
 
 		public string Unit;
 
+		/* the unit as read from the workbook when the catalogue unit replaced it (19 November 2026) */
+		public string ReadUnit;
+
 		public string SlotId;
 
 		public int Row { get; set; }
@@ -20,7 +23,7 @@ namespace BeamScheduleFormatter
 		{
 			get
 			{
-				return Code + " | " + Description + " | " + Unit + " | BC" + Row;
+				return Code + " | " + PayItemText.Display(Description) + " | " + Unit + " | BC" + Row;
 			}
 		}
 	}

@@ -1,0 +1,19 @@
+DTCE Tool Kit v4.0.5 (was v1.49.5) test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: corrects the existing Truss Support on RC design sheet.
+
+Truss Support on RC - chord on the plate, anchors outside the angles ("Hindi ba yung anchor bolt naka install sa labas ng
+angle bar naka weld yung angle bar sa baseplate?")
+- New choice "What is welded to the base plate": Bottom chord angles (anchors outside the angles) - the default and the
+  Detail 6 / Truss 2 presets - or Gusset plate (the earlier assumption).
+- Bottom chord: 1L / 2L angle section, chord-to-plate fillet weld size and length (blank = plate length). Detail 6 uses
+  2L50x50x5 and Truss 2 uses 2L75x75x6 as starting sections - change them to the drawing's chord.
+- With the chord on the plate: the plate cantilever for bearing is measured from the angle toes ((B - footprint)/2), the
+  uplift bending from the angle toe to the anchors; new checks "Chord-to-plate welds" (shear and uplift on the two toe
+  welds) and "Chord leg bending - uplift" (horizontal leg from the vertical leg to the toe weld); anchors are refused when
+  their nuts would reach the angle legs (minimum gauge shown). The gusset-to-chord welds belong to the truss connection.
+- Plan, elevation and 3D views draw the chord angles on the plate with the anchors outside them.
+- Default anchor gauge 200 mm and plate width 300 mm for new sheets.
+
+Includes v4.0.4 (was v1.49.4) and earlier local builds (see their notes).

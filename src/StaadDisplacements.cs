@@ -1,11 +1,11 @@
-using System;using System.Linq;using System.Text;using System.Text.RegularExpressions;using System.Globalization;using System.Collections.Generic;
+﻿using System;using System.Linq;using System.Text;using System.Text.RegularExpressions;using System.Globalization;using System.Collections.Generic;
 namespace BeamScheduleFormatter {
 // Reads STAAD.Pro geometry and node displacement data from pasted/exported tables, .STD input files and .ANL output files.
 static class StaadDisplacements {
  internal static readonly string[] Units={"m","mm","cm","in","ft"};
  internal static double Unit(string unit){switch((unit??"").Trim().ToLowerInvariant()){case "m":return 1;case "mm":return .001;case "cm":return .01;case "in":return .0254;case "ft":return .3048;default:throw new Exception("Select an explicit length unit (m, mm, cm, in or ft).");}}
  internal static double Number(string value){double result;string text=(value??"").Trim().Replace('D','E').Replace('d','E');if(!double.TryParse(text,NumberStyles.Float,CultureInfo.InvariantCulture,out result)||double.IsNaN(result)||double.IsInfinity(result))throw new Exception("Invalid number '"+value+"'. Use a decimal point without thousands separators.");return result;}
- static bool IsNumber(string value){double result;return double.TryParse((value??"").Trim().Replace('D','E').Replace('d','E'),NumberStyles.Float,CultureInfo.InvariantCulture,out result);}
+ internal static bool IsNumber(string value){double result;return double.TryParse((value??"").Trim().Replace('D','E').Replace('d','E'),NumberStyles.Float,CultureInfo.InvariantCulture,out result);}
  internal static int Id(string text){int result;if(!int.TryParse((text??"").Trim(),NumberStyles.Integer,CultureInfo.InvariantCulture,out result)||result<=0)throw new Exception("Invalid STAAD node/member number '"+text+"'.");return result;}
  // Detects a length unit written in a header or STAAD UNIT statement. STAAD writes millimetres as MMS.
  internal static string DetectUnit(string text){string t=(text??"").ToUpperInvariant();if(Regex.IsMatch(t,@"MILLIMET|\bMMS?\b"))return "mm";if(Regex.IsMatch(t,@"CENTIMET|\bCMS?\b"))return "cm";if(Regex.IsMatch(t,@"\bINCH(?:ES)?\b|\bINS?\b"))return "in";if(Regex.IsMatch(t,@"\bFEET\b|\bFOOT\b|\bFT\b|\bFEE\b"))return "ft";if(Regex.IsMatch(t,@"\bMET(?:ER|RE)S?\b|\bMTR\b|\bM\b"))return "m";return null;}
@@ -34,6 +34,9 @@ static class StaadDisplacements {
   for(int r=startRow;r<rows.Count;r++){var p=rows[r];if(p.Length<=new[]{id,lc,x,y,z}.Max()){if(p.All(string.IsNullOrWhiteSpace))continue;throw new Exception("Incomplete displacement row "+(r+1)+".");}if(Bare(p[id])==Bare(names[id]))continue;if(!IsNumber(p[x]))continue;string node=p[id]==""?lastNode:p[id],load=p[lc]==""?lastCase:p[lc];if(load=="")throw new Exception("Displacement row "+(r+1)+" has no load case.");if(node=="")throw new Exception("Displacement row "+(r+1)+" has no node.");AddDisplacement(data,new BeamDisplacement{Node=Id(node),Case=load,X=Number(p[x])*factor,Y=Number(p[y])*factor,Z=Number(p[z])*factor});lastNode=node;lastCase=load;count++;}
   if(count==0)throw new Exception("The node displacement table has no data rows.");data.DisplacementUnitSource=source;}
  static IEnumerable<int> NodeList(string text){var p=Regex.Split(text.Trim(),@"\s+");for(int i=0;i<p.Length;i++){int a;if(!int.TryParse(p[i],out a))yield break;if(i+2<p.Length&&p[i+1].Equals("TO",StringComparison.OrdinalIgnoreCase)){int b;if(!int.TryParse(p[i+2],out b))yield break;int step=1;if(i+4<p.Length&&p[i+3].Equals("BY",StringComparison.OrdinalIgnoreCase)&&int.TryParse(p[i+4],out step)&&step>0)i+=2;for(int n=a;n<=b;n+=step)yield return n;i+=2;}else yield return a;}}
+ // Member sections table: Member, b (mm), h (mm).
+ internal static void Sections(BeamDeflectionData data,string text){foreach(var r in Rows(text)){if(r.Length<3||!IsNumber(r[0])||!IsNumber(r[1])||!IsNumber(r[2]))continue;double b=Number(r[1]),h=Number(r[2]);if(b<=0||h<=0)continue;data.Sections[Id(r[0])]=new[]{b,h};}}
+ internal static string SectionsText(BeamDeflectionData data){if(data.Sections.Count==0)return "";return "Member\tb (mm)\th (mm)\r\n"+string.Join("\r\n",data.Sections.OrderBy(p=>p.Key).Select(p=>p.Key+"\t"+p.Value[0].ToString("0.#",CultureInfo.InvariantCulture)+"\t"+p.Value[1].ToString("0.#",CultureInfo.InvariantCulture)));}
  // Parses expanded JOINT COORDINATES / MEMBER INCIDENCES / SUPPORTS from a STAAD .STD file or the input echo in an .ANL file.
  internal static void Model(BeamDeflectionData data,string text,string defaultUnit,ISet<int> supports=null){string mode="";double factor=Unit(defaultUnit);string unitSource="selected unit ("+defaultUnit+")";string pending="";
   foreach(string raw in (text??"").Replace("\r","").Split('\n')){string line=Regex.Replace(raw,@"^\s*\d+\.\s+","").Trim();if(pending!=""){line=pending+" "+line;pending="";}if(line.EndsWith("-")){pending=line.Substring(0,line.Length-1);continue;}if(line==""||line.StartsWith("*"))continue;
@@ -41,13 +44,15 @@ static class StaadDisplacements {
    if(Regex.IsMatch(line,@"^UNIT\b",RegexOptions.IgnoreCase)){string u=DetectUnit(Regex.Replace(line,@"\b(KNS?|KIPS?|NEWTONS?|N|KGS?|MTON|POUNDS?|LBS?|KG)\b","",RegexOptions.IgnoreCase));if(u!=null){factor=Unit(u);unitSource="STAAD UNIT command ("+u+")";}continue;}
    if(Regex.IsMatch(line,@"^JOINT\s+COORD",RegexOptions.IgnoreCase)){if(Regex.IsMatch(line,@"CYL",RegexOptions.IgnoreCase))throw new Exception("Cylindrical joint coordinates are not supported; export the Node table instead.");mode="nodes";line=Regex.Replace(line,@"^JOINT\s+COORD\w*","",RegexOptions.IgnoreCase).Trim();}
    else if(Regex.IsMatch(line,@"^MEMBER\s+INCI",RegexOptions.IgnoreCase)){mode="members";line=Regex.Replace(line,@"^MEMBER\s+INCI\w*","",RegexOptions.IgnoreCase).Trim();}
+   else if(Regex.IsMatch(line,@"^MEMBER\s+PROP",RegexOptions.IgnoreCase)){mode="properties";line=Regex.Replace(line,@"^MEMBER\s+PROP\w*(\s+(AMERICAN|BRITISH|EUROPEAN|INDIAN|JAPANESE|AUSTRALIAN|CANADIAN))?","",RegexOptions.IgnoreCase).Trim();}
    else if(Regex.IsMatch(line,@"^SUPPORTS?\b",RegexOptions.IgnoreCase)){mode="supports";line=Regex.Replace(line,@"^SUPPORTS?","",RegexOptions.IgnoreCase).Trim();}
    else if(!Regex.IsMatch(line,@"^\d")){if((mode=="nodes"||mode=="members")&&Regex.IsMatch(line,@"^REPEAT",RegexOptions.IgnoreCase))throw new Exception("The model uses REPEAT generation. Export the expanded Node and Beam tables from STAAD instead.");mode="";continue;}
    if(mode==""||line=="")continue;
    foreach(string statement in line.Split(';')){string s=statement.Trim();if(s=="")continue;var p=Regex.Split(s,@"\s+");
     if(mode=="nodes"){if(p.Length!=4)throw new Exception("Unsupported joint statement '"+s+"'. Export the expanded Node table.");AddNode(data,new BeamNode{Id=Id(p[0]),X=Number(p[1])*factor,Y=Number(p[2])*factor,Z=Number(p[3])*factor});}
     else if(mode=="members"){if(p.Length!=3)throw new Exception("Unsupported member incidence statement '"+s+"'. Export the expanded Beam table.");AddMember(data,new BeamMember{Id=Id(p[0]),A=Id(p[1]),B=Id(p[2])});}
-    else if(supports!=null){foreach(int n in NodeList(s))supports.Add(n);}}}
+    else if(mode=="properties"){var m=Regex.Match(s,@"^(?<list>[\d\sTOBY]+?)\s+PRIS\b(?<rest>.*)$",RegexOptions.IgnoreCase);if(!m.Success)continue;var yd=Regex.Match(m.Groups["rest"].Value,@"\bYD\s+(\S+)",RegexOptions.IgnoreCase);var zd=Regex.Match(m.Groups["rest"].Value,@"\bZD\s+(\S+)",RegexOptions.IgnoreCase);if(!yd.Success||!zd.Success)continue;double h=Number(yd.Groups[1].Value)*factor*1000,b=Number(zd.Groups[1].Value)*factor*1000;foreach(int n in NodeList(m.Groups["list"].Value))data.Sections[n]=new[]{b,h};}
+    else if(mode=="supports"&&supports!=null){foreach(int n in NodeList(s))supports.Add(n);}}}
   if(data.Nodes.Count>0)data.GeometryUnitSource=unitSource;}
  // Reads JOINT DISPLACEMENT tables printed by STAAD (PRINT JOINT DISPLACEMENTS) and the echoed model when present.
  internal static void Anl(BeamDeflectionData data,string text,string geometryUnit,string displacementUnit){var model=new BeamDeflectionData();bool complete=true;try{Model(model,text,geometryUnit);}catch(Exception){complete=false;}

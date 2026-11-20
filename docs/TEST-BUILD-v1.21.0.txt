@@ -1,0 +1,20 @@
+DTCE Tool Kit v1.21.0 test build (18 November 2026) - new feature
+
+Construction Schedule (owner: "bar chart for computation of working days, based sa
+quantities and pay items"; output per hour from "2027 - V6.02 - Alcala - Piggatan -
+MPB", Output per Hour Summary)
+- New top tab "Construction Schedule": one row per Bill of Quantities pay item
+  with a quantity. Working days = quantity / (output per hour x working hours
+  per day x crews), rounded up.
+- Output per hour comes from the owner's DUPA summary (268 pay items, matched by
+  item no. and description); it can be changed per item. Crews (default 1) and
+  Start day can be entered per item; a blank start day means "after the item
+  above", a number runs items at the same time.
+- Settings: working hours per day (8), working days per week (6), unworkable
+  days (0). Summary: total working days (latest finish) and calendar days =
+  working days x 7 / working days per week + unworkable days.
+- Bar chart of every item under the table.
+- LS items are left out for now (owner: "hayaan mo muna yung mga LS").
+- The settings and the per-item changes are saved with the project.
+
+Includes v1.20.0. Not a Microsoft Store release.

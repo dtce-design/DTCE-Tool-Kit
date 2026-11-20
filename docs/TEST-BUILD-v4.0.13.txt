@@ -1,0 +1,17 @@
+DTCE Tool Kit v4.0.13 (was v1.49.13) test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: Bar Bending Schedule (beams) - one combined print.
+
+One document ("Icomvine mo na silang tatlo")
+- The three prints (Print preview of the cutting list report, Print bar bending schedule, Print site sheets) are now one
+  button, "Print BBS, cutting list and site sheets", giving one A3 document:
+  PART A - engineering: 1 schedule information and the beam lines (spans, sizes, supports, slab, identical lines, in
+  estimate), 2 shape key, 3 beam details (elevation strips and sections), 4 bar bending schedule, 5 weight summary,
+  6 cutting list with cutting patterns and the order, 7 SMF detailing check, 8 splice zone check, 9 estimate per span
+  (kg per bar size, hoop sets, concrete, forms; included-span totals), 10 review and notes, signatures.
+  PART B - site sheets for the crew (new page): how to read, cutting, bending cards, placing (refers to the drawings of
+  section 3, not repeated), warning and release signatures.
+- Signature lines are kept on the same page as the paragraph before them.
+
+Includes v4.0.12 (was v1.49.12) and earlier local builds (see their notes).

@@ -1,0 +1,15 @@
+DTCE Tool Kit v2.1.0 (was v1.45.0) test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+
+Beam Deflection Check - Beams to check fill in automatically ("Yung sa beam deflection meron yung window na
+automatic na sana", "Yung sa may beams to check")
+- Beam lines are suggested as soon as the geometry is loaded - from the .STD model, the .ANL input echo, or the
+  Nodes / Beams tables (import or paste) - when the Beams to check list is empty.
+- The dead and live service load cases are entered automatically from the STAAD load titles (LOAD n LOADTYPE
+  DEAD / LIVE / ROOF LIVE TITLE ...) or from the load case names of the displacement table (DL, SW, SDL, LL, LR,
+  ...). Load combinations, wind, seismic and temperature cases are left out.
+- The import message boxes are gone: what was imported and what was filled in automatically is shown in the
+  Loaded data panel. Review the lines and cases before you calculate.
+
+Includes v2.0.0 (was v1.44.0) and earlier local builds (see their notes).

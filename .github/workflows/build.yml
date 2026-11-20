@@ -120,7 +120,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "build-${GITHUB_RUN_NUMBER}" release/DTCE-Tool-Kit-User.zip release/DTCE-Tool-Kit-Admin.zip release/DTCE-Mobile-Access.zip release/*.msix --target "$GITHUB_SHA" --title "DTCE Tool Kit - successful build ${GITHUB_RUN_NUMBER}" --notes "User and key-free Admin builds. Calculations and signed-access checks passed. Commit: ${GITHUB_SHA}. Private signing keys are excluded. Includes separate User and Admin MSIX packages. Package generation does not submit or certify the app."
+          # Owner (19 November 2026): name each release after the app version it carries (taken from the MSIX package version).
+          VERSION=$(ls release/*.msix | head -n 1 | sed -nE 's/.*_([0-9]+\.[0-9]+\.[0-9]+)\.0_x64\.msix$/\1/p')
+          if [ -n "$VERSION" ]; then TAG="v${VERSION}-build-${GITHUB_RUN_NUMBER}"; TITLE="DTCE Tool Kit v${VERSION} - build ${GITHUB_RUN_NUMBER}"; else TAG="build-${GITHUB_RUN_NUMBER}"; TITLE="DTCE Tool Kit - successful build ${GITHUB_RUN_NUMBER}"; fi
+          gh release create "$TAG" release/DTCE-Tool-Kit-User.zip release/DTCE-Tool-Kit-Admin.zip release/DTCE-Mobile-Access.zip release/*.msix --target "$GITHUB_SHA" --title "$TITLE" --notes "User and key-free Admin builds. Calculations and signed-access checks passed. Commit: ${GITHUB_SHA}. Private signing keys are excluded. Includes separate User and Admin MSIX packages. Package generation does not submit or certify the app."
   store-user-upload:
     if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish_microsoft_store == true && vars.STORE_AUTO_UPLOAD_ENABLED == 'true' && needs.build.outputs.windows_changed == 'true'
     needs: build

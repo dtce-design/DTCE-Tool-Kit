@@ -1,0 +1,18 @@
+DTCE Tool Kit v1.22.0 test build (18 November 2026) - behaviour change
+
+Construction Schedule (owner: "fix at 8 hrs/day, working days lang, huwag isama ang
+Sundays, holidays, unworkables; chart na lang siya ...", "automate na yung
+pagkakasunod-sunod, yung pwedeng mag-parallel works", "automate everything")
+- One chart only: Item no., Description, Quantity, Unit, Output / hour,
+  No. of days, then the bar chart. No inputs.
+- Fixed 8 working hours per day; working days only (no Sundays, holidays or
+  unworkable days, no calendar days).
+- Automatic sequence: every pay item belongs to a work phase by its DPWH item
+  no. (site clearing; excavation; piling; foundation and structural concrete;
+  masonry and structural steel; roofing, insulation, waterproofing and
+  plumbing / electrical rough-in; finishes, doors and windows, site works;
+  painting). Items of the same phase run at the same time; each phase starts
+  the day after the previous phase is finished. Total = last finish day.
+- LS items and time-based items (months) are not included.
+
+Includes v1.21.0. Not a Microsoft Store release.

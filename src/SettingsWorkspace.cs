@@ -3,7 +3,7 @@ namespace BeamScheduleFormatter {
 // Reuse the actual controls, so saved estimates and existing calculation events stay authoritative.
 static class SettingsWorkspace {
  public static void Show(IWin32Window owner,string title,string[] names,Control[] panels){
-  using(var dialog=new Form{Text=title+" | Settings",ClientSize=new Size(900,610),MinimumSize=new Size(720,480),StartPosition=FormStartPosition.CenterParent,Font=new Font("Segoe UI",10)}){
+  using(var dialog=new Form{Text=title+" | Settings",ClientSize=new Size(names.Length>3?1040:900,names.Length>3?680:610),MinimumSize=new Size(720,480),StartPosition=FormStartPosition.CenterParent,Font=new Font("Segoe UI",10)}){
    AppBrand.Apply(dialog);var tabs=new NavigationTabs{Dock=DockStyle.Fill};var footer=new FlowLayoutPanel{Dock=DockStyle.Bottom,Height=54,Padding=new Padding(10),FlowDirection=FlowDirection.RightToLeft};
    var done=new Button{Text="Done",Width=110,Height=32,DialogResult=DialogResult.OK};footer.Controls.Add(done);
    var note=new Label{Text="Changes apply immediately. Save the estimate/project to keep them.",AutoSize=true,Padding=new Padding(0,8,14,0)};footer.Controls.Add(note);dialog.Controls.Add(tabs);dialog.Controls.Add(footer);dialog.AcceptButton=done;dialog.CancelButton=done;

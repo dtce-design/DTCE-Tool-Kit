@@ -1,0 +1,18 @@
+DTCE Tool Kit v4.0.6 (was v1.49.6) test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: extends the existing Truss Support on RC and Base Plate & Anchor Bolts design sheets.
+
+Anchor bolt sizes from the Powersteel Anchor Bolt Specs Guide ("Use this sizes sa anchor bolt")
+- New "Anchor bolt (Powersteel A x B x C x D)" choice with all 36 sizes of the guide (diameter x length x hook x
+  thread, inches: 3/8 to 1 1/4 in) and "Custom".
+- Choosing a size fills the diameter, the hook length eh (C) and the embedment hef = length B less what projects above
+  the concrete (grout, plate, washer, heavy hex nut and two threads) less one diameter to the hook bearing; hef follows
+  the plate thickness and grout setting. The anchor type is set to hooked (L) bolt.
+- Inch anchors use the UNC tensile stress areas (3/8: 50.0, 1/2: 91.5, 5/8: 145.8, 3/4: 215.5, 7/8: 298.1, 1: 391.0,
+  1 1/4: 625.2 mm2) and heavy hex nuts; M16-M36 remain available for Custom.
+- New check "Anchor thread length": thread D against plate + washer + nut + two threads.
+- Presets: Detail 6 uses 3/4" x 12" (hook 4", thread 4"); Truss 2 anchorage uses 3/4" x 18" (hook 4", thread 7") for the
+  350 mm minimum embedment. Base Plate default: 1" x 24".
+
+Includes v4.0.5 (was v1.49.5) and earlier local builds (see their notes).

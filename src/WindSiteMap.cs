@@ -1,4 +1,4 @@
-using System;using System.Linq;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.IO;using System.Net;using System.Threading;using System.Threading.Tasks;using System.Windows.Forms;
+﻿using System;using System.Linq;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.IO;using System.Net;using System.Threading;using System.Threading.Tasks;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 static class WindColors {
  public static Color Roughness(string value){return value=="B"?Color.FromArgb(35,139,79):value=="C"?Color.FromArgb(208,153,18):value=="D"?Color.FromArgb(32,115,210):Color.Gray;}
@@ -25,7 +25,7 @@ partial class WindSiteMap:Control {
  static double Lat(double y,int z){return Math.Atan(Math.Sinh(Math.PI*(1-2*y/(256*(1<<z)))))*180/Math.PI;}
  void Zoom(int delta){zoom=Math.Max(3,Math.Min(18,zoom+delta));Queue();}
  public void SetSite(double lat,double lon){WindTin.Validate(lat,lon);if(double.IsNaN(siteLat)||Math.Abs(lat-siteLat)>1e-8||Math.Abs(lon-siteLon)>1e-8){latitude=siteLat=lat;longitude=siteLon=lon;zoom=14;terrain=null;message="Loading project-site map…";Queue();}}
- public void SetTerrain(WindTerrain value,double height=10){referenceHeight=height;if(!object.ReferenceEquals(terrain,value)){terrain=value;if(roughness!=null){roughness.Dispose();roughness=null;}if(value!=null&&value.CoverGrid!=null){var grid=value.CoverGrid;roughness=new Bitmap(grid.Size,grid.Size);for(int row=0;row<grid.Size;row++)for(int col=0;col<grid.Size;col++)roughness.SetPixel(col,row,Color.FromArgb(56,WindColors.Cover(grid.Codes[row*grid.Size+col])));latitude=value.Lat;longitude=value.Lon;zoom=Math.Max(3,Math.Min(16,(int)Math.Floor(Math.Log(Math.Max(250,Math.Min(Width,Height))*156543.03392*Math.Cos(latitude*Math.PI/180)/(2.2*value.Radius),2))));Queue();}}Invalidate();}
+ public void SetTerrain(WindTerrain value,double height=10){referenceHeight=height;if(!object.ReferenceEquals(terrain,value)){terrain=value;if(roughness!=null){roughness.Dispose();roughness=null;}if(value!=null&&value.CoverGrid!=null){var grid=value.CoverGrid;roughness=new Bitmap(grid.Size,grid.Size);for(int row=0;row<grid.Size;row++)for(int col=0;col<grid.Size;col++)roughness.SetPixel(col,row,Color.FromArgb(34,WindColors.Cover(grid.Codes[row*grid.Size+col])));latitude=value.Lat;longitude=value.Lon;zoom=Math.Max(3,Math.Min(16,(int)Math.Floor(Math.Log(Math.Max(250,Math.Min(Width,Height))*156543.03392*Math.Cos(latitude*Math.PI/180)/(2.2*value.Radius),2))));Queue();}}Invalidate();}
  public void Recenter(){if(double.IsNaN(siteLat))return;latitude=siteLat;longitude=siteLon;zoom=14;Queue();}
  void Queue(){if(IsDisposed)return;Invalidate();refresh.Stop();refresh.Start();}
  PointF Pixel(double lat,double lon){return new PointF((float)(X(lon,zoom)-X(longitude,zoom)+Width/2.0),(float)(Y(lat,zoom)-Y(latitude,zoom)+Height/2.0));}

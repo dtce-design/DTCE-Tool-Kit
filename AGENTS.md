@@ -142,6 +142,20 @@ new explicit request.
 New owner request (18 November 2026, "upload sa microsoft store"): publish v1.19.4 (User and Admin) the same way after
 its Windows CI passes (publish_microsoft_store=true; replace_pending_store_submission stays false unless the owner asks).
 Owner (18 November 2026, "isama ang bago"): include the newer changes and publish v1.20.0 instead of v1.19.4.
+Result 18 November 2026: v1.20.0 merged to main (GitHub release OK, run 44271865377). Store run 44271896215: both User and
+Admin uploads were refused because the v1.5.0 submissions are still in Certification ("Existing submission is not
+editable: Certification"). Nothing was changed in Partner Center. Re-run the failed Store jobs of run 44271896215 after
+v1.5.0 certification finishes, or - only if the owner asks - with replace_pending_store_submission=true after the owner
+cancels the v1.5.0 certification in Partner Center.
+Later versions again need a new explicit request.
+New owner request (19 November 2026, "paki upload na sa microsoft store"): publish v1.32.0 (User and Admin) the same way after
+its Windows CI passes (publish_microsoft_store=true; replace_pending_store_submission stays false unless the owner asks).
+Later versions again need a new explicit request.
+New owner request (20 November 2026, "release mo na sa microdoft store"): publish v1.50.18 (User and Admin) the same way after
+its Windows CI passes (merge PR #11 to main, then publish_microsoft_store=true; replace_pending_store_submission stays false
+unless the owner asks). It supersedes the v1.32.0 request. Owner (20 November 2026) chose to release v1.50.19 instead (includes the BOQ status
+change), renumbered v5.0.19 at the owner's request (versions since v1.44.0 renumbered, see docs/VERSION-RENUMBER-2026-11-20.txt).
+The owner then asked for the "(No Top Coat)" wording change as its own PATCH: the Store release is v5.0.20.
 Later versions again need a new explicit request.
 
 ## Version numbers (18 November 2026)
@@ -149,3 +163,28 @@ Later versions again need a new explicit request.
 Owner: use MAJOR.MINOR.PATCH properly. New features or noticeable behaviour changes raise MINOR and reset PATCH
 (1.5.0 -> 1.6.0); bug-fix-only builds raise PATCH (1.5.0 -> 1.5.1); MAJOR only for incompatible changes. The next
 build after v1.4.135 is v1.5.0. Keep src/Program.cs Version, src/AssemblyInfo.cs (x.y.z.0) and docs/TEST-BUILD-*.txt in step.
+Owner (19 November 2026, "Bakit di nasusunod ang version no naming major.minor.bug"; chose "Fixes as PATCH only"): keep the
+numbers already given (v1.48.0). A build that only fixes, adjusts or extends an existing workspace or design sheet raises PATCH
+(1.48.0 -> 1.48.1); MINOR goes up only when a whole new workspace or design sheet is added (then PATCH resets).
+Owner (20 November 2026, "hindi ba major yung bagong design sheet?"; chose v2.0.0): a whole new design sheet or workspace now
+raises MAJOR (then MINOR and PATCH reset, e.g. 5.0.19 -> 6.0.0). Fixes, adjustments and extensions of an existing workspace or
+design sheet still raise PATCH (5.0.19 -> 5.0.20); MINOR is for other new features. Owner ("icheck mo din yung mga previous para
+marenumber sila"): versions since v1.44.0 were renumbered by this rule (v1.44 -> 2.0, v1.45-1.47 -> 2.1-2.3, v1.48 -> 3.0,
+v1.49 -> 4.0, v1.50.x -> 5.0.x); v1.50.19 is v5.0.19. Earlier versions and published GitHub tags keep their numbers.
+
+## Linked Excel workbook and version names (19 November 2026)
+
+Owner: "hindi isasave ng app, manual save ang excel". The Program of Works writes quantities into the open linked
+workbook but never saves it; the owner saves it in Excel (the status bar and the close message say so). Only creating a
+new workbook file at a chosen path and the explicit design-report export still write the file. GitHub releases are named
+after the app version they carry (tag v<version>-build-<run>). The Store package version is the app version (x.y.z.0);
+the Store still shows v1.5.0 because no later upload was accepted - a newer Store upload needs a new explicit request.
+Macros: a workbook the app opens for a visible link follows the Excel Trust Center (AutomationSecurity by UI, events on,
+Excel shown first); never force macros off for the owner's linked workbook.
+BOQ mapping: the mapping saved in the Program of Works wins over the linked workbook's names and suggestions; linking or
+refreshing BACKUP must never erase it (items are followed by item no., description and unit).
+Part A / B (owner, 19 November 2026, superseding "Pareho": "iallow na lang maginput ng qty sa boq ng app for part A and B"): the
+owner types Part A / B quantities in the app's Bill of Quantities and they are copied to the same BACKUP item; the app does not
+fill them (ProgramOfWorksForm.FillGeneralRequirements stays false).
+Workspaces (owner, 19 November 2026): each workspace (Formatters, Program of Works, Design Sheets, Project Information, Access
+Code Generator) opens in its own window; the Workspaces window stays open.

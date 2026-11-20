@@ -1,0 +1,51 @@
+DTCE Tool Kit v1.30.0 test build (19 November 2026) - new behaviour
+
+Not tested on Windows yet (Linux/Mono checks only). This is a GitHub test build, not a
+Microsoft Store release; the Store still has v1.5.0.
+
+Beam / slab estimates - DXF
+- Linked AutoCAD tables (ACAD_TABLE with DATALINK / TABLECONTENT) are removed from the
+  DXF kept in a beam or slab estimate; every other drawing line is kept exactly.
+- The kept DXF text is compressed.
+
+Program of Works
+- "Save Program of Works As..." saves the project under another file name.
+- The app no longer saves the linked Excel workbook ("manual save ang excel"): quantities
+  are written into the open workbook and the status bar / close message say it is not
+  saved; save it in Excel (Ctrl+S). Creating a new workbook file and the design-report
+  export still write their files.
+- Workbooks the app opens for a visible link follow the Excel Trust Center, so their
+  macros can run (macros were forced off before).
+- Linking or refreshing the BACKUP workbook keeps the Bill of Quantities mapping saved in
+  the Program of Works ("ang susundan e yung nasa POW na app"); each item is followed by
+  its item no., description and unit. Mappings whose item is not in the workbook are
+  listed, not moved to another item.
+- Part A / B: the app fills B.3, B.4 staking, B.7, B.9 (1 ls), B.5 billboards (1 ea each),
+  A.1.4 progress photographs and the field office / vehicle operation months from the
+  construction schedule. Every value can be typed over (0 removes it, blank returns the
+  app's value).
+
+Construction schedule
+- Logic when an item is missing ("paano if wala yung isa?"): each item falls back to the
+  next work it physically stands on (walls, roof, frame, footings, clearing, then the
+  survey) instead of jumping to clearing. Checked with 22,305 schedule runs (12 project
+  templates, every trade and pair of trades left out, 30,000 random item mixes): no
+  item starts before the work it needs. 400(1) furnishing of piles is now its own
+  trade; backfill for structures (104) is separate from building backfill. The sample
+  project stays at 193 days.
+- PDM / PERT arrows: tidier routing with fewer crossings, and the arrows into the
+  repeated box / event on a continuation sheet keep their labels on that sheet. Whole
+  catalogue checked at three sizes with no line through a label.
+
+Design Sheets
+- Beam Deflection Check: STAAD model geometry and node displacements are on one tab.
+  Member sections (b, h) are read from STAAD MEMBER PROPERTY ... PRIS YD ZD. Beam lines
+  are suggested automatically after a model is imported into an empty list. The RC Ie
+  calculator fills b, h and suggests d = h - 65 mm, d' = 65 mm (check them), and
+  calculates as you type. Ig/Ie and rho' always follow the saved Ie inputs. As and the
+  service moment Ma are still entered by the engineer.
+- Wind load map: lighter roughness colours inside the circles, a legend drawn on the
+  map, and each circle labelled with its radius.
+
+Workspaces
+- Smaller workspace cards (three per row on wide windows).

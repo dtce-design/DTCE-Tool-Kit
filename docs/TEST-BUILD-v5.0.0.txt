@@ -1,0 +1,27 @@
+DTCE Tool Kit v5.0.0 (was v1.50.0) test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+MINOR: new design sheet (Design Sheets > Strap Foundation).
+
+Strap Foundation ("Strap Foundation. Ready input ng reaction kay staad. Yung foundation niya adjustable lahat yung pagka
+eccentric. Anong direction ng strap or double or triple any. Directions is same kay staad")
+- STAAD reactions: paste or import the Support Reactions table (node, L/C, Fx, Fy, Fz, Mx, My, Mz). Axes are the STAAD global
+  axes: Y up by default (plan X-Z, STAAD top view with +Z down the sheet); Z up is a choice (plan X-Y). Load cases named with
+  load factors (1.2, 1.4, 1.6, 0.9) are factored, the others service; both lists can be typed.
+- Footings: one per support node at its STAAD coordinates ("Paste STAAD node coordinates" fills X and Z from the Nodes table;
+  "Add footings from the reaction nodes"). Each footing has its own column size, B x L x thickness, eccentricity ex and ez
+  (footing centre minus column centre, either sign, both directions), "moment to" (Auto / Straps / Footing) and bars.
+- Straps: any two columns, any direction (along X, along Z or diagonal); a footing can have one, two, three or more straps.
+- Statics (rigid footings and straps, straps clear of the soil): at a footing whose moment goes to the straps the strap end
+  moments make the soil pressure as uniform as the straps allow (two straps in different directions: uniform; one strap: the
+  part across the strap stays with the footing); the other footings are the fulcrums. Classic two-footing case R = P L / (L - e).
+  Column moments, horizontal reactions (times the support height above the base), footing, soil and strap weights included.
+- Checks (NSCP 2015 / ACI 318-14): bearing and full contact (service, gross); footing flexure both directions with the off-centre
+  column cantilevers and minimum steel; one-way shear; punching with interior / edge / corner perimeter (αs 40 / 30 / 20);
+  strap top and bottom bars (As min), strap shear with stirrups and spacing.
+- Live plan model of the layout; results tab; presentable report: basis, materials, footing and strap tables, plan in the STAAD
+  axes, reactions, statics per load case, elevation of each strap with the factored moment and shear envelopes, every check as
+  formula -> substitution -> result, summary, blank signatures and notes. Examples: exterior + interior (1 strap) and corner
+  footing (2 straps).
+
+Includes v4.0.13 (was v1.49.13) and earlier local builds (see their notes).

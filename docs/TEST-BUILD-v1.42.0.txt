@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.42.0 test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+
+Include box in Beam Estimate and Slab Estimate ("bat wala pa din check box sa beam", "slab")
+- The Beam Estimate and Slab Estimate tables have the same x / include-box header columns as the other
+  Program of Works tables. An unticked row stays in the table (grey, status "Excluded from totals") with
+  its inputs kept, and is left out of the rebar, concrete, forms, earthworks, commercial bars, reports
+  and Excel output. It is saved with the project and restored unticked.
+
+Includes v1.41.0 and earlier local builds (see their notes).

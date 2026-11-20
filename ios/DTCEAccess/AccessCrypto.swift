@@ -105,8 +105,8 @@ enum AccessCrypto {
     }
     static func generate(key: SecKey, request input: String, apps: Int, now: Date = Date()) throws -> GeneratedAccess {
         let request = input.components(separatedBy: .whitespacesAndNewlines).joined().uppercased()
-        guard request.range(of: "^BEAM-[A-F0-9]{40}$", options: .regularExpression) != nil else { throw AccessError.invalid("Paste the complete BEAM request code from the User app.") }
-        guard apps > 0 && (apps & ~503) == 0 else { throw AccessError.invalid("Select at least one app.") }
+        guard request.range(of: "^(DTCE|BEAM)-[A-F0-9]{40}$", options: .regularExpression) != nil else { throw AccessError.invalid("Paste the complete request code (DTCE-... or BEAM-...) from the User app.") }
+        guard apps > 0 && (apps & ~8183) == 0 else { throw AccessError.invalid("Select at least one app.") }
         guard now.timeIntervalSince1970.isFinite, (0...253402300799).contains(now.timeIntervalSince1970) else { throw AccessError.invalid("Check your iPhone date and time.") }
         let issued = Int64(now.timeIntervalSince1970)
         guard issued >= 0 else { throw AccessError.invalid("Check your iPhone date and time.") }

@@ -1,0 +1,38 @@
+DTCE Tool Kit v1.28.0 test build (18 November 2026) - new behaviour
+
+Construction Schedule diagrams: continuity, standard notation, no overlapping text
+(owner: "continuity ng diagrams per sheets nakakalito", "yung diagram continuity ang
+need ko hindi off page connector", "hindi to sheet ang need, yung connector lang ng
+lines arrows", "nagkaroon na ng overlapping ng text", "yung diagrams ba namin as per
+standard?")
+- One continuous drawing per network, cut into A3 sheets at match lines (thin
+  dash-dot line). The "to n (sheet s)" / "from n (sheet s)" tags and the repeated
+  events are removed. Every line that reaches a match line continues on the next
+  sheet at the same height; the joins are placed in widened gaps between columns, so
+  only straight horizontal lines cross a join - no bend, node, event or text is ever
+  on or split by a join. To join the printed sheets, trim along a match line and butt
+  the next sheet to it.
+- PDM (activity on node; DPWH uses PDM): relation labels show type and lag only
+  ("SS +3", "FF +1", "FS +7"); FS without lag is not labelled (usual convention);
+  relations of the same type and lag share one arrowhead. Where several items of one
+  trade lead to several items of a later trade, the relations pass through one trade
+  milestone (M1, M2 ... "Reinforcing steel complete", D = 0) - same CPM times, far
+  fewer lines. Every finish that has no successor (only SS work after it) is joined
+  to FINISH, so no finish is left open. Lines are routed in free lanes and step
+  between them in the gaps before columns: no line runs behind a node or a label.
+- PERT-CPM (activity on arrow): orthogonal arrows out of the right side and into the
+  left side of the events; dummies (no time) dashed, lag arrows (time, no work)
+  dash-dot and labelled "SS +3"; event numbers i < j, no two activities share i-j; a
+  lag arrow is added wherever an FF relation sets the start of an activity, so a
+  forward pass on the drawn arrows gives exactly the TE printed in the circles. The
+  legend states that with a = 0.8 m and b = 1.2 m, te = m (PERT duration = CPM
+  duration) and that sigma / P90 / P95 rest on the assumed +/-20 % spread. Levels with
+  many events are split into staggered sub-columns.
+- Automatic drawing checks (tests): no label overlaps a label or a node, no line
+  through a node, nothing split or bent at a join, no label cut short - for this
+  project and for networks of every 2nd / 3rd / 4th catalogue item. Remaining in the
+  densest networks only: a few dashed lines pass behind a label (the label keeps its
+  white background and stays legible). With all 268 catalogue items at once (246
+  activities), the PERT sheet still has some crossings; the PDM has none.
+
+Includes v1.27.2. Not tested on Windows. Not a Microsoft Store release.

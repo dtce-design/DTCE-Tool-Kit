@@ -2,6 +2,12 @@ using System;using System.Linq;using System.Drawing;using System.Windows.Forms;u
 namespace BeamScheduleFormatter {
 // Reuses the existing live settings controls and their persistence/change handlers.
 partial class ProgramOfWorksForm {
+ void ShowAllMemberSettings(){
+  Commit();var names=new List<string>{"Beam","Column","Slab","Footing","Wall Footing","Canopy / Ledge","RC Wall"};
+  var panels=new List<Control>{beam.WorksSettings,extraMaterials["Column Estimate"].Panel,slab.WorksSettings,footingSettings,extraMaterials["Wall Footing"].Panel,canopySettings,rcWallSettings};
+  foreach(var n in MiscStructureTakeoff.Names){names.Add(n);panels.Add(extraMaterials[n].Panel);}
+  SettingsWorkspace.Show(this,"Member",names.ToArray(),panels.ToArray());Recalculate();RefreshStockChecks();
+ }
  void RefineRCStart(){
   var page=tabs.TabPages.Cast<TabPage>().Single(p=>p.Text=="Reinforced Concrete Start");var start=page.Controls.OfType<FlowLayoutPanel>().Single();
   var original=start.Controls.OfType<PowCard>().Single();var memberButtons=original.Controls.OfType<FlowLayoutPanel>().Single().Controls.OfType<Button>().ToList();memberButtons.AddRange(start.Controls.OfType<Button>());
@@ -15,9 +21,12 @@ partial class ProgramOfWorksForm {
    var captions=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase){{"Beam Settings","Beam settings"},{"Column settings","Column settings"},{"Slab Settings","Slab settings"},{"Foundation / Footing Settings","Footing settings"},{"Wall Footing settings","Wall footing settings"},{"Canopy / Ledge Settings","Canopy / ledge settings"},{"RC Wall Settings","RC wall settings"},{"Miscellaneous Structures settings","Miscellaneous structures settings"}};
    var order=captions.Keys.ToList();memberButtons=memberButtons.OrderBy(b=>{int i=order.FindIndex(k=>string.Equals(k,b.Text,StringComparison.OrdinalIgnoreCase));return i<0?99:i;}).ToList();
    foreach(var button in memberButtons){string caption;if(captions.TryGetValue(button.Text,out caption))button.Text=caption;}
+   /* Owner (19 November 2026, "pagsamasamahin na lang ng member settings hirap ng palipat lipat"): one window with a tab
+      per member instead of a separate window for each. */
+   var holder=new FlowLayoutPanel();Button(holder,"Member settings",ShowAllMemberSettings);memberButtons=holder.Controls.OfType<Button>().ToList();holder.Controls.Clear();
    var actions=new FlowLayoutPanel{AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,WrapContents=true,Margin=Padding.Empty,Padding=Padding.Empty};int buttonWidth=220;bool sizingButtons=false;
    Action<Button> fitButton=b=>{if(sizingButtons)return;sizingButtons=true;try{b.AutoSize=false;b.MinimumSize=new Size(buttonWidth,40);b.MaximumSize=new Size(buttonWidth,40);b.Size=new Size(buttonWidth,40);}finally{sizingButtons=false;}};
-   foreach(var button in memberButtons){var b=button;b.Margin=new Padding(0,0,10,10);b.TextAlign=ContentAlignment.MiddleCenter;fitButton(b);b.SizeChanged+=(s,e)=>{if(b.Width!=buttonWidth||b.Height!=40)fitButton(b);};actions.Controls.Add(b);}start.Controls.Add(new RCSettingsCard("Member settings","Materials, reinforcement and commercial lengths",actions));
+   foreach(var button in memberButtons){var b=button;b.Margin=new Padding(0,0,10,10);b.TextAlign=ContentAlignment.MiddleCenter;fitButton(b);b.SizeChanged+=(s,e)=>{if(b.Width!=buttonWidth||b.Height!=40)fitButton(b);};actions.Controls.Add(b);}start.Controls.Add(new RCSettingsCard("Member settings","Beam, column, slab, footing, wall footing, canopy / ledge, RC wall and miscellaneous structures in one window: materials, reinforcement and commercial lengths",actions));
    var covers=new FlowLayoutPanel{AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,WrapContents=true,Margin=Padding.Empty};foreach(var field in coverFields){field.Width=152;field.Height=68;field.Margin=new Padding(0,0,14,8);foreach(Control c in field.Controls){c.Width=c is NumericUpDown?128:148;}covers.Controls.Add(field);}var lean=new FlowLayoutPanel{Width=162,Height=68,FlowDirection=FlowDirection.TopDown,WrapContents=false,Margin=new Padding(0,0,0,8)};lean.Controls.Add(new Label{Text="Lean concrete (mm)",Width=156,Height=24});leanThickness.Width=128;lean.Controls.Add(leanThickness);covers.Controls.Add(lean);
    var coverBody=new FlowLayoutPanel{AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,FlowDirection=FlowDirection.TopDown,WrapContents=false,Margin=Padding.Empty};coverBody.Controls.Add(covers);coverBody.Controls.Add(defaults);rcDefaultsStatus.MaximumSize=new Size(620,0);rcDefaultsStatus.Font=new Font("Segoe UI",9);rcDefaultsStatus.ForeColor=PowTheme.Muted;rcDefaultsStatus.Padding=Padding.Empty;rcDefaultsStatus.Margin=new Padding(6,12,0,0);
    /* The empty space under the cover buttons came from GrowOnly auto-size: the row grew while the window was laid out

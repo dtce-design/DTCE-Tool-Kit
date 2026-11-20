@@ -26,7 +26,7 @@ partial class ProgramOfWorksForm {
   bool before=filling;filling=true;GridEditHistory.Quiet++;try{foreach(var row in rows){var x=(RowExclusion)row.HeaderCell.Tag;for(int c=0;c<x.Values.Length&&c<row.Cells.Count;c++)if(!(row.Cells[c] is DataGridViewButtonCell))row.Cells[c].Value=x.Values[c];}
    try{return work();}finally{foreach(var row in rows){var x=(RowExclusion)row.HeaderCell.Tag;for(int c=0;c<x.Values.Length&&c<row.Cells.Count;c++)if(!(row.Cells[c] is DataGridViewButtonCell))row.Cells[c].Value=null;}}}
   finally{GridEditHistory.Quiet--;filling=before;}}
- static void WriteRowExcluded(DataGridViewRow row,XmlElement entry){if(IsExcludedRow(row))entry.SetAttribute("x","1");}
- static void ReadRowExcluded(DataGridViewRow row,XmlElement entry){if(entry.GetAttribute("x")=="1"&&!IsExcludedRow(row)){GridEditHistory.Quiet++;try{ExcludeRow(row);}finally{GridEditHistory.Quiet--;}}}
+ static void WriteRowExcluded(DataGridViewRow row,XmlElement entry){WriteRowMark(row,entry);if(IsExcludedRow(row))entry.SetAttribute("x","1");}
+ static void ReadRowExcluded(DataGridViewRow row,XmlElement entry){ReadRowMark(row,entry);if(entry.GetAttribute("x")=="1"&&!IsExcludedRow(row)){GridEditHistory.Quiet++;try{ExcludeRow(row);}finally{GridEditHistory.Quiet--;}}}
 }
 }

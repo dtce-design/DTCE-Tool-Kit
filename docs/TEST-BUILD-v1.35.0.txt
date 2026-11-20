@@ -1,0 +1,21 @@
+DTCE Tool Kit v1.35.0 test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+
+Construction Schedule - LS and Part A / B items ("yung LS pay items pano kaya"; "yung mga nasa part A and B whole
+project duration ... except mob demob start and end ng project lang yun"; "ee yung mga iba nga doon pano iquantify")
+- Part A / B items (permits and clearances, safety, field office and vehicles, progress photographs,
+  billboards ...) are shown over the whole project, day 1 to the last day; they do not set or lengthen
+  it and are not activities of the PDM / PERT network. Survey / staking and soil investigation stay
+  site work in the logic.
+- B.9 Mobilization from day 1 (7 days by default) and Demobilization after the last work (5 days by
+  default); double-click to change.
+- Other LS items (finishing hardware, doors and windows, fixtures, electrical ... in LS) have no DUPA
+  output per hour: double-click the row and enter its working days; the construction logic then places
+  it with its trade. Without days it is listed without a bar.
+
+Sub tabs ("bakit ang pangit ng sub tabs")
+- Sub tabs are plain labels with an accent underline under the selected one; the main tabs keep the
+  folder shape, so the levels read clearly.
+
+Includes v1.34.0 and v1.33.0 (see their notes).

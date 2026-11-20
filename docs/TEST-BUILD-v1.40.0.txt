@@ -1,0 +1,25 @@
+DTCE Tool Kit v1.40.0 test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+
+Workspace windows
+- The "Workspaces" back button is removed from every workspace header ("alisin na lang yung button");
+  each workspace is its own window.
+- Program of Works: the Save Program of Works and File buttons sit in the header beside the title
+  ("ilipat na lang sa tabi ng Program of Works"). The Report menu is removed - the Reports main tab
+  has the reports ("meron naman ng reports na main tab"). Ctrl+P / Ctrl+Shift+P still work.
+
+Member settings ("pagsamasamahin na lang ng member settings hirap ng palipat lipat")
+- Reinforced Concrete Start has one "Member settings" button. It opens one window with a tab for Beam,
+  Column, Slab, Footing, Wall Footing, Canopy / Ledge, RC Wall and each miscellaneous structure.
+- Beam settings: the fixed values (cb+Ktr)/db and tie tail min x dia are hidden ("alisin na yung di
+  naman kailangan laging palitan"); they keep the same values in the calculation.
+
+Tables
+- The delete x and the include box are two separate header columns with a divider ("hiwalay sana na
+  column yung X at Check").
+
+Sub tabs
+- The lighter sub-tab style of v1.35.0 is reverted to the previous folder tabs.
+
+Includes v1.39.0 and earlier local builds (see their notes).

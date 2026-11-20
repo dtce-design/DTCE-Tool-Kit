@@ -1,0 +1,68 @@
+DTCE Tool Kit v1.32.0 test build (19 November 2026)
+
+Not tested on Windows yet (Linux/Mono checks only). GitHub test build, not a Microsoft
+Store release (the Store still has v1.5.0).
+
+Construction Schedule ("hindi ba pwede paiksiin yung working days")
+- Double-click an item in the Bar Chart to set the number of crews working on it at
+  the same time. The output per hour stays fixed at the DUPA value ("fix yung output
+  per hour"). No. of days = quantity / (output per hour x 8 hours x crews), rounded up.
+  The dialog shows the new duration before it is applied; Reset returns to 1 crew. More crews add their workers to the daily manpower. The choice is saved with
+  the Program of Works, and the PDM, PERT-CPM, manpower and printed set follow it.
+- The longest items are usually painting, ceilings and tiles; adding crews there
+  shortens the critical path the most.
+
+Reports ("wala naman pinagbago ang detailed at extensive")
+- Detailed and Extensive gave the same PDF report. Extensive now adds, after the
+  Detailed calculation record, a calculation trace of every bar (pieces x cut length x
+  unit mass = cut steel, lap and offcut, commercial bars and segments used) and, in the
+  Program of Works report, the commercial bars to order. Beam and slab estimate reports
+  get the same trace.
+
+Bill of Quantities
+- A quantity left unmapped by hand stays unmapped even when the app has its own pay item
+  for it.
+- Windows: quantity cells of the Bill of Quantities that should accept a typed quantity
+  (Part A / B, LS and other items without computed quantities) could stay read-only;
+  they are made editable again once the table is filled (found by the Windows tests).
+
+Metal painting (checked on request: "paki double check yung quantity calculation ng metal paintings")
+- Areas per metre, all exposed faces: lipped C purlin 2H + 4B + 4 x lip (e.g. C3"x1.5"x0.5" =
+  0.3556 m2/m); angle 2(H + B) (L50x50 = 0.200 m2/m); flat bar 2(B + t); rectangular HSS
+  2(H + B) outside only; pipe pi x OD outside only; crossbracing rod pi x d x diagonal length.
+  Area = per metre x installed length x quantity. Checked against 248 test cases; no
+  quantity change was needed.
+- The total line now says that it includes crossbracing rods (it always did).
+
+Program of Works command bar ("isummarize yung buttons", "huwag na yung undo redo", "pwede naman shortcut key")
+- The bar now has Save Program of Works, a File menu (Open Ctrl+O, Save As Ctrl+Shift+S,
+  Close, Project files, Restore backup) and a Report menu (Print preview Ctrl+P, Save PDF
+  Ctrl+Shift+P, Export report file). Save is Ctrl+S.
+- No Undo / Redo buttons (also in the estimates and design sheets); Ctrl+Z undoes and
+  Ctrl+Y (or Ctrl+Shift+Z) redoes row edits as before.
+
+Construction Schedule screen ("ayusin itong sa taas", "ifix mo yung left side tapos scrollable yung working days",
+"alisin ang unnecessary wordings")
+- One command row: Print preview, Print, "?" (how the schedule is computed) and the
+  summary (total working days, peak manpower). The long notes were removed.
+- Bar Chart: item no., description, quantity, unit, output per hour and no. of days stay
+  in place; only the working days scroll (scroll bar under the chart, or Shift + mouse
+  wheel). The printed set is unchanged.
+
+Contract Duration tab ("gumawa ng ganitong tab sa pow, ilagay lahat ng holidays, at input ng rainy days")
+- New Program of Works tab after Construction Schedule, following the owner's
+  "COMPUTATION OF ESTIMATED PROJECT DURATION" sheet. Inputs: start date and working days
+  (0 = the construction schedule's total). Per month: working days, Sundays, holidays,
+  rainy days, revised rainy days = MIN(open days, ROUNDUP(rainy x (1 - (Sundays +
+  holidays) / total days))), total days and weeks; totals; contract duration and end
+  date (the first date at which the workable days reach the working days).
+- Holidays: the national regular holidays and special non-working days are listed for
+  the project years (fixed dates, Holy Week from Easter, National Heroes Day, and the
+  expected Chinese New Year / Eid dates, to be edited to the proclamation). Rows can be
+  added, edited or deleted; holidays on Sundays are not counted twice.
+- Rainy days: days with rainfall above 7.5 mm, one row per year; the last five recorded
+  years of each month are averaged. "Use PAGASA Aparri records" fills the table from the
+  owner's sheet (Nov 2020 - Aug 2026).
+- Checked against the owner's sheet: start May 3, 2027, 72 working days -> Sundays 15,
+  holidays 2, rainy days 18, contract duration 107 days, end date August 17, 2027.
+- Saved with the Program of Works.

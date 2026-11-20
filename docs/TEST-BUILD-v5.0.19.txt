@@ -1,0 +1,26 @@
+DTCE Tool Kit v5.0.19 (was v1.50.19, briefly numbered v2.0.0) - 20 November 2026.
+
+Windows checks: GitHub Windows CI must pass before the Store upload. A Store upload is not certification.
+Numbering (owner, 20 November 2026): a new design sheet or workspace raises MAJOR; versions since v1.44.0 were renumbered (see
+docs/VERSION-RENUMBER-2026-11-20.txt). Strap Foundation design sheet, Bar Bending Schedule
+extensions, manual column / footing schedules, separate access for the new workspaces and Program of Works refinements
+(v5.0.0 - v5.0.19, formerly v1.50.0 - v1.50.19). Latest changes: BOQ status lists only exclusions and issues; jamb depth per wall; openings shown on each masonry wall.
+
+- Bill of Quantities status ("alisin mo na ito sa status, yung mga na exclude lang and other issues"): working automatic LS
+  items (for example 1007(2), 1008(2), 1010(4), 1004(2): "1 LS from included mapped quantities") are no longer listed. The
+  status shows errors, quantities not mapped, pay items with excluded quantities, and an automatic LS item that came out
+  0 LS because none of its mapped quantities is included.
+- Contract Duration fix: national holidays and the last rainfall records are filled in when a Program of Works is created or
+  opened, not when the Contract Duration tab is first shown. Opening that tab no longer marks an unchanged project as changed
+  (a new POW asked to save on close). The holidays and rain records are still saved with the project.
+- Jamb depth per wall ("magkaiba talaga ang jamb depth. yung depth na gagamitin ay based sa thk ng masonry wall"): an opening ID
+  assigned to walls of different thickness is no longer an error. The units in each wall use the jamb depth of that wall
+  (for example D-03: 1 in a 100 mm wall at 0.10 m, 1 in a 150 mm wall at 0.15 m) and the jamb paint adds them. Units not
+  assigned to a wall follow the row's Wall ID, or the Unassigned CHB thickness setting. Hovering the opening's width shows
+  the split.
+- Openings on each wall ("ipakita din yung mga opening na na-include sa masonry", "irerecord yung jamb based sa CHB wall"): every
+  CHB / masonry wall row has an "Openings included (jamb depth from this wall)" column beside Openings m2, listing each opening
+  deducted from it with its units, size and, for wooden doors / windows, the jamb depth taken from that wall's thickness.
+- The POW preparation date (from Project Information) is also set when the POW is created or opened, so opening the Contract
+  Duration tab does not mark the project as changed.
+Includes v1.50.18 and earlier builds (see their notes).

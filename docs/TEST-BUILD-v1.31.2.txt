@@ -1,0 +1,9 @@
+DTCE Tool Kit v1.31.2 test build (19 November 2026)
+
+Not tested on Windows yet (Linux/Mono checks only). GitHub test build, not a Microsoft
+Store release (the Store still has v1.5.0).
+
+Workspaces window ("mas compact na window sa startup 2 columns lang")
+- The start window opens smaller (780 x 580) and always shows the workspace cards in
+  two columns, ending on the same right edge as the header and Workspace settings.
+- Includes the v1.31.1 fix: typed BOQ quantities are written to their BACKUP item.

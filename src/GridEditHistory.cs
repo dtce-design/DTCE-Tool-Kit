@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Drawing;using System.Linq;using System.Runtime.CompilerServices;using System.Windows.Forms;
+﻿using System;using System.Collections.Generic;using System.Drawing;using System.Linq;using System.Runtime.CompilerServices;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 sealed class GridRowSnapshot {
  internal object Extra;
@@ -39,8 +39,10 @@ sealed class GridEditHistory {
  }
  bool menuPrepared;
  void EnsureMenu(){if(menuPrepared||grid.ContextMenuStrip!=null)return;menuPrepared=true;
-  var menu=new ContextMenuStrip();var undo=menu.Items.Add("Undo (Ctrl+Z)",null,(s,e)=>Undo());var redo=menu.Items.Add("Redo (Ctrl+Y)",null,(s,e)=>Redo());menu.Items.Add(new ToolStripSeparator());var delete=menu.Items.Add("Delete selected rows (Ctrl+Delete)",null,(s,e)=>DeleteSelected());
-  menu.Opening+=(s,e)=>{if(commandTarget==null&&!Commit()){e.Cancel=true;return;}undo.Enabled=CanUndo;redo.Enabled=CanRedo;int count=SelectedRows().Count;delete.Text="Delete "+count+" selected row"+(count==1?"":"s")+" (Ctrl+Delete)";delete.Enabled=count>0;};
+  var menu=new ContextMenuStrip();var undo=menu.Items.Add("Undo (Ctrl+Z)",null,(s,e)=>Undo());var redo=menu.Items.Add("Redo (Ctrl+Y)",null,(s,e)=>Redo());menu.Items.Add(new ToolStripSeparator());/* owner, 20 November 2026: "sa pow allow maginsert ng rows up or below the selected row" */
+  var above=menu.Items.Add("Insert row above",null,(s,e)=>InsertRow(false));var below=menu.Items.Add("Insert row below",null,(s,e)=>InsertRow(true));menu.Items.Add(new ToolStripSeparator());
+  var delete=menu.Items.Add("Delete selected rows (Ctrl+Delete)",null,(s,e)=>DeleteSelected());
+  menu.Opening+=(s,e)=>{if(commandTarget==null&&!Commit()){e.Cancel=true;return;}undo.Enabled=CanUndo;redo.Enabled=CanRedo;int count=SelectedRows().Count;delete.Text="Delete "+count+" selected row"+(count==1?"":"s")+" (Ctrl+Delete)";delete.Enabled=count>0;above.Enabled=below.Enabled=CanInsert;};
   if(grid.ContextMenuStrip==null){grid.ContextMenuStrip=menu;grid.Disposed+=(s,e)=>menu.Dispose();}else menu.Dispose();
  }
  void Remember(){if(restoring||!grid.ContainsFocus)return;for(Control c=grid;c!=null;c=c.Parent){var form=c as Form;if(form==null)continue;ActiveGrid slot;if(!active.TryGetValue(form,out slot)){slot=new ActiveGrid();active.Add(form,slot);}slot.History=this;HookKeys(form);}Notify();}
@@ -61,10 +63,18 @@ sealed class GridEditHistory {
  internal void ClearSelectedCells(){if(grid.ReadOnly||!Commit())return;var cells=grid.SelectedCells.Cast<DataGridViewCell>().Where(c=>!c.ReadOnly&&!c.OwningRow.IsNewRow&&c.Visible&&!(c is DataGridViewComboBoxCell)&&!(c is DataGridViewCheckBoxCell)&&!(c is DataGridViewButtonCell)&&c.Value!=null&&Convert.ToString(c.Value)!="").ToList();if(cells.Count==0)return;
   var old=Snapshot();Apply(()=>{foreach(var cell in cells)cell.Value="";Record(new GridEditAction{Before=old,After=Snapshot(),Description="Clear cells"});});}
  internal void DeleteRows(System.Collections.Generic.IEnumerable<DataGridViewRow> selection,Action afterDelete=null){if(!grid.AllowUserToDeleteRows||!Commit())return;var rows=selection.Where(row=>row.DataGridView==grid&&!row.IsNewRow&&row.Visible&&!row.ReadOnly&&row.Cells.Cast<DataGridViewCell>().Any(cell=>!cell.ReadOnly)).Distinct().ToList();if(rows.Count==0)return;if(!ConfirmDelete(grid.FindForm(),rows.Count))return;var old=Snapshot();Apply(()=>{foreach(var row in rows.OrderByDescending(r=>r.Index))grid.Rows.Remove(row);if(afterDelete!=null)afterDelete();Record(new GridEditAction{Before=old,After=Snapshot(),Description="Delete rows",Deleted=rows.Count});});}
+ bool CanInsert{get{return commandTarget==null&&!grid.ReadOnly&&grid.AllowUserToAddRows&&grid.Columns.Count>0;}}
+ /* a blank row (with the sheet's usual new-row defaults) above or below the row of the current cell; Undo removes it */
+ internal void InsertRow(bool below){if(!CanInsert||!Commit())return;var cell=grid.CurrentCell;int index=cell!=null?cell.RowIndex:grid.Rows.Count;if(index>=0&&index<grid.Rows.Count&&grid.Rows[index].IsNewRow)below=false;int at=Math.Max(0,below?index+1:index);if(grid.AllowUserToAddRows&&grid.NewRowIndex>=0&&at>grid.NewRowIndex)at=grid.NewRowIndex;at=Math.Min(at,grid.Rows.Count);
+  int column=cell!=null&&cell.OwningColumn.Visible?cell.ColumnIndex:grid.Columns.Cast<DataGridViewColumn>().Where(c=>c.Visible).OrderBy(c=>c.DisplayIndex).Select(c=>c.Index).FirstOrDefault();
+  var old=Snapshot();Apply(()=>{var works=grid as WorksDataGridView;if(works!=null)works.InsertRowWithDefaults(at);else grid.Rows.Insert(at,1);Record(new GridEditAction{Before=old,After=Snapshot(),Description="Insert row"});});
+  if(at<grid.Rows.Count&&column>=0&&column<grid.Columns.Count){try{grid.CurrentCell=grid.Rows[at].Cells[column];}catch(InvalidOperationException){}}}
  internal void Undo(){if(commandTarget!=null){commandTarget.Undo();return;}if(!Commit()||!history.CanUndo)return;Apply(()=>history.Undo(action=>Restore(action.Before)));}
  internal void Redo(){if(commandTarget!=null){commandTarget.Redo();return;}if(!Commit()||!history.CanRedo)return;if(history.NextRedo.Deleted>0&&!ConfirmDelete(grid.FindForm(),history.NextRedo.Deleted))return;Apply(()=>history.Redo(action=>Restore(action.After)));}
  internal bool CanUndo{get{return commandTarget!=null?commandTarget.CanUndo:history.CanUndo;}}internal bool CanRedo{get{return commandTarget!=null?commandTarget.CanRedo:history.CanRedo;}}
- internal static void AddCommands(Form owner,FlowLayoutPanel panel){var undo=new Button{Text="Undo",AutoSize=true};var redo=new Button{Text="Redo",AutoSize=true};undo.Click+=(s,e)=>Safe(owner,h=>h.Undo());redo.Click+=(s,e)=>Safe(owner,h=>h.Redo());panel.Controls.AddRange(new Control[]{undo,redo});Action refresh=()=>{if(owner.IsDisposed)return;var h=For(owner);undo.Enabled=h!=null&&h.CanUndo;redo.Enabled=h!=null&&h.CanRedo;};StateChanged+=refresh;owner.Disposed+=(s,e)=>StateChanged-=refresh;refresh();}
+ /* owner (19 November 2026, "huwag na yung undo redo", "pwede naman shortcut key"): no Undo / Redo buttons; Ctrl+Z / Ctrl+Y (and Ctrl+Shift+Z) stay */
+ internal static void AddCommands(Form owner,FlowLayoutPanel panel){HookKeys(owner);}
+ static void AddCommandButtons(Form owner,FlowLayoutPanel panel){var undo=new Button{Text="Undo",AutoSize=true};var redo=new Button{Text="Redo",AutoSize=true};undo.Click+=(s,e)=>Safe(owner,h=>h.Undo());redo.Click+=(s,e)=>Safe(owner,h=>h.Redo());panel.Controls.AddRange(new Control[]{undo,redo});Action refresh=()=>{if(owner.IsDisposed)return;var h=For(owner);undo.Enabled=h!=null&&h.CanUndo;redo.Enabled=h!=null&&h.CanRedo;};StateChanged+=refresh;owner.Disposed+=(s,e)=>StateChanged-=refresh;refresh();}
  static void Safe(Form owner,Action<GridEditHistory> action){try{var editor=For(owner);if(editor!=null)action(editor);}catch(Exception error){MessageBox.Show(owner,error.Message,"Edit rows",MessageBoxButtons.OK,MessageBoxIcon.Information);}}
 }
 }

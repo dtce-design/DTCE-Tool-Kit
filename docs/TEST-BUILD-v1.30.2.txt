@@ -1,0 +1,23 @@
+DTCE Tool Kit v1.30.2 test build (19 November 2026) - bug fixes
+
+Not tested on Windows yet (Linux/Mono checks only). GitHub test build, not a Microsoft
+Store release (the Store still has v1.5.0).
+
+"Excel sync paused" / "hindi nagwowork yung map backup items"
+- Since v1.29 the linked workbook opens in your own visible Excel with its macros on.
+  While Excel is busy (a cell being edited, a dialog or the macro security notice open,
+  a macro running) it refused the Tool Kit's calls and the sync stopped with "Excel sync
+  paused". The Tool Kit now waits and tries again (rejected calls for up to a minute,
+  edit mode for about 30 seconds). If Excel is still busy, the message says what to do:
+  press Enter or Esc in Excel, close the dialog, then try again.
+- Map BACKUP items, Refresh BACKUP items and Sync to Excel now show their error in a
+  message box, not only in the status bar.
+- Map BACKUP items no longer does nothing when an automatic sync starts at the same
+  moment; it waits for it and then opens the mapping. An expired Excel link says so.
+- A typed BOQ quantity whose item is not in the linked workbook no longer stops the
+  link; it is listed in the message so you can type it on the right item.
+
+"naka uncheck yung check box pero may qty"
+- An LS pay item whose mapped quantities are all unchecked is now 0 LS. Before, it
+  showed (and kept) the quantity already in the workbook. A quantity you typed on the
+  pay item itself still wins over the checkboxes.

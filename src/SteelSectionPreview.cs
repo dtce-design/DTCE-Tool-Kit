@@ -30,8 +30,8 @@ sealed class SteelSectionPreview:Control {
    float info=Math.Min(290,Math.Max(180,Width*.3f)),canvas=Width-info;
    DrawLabel(g,"SECTION PREVIEW",bold,palette.Ink,12,8);
    DrawLabel(g,"Scroll: zoom  •  Drag: pan  •  Double-click: fit",font,palette.Muted,12,32);
-   float scale=(float)(Math.Min(Math.Max(80,canvas-140)/width,230/height)*zoom);
-   float ox=canvas/2-(float)((minX+maxX)/2)*scale+pan.X,oy=205+(float)(height/2)*scale+pan.Y;
+   float scale=(float)(Math.Min(Math.Max(80,canvas-140)/width,200/height)*zoom);
+   float ox=canvas/2-(float)((minX+maxX)/2)*scale+pan.X,oy=190+(float)(height/2)*scale+pan.Y;/* room for the B dimension below the section */
    var saved=g.Save();g.SetClip(new RectangleF(0,57,Math.Max(1,canvas),Height-80));
    using(var fill=new SolidBrush(Color.FromArgb(palette.Dark?139:65,126,175)))using(var outline=new Pen(palette.Ink,.8f)){
     if(pipe){using(var path=new GraphicsPath(FillMode.Alternate)){path.AddEllipse(ox,oy-(float)p.H*scale,(float)p.H*scale,(float)p.H*scale);path.AddEllipse(ox+(float)p.T*scale,oy-(float)(p.H-p.T)*scale,(float)(p.H-2*p.T)*scale,(float)(p.H-2*p.T)*scale);g.FillPath(fill,path);g.DrawPath(outline,path);}}
@@ -51,6 +51,6 @@ sealed class SteelSectionPreview:Control {
   }
  }
  static void DrawLabel(Graphics g,string s,Font f,Color c,float x,float y,float width=0){using(var brush=new SolidBrush(c)){if(width>0)g.DrawString(s,f,brush,new RectangleF(x,y,width,110));else g.DrawString(s,f,brush,x,y);}}
- static void Dim(Graphics g,PointF a,PointF b,string label,Font f,Color c,bool vertical){using(var pen=new Pen(c,1)){pen.StartCap=LineCap.ArrowAnchor;pen.EndCap=LineCap.ArrowAnchor;g.DrawLine(pen,a,b);}if(vertical)DrawLabel(g,label,f,c,a.X+4,(a.Y+b.Y)/2);else DrawLabel(g,label,f,c,a.X,a.Y+4);}
+ static void Dim(Graphics g,PointF a,PointF b,string label,Font f,Color c,bool vertical){using(var pen=new Pen(c,1)){pen.StartCap=LineCap.ArrowAnchor;pen.EndCap=LineCap.ArrowAnchor;g.DrawLine(pen,a,b);}if(vertical){var size=g.MeasureString(label,f);DrawLabel(g,label,f,c,a.X-size.Width-4,(a.Y+b.Y)/2-size.Height/2);}else DrawLabel(g,label,f,c,a.X,a.Y+4);}
 }
 }

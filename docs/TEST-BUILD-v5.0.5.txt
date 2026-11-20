@@ -1,0 +1,22 @@
+DTCE Tool Kit v5.0.5 (was v1.50.5) test build (20 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: Bar Bending Schedule, Project Information, launcher.
+
+Columns, slabs and footings in the bar bending schedule ("bakit sa bar bending schedule walang column, slab, foundation?")
+- New button "Load columns, slabs, footings (Program of Works)": takes the computed take-off of the open Program of Works -
+  column main bars, closed hoops and crossties, open ties; slab bottom, top and distribution bars; isolated and wall footing
+  bars - with the same cut lengths and counts as the estimate. Marks are C:<column>-n, S:<slab>-n, F:<footing>-n, WF:<wall
+  footing>-n; the quantity of members is the number of members.
+- They join the bar bending schedule (sketches and shape codes), weight summary (also per member type), cutting patterns and
+  order, crew site sheets and the saved cutting list file. A schedule can now be printed with columns, slabs and footings only.
+  Beam elevations / sections and the SMF check stay for beams.
+
+Fixes
+- Beam lines: a clear span typed in millimetres (e.g. 5000) is read as millimetres; before, it was taken as 5000 m, refused and
+  the cutting list stayed empty ("di naman nagwowork"). The status bar now shows the first review item itself.
+- Project Information: "Save project information" closes its window (the embedded form is disposed first so the window does
+  not wait for it).
+- Launcher: every card has its own icon (Design Sheets and Access Code Generator had the same).
+
+Includes v5.0.4 (was v1.50.4) and earlier local builds (see their notes).

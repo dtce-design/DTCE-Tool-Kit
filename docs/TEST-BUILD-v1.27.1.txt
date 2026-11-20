@@ -1,0 +1,20 @@
+DTCE Tool Kit v1.27.1 test build (18 November 2026) - fix
+
+Construction Schedule diagrams (owner: "bakit yung PERT CPM same na siya sa PDM", "ayusin
+yung arrows at lines, magulo")
+- PERT-CPM network is activity on arrow again, different from the PDM: every
+  activity is an arrow between numbered events (event no., TE, TL); a start event
+  is shared with the end of its only predecessor when that relation is a plain FS;
+  other relations are dashed dummy / lag arrows labelled FS / SS / FF + lag; an
+  activity tied only by FF gets the implied SS lag arrow to its start event.
+  Non-critical last activities end in their own event with a short "to n"
+  connector to the FINISH event instead of long lines.
+- Cleaner lines: relations already implied by other relations are left out
+  (schedule unchanged); nodes / events in each column are ordered to reduce
+  crossings; every line runs in a free lane between the boxes / events it passes
+  and reserves room for its labels; relation labels have a white background;
+  non-critical last activities in the PDM get a short FINISH connector.
+- Fewer sheets: the column spacing on paper is narrowed when that saves a sheet
+  (sample: PDM 3 sheets, PERT network 3 sheets).
+
+Includes v1.27.0. Not tested on Windows. Not a Microsoft Store release.

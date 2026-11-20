@@ -1,0 +1,19 @@
+DTCE Tool Kit v1.34.0 test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+
+Construction Schedule
+- B.3 Permits and Clearances are scheduled from day 1 (10 working days by default) while
+  the work starts ("habang inaapply pwede na magstart ang project").
+- B.9 Mobilization / Demobilization: mobilization from day 1 (7 days by default),
+  demobilization after the last work (5 days by default) ("include also mobilization and
+  demobilization"). Double-click these rows to change their durations.
+- Bar Chart headings stay at the top while the rows scroll.
+
+Contract Duration
+- Printable report (Print preview / Save PDF): summary, inputs and method, monthly
+  computation, holidays within the project period, rainy-day records and notes.
+- A.1.4 Progress Photographs are NOT filled from the contract duration (owner: circular
+  references - "huwag pala iadd").
+
+Includes everything in v1.33.0 (see TEST-BUILD-v1.33.0.txt).

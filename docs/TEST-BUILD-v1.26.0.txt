@@ -1,0 +1,24 @@
+DTCE Tool Kit v1.26.0 test build (18 November 2026) - new feature
+
+Construction Schedule - manpower (owner: "can you determine the manpower needed
+for this?")
+- Each scheduled pay item uses the labor crew of its DUPA (Output per Hour
+  Summary, column Crew, e.g. "Foreman x1; Skilled Laborer x2; Unskilled
+  Laborer x2") x its number of crews, on every working day from its start to
+  its finish. Daily manpower = sum of the items working that day; man-days of
+  an item = men per day x days. Each crew is counted with its own foreman as in
+  the DUPA. LS items (no duration yet) and items without a DUPA crew are not
+  counted and are marked as such.
+- New view "Manpower": peak, average and total man-days, manpower loading
+  histogram (peak in red, average line), summary per trade (peak, average,
+  man-days) and the activity table (crew per DUPA, crews, men per day, days,
+  working days, man-days).
+- Bar chart: new bottom row "Manpower per day (workers)" with the total for
+  every working day (3-digit values written vertically).
+- Issue set (A3): new sheets MANPOWER LOADING and MANPOWER SCHEDULE; the
+  summary sheet shows the peak / average / man-days and the basis.
+- Sample (42 items): peak 110 workers on day 12, average 14.9, 3,368 man-days.
+  The peak comes from all phase-4 items starting together (the automatic
+  sequence); more crews or a later start of some items levels it.
+
+Includes v1.25.3. Not tested on Windows. Not a Microsoft Store release.

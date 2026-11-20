@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Drawing;using System.Globalization;using System.Linq;using System.Windows.Forms;using System.Xml;
+﻿using System;using System.Collections.Generic;using System.Drawing;using System.Globalization;using System.Linq;using System.Windows.Forms;using System.Xml;
 namespace BeamScheduleFormatter {
 // "Include" beside UNIT for every mapped quantity in Bill of Quantities (owner, 17 November 2026).
 // - Checked: the mapped quantity counts in its pay item's total. Unchecked: it stays mapped (listed under the item and
@@ -71,7 +71,7 @@ readonly Dictionary<string,double> boqExcludedQuantities=new Dictionary<string,d
  // Runs at the end of BackupQuantities: excluded mapped quantities count as 0; LS items get their 1 LS control.
  /* Metal painting is listed per member type (purlins, angle bars, metal fascia, crossbracing) instead of one total
     (owner, 18 November 2026). A project that mapped the old total keeps that pay item for the new lines. */
- void InheritSteelPaintRoutes(List<BackupDemand> list){string totalKey="Structural Steel Works|"+SteelPaintingTotal+"|"+BackupMapping.Unit("m2");string slot;if(!backupBillRoutes.TryGetValue(totalKey,out slot))return;
+ void InheritSteelPaintRoutes(List<BackupDemand> list){string slot;if(!backupBillRoutes.TryGetValue("Structural Steel Works|"+SteelPaintingTotal+"|"+BackupMapping.Unit("m2"),out slot)&&!backupBillRoutes.TryGetValue("Structural Steel Works|"+SteelPaintingTotalLabel+"|"+BackupMapping.Unit("m2"),out slot))return;
   foreach(var d in list){if(!d.Key.StartsWith("Structural Steel Works|Metal painting - ",StringComparison.Ordinal)||backupBillRoutes.ContainsKey(d.Key)||boqUnmapped.Contains(d.Key))continue;backupBillRoutes[d.Key]=slot;boqRouteOverrides[d.Key]=slot;}}
  void ApplyBoqIncludes(List<BackupDemand> list){InheritSteelPaintRoutes(list);DefaultOpeningRoutes(list);list.RemoveAll(d=>d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal));if(backupBill==null||backupBill.Count==0)return;
   var items=backupBill.GroupBy(b=>b.Slot).ToDictionary(g=>g.Key,g=>g.First());
@@ -82,7 +82,7 @@ readonly Dictionary<string,double> boqExcludedQuantities=new Dictionary<string,d
   var targets=backupBill.Select(b=>b.Target).ToList();var listed=new Dictionary<BackupDemand,string>();foreach(var d in list)if(!d.ManualOverride)listed[d]=BoqListedSlot(d,targets);
   foreach(var item in lsItems){var mapped=list.Where(d=>!d.ManualOverride&&BackupMapping.Unit(d.Unit)!="ls"&&ListedIn(listed,d)==item.Slot).ToList();if(mapped.Count==0)continue;
    if(list.Any(d=>!d.ManualOverride&&BackupMapping.Unit(d.Unit)=="ls"&&d.Quantity>0&&ListedIn(listed,d)==item.Slot))continue;
-   bool any=mapped.Any(d=>d.Quantity>1e-10&&BoqIncluded(d.Key,item));if(!any&&!lsAutoSlots.Contains(item.Slot))continue;if(any)lsAutoSlots.Add(item.Slot);
+   bool any=mapped.Any(d=>d.Quantity>1e-10&&BoqIncluded(d.Key,item));/* owner (19 November 2026, "naka uncheck yung check box pero may qty"): every mapped quantity unchecked by hand gives 0 LS, not the old workbook quantity */bool allOff=mapped.All(d=>{bool v;return boqIncludes.TryGetValue(d.Key,out v)&&!v;});if(!any&&!allOff&&!lsAutoSlots.Contains(item.Slot))continue;if(any)lsAutoSlots.Add(item.Slot);
    var control=new BackupDemand{Key=LsIncludePrefix+item.Slot,Description=any?"1 LS - included mapped quantities":"0 LS - no mapped quantity included",Unit=item.Unit,Quantity=any?1:0,TargetSlotId=item.Slot,TargetIdentity=item.Signature,ManualPriority=1};
    control.Sources.Add(new BillQuantity{Description=control.Description,Quantity=control.Quantity,Unit=item.Unit});list.Add(control);}}
  void WriteBoqIncludes(XmlElement routes){foreach(var pair in boqIncludes.OrderBy(p=>p.Key,StringComparer.Ordinal)){var e=routes.OwnerDocument.CreateElement("Include");e.SetAttribute("key",pair.Key);e.SetAttribute("value",pair.Value?"1":"0");routes.AppendChild(e);}foreach(string slot in lsAutoSlots.OrderBy(x=>x,StringComparer.Ordinal)){var e=routes.OwnerDocument.CreateElement("LsAuto");e.SetAttribute("slot",slot);routes.AppendChild(e);}WriteBoqOverrides(routes);}
