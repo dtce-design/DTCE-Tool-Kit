@@ -5490,9 +5490,14 @@ worksExcelTimer.Tick += async delegate
 			};
 			g.Columns[4].ToolTipText = "Overall rough-opening width including jamb. Wooden leaf width = opening width - 2 jamb thicknesses.";
 			g.Columns[5].ToolTipText = "Overall rough-opening height. Door leaf height subtracts top jamb; window subtracts top and sill.";
-			g.Columns[2].ToolTipText = "Must match one CHB Wall ID. Each opening belongs to exactly one wall group.";
+			g.Columns[2].ToolTipText = "Must match one CHB / masonry Wall ID. Each opening belongs to exactly one wall group. Wooden jamb depth follows this wall's thickness automatically.";
 			g.Columns[6].ToolTipText = "Total number of this opening in the linked wall group; already includes repeated walls.";
 			g.Columns[9].HeaderText = "Leaf thickness mm";
+			/* Owner (20 November 2026, "pwede ba alisin ito? sa system na lang? yung jamb depth based na lang sa chb or masonry"):
+			   jamb depth, jamb thickness and leaf thickness are set by the program and hidden. Jamb depth = thickness of the CHB /
+			   masonry wall the opening is assigned to (Unassigned CHB thickness setting when none); jamb thickness from Settings;
+			   wooden door leaf 45 mm. The values are still stored in the same columns, so saved projects open unchanged. */
+			foreach (int hidden in new[] { 7, 8, 9 }) g.Columns[hidden].Visible = false;
 			g.Columns[11].HeaderText = "Locksets/unit";
 			g.Columns[11].ToolTipText = "Automatic: one lockset per non-fixed door opening; windows use entered hardware quantities.";
 			g.Columns[12].ToolTipText = "Door hinges: minimum 2 per leaf; one per 762mm height or fraction, plus 1 for leaf width >940mm. Multiply by door leaves. Sliding/fixed: zero. This is a quantity allowance; final hinge model depends on load/specification.";
@@ -8439,6 +8444,13 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 			return numericUpDown;
 		}
 
+		/* wall thickness of a CHB / masonry row in mm (CHB 100 / 150, AAC 100 / 150, ...); 150 when not stated */
+		private static double WallThicknessMm(DataGridViewRow r)
+		{
+			double t;
+			return double.TryParse(Cell(r, 18), NumberStyles.Float, CultureInfo.InvariantCulture, out t) && t >= 50 && t <= 400 ? t : 150.0;
+		}
+
 		private void AutomaticWoodDimensions(DataGridViewRow row)
 		{
 			double num = ((jambDepthDefault == null) ? 150.0 : ((double)jambDepthDefault.Value));
@@ -8451,10 +8463,10 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 			}
 			double[] array = (from r in MasonryGrids().SelectMany((DataGridView g) => g.Rows.Cast<DataGridViewRow>())
 				where !r.IsNewRow && assigned.Contains(Cell(r, 0), StringComparer.OrdinalIgnoreCase)
-				select (!(Cell(r, 18) == "100")) ? 150.0 : 100.0).ToArray();
+				select WallThicknessMm(r)).ToArray();
 			if (array.Distinct().Count() > 1)
 			{
-				throw new Exception("Opening " + Cell(row, 0) + " is assigned to both 100mm and 150mm walls. Use separate opening IDs so each jamb depth matches its wall.");
+				throw new Exception("Opening " + Cell(row, 0) + " is assigned to walls of different thickness (" + string.Join(" / ", array.Distinct().Select(t => t.ToString("0", CultureInfo.InvariantCulture) + "mm")) + "). Use separate opening IDs so each jamb depth matches its wall.");
 			}
 			if (array.Length != 0)
 			{
