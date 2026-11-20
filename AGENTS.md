@@ -168,6 +168,11 @@ the Store refuses with 409 InvalidState and creates a new submission; a submissi
 unless replace_pending_store_submission=true is asked for. Later versions again need a new explicit request.
 Owner (20 November 2026, "yan na muna ang pinaka final upload sa microsoft store"): v5.1.9 is the last Store upload for now; do not
 upload v5.1.10 or later until the owner asks again (GitHub pushes to the development branch are still fine).
+Result 20 November 2026: v5.1.9 merged to main (GitHub release OK, run 228). Store run 44698831499 (build re-run once after a
+flaky EarthworkFootingTests exit code): both uploads were refused. The pending drafts were created in Partner Center, not through
+the API, so the API may not update or delete them ("Ingestion API can only update, delete, and commit submissions that are created
+through the API"). The owner must delete the in-progress User and Admin submissions in Partner Center; then re-run the failed
+Store jobs of run 44698831499. Nothing was changed in Partner Center.
 
 ## Program of Works name (20 November 2026)
 
