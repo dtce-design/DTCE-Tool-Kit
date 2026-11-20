@@ -35,8 +35,8 @@ static class PremiumControls {
  internal static Panel WorkspaceHeader(Label title,Action back){
   var panel=new Panel{Dock=DockStyle.Top,Height=66,Padding=new Padding(20,13,20,13),BackColor=DesktopAppearance.Palette.Chrome,ForeColor=PowTheme.Ink,Tag="appearance-header"};
   /* No "Workspaces" back button: each workspace is its own window (owner, 19 November 2026). */
-  title.AutoSize=false;title.Dock=DockStyle.Fill;title.TextAlign=ContentAlignment.MiddleLeft;title.Padding=new Padding(0,0,0,0);title.Font=new Font("Segoe UI Semibold",14,FontStyle.Regular);title.ForeColor=PowTheme.Ink;title.Tag="appearance-header-title";
-  /* the window's info icon replaces the "DTCE / ENGINEERING" caption (owner, 20 November 2026) */var info=InfoButton.Icon();info.Dock=DockStyle.Right;
+  title.AutoSize=false;title.Dock=DockStyle.Fill;title.TextAlign=ContentAlignment.MiddleLeft;title.Padding=new Padding(0,0,0,0);title.Font=new Font("Segoe UI Semibold",14,FontStyle.Regular);title.ForeColor=Color.White;title.Tag="appearance-header-title";
+  /* the window's info icon replaces the "DTCE / ENGINEERING" caption (owner, 20 November 2026) */var info=InfoButton.Icon();info.Dock=DockStyle.Right;info.ForeColor=Color.White;
   panel.Controls.Add(title);panel.Controls.Add(info);return panel;
  }
 }

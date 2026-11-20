@@ -1,4 +1,4 @@
-using System;using System.IO;using System.Xml;using System.Drawing;
+﻿using System;using System.IO;using System.Xml;using System.Drawing;
 namespace BeamScheduleFormatter {
 enum AppearanceMode { System, Light, Dark }
 static class AppearancePreferences {
@@ -9,7 +9,8 @@ static class AppearancePreferences {
 }
 sealed class DesktopPalette {
  public readonly bool Dark;public readonly Color Background,Surface,Input,Ink,Muted,Line,Accent,AccentHover,Selected,Link,Soft,Header,Chrome,ChromeButton,TabMain,TabSub,TabNested;
- public DesktopPalette(bool dark){Dark=dark;if(dark){Background=C(24,29,37);Surface=C(29,36,46);Input=C(35,48,66);Ink=C(225,231,239);Muted=C(164,177,194);Line=C(67,77,91);Accent=C(61,86,110);AccentHover=C(75,103,130);Selected=C(47,70,99);Link=C(174,196,216);Soft=C(33,41,52);Header=C(37,46,59);Chrome=C(18,35,52);ChromeButton=C(28,48,67);TabMain=C(32,52,77);TabSub=C(32,61,57);TabNested=C(69,57,41);}else{Background=C(241,243,239);Surface=C(250,251,248);Input=C(239,247,255);Ink=C(41,50,55);Muted=C(95,108,112);Line=C(195,204,197);Accent=C(82,105,92);AccentHover=C(64,85,73);Selected=C(216,233,253);Link=C(63,89,73);Soft=C(235,239,232);Header=C(229,235,227);Chrome=C(226,232,225);ChromeButton=C(238,242,234);TabMain=C(211,225,242);TabSub=C(215,235,225);TabNested=C(242,231,209);}}
+ public DesktopPalette(bool dark){Dark=dark;if(dark){Background=C(24,29,37);Surface=C(29,36,46);Input=C(35,48,66);Ink=C(225,231,239);Muted=C(164,177,194);Line=C(67,77,91);Accent=C(61,86,110);AccentHover=C(75,103,130);Selected=C(47,70,99);Link=C(174,196,216);Soft=C(33,41,52);Header=C(37,46,59);Chrome=C(18,35,52);ChromeButton=C(28,48,67);TabMain=C(32,52,77);TabSub=C(32,61,57);TabNested=C(69,57,41);}else{/* Studio look (owner, 20 November 2026: the whole app like POW Studio - "cohesive and professional", "hindi masakit sa
+   mata"): white work surfaces on a soft green-grey page, deep green chrome, one green accent, hairline dividers */Background=C(244,247,245);Surface=C(255,255,255);Input=C(250,252,251);Ink=C(32,49,46);Muted=C(88,103,96);Line=C(221,229,224);Accent=C(35,117,86);AccentHover=C(27,97,70);Selected=C(224,240,232);Link=C(35,117,86);Soft=C(240,245,242);Header=C(250,252,251);Chrome=C(20,56,44);ChromeButton=C(43,93,71);/* folder tabs keep their own tints (owner, 20 November 2026: "mas okay pa din yung folder tabs ang itsura") */TabMain=C(211,225,242);TabSub=C(215,235,225);TabNested=C(242,231,209);}}
  static Color C(int r,int g,int b){return Color.FromArgb(r,g,b);}
  public Color Tab(int depth){return depth==0?TabMain:depth==1?TabSub:TabNested;}
  public Color ActiveTab(int depth){return depth==0?C(43,76,116):depth==1?C(40,94,76):C(107,77,39);}

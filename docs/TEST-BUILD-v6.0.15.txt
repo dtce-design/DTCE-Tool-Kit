@@ -1,0 +1,15 @@
+DTCE Tool Kit v6.0.15 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (look of the workspaces; work in progress with the owner):
+- One info icon (round "i") in the workspace header, where "DTCE / ENGINEERING" was ("yung info button doon sa dating
+  pinaglagyan ng DTCE / Engineering"); it shows the note of the open tab and is greyed out when the tab has none.
+- Workspace header in deep green with a white title; white work surfaces on a soft green-grey page, one green accent, hairline
+  dividers; secondary text darkened for contrast.
+- Folder tabs kept ("mas okay pa din yung folder tabs ang itsura"): the Studio underline/pill tabs tried in this build were removed.
+- Design sheets: one compact command row - Calculate, Print preview, Save sheet XML, Open sheet XML, Export (PDF, report file,
+  Excel). Bar Bending Schedule: Load beam schedule DXF, Load from Bill of Quantities, Print BBS report, Save, Open, More (Add bar,
+  Reset edits, copy cutting list / bar bending schedule).
+Checked on Linux/Mono only. Tests: AppearancePreferencesTests, AppearanceUiTests, BeamCuttingListTests,
+SteelSectionRefreshUiTests.
+
+Includes v6.0.14 and earlier builds.
