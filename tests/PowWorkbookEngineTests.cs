@@ -55,6 +55,17 @@ static class PowWorkbookEngineTests {
   var render=new WbRender(book,calc);var job=new WbPrintJob(render,new List<WbSheet>{s});Check(job.PageCount==1,"one A4 page");var img=job.Images(72,1)[0];Check(img.Width==595&&img.Height==842,"A4 portrait page image");
   bool ink=false;for(int y=0;y<img.Height&&!ink;y+=2)for(int x=0;x<img.Width;x+=2){var p=img.GetPixel(x,y);if(p.R<128&&p.G<128&&p.B<128){ink=true;break;}}Check(ink,"page has printed content");img.Dispose();
   render.RowHidden=(sh,r)=>r==8;Check(render.RowHeightPt(s,l,8)==0&&render.RowHeightPt(s,l,9)>0,"rows marked hidden take no space");
+  /* POW project file (.pow.xml): typed values over the template */
+  var vals=new Dictionary<string,object>{{"BACKUP!BC105",12.5},{"FRONT PAGE!M4","Sample project"},{"Labor!C6",null}};string tmp=Path.Combine(Path.GetTempPath(),"pow-project-"+Guid.NewGuid().ToString("N")+".pow.xml");
+  File.WriteAllText(tmp,PowWorkbookForm.ProjectXml(vals,"built-in DPWH POW V6.02"));var back=PowWorkbookForm.ReadProject(tmp);Check(back.Count==3&&(double)back["BACKUP!BC105"]==12.5&&(string)back["FRONT PAGE!M4"]=="Sample project"&&back["Labor!C6"]==null,"POW project values saved and read back");
+  File.WriteAllText(tmp,"<ProgramOfWorks version=\"21\"/>");try{PowWorkbookForm.ReadProject(tmp);Check(false,"a Bill of Quantities file is refused by POW");}catch(Exception x){Check(x.Message.Contains("Bill of Quantities"),"a Bill of Quantities file is refused by POW with a clear message");}File.Delete(tmp);
+  Check(ProgramOfWorksForm.BoqFileName("Piggatan.pow.xml")=="Piggatan.boq.xml"&&ProgramOfWorksForm.BoqFileName("Piggatan.boq.xml")=="Piggatan.boq.xml","Bill of Quantities saves as .boq.xml");
+  /* the built-in DPWH POW V6.02 template: every formula recomputed equals the value Excel saved */
+  var bytes=PowWorkbookForm.BuiltInTemplate();Check(bytes!=null&&bytes.Length>1000000,"built-in POW template present ("+(bytes==null?0:bytes.Length)+" bytes)");
+  var pow=WbBook.Load(new MemoryStream(bytes));pow.SourceBytes=bytes;var pc=new WbCalc(pow);WbCalc.RunWithLargeStack(()=>pc.CalculateAll());int formulas=0,same=0;string first=null;
+  foreach(var sh in pow.Sheets)foreach(var cell in sh.Cells.Values){if(cell.Formula==null)continue;formulas++;object x=cell.Cached,y=cell.Value;bool ok=x is double&&y is double?Math.Abs((double)x-(double)y)<=1e-6*Math.Max(1,Math.Abs((double)x)):x==null?(y==null||"".Equals(y)||(y is double&&(double)y==0)):Convert.ToString(x)==Convert.ToString(y);if(ok)same++;else if(first==null)first=sh.Name+"!"+WbBook.ColumnName(cell.Col)+cell.Row+" excel="+x+" app="+y;}
+  Check(formulas>100000&&same==formulas,"all "+formulas+" template formulas equal Excel's values"+(first==null?"":" (first difference "+first+")"));
+  Near(pc.CellValue(pow.Sheet("SUM"),45,106),4950000,"template grand total");var dupaPage=new WbPrintJob(new WbRender(pow,pc),new List<WbSheet>{pow.Sheet("900(1)c")});Check(dupaPage.PageCount>=1,"template DUPA paginates");
   Console.WriteLine("PASS: "+checks+" POW worksheet engine checks (formulas, shared formulas, tables, names, recalculation, formats, A4 pages).");}
   finally{try{File.Delete(path);}catch(IOException){}}}
 }

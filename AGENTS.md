@@ -186,9 +186,13 @@ Bill of Quantities. Internal class names (ProgramOfWorksForm), the .pow.xml file
 
 Owner: the DPWH POW/ABC workbook (V6.02 .xlsm) is reproduced in the app ("buong worksheet sa app, kamukha niyan mismo, para iprint
 na lang thru the app"), keeping every formula and where labor, equipment and materials come from, as a separate workspace that needs
-no password or access code. src/Wb*.cs read and recalculate the workbook; PowWorkbookForm shows and prints it. Never commit the
-owner's workbook (project data, ~100 MB); tests generate their own small workbook. Next: BOQ quantities to BACKUP, Project
-Information to FRONT PAGE.
+no password or access code. src/Wb*.cs read and recalculate the workbook; PowWorkbookForm shows and prints it.
+Owner (20 November 2026, "independent na siya sa .xlsm"; "saka lang mapapalitan kapag binago ko, masasave na parang xml"): the
+workbook is built in as src/PowTemplate.xlsx (slim copy of the owner's V6.02 Piggatan workbook made for the app: no macros/printer
+settings; embedded resource "PowTemplate.xlsx" in every build script). Its values stay until the owner types new ones; typed values
+are saved as POW project files *.pow.xml (root <PowWorkbook>). Do not commit the original .xlsm. Bill of Quantities files are now
+*.boq.xml (root <ProgramOfWorks>) and older *.pow.xml Bill of Quantities files must keep opening. Next: BOQ quantities to BACKUP,
+Project Information to FRONT PAGE.
 
 ## Version numbers (18 November 2026)
 

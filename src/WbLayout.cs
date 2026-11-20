@@ -49,10 +49,10 @@ sealed class WbSheetLayout{
  public static double WidthPt(double chars){if(chars<=0)return 0;double px=Math.Truncate(((256*chars+Math.Truncate(128.0/7))/256)*7);return px*72/96;}
 }
 sealed partial class WbBook {
- public string SourcePath;public WbStyles Styles;readonly Dictionary<string,WbSheetLayout> layouts=new Dictionary<string,WbSheetLayout>(StringComparer.OrdinalIgnoreCase);
+ public string SourcePath;public byte[] SourceBytes;public WbStyles Styles;readonly Dictionary<string,WbSheetLayout> layouts=new Dictionary<string,WbSheetLayout>(StringComparer.OrdinalIgnoreCase);
  public WbSheetLayout Layout(WbSheet sheet){WbSheetLayout l;if(layouts.TryGetValue(sheet.Name,out l))return l;l=ReadLayout(sheet);layouts[sheet.Name]=l;return l;}
- WbSheetLayout ReadLayout(WbSheet sheet){var l=new WbSheetLayout{MaxRow=sheet.MaxRow,MaxCol=sheet.MaxCol};if(SourcePath==null||!File.Exists(SourcePath))return l;
-  using(var fs=File.OpenRead(SourcePath))using(var zip=new ZipArchive(fs,ZipArchiveMode.Read)){if(Styles==null)Styles=WbStyles.Read(zip);
+ WbSheetLayout ReadLayout(WbSheet sheet){var l=new WbSheetLayout{MaxRow=sheet.MaxRow,MaxCol=sheet.MaxCol};if(SourceBytes==null&&(SourcePath==null||!File.Exists(SourcePath)))return l;
+  using(var fs=SourceBytes!=null?(Stream)new MemoryStream(SourceBytes,false):File.OpenRead(SourcePath))using(var zip=new ZipArchive(fs,ZipArchiveMode.Read)){if(Styles==null)Styles=WbStyles.Read(zip);
    var rels=ReadRels(zip.GetEntry("xl/_rels/workbook.xml.rels"));var wbDoc=new XmlDocument();using(var s=zip.GetEntry("xl/workbook.xml").Open())wbDoc.Load(s);string path=null;
    foreach(XmlElement s in wbDoc.GetElementsByTagName("sheet"))if(s.GetAttribute("name")==sheet.Name){string t;if(rels.TryGetValue(s.GetAttribute("id","http://schemas.openxmlformats.org/officeDocument/2006/relationships"),out t))path=Resolve("xl/",t);}
    if(path==null)return l;var entry=zip.GetEntry(path);if(entry==null)return l;string drawingRel=null,hfRel=null;int lastRow=0;

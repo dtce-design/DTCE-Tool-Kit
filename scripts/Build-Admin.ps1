@@ -10,7 +10,7 @@ $stage=Join-Path $OutputDirectory 'Admin'
 New-Item -ItemType Directory -Force $stage | Out-Null
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $refs=@('/nologo','/target:winexe','/optimize+','/reference:System.Windows.Forms.dll','/reference:System.Drawing.dll','/reference:System.Core.dll','/reference:Microsoft.CSharp.dll','/reference:System.Security.dll')
-$resources=@("/resource:$source\SlabTemplate.dxf,SlabTemplate.dxf","/resource:$source\StandardTemplate.dxf,StandardTemplate.dxf","/resource:$source\AccessPublicKey.xml,AccessPublicKey.xml","/resource:$source\DpwhLogo.png,DpwhLogo.png","/resource:$source\DtceLogo.png,DtceLogo.png","/resource:$source\app.ico,DtceIcon.ico","/resource:$source\BeamSummaryTemplate.xlsx,BeamSummaryTemplate.xlsx")
+$resources=@("/resource:$source\SlabTemplate.dxf,SlabTemplate.dxf","/resource:$source\StandardTemplate.dxf,StandardTemplate.dxf","/resource:$source\AccessPublicKey.xml,AccessPublicKey.xml","/resource:$source\DpwhLogo.png,DpwhLogo.png","/resource:$source\DtceLogo.png,DtceLogo.png","/resource:$source\app.ico,DtceIcon.ico","/resource:$source\BeamSummaryTemplate.xlsx,BeamSummaryTemplate.xlsx" "/resource:$source\PowTemplate.xlsx,PowTemplate.xlsx")
 $files=Get-ChildItem $source -Filter '*.cs' | ForEach-Object FullName
 $exe=Join-Path $stage 'DTCE-Tool-Kit-Admin.exe'
 & $compiler /reference:System.IO.Compression.dll "/resource:$source\WindSurfaces.txt,WindSurfaces.txt" "/resource:$source\WindMap27.jpg,WindMap27.jpg" "/resource:$source\WindMap28.jpg,WindMap28.jpg" "/resource:$source\WindMap29.jpg,WindMap29.jpg" /define:ADMIN_APP @refs @resources "/win32manifest:$source\app.manifest" "/win32icon:$source\app.ico" "/out:$exe" @files

@@ -1,0 +1,18 @@
+DTCE Tool Kit v6.0.1 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Program of Works (POW) workspace and Bill of Quantities files):
+- POW no longer needs the .xlsm ("gusto ko magiging independent na siya sa .xlsm"): the DPWH POW V6.02 workbook is built into the
+  app as a slim template (src/PowTemplate.xlsx, 6.8 MB: every sheet, formula, table, name, style and picture; no macros, printer
+  settings or empty styled cells outside the print areas). It opens in about 2-5 s. All 106,296 formulas recomputed from it equal
+  Excel's values (checked by PowWorkbookEngineTests on every build).
+- The template's values (Piggatan project and Cagayan 2027 rates) stay until the owner types a new value ("saka lang mapapalitan
+  kapag binago ko"). Typed values are the POW project and are saved as a .pow.xml file (root <PowWorkbook>): New POW, Open POW,
+  Save POW (Ctrl+S), Save POW As; the last project reopens with the workspace; closing asks to save changes. The status bar shows the
+  template value of each changed cell.
+- "Use another POW workbook..." still lets a newer DPWH workbook replace the built-in template.
+- Bill of Quantities saves as *.boq.xml ("palitan mo yung sa BOQ ng boq.xml pero kaya niya pa din basahin yung luma"); Open accepts
+  *.boq.xml and the older *.pow.xml Bill of Quantities files (same content). A POW file opened in Bill of Quantities, or a Bill of
+  Quantities file opened in POW, is refused with a message naming the right workspace.
+Checked on Linux/Mono only.
+
+Includes v6.0.0 and earlier builds.

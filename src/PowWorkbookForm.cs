@@ -1,43 +1,56 @@
 using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Drawing.Printing;using System.Globalization;using System.IO;using System.Linq;using System.Threading;using System.Windows.Forms;using System.Xml;
 namespace BeamScheduleFormatter {
 /* Program of Works (POW) workspace (owner, 20 November 2026: "gawin yung POW as separate worksheet, walang password or code access";
-   "buong worksheet sa app, kamukha niyan mismo, para iprint na lang thru the app"). The DPWH POW/ABC workbook is imported once and
-   kept in the app's data folder, so no Excel link is needed. All its formulas are recalculated by the app (WbCalc), sheets are shown
-   like Excel (WbRender) and printed on A4 with each sheet's print area, page setup and header / footer. Values typed into input cells
-   are kept with the imported workbook and applied again when it is opened. */
+   "buong worksheet sa app, kamukha niyan mismo, para iprint na lang thru the app"; "independent na siya sa .xlsm"; "saka lang
+   mapapalitan kapag binago ko, masasave na parang xml"). The DPWH POW/ABC workbook (V6.02) is built into the app as a slim template
+   (PowTemplate.xlsx: every sheet, formula, table, name, style and picture of the owner's workbook, without macros), so no .xlsm and no
+   Excel are needed. All formulas are recalculated by the app (WbCalc), sheets are shown like Excel (WbRender) and printed on A4. The
+   template's values stay as they are until the owner types a new value; the typed values are the POW project, saved as a .pow.xml file
+   (root <PowWorkbook>). "Use another POW workbook" can still replace the built-in template with a newer DPWH version. */
 sealed class PowWorkbookForm : Form {
  internal static string DataFolder{get{var dir=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"DTCE Tool Kit","POW");Directory.CreateDirectory(dir);return dir;}}
- internal static string TemplatePath{get{var p=Path.Combine(DataFolder,"PowWorkbook.xlsm");if(File.Exists(p))return p;var x=Path.Combine(DataFolder,"PowWorkbook.xlsx");return x;}}
- static string EditsPath{get{return Path.Combine(DataFolder,"PowInputs.xml");}}
+ /* a workbook chosen with "Use another POW workbook" wins over the built-in template */
+ internal static string CustomTemplatePath{get{foreach(var n in new[]{"PowWorkbook.xlsm","PowWorkbook.xlsx"}){var p=Path.Combine(DataFolder,n);if(File.Exists(p))return p;}return null;}}
+ static string LastProjectPath{get{return Path.Combine(DataFolder,"LastProject.txt");}}
+ internal static byte[] BuiltInTemplate(){var asm=typeof(PowWorkbookForm).Assembly;using(var s=asm.GetManifestResourceStream("PowTemplate.xlsx")){if(s==null)return null;using(var ms=new MemoryStream()){s.CopyTo(ms);return ms.ToArray();}}}
  WbBook book;WbCalc calc;WbRender render;readonly TabControl tabs=new TabControl{Dock=DockStyle.Top,Multiline=true,SizeMode=TabSizeMode.Normal,Height=30};
  readonly WbSheetView view=new WbSheetView{Dock=DockStyle.Fill};readonly Label status=new Label{Dock=DockStyle.Bottom,Height=24,TextAlign=ContentAlignment.MiddleLeft,Padding=new Padding(8,0,8,0)};
  readonly ComboBox dupaList=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Width=520};readonly Panel dupaBar=new Panel{Dock=DockStyle.Top,Height=34,Visible=false,Padding=new Padding(8,4,8,4)};
  readonly CheckBox hideX=new CheckBox{Text="Hide rows marked X",Checked=true,AutoSize=true};readonly ComboBox zoom=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Width=80};
- readonly Dictionary<string,object> edits=new Dictionary<string,object>(StringComparer.OrdinalIgnoreCase);
- public PowWorkbookForm(){Text="Program of Works (POW)";Font=new Font("Segoe UI",9.5f);BackColor=PowTheme.Background;Width=1280;Height=820;
+ /* typed values (the POW project) and the template values they replaced */
+ readonly Dictionary<string,object> edits=new Dictionary<string,object>(StringComparer.OrdinalIgnoreCase);readonly Dictionary<string,object> originals=new Dictionary<string,object>(StringComparer.OrdinalIgnoreCase);
+ string projectPath;bool dirty;string templateName="";
+ public PowWorkbookForm(){Text="Program of Works (POW)";Font=new Font("Segoe UI",9.5f);BackColor=PowTheme.Background;Width=1280;Height=820;KeyPreview=true;
   var bar=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,Padding=new Padding(8,6,8,4),WrapContents=true};
   Func<string,EventHandler,Button> btn=(t,h)=>{var b=new Button{Text=t,AutoSize=true,Height=30,Margin=new Padding(0,0,8,0)};b.Click+=h;bar.Controls.Add(b);return b;};
-  btn("Open POW workbook…",(s,e)=>ImportWorkbook());btn("Print…",(s,e)=>PrintSheets(false));btn("Print preview",(s,e)=>PrintSheets(true));btn("Print DUPA of items with quantity…",(s,e)=>PrintDupas());btn("Recalculate",(s,e)=>Recalculate(null));
+  btn("New POW",(s,e)=>NewProject());btn("Open POW…",(s,e)=>OpenProject());btn("Save POW",(s,e)=>SaveProject(false));btn("Save POW As…",(s,e)=>SaveProject(true));
+  btn("Print…",(s,e)=>PrintSheets(false));btn("Print preview",(s,e)=>PrintSheets(true));btn("Print DUPA of items with quantity…",(s,e)=>PrintDupas());btn("Recalculate",(s,e)=>Recalculate(null));btn("Use another POW workbook…",(s,e)=>ImportWorkbook());
   bar.Controls.Add(new Label{Text="Zoom",AutoSize=true,Margin=new Padding(12,7,4,0)});zoom.Items.AddRange(new object[]{"50%","75%","100%","125%","150%","200%"});zoom.SelectedIndex=2;bar.Controls.Add(zoom);hideX.Margin=new Padding(12,6,0,0);bar.Controls.Add(hideX);
   zoom.SelectedIndexChanged+=(s,e)=>{view.Zoom=float.Parse(zoom.Text.TrimEnd('%'),CultureInfo.InvariantCulture)/100f;};hideX.CheckedChanged+=(s,e)=>view.Invalidate();
   dupaBar.Controls.Add(dupaList);dupaList.Dock=DockStyle.Left;dupaList.SelectedIndexChanged+=(s,e)=>{if(book!=null&&dupaList.SelectedItem!=null)ShowSheet(book.Sheet(((DupaItem)dupaList.SelectedItem).Sheet));};
   tabs.SelectedIndexChanged+=(s,e)=>ShowTab();tabs.SizeChanged+=(s,e)=>FitTabs();
   view.CellActivated+=EditCell;view.CellSelected+=(sheet,r,c)=>Describe(sheet,r,c);
   Controls.Add(view);Controls.Add(dupaBar);Controls.Add(tabs);Controls.Add(bar);Controls.Add(status);
-  Shown+=(s,e)=>{if(File.Exists(TemplatePath))LoadWorkbook(TemplatePath);else status.Text="Open your DPWH POW workbook (.xlsm) once; the app keeps a copy and computes and prints it without Excel.";};}
+  KeyDown+=(s,e)=>{if(e.Control&&e.KeyCode==Keys.S){SaveProject(e.Shift);e.SuppressKeyPress=true;}else if(e.Control&&e.KeyCode==Keys.O){OpenProject();e.SuppressKeyPress=true;}};
+  FormClosing+=(s,e)=>{if(!ConfirmDiscard())e.Cancel=true;};
+  Shown+=(s,e)=>{string last=null;try{if(File.Exists(LastProjectPath))last=File.ReadAllText(LastProjectPath).Trim();}catch(IOException){}LoadTemplate(last!=null&&File.Exists(last)?last:null);};}
  sealed class DupaItem{public string Sheet,Label;public override string ToString(){return Label;}}
  static readonly string[] Front={"FRONT PAGE","BOQ","DETAILED","ABC","SUM","SOQ","ITEMIZED","OSH","EQUIPMENT","BACKUP","CD","Contract Duration","Labor","PERR","CMPD","Indirect Cost"};
  bool IsDupa(WbSheet s){var v=s.Get(4,1);return v!=null&&"DETAILED UNIT PRICE ANALYSIS".Equals(Convert.ToString(v.Cached),StringComparison.OrdinalIgnoreCase);}
- void ImportWorkbook(){using(var d=new OpenFileDialog{Title="Open DPWH POW workbook",Filter="Excel workbook (*.xlsm;*.xlsx)|*.xlsm;*.xlsx"}){if(d.ShowDialog(this)!=DialogResult.OK)return;
-   if(edits.Count>0&&MessageBox.Show(this,"Replace the current POW workbook? The "+edits.Count+" value(s) typed in the app are cleared.",Text,MessageBoxButtons.OKCancel,MessageBoxIcon.Question)!=DialogResult.OK)return;
+ void UpdateTitle(){string name=projectPath==null?"New POW (not saved)":Path.GetFileName(projectPath);Text="Program of Works (POW) - "+name+(dirty?" *":"");var host=FindForm();if(Parent!=null&&host!=null&&host!=this)host.Text=Text;}
+ void ImportWorkbook(){if(!ConfirmDiscard())return;using(var d=new OpenFileDialog{Title="Use another DPWH POW workbook as the template",Filter="Excel workbook (*.xlsm;*.xlsx)|*.xlsm;*.xlsx"}){if(d.ShowDialog(this)!=DialogResult.OK)return;
    string ext=Path.GetExtension(d.FileName).ToLowerInvariant();string target=Path.Combine(DataFolder,"PowWorkbook"+ext);foreach(var old in new[]{"PowWorkbook.xlsm","PowWorkbook.xlsx"}){var p=Path.Combine(DataFolder,old);if(File.Exists(p)&&!string.Equals(p,target,StringComparison.OrdinalIgnoreCase))File.Delete(p);}
-   File.Copy(d.FileName,target,true);if(File.Exists(EditsPath))File.Delete(EditsPath);edits.Clear();LoadWorkbook(target);}}
- void LoadWorkbook(string path){Enabled=false;status.Text="Opening the POW workbook and computing all formulas…";Cursor=Cursors.WaitCursor;var ui=SynchronizationContext.Current;
-  WbBook loaded=null;WbCalc c=null;Exception error=null;var t=new Thread(()=>{try{loaded=WbBook.Load(path);c=new WbCalc(loaded);ReadEdits(loaded);c.CalculateAll();}catch(Exception x){error=x;}},512*1024*1024){IsBackground=true};
+   File.Copy(d.FileName,target,true);projectPath=null;LoadTemplate(null);}}
+ /* loads the template (built in, or the owner's own) and, if given, a saved POW project on top of it */
+ void LoadTemplate(string project){Enabled=false;status.Text="Opening the POW workbook and computing all formulas…";Cursor=Cursors.WaitCursor;string custom=CustomTemplatePath;
+  WbBook loaded=null;WbCalc c=null;Exception error=null;Dictionary<string,object> projectEdits=null;
+  var t=new Thread(()=>{try{if(custom!=null){loaded=WbBook.Load(custom);}else{var bytes=BuiltInTemplate();if(bytes==null)throw new Exception("The built-in POW template is missing from this build.");loaded=WbBook.Load(new MemoryStream(bytes));loaded.SourceBytes=bytes;}
+    c=new WbCalc(loaded);if(project!=null)projectEdits=ReadProject(project);c.CalculateAll();}catch(Exception x){error=x;}},512*1024*1024){IsBackground=true};
   t.Start();var timer=new System.Windows.Forms.Timer{Interval=200};timer.Tick+=(s,e)=>{if(t.IsAlive)return;timer.Stop();timer.Dispose();Enabled=true;Cursor=Cursors.Default;
    if(error!=null){status.Text="Could not open the POW workbook: "+error.Message;MessageBox.Show(this,error.Message,Text);return;}
-   book=loaded;calc=c;render=new WbRender(book,calc);render.RowHidden=RowHidden;view.Render=render;BuildTabs();
-   status.Text=Path.GetFileName(path)+": "+book.Sheets.Count+" sheets, "+calc.Evaluated.ToString("N0")+" formulas computed"+(calc.Problems.Count>0?" ("+calc.Problems.Count+" formula notes)":"")+". Double-click an input cell to change it.";};timer.Start();}
+   book=loaded;calc=c;templateName=custom!=null?Path.GetFileName(custom):"built-in DPWH POW V6.02";render=new WbRender(book,calc);render.RowHidden=RowHidden;view.Render=render;edits.Clear();originals.Clear();
+   string note="";if(projectEdits!=null){int applied=Apply(projectEdits);projectPath=project;note=", "+applied+" saved value(s) from "+Path.GetFileName(project);WbCalc.RunWithLargeStack(()=>{calc.Reset();calc.CalculateAll();});}else projectPath=null;
+   dirty=false;BuildTabs();UpdateTitle();status.Text=templateName+": "+book.Sheets.Count+" sheets, "+calc.Evaluated.ToString("N0")+" formulas computed"+note+". Double-click an input cell to change it.";};timer.Start();}
  bool RowHidden(WbSheet s,int r){if(!hideX.Checked)return false;var c=s.Get(r,1);if(c==null)return false;var v=c.Formula!=null||c.ArrayMaster!=null?calc.CellValue(s,c):c.Cached;return v is string&&((string)v).Trim().Equals("X",StringComparison.OrdinalIgnoreCase);}
  void BuildTabs(){tabs.TabPages.Clear();var order=Front.Where(n=>book.Sheet(n)!=null).ToList();foreach(var s in book.Sheets)if(!s.Hidden&&!IsDupa(s)&&!order.Contains(s.Name,StringComparer.OrdinalIgnoreCase))order.Add(s.Name);
   foreach(var n in order){var sh=book.Sheet(n);if(sh.Hidden&&!Front.Contains(n))continue;tabs.TabPages.Add(new TabPage(n){Tag=sh});}
@@ -48,22 +61,39 @@ sealed class PowWorkbookForm : Form {
  object Val(WbSheet s,int r,int c){var cell=s.Get(r,c);if(cell==null)return null;return cell.Formula!=null||cell.ArrayMaster!=null?calc.CellValue(s,cell):cell.Cached;}
  void ShowTab(){if(book==null||tabs.SelectedTab==null)return;FitTabs();if("DUPA".Equals(tabs.SelectedTab.Tag)){dupaBar.Visible=true;var item=dupaList.SelectedItem as DupaItem;if(item!=null)ShowSheet(book.Sheet(item.Sheet));return;}dupaBar.Visible=false;ShowSheet(tabs.SelectedTab.Tag as WbSheet);}
  void ShowSheet(WbSheet s){if(s==null)return;Cursor=Cursors.WaitCursor;try{view.Sheet=s;}finally{Cursor=Cursors.Default;}}
- void Describe(WbSheet s,int r,int c){var cell=s.Get(r,c);string a=s.Name+"!"+WbBook.ColumnName(c)+r;if(cell==null){status.Text=a;return;}var v=Val(s,r,c);status.Text=a+"  =  "+WbCalc.Text(v)+(cell.Formula!=null?"      formula: ="+cell.Formula.Replace("\n"," "):cell.ArrayMaster!=null?"      (array formula)":"      input");}
+ void Describe(WbSheet s,int r,int c){var cell=s.Get(r,c);string a=s.Name+"!"+WbBook.ColumnName(c)+r;if(cell==null){status.Text=a;return;}var v=Val(s,r,c);string at=s.Name+"!"+WbBook.ColumnName(c)+r;status.Text=a+"  =  "+WbCalc.Text(v)+(cell.Formula!=null?"      formula: ="+cell.Formula.Replace("\n"," "):cell.ArrayMaster!=null?"      (array formula)":edits.ContainsKey(at)?"      your value (template: "+WbCalc.Text(originals[at])+")":"      input");}
  /* typed inputs: constants only; formulas stay as in the workbook */
  void EditCell(WbSheet s,int r,int c){var l=book.Layout(s);WbMerge m;if(l.MergeAt.TryGetValue(WbSheet.Key(r,c),out m)){r=m.R1;c=m.C1;}var cell=s.Get(r,c);
   if(cell!=null&&(cell.Formula!=null||cell.ArrayMaster!=null)){MessageBox.Show(this,s.Name+"!"+WbBook.ColumnName(c)+r+" is computed by a formula:\n="+cell.Formula+"\n\nChange the input cells it uses instead.",Text);return;}
   string current=cell==null?"":WbCalc.Text(cell.Cached);string typed=Prompt(s.Name+"!"+WbBook.ColumnName(c)+r,current);if(typed==null||typed==current)return;
   object value=typed;double d;if(typed.Trim()=="")value=null;else if(double.TryParse(typed.Trim().Replace(",",""),NumberStyles.Float,CultureInfo.InvariantCulture,out d))value=d;
-  var target=s.GetOrAdd(r,c);target.Cached=value;edits[s.Name+"!"+WbBook.ColumnName(c)+r]=value;WriteEdits();Recalculate(s.Name+"!"+WbBook.ColumnName(c)+r);}
+  string at=s.Name+"!"+WbBook.ColumnName(c)+r;SetValue(at,value);dirty=true;UpdateTitle();Recalculate(at);}
+ /* sets one typed value, remembering the template value it replaces (a value equal to the template's is no longer an edit) */
+ void SetValue(string at,object value){int bang=at.LastIndexOf('!');var s=book.Sheet(at.Substring(0,bang));int r,c;if(s==null||!WbBook.ParseA1(at.Substring(bang+1),out r,out c))return;var cell=s.GetOrAdd(r,c);if(cell.Formula!=null||cell.ArrayMaster!=null)return;
+  if(!originals.ContainsKey(at))originals[at]=cell.Cached;cell.Cached=value;if(Same(value,originals[at])){edits.Remove(at);originals.Remove(at);}else edits[at]=value;}
+ static bool Same(object a,object b){if(a==null||(a is string&&(string)a==""))return b==null||(b is string&&(string)b=="");return a.Equals(b);}
+ int Apply(Dictionary<string,object> values){int n=0;foreach(var kv in values){int before=edits.Count;SetValue(kv.Key,kv.Value);n++;}return n;}
  string Prompt(string title,string value){using(var f=new Form{Text=title,Width=460,Height=150,FormBorderStyle=FormBorderStyle.FixedDialog,StartPosition=FormStartPosition.CenterParent,MinimizeBox=false,MaximizeBox=false,Font=Font}){
    var box=new TextBox{Text=value,Left=12,Top=14,Width=420};var ok=new Button{Text="OK",DialogResult=DialogResult.OK,Left=262,Top=50,Width=80};var cancel=new Button{Text="Cancel",DialogResult=DialogResult.Cancel,Left=352,Top=50,Width=80};
    f.Controls.AddRange(new Control[]{box,ok,cancel});f.AcceptButton=ok;f.CancelButton=cancel;return f.ShowDialog(this)==DialogResult.OK?box.Text:null;}}
  void Recalculate(string changed){if(calc==null)return;Cursor=Cursors.WaitCursor;try{WbCalc.RunWithLargeStack(()=>{calc.Reset();calc.CalculateAll();});}finally{Cursor=Cursors.Default;}view.Invalidate();
-  status.Text=(changed!=null?changed+" changed. ":"")+"All "+calc.Evaluated.ToString("N0")+" formulas recomputed.";}
- void ReadEdits(WbBook b){edits.Clear();if(!File.Exists(EditsPath))return;var doc=new XmlDocument();doc.Load(EditsPath);foreach(XmlElement e in doc.DocumentElement.GetElementsByTagName("Cell")){string at=e.GetAttribute("at");int bang=at.LastIndexOf('!');if(bang<0)continue;var s=b.Sheet(at.Substring(0,bang));int r,c;if(s==null||!WbBook.ParseA1(at.Substring(bang+1),out r,out c))continue;
-   object v=null;if(e.GetAttribute("type")=="n"){double d;if(double.TryParse(e.InnerText,NumberStyles.Float,CultureInfo.InvariantCulture,out d))v=d;}else if(e.GetAttribute("type")=="s")v=e.InnerText;var cell=s.Get(r,c);if(cell!=null&&cell.Formula!=null)continue;s.GetOrAdd(r,c).Cached=v;edits[at]=v;}}
- void WriteEdits(){var doc=new XmlDocument();var root=doc.CreateElement("PowInputs");doc.AppendChild(root);foreach(var kv in edits){var e=doc.CreateElement("Cell");e.SetAttribute("at",kv.Key);e.SetAttribute("type",kv.Value is double?"n":kv.Value==null?"":"s");if(kv.Value is double)e.InnerText=((double)kv.Value).ToString("R",CultureInfo.InvariantCulture);else if(kv.Value!=null)e.InnerText=kv.Value.ToString();root.AppendChild(e);}
-  var tmp=EditsPath+".tmp";doc.Save(tmp);if(File.Exists(EditsPath))File.Delete(EditsPath);File.Move(tmp,EditsPath);}
+  status.Text=(changed!=null?changed+" changed. ":"")+"All "+calc.Evaluated.ToString("N0")+" formulas recomputed."+(dirty?" Not saved yet (Save POW / Ctrl+S).":"");}
+ /* POW project file (.pow.xml): the values typed in the app over the template */
+ internal static string ProjectXml(Dictionary<string,object> values,string template){var doc=new XmlDocument();var root=doc.CreateElement("PowWorkbook");root.SetAttribute("version","1");root.SetAttribute("template",template??"");root.SetAttribute("app",Engine.Version);doc.AppendChild(root);
+  foreach(var kv in values.OrderBy(k=>k.Key,StringComparer.OrdinalIgnoreCase)){var e=doc.CreateElement("Cell");e.SetAttribute("at",kv.Key);e.SetAttribute("type",kv.Value is double?"n":kv.Value is bool?"b":kv.Value==null?"":"s");if(kv.Value is double)e.InnerText=((double)kv.Value).ToString("R",CultureInfo.InvariantCulture);else if(kv.Value is bool)e.InnerText=(bool)kv.Value?"1":"0";else if(kv.Value!=null)e.InnerText=kv.Value.ToString();root.AppendChild(e);}
+  using(var sw=new StringWriter()){using(var w=XmlWriter.Create(sw,new XmlWriterSettings{Indent=true,OmitXmlDeclaration=true}))doc.Save(w);return "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"+sw.ToString();}}
+ internal static Dictionary<string,object> ReadProject(string path){var doc=new XmlDocument{XmlResolver=null};using(var r=XmlReader.Create(path,new XmlReaderSettings{DtdProcessing=DtdProcessing.Prohibit,XmlResolver=null}))doc.Load(r);
+  if(doc.DocumentElement==null||doc.DocumentElement.Name!="PowWorkbook"){if(doc.DocumentElement!=null&&doc.DocumentElement.Name=="ProgramOfWorks")throw new Exception(Path.GetFileName(path)+" is a Bill of Quantities file. Open it in the Bill of Quantities workspace.");throw new Exception(Path.GetFileName(path)+" is not a Program of Works (POW) file.");}
+  var values=new Dictionary<string,object>(StringComparer.OrdinalIgnoreCase);foreach(XmlElement e in doc.DocumentElement.GetElementsByTagName("Cell")){object v=null;string type=e.GetAttribute("type");if(type=="n"){double d;if(double.TryParse(e.InnerText,NumberStyles.Float,CultureInfo.InvariantCulture,out d))v=d;}else if(type=="b")v=e.InnerText=="1";else if(type=="s")v=e.InnerText;values[e.GetAttribute("at")]=v;}return values;}
+ bool ConfirmDiscard(){if(!dirty)return true;var r=MessageBox.Show(this,"Save the changes to "+(projectPath==null?"this POW":Path.GetFileName(projectPath))+" first?",Text,MessageBoxButtons.YesNoCancel,MessageBoxIcon.Question);if(r==DialogResult.Cancel)return false;if(r==DialogResult.Yes)return SaveProject(false);return true;}
+ bool SaveProject(bool saveAs){if(book==null)return false;string path=projectPath;if(saveAs||path==null){using(var d=new SaveFileDialog{Title="Save POW",Filter="Program of Works (POW)|*.pow.xml",FileName=path==null?"Program-of-Works.pow.xml":Path.GetFileName(path),OverwritePrompt=true}){if(d.ShowDialog(this)!=DialogResult.OK)return false;path=d.FileName;}}
+  try{PowProjectFileWriter.AtomicWrite(path,ProjectXml(edits,templateName));}catch(Exception ex){MessageBox.Show(this,"The POW was not saved: "+ex.Message,Text);return false;}
+  projectPath=path;dirty=false;Remember(path);UpdateTitle();status.Text="Saved "+Path.GetFileName(path)+" ("+edits.Count+" value(s) changed from the template).";return true;}
+ void OpenProject(){if(book==null||!ConfirmDiscard())return;using(var d=new OpenFileDialog{Title="Open POW",Filter="Program of Works (POW)|*.pow.xml|All files|*.*"}){if(d.ShowDialog(this)!=DialogResult.OK)return;
+   Dictionary<string,object> values;try{values=ReadProject(d.FileName);}catch(Exception ex){MessageBox.Show(this,ex.Message,Text);return;}
+   foreach(var at in originals.Keys.ToList()){var o=originals[at];SetValue(at,o);}edits.Clear();originals.Clear();Apply(values);projectPath=d.FileName;dirty=false;Remember(d.FileName);Recalculate(null);UpdateTitle();status.Text="Opened "+Path.GetFileName(d.FileName)+" ("+values.Count+" saved value(s)).";}}
+ void NewProject(){if(book==null||!ConfirmDiscard())return;foreach(var at in originals.Keys.ToList())SetValue(at,originals[at]);edits.Clear();originals.Clear();projectPath=null;dirty=false;try{File.Delete(LastProjectPath);}catch(IOException){}Recalculate(null);UpdateTitle();status.Text="New POW from the template. Change input cells, then Save POW.";}
+ static void Remember(string path){try{File.WriteAllText(LastProjectPath,path);}catch(IOException){}catch(UnauthorizedAccessException){}}
  /* printing */
  void PrintSheets(bool preview){if(view.Sheet==null)return;Print(new List<WbSheet>{view.Sheet},preview);}
  void PrintDupas(){if(book==null)return;var detailed=book.Sheet("DETAILED");var codes=new HashSet<string>(StringComparer.OrdinalIgnoreCase);

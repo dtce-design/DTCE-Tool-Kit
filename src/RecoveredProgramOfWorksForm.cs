@@ -7615,7 +7615,7 @@ worksExcelTimer.Tick += async delegate
         private async void Open()
         {
             if(openingPow)return;
-            try{Guard();Commit();using(var dialog=new OpenFileDialog{Filter="Bill of Quantities|*.pow.xml"}){
+            try{Guard();Commit();using(var dialog=new OpenFileDialog{Filter="Bill of Quantities (*.boq.xml, older *.pow.xml)|*.boq.xml;*.pow.xml|All files|*.*"}){
                 if(dialog.ShowDialog(this)!=DialogResult.OK)return;
                 openingPow=true;
                 using(var busy=new PowBusyIndicator(this,"Open Bill of Quantities","Opening "+Path.GetFileName(dialog.FileName)+"…")){
@@ -7681,6 +7681,7 @@ worksExcelTimer.Tick += async delegate
 				"11", "12", "13", "14", "15", "16", "17", "18", "19"
 			}.Contains(xmlDocument.DocumentElement.GetAttribute("version")))
 			{
+				if(xmlDocument.DocumentElement!=null&&xmlDocument.DocumentElement.Name=="PowWorkbook")throw new Exception("This is a Program of Works (POW) file. Open it in the Program of Works (POW) workspace.");
 				throw new Exception("Choose a Bill of Quantities file.");
 			}
 			NormalizeLegacyAAC(xmlDocument.DocumentElement);
