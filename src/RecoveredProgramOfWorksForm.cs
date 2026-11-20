@@ -7506,7 +7506,7 @@ worksExcelTimer.Tick += async delegate
 						for (int i = 0; i < array.Length; i++)
 						{
 							int n = array[i];
-							xmlElement3.SetAttribute("c" + n, Cell(item2, n));
+							xmlElement3.SetAttribute("c" + n, Cell(item2, n));string formula = GridFormulas.Formula(item2.Cells[n]);if (formula != null) xmlElement3.SetAttribute("f" + n, formula);
 						}
 						WriteSteelSets(item.Key, item2, xmlElement3);
 						WriteSteelPaintOnly(item2, xmlElement3);
@@ -7819,7 +7819,7 @@ worksExcelTimer.Tick += async delegate
 								obj = item4.GetAttribute("c" + num2);
 							}
 							string text = (string)obj;
-							item3.Value.Rows[index].Cells[num2].Value = ((item3.Value.Columns[num2] is DataGridViewCheckBoxColumn) ? ((object)(text != "" && bool.Parse(text))) : text);
+							item3.Value.Rows[index].Cells[num2].Value = ((item3.Value.Columns[num2] is DataGridViewCheckBoxColumn) ? ((object)(text != "" && bool.Parse(text))) : text);GridFormulas.Set(item3.Value.Rows[index].Cells[num2], item4.HasAttribute("f" + num2) ? item4.GetAttribute("f" + num2) : null);
 						}
 						ReadSteelSets(item3.Key, item3.Value.Rows[index], item4);
 						ReadSteelPaintOnly(item3.Value.Rows[index], item4);

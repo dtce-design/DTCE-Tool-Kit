@@ -1,0 +1,16 @@
+DTCE Tool Kit v1.50.10 test build (20 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: info buttons and Excel-like formulas.
+
+- Info buttons ("yung mga unnecessary word mag create na lang ng button para sa info"): the long explanations at the top of every
+  design sheet tab (Strap Foundation, Truss Support, Wind, Earthquake / RSA, Beam Deflection, Purlin, ...) and of the Bar
+  Bending Schedule beam lines are now behind an "Info" button: hover shows the text, click opens it in a window.
+- Formulas in the Program of Works input cells ("sa mga input sa POW allow maginput na parang calculator like excel =0.6+0.3
+  tapos ang lalabas e yung total, naka save pa din yung formula sa cell"): type =0.6+0.3 (also * / ^, parentheses, decimals,
+  x as times) and the cell shows 0.9 while keeping the formula - editing the cell shows the formula again, hovering shows it,
+  the value is drawn in blue, and the project file stores the formula next to the value (f<n> beside c<n>) for the main
+  sheets, the additional quantity sheets and the slab estimate. A bad formula is marked on the cell; typing a plain number
+  replaces the formula. Pasted "=..." values are evaluated too.
+
+Includes v1.50.9 and earlier local builds (see their notes).

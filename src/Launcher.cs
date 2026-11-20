@@ -30,7 +30,7 @@ class LauncherForm:Form {
   /* owner (19 November 2026): Project Information always comes first */
   AddCard(cards,"Project Information","Set the project details used in your calculations and reports.",()=>UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8));
   AddCard(cards,"Formatters","Prepare beam and slab schedules from your DXF drawings.",ShowFormatters);
-  AddCard(cards,"Program of Works","Estimate quantities and keep your Bill of Quantities connected.",()=>UseTool(ref works,()=>{var f=new ProgramOfWorksForm();ProgramOfWorksForm.Live=new WeakReference(f);return f;},"Program of Works",null,2));
+  AddCard(cards,"Program of Works","Estimate quantities and keep your Bill of Quantities connected.",()=>UseTool(ref works,()=>{var f=new ProgramOfWorksForm();ProgramOfWorksForm.Live=new WeakReference(f);GridFormulas.AttachAll(f);return f;},"Program of Works",null,2));
   AddCard(cards,"Bar Bending Schedule","Bar bending schedules, cutting lists and splice details from the beam schedule, with an interactive model.",()=>UseTool(ref cutting,()=>new CuttingListForm(),"Bar Bending Schedule",null,ProgramAccess.ProgramOfWorks));
   AddCard(cards,"Design Sheets","Reinforcement, purlins, truss connections and supports (base plates and anchor bolts), strap foundations, wind, earthquake and beam deflection calculations.",ShowDesignSheets);
   #if ADMIN_APP
