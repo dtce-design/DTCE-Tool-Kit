@@ -192,8 +192,8 @@ workbook is built in as src/PowTemplate.xlsx (slim copy of the owner's V6.02 Pig
 settings; embedded resource "PowTemplate.xlsx" in every build script). Its values stay until the owner types new ones; typed values
 are saved as POW project files *.pow.xml (root <PowWorkbook>). Do not commit the original .xlsm. BACKUP!BC follows the open Bill
 of Quantities workspace (src/BoqPowLink.cs; owner: "yung backup sa pow nakalink sa boq workspace"). Bill of Quantities files are now
-*.boq.xml (root <ProgramOfWorks>) and older *.pow.xml Bill of Quantities files must keep opening. Next: BOQ quantities to BACKUP,
-Project Information to FRONT PAGE.
+*.boq.xml (root <ProgramOfWorks>) and older *.pow.xml Bill of Quantities files must keep opening. Next: Project Information to
+FRONT PAGE.
 
 ## Version numbers (18 November 2026)
 
