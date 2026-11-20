@@ -173,6 +173,9 @@ flaky EarthworkFootingTests exit code): both uploads were refused. The pending d
 the API, so the API may not update or delete them ("Ingestion API can only update, delete, and commit submissions that are created
 through the API"). The owner must delete the in-progress User and Admin submissions in Partner Center; then re-run the failed
 Store jobs of run 44698831499. Nothing was changed in Partner Center.
+Done 20 November 2026: the owner deleted both drafts; the failed Store jobs of run 44698831499 were re-run (attempt 3). New User
+(1152921505702458279) and Admin (1152921505702458540) submissions were created and committed; Partner Center reported
+"accepted for processing" (PreProcessing). Certification is not guaranteed. v5.1.10 and later need a new explicit request.
 
 ## Program of Works name (20 November 2026)
 
