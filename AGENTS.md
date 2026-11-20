@@ -166,6 +166,13 @@ instead of v5.0.20, the same way after its Windows CI passes. Owner then added L
 OtherFinishes section), fixed in v5.1.9; owner "upload mo na yan": the Store release is v5.1.9 (User and Admin). scripts/submit_store.py now deletes only an uncommitted draft that
 the Store refuses with 409 InvalidState and creates a new submission; a submission in certification is still never cancelled
 unless replace_pending_store_submission=true is asked for. Later versions again need a new explicit request.
+Owner (20 November 2026, "yan na muna ang pinaka final upload sa microsoft store"): v5.1.9 is the last Store upload for now; do not
+upload v5.1.10 or later until the owner asks again (GitHub pushes to the development branch are still fine).
+
+## Program of Works name (20 November 2026)
+
+Owner: "palitan yung Program of Works ng Bill of Quantities". The workspace and every user-visible "Program of Works" text are named
+Bill of Quantities. Internal class names (ProgramOfWorksForm), the .pow.xml file format and the linked workbook sheet names stay.
 
 ## Version numbers (18 November 2026)
 

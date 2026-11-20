@@ -38,12 +38,12 @@ static class ModernUi {
   var nav=tabs as NavigationTabs;if(nav!=null&&nav.StripHidden)return;
   tabs.Alignment=TabAlignment.Top;tabs.Multiline=true;tabs.SizeMode=TabSizeMode.Normal;
   tabs.ItemSize=new Size(0,36);tabs.Padding=new Point(24,9);
-  tabs.AccessibleName="Program of Works sections";
+  tabs.AccessibleName="Bill of Quantities sections";
  }
  internal static bool Primary(string text) {
   return text=="Add entry" || text=="Apply" || text=="Apply deductions" || text=="Build preview" ||
    text=="Save project information" || text=="Save footing" || text=="Open / Link Excel" ||
-   text=="Save Program of Works" || text=="Calculate" ||
+   text=="Save Bill of Quantities" || text=="Calculate" ||
    // Main action of each dialog (owner, 18 November 2026: button formatting).
    text=="Open selected copy" || text=="Select" || text=="Apply mapping" || text=="Add schedule";
  }

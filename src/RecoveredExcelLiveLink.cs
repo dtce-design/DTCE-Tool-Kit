@@ -162,7 +162,7 @@ namespace BeamScheduleFormatter
 				}
 				if (requireTemplate && Convert.ToString(book.Worksheets["RawData"].Range["N1"].Value2) != "BeamToolsSummaryV1")
 				{
-					throw new Exception("Choose a Beam/Slab Summary workbook created by this app, or link your existing workbook from Program of Works.");
+					throw new Exception("Choose a Beam/Slab Summary workbook created by this app, or link your existing workbook from Bill of Quantities.");
 				}
 				if (visible)
 				{
@@ -403,7 +403,7 @@ namespace BeamScheduleFormatter
 				dynamic val = FindEstimateSheet(table.Name);
 				if (val != null && Convert.ToString(val.Range["AA1"].Value2) != "DTCEProgramOfWorksV1:" + table.Name)
 				{
-					throw new Exception("Sheet '" + table.Name + "' is not owned by Program of Works. Rename it or choose another workbook.");
+					throw new Exception("Sheet '" + table.Name + "' is not owned by Bill of Quantities. Rename it or choose another workbook.");
 				}
 			}
 			dynamic val2 = FindEstimateSheet("DTCE_POW_Project");

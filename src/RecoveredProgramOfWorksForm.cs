@@ -1123,7 +1123,7 @@ namespace BeamScheduleFormatter
 			plumbingPipes.Columns[2].Width = 520;
 			SetDefaults(plumbingPipes, new Dictionary<int, string> { { 4, "1" } });
 			PipeSuggestions(plumbingPipes, 2, PlumbingSpecs.Pipes);
-			AddGrid("Pipe Takeoff", plumbingPipes, "Enter a unique Pipe ID per measured run/group. Select/type the full pipe diameter, material and series/PN. Total metres = measured length x runs. Matching specifications combine in Program of Works and BACKUP; every Pipe ID remains in the Tool Kit report. No fitting equivalent length or waste allowance is assumed.");
+			AddGrid("Pipe Takeoff", plumbingPipes, "Enter a unique Pipe ID per measured run/group. Select/type the full pipe diameter, material and series/PN. Total metres = measured length x runs. Matching specifications combine in Bill of Quantities and BACKUP; every Pipe ID remains in the Tool Kit report. No fitting equivalent length or waste allowance is assumed.");
 			plumbingLs = Grid(new string[5] { "Entry ID", "Location / scope", "Exact lump-sum pay-item description", "Manual quantity LS", "Status" }, 4);
 			plumbingLs.Columns[2].Width = 520;
 			ConfigureManualEntries(plumbingLs);
@@ -1757,7 +1757,7 @@ namespace BeamScheduleFormatter
 		private void ShowWorksSettings()
 		{
 			Commit();
-			SettingsWorkspace.Show(this, "Program of Works", new string[3] { "Beam", "Slab", "Footing" }, new Control[3] { beam.WorksSettings, slab.WorksSettings, footingSettings });
+			SettingsWorkspace.Show(this, "Bill of Quantities", new string[3] { "Beam", "Slab", "Footing" }, new Control[3] { beam.WorksSettings, slab.WorksSettings, footingSettings });
 			Recalculate();
 			RefreshStockChecks();
 		}
@@ -3347,7 +3347,7 @@ namespace BeamScheduleFormatter
 					{
 						filling = flag;
 					}
-					roofLibraryStatus.Text = "App profile library loaded from Documents. Saved Program of Works projects retain their own profile settings.";
+					roofLibraryStatus.Text = "App profile library loaded from Documents. Saved Bill of Quantities projects retain their own profile settings.";
 				}
 				catch (Exception ex2)
 				{
@@ -3456,7 +3456,7 @@ namespace BeamScheduleFormatter
 			{
 				List<RoofProfile> existing = (File.Exists(RoofProfileLibrary.DefaultPath) ? RoofProfileLibrary.Load(RoofProfileLibrary.DefaultPath) : new List<RoofProfile>());
 				RoofProfileLibrary.Save(RoofProfileLibrary.DefaultPath, RoofProfileLibrary.Merge(existing, savedRoofProfiles));
-				roofLibraryStatus.Text = "Profiles saved in Documents > DTCE Tool Kit > Profiles. Save Program of Works keeps estimate and DXF data.";
+				roofLibraryStatus.Text = "Profiles saved in Documents > DTCE Tool Kit > Profiles. Save Bill of Quantities keeps estimate and DXF data.";
 			}
 			catch (Exception ex)
 			{
@@ -4477,7 +4477,7 @@ namespace BeamScheduleFormatter
 			}
 			SuspendLayout();tabs.SuspendLayout();
 			AppBrand.Apply(this);
-			Text = "Program of Works | DTCE Tool Kit";
+			Text = "Bill of Quantities | DTCE Tool Kit";
 			base.Width = 1500;
 			base.Height = 960;
 			MinimumSize = new Size(1100, 740);
@@ -4499,11 +4499,11 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			base.Controls.Add(tabs);
 			base.Controls.Add(flowLayoutPanel);
 			GridEditHistory.AddCommands(this,flowLayoutPanel);
-            Button(flowLayoutPanel, "Save Program of Works", Save);
+            Button(flowLayoutPanel, "Save Bill of Quantities", Save);
             /* owner (19 November 2026, "isummarize yung buttons"): Undo, Redo and Save stay on the bar; the other commands are grouped
                in a File menu and a Report menu */
-            MenuButton(flowLayoutPanel,"File",new KeyValuePair<string,Action>("Open Program of Works…\tCtrl+O",Open),new KeyValuePair<string,Action>("Save Program of Works As…\tCtrl+Shift+S",SaveAs),new KeyValuePair<string,Action>("Close Program of Works",CloseProgramOfWorks),null,new KeyValuePair<string,Action>("Project files…",ManageProjectFiles),new KeyValuePair<string,Action>("Restore backup…",RestoreBackup));
-            /* No Report menu in the command bar: the Reports main tab has them (owner, 19 November 2026). *//* Save status lives in the bottom status bar (owner, 17 November 2026), not between the command buttons. */powSaveIndicator=new Label{Name="PowSaveStatus",AccessibleName="Program of Works save status",Text=""};
+            MenuButton(flowLayoutPanel,"File",new KeyValuePair<string,Action>("Open Bill of Quantities…\tCtrl+O",Open),new KeyValuePair<string,Action>("Save Bill of Quantities As…\tCtrl+Shift+S",SaveAs),new KeyValuePair<string,Action>("Close Bill of Quantities",CloseProgramOfWorks),null,new KeyValuePair<string,Action>("Project files…",ManageProjectFiles),new KeyValuePair<string,Action>("Restore backup…",RestoreBackup));
+            /* No Report menu in the command bar: the Reports main tab has them (owner, 19 November 2026). *//* Save status lives in the bottom status bar (owner, 17 November 2026), not between the command buttons. */powSaveIndicator=new Label{Name="PowSaveStatus",AccessibleName="Bill of Quantities save status",Text=""};
 			beam = new EstimatorForm(null);
 			slab = new SlabEstimatorForm();
 			AddHome();
@@ -4704,7 +4704,7 @@ worksExcelTimer.Tick += async delegate
 				Height = 52,
 				Padding = new Padding(8)
 			};
-			reportScope.Items.AddRange(new object[] { "Program of Works Summary", "Reinforced Concrete Works", "Masonry Works", "Doors & Windows", "Finishing Works", "Roofing Works", "Earthworks", "Structural Steel Works", "Plumbing Works", "Carpentry and Joinery Works", "Pavement Construction", "Slope Protection Works" });
+			reportScope.Items.AddRange(new object[] { "Bill of Quantities Summary", "Reinforced Concrete Works", "Masonry Works", "Doors & Windows", "Finishing Works", "Roofing Works", "Earthworks", "Structural Steel Works", "Plumbing Works", "Carpentry and Joinery Works", "Pavement Construction", "Slope Protection Works" });
 			reportDetail.Items.AddRange(new object[3] { "Summary", "Detailed", "Extensive" });
 			reportScope.SelectedIndex = 0;
 			reportDetail.SelectedIndex = 1;
@@ -4914,7 +4914,7 @@ worksExcelTimer.Tick += async delegate
 					Multiline = true,
 					ScrollBars = ScrollBars.Both,
 					Font = new Font("Segoe UI", 10f),
-					Text = ((list.Count == 0) ? "No input issues found." : ("Use Save Program of Works to retain incomplete inputs. Partial sync/export includes the valid quantities and lists these issues:\r\n\r\n" + string.Join("\r\n\r\n", list)))
+					Text = ((list.Count == 0) ? "No input issues found." : ("Use Save Bill of Quantities to retain incomplete inputs. Partial sync/export includes the valid quantities and lists these issues:\r\n\r\n" + string.Join("\r\n\r\n", list)))
 				});
 				form.ShowDialog(this);
 			}
@@ -5221,7 +5221,7 @@ worksExcelTimer.Tick += async delegate
 		{
 			if (!AccessCodes.CanUseApp(2))
 			{
-				throw new Exception("Renew Program of Works / estimator access.");
+				throw new Exception("Renew Bill of Quantities / estimator access.");
 			}
 		}
 
@@ -5302,7 +5302,7 @@ worksExcelTimer.Tick += async delegate
 		private static void MenuButton(FlowLayoutPanel panel, string text, params KeyValuePair<string,Action>?[] items)
 		{
 			var menu=new ContextMenuStrip();
-			foreach(var item in items){if(item==null){menu.Items.Add(new ToolStripSeparator());continue;}var pair=item.Value;string[] parts=pair.Key.Split('\t');var entry=new ToolStripMenuItem(parts[0]);if(parts.Length>1)entry.ShortcutKeyDisplayString=parts[1];entry.Click+=(s,e)=>{try{pair.Value();}catch(Exception ex){MessageBox.Show(ex.Message,"Program of Works");}};menu.Items.Add(entry);}
+			foreach(var item in items){if(item==null){menu.Items.Add(new ToolStripSeparator());continue;}var pair=item.Value;string[] parts=pair.Key.Split('\t');var entry=new ToolStripMenuItem(parts[0]);if(parts.Length>1)entry.ShortcutKeyDisplayString=parts[1];entry.Click+=(s,e)=>{try{pair.Value();}catch(Exception ex){MessageBox.Show(ex.Message,"Bill of Quantities");}};menu.Items.Add(entry);}
 			var button=new Button{Text=text+"  ▾",AutoSize=true,Height=30,Tag=menu,AccessibleName=text+" menu"};
 			button.Click+=(s,e)=>menu.Show(button,new System.Drawing.Point(0,button.Height));
 			button.Disposed+=(s,e)=>menu.Dispose();
@@ -5325,7 +5325,7 @@ worksExcelTimer.Tick += async delegate
 				}
 				catch (Exception ex)
 				{
-					MessageBox.Show(ex.Message, "Program of Works");
+					MessageBox.Show(ex.Message, "Bill of Quantities");
 				}
 			};
 			panel.Controls.Add(button);
@@ -7165,7 +7165,7 @@ worksExcelTimer.Tick += async delegate
 				return slab.Report();
 			}
 			string text = tabs.SelectedTab.Text;
-			return BuildWorksReport((text == "Reports") ? reportScope.Text : ((text == "Bill of Quantities") ? "Program of Works Summary" : text), reportDetail.SelectedIndex > 0);
+			return BuildWorksReport((text == "Reports") ? reportScope.Text : ((text == "Bill of Quantities") ? "Bill of Quantities Summary" : text), reportDetail.SelectedIndex > 0);
 		}
 
 		private string BuildWorksReport(string scope, bool detailed)
@@ -7174,7 +7174,7 @@ worksExcelTimer.Tick += async delegate
 			{
 				throw new Exception(string.Join("\n", errors));
 			}
-			bool flag = scope == "Program of Works Summary";
+			bool flag = scope == "Bill of Quantities Summary";
 			StringBuilder stringBuilder = new StringBuilder();
 			stringBuilder.AppendLine("PROGRAM OF WORKS | BACKUP QUANTITIES");
 			stringBuilder.AppendLine(scope + " | " + ((reportDetail.SelectedIndex == 2) ? "Extensive" : (detailed ? "Detailed" : "Summary")));
@@ -7615,10 +7615,10 @@ worksExcelTimer.Tick += async delegate
         private async void Open()
         {
             if(openingPow)return;
-            try{Guard();Commit();using(var dialog=new OpenFileDialog{Filter="Program of Works|*.pow.xml"}){
+            try{Guard();Commit();using(var dialog=new OpenFileDialog{Filter="Bill of Quantities|*.pow.xml"}){
                 if(dialog.ShowDialog(this)!=DialogResult.OK)return;
                 openingPow=true;
-                using(var busy=new PowBusyIndicator(this,"Open Program of Works","Opening "+Path.GetFileName(dialog.FileName)+"…")){
+                using(var busy=new PowBusyIndicator(this,"Open Bill of Quantities","Opening "+Path.GetFileName(dialog.FileName)+"…")){
                 while((linkingExcel||capturingExcelSource)&&!IsDisposed)await System.Threading.Tasks.Task.Delay(50);
                 if(IsDisposed)return;
                 openingPow=true;worksExcelTimer.Stop();excelSaveTimer.Stop();
@@ -7630,7 +7630,7 @@ worksExcelTimer.Tick += async delegate
                 try{OpenProjectDocument(snapshot.Document,snapshot.Sources,snapshot.SourcesDeferred?dialog.FileName:null);}catch{CancelDeferredSources();/* a partly loaded window must not overwrite any project file */currentPowPath=null;knownPowWriteUtc=null;throw;}currentPowPath=Path.GetFullPath(dialog.FileName);RememberPowFile(currentPowPath);WarnIfEmptyProject(snapshot.Document,dialog.FileName);if(!snapshot.SourcesDeferred)VerifySourcesInBackground(snapshot.Sources);
                 if(worksExcel!=null&&linkedHasBackup){busy.Status("Refreshing linked BACKUP items…");await LoadCatalogue();PowTiming.Mark("Excel BACKUP items");lastExcelXml="";dashboardDirty=true;RefreshVisibleWorksViews();saved=DataXml();ScheduleWorksExcel();}
                 ShowTiming(PowTiming.Finish());}
-            }}catch(Exception ex){if(!IsDisposed)MessageBox.Show(this,ex.Message,"Open Program of Works",MessageBoxButtons.OK,MessageBoxIcon.Information);}finally{openingPow=false;if(!IsDisposed&&worksExcel!=null&&!excelBroken)ScheduleWorksExcel();}
+            }}catch(Exception ex){if(!IsDisposed)MessageBox.Show(this,ex.Message,"Open Bill of Quantities",MessageBoxButtons.OK,MessageBoxIcon.Information);}finally{openingPow=false;if(!IsDisposed&&worksExcel!=null&&!excelBroken)ScheduleWorksExcel();}
         }
 
 		internal void OpenFrom(string path)
@@ -7681,17 +7681,17 @@ worksExcelTimer.Tick += async delegate
 				"11", "12", "13", "14", "15", "16", "17", "18", "19"
 			}.Contains(xmlDocument.DocumentElement.GetAttribute("version")))
 			{
-				throw new Exception("Choose a Program of Works file.");
+				throw new Exception("Choose a Bill of Quantities file.");
 			}
 			NormalizeLegacyAAC(xmlDocument.DocumentElement);
 			if (PowOpenState.HasInputChanges(DataXml(),saved))
 			{
-				throw new Exception("This window has unsaved Program of Works inputs. Save them, or use Close Program of Works, then open the other file.");
+				throw new Exception("This window has unsaved Bill of Quantities inputs. Save them, or use Close Bill of Quantities, then open the other file.");
 			}
 			if (deferredSourcesPath != null) BeginDeferredSources(deferredSourcesPath, xmlDocument.DocumentElement);
 			if (beam.WorksSnapshot() != null || slab.WorksSnapshot() != null)
 			{
-				throw new Exception("Beam or slab work is already loaded in this window. Use Close Program of Works (save first if needed), then open the saved file.");
+				throw new Exception("Beam or slab work is already loaded in this window. Use Close Bill of Quantities (save first if needed), then open the saved file.");
 			}
 			PowTiming.Mark("check file");
 			List<BackupBillItem> list = BackupBill.Read(xmlDocument.DocumentElement);
@@ -7919,7 +7919,7 @@ worksExcelTimer.Tick += async delegate
 			PowTiming.Mark("check unsaved changes");
 			if (closeDirty)
 			{
-				switch (MessageBox.Show(this, "Save Program of Works entries before closing?", "Program of Works", MessageBoxButtons.YesNoCancel))
+				switch (MessageBox.Show(this, "Save Bill of Quantities entries before closing?", "Bill of Quantities", MessageBoxButtons.YesNoCancel))
 				{
 				case DialogResult.Cancel:
 					e.Cancel = true;

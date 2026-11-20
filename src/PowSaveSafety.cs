@@ -33,6 +33,6 @@ partial class ProgramOfWorksForm {
   bool shrinks=PowBackups.Shrinks(before,after),changed=ChangedOnDisk(path);bool foreign=!string.Equals(Path.GetFullPath(path),currentPowPath,StringComparison.OrdinalIgnoreCase);
   if(!shrinks&&!changed)return true;if(automatic)return false;
   string why=(shrinks?"The file on disk has "+before+" saved rows; this window would save "+after+".":"")+(changed?(shrinks?"\n":"")+"The file was changed on disk after this window opened or saved it.":"");
-  return MessageBox.Show(this,"Replace \""+Path.GetFileName(path)+"\"?\n\n"+why+"\n\nA backup copy of the current file is kept in:\n"+PowBackups.Folder+"\n\nChoose No to keep the file and use Save As instead.","Replace Program of Works file",MessageBoxButtons.YesNo,MessageBoxIcon.Warning,MessageBoxDefaultButton.Button2)==DialogResult.Yes;}
+  return MessageBox.Show(this,"Replace \""+Path.GetFileName(path)+"\"?\n\n"+why+"\n\nA backup copy of the current file is kept in:\n"+PowBackups.Folder+"\n\nChoose No to keep the file and use Save As instead.","Replace Bill of Quantities file",MessageBoxButtons.YesNo,MessageBoxIcon.Warning,MessageBoxDefaultButton.Button2)==DialogResult.Yes;}
 }
 }
