@@ -1,0 +1,19 @@
+DTCE Tool Kit v5.1.5 test build (20 November 2026) - not uploaded to the Microsoft Store (owner: "yung mga susunod huwag na muna iupload")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: finishes - same columns, Part I groups, all wall finishes off plaster and paint, Finish ID location.
+
+- Wall Finishes columns ("i-same na lang sa ceiling at floor finish"): Entry ID, Description, Finish ID, Length, Height, Qty,
+  Deduction m2 (total), Gross m2, Net finish m2, Status. Wall ID, Type, Side and Area basis are hidden; the type (paint / tiles) is
+  read from the BOQ group of the Finish ID.
+- BOQ group picker at Finishing Works > Start ("isama na lahat ng items no. sa BOQ group ... ilagay lahat ng nasa Part I"): besides
+  the standard finishes, every Part I pay item (items 1000 - 1051: termite control, carpentry, doors and windows, finishing,
+  painting, masonry, metal accessories, roofing) of the catalogue and of the linked BACKUP is offered, in item-number order. A
+  chosen Part I item routes to its own item no. like the standard finishes.
+- Plaster and paint ("agad na lang idededuct sa plaster at paint lahat ng nasa wall finishes"): every wall finish without a Wall
+  ID (tiles, paint or other) comes off both the net plaster and the masonry paint (shared over the walls by their area).
+- Finish Schedule location ("ilagay if anong group iyong wall, floor, ceiling. para sa tab lang yun lang ang ipapakita"): a
+  Location column (Wall, Ceiling, Floor or blank). Each finish tab and the Finishing Start assignment list offer only the Finish IDs
+  for that location (blank = all tabs). Saved with the project; older files read as blank.
+
+Includes v5.1.4 and earlier builds (see their notes).

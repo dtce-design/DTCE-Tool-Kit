@@ -1,3 +1,4 @@
+using System;using System.Collections.Generic;using System.Linq;
 namespace BeamScheduleFormatter {
 // Standard finish groups with their BACKUP item numbers (owner list, 18 November 2026: "ilagay din yung item no.").
 // Name = group name shown in Finishing Works; PayDescription = the BACKUP catalogue description used for routing.
@@ -39,6 +40,14 @@ sealed class FinishStandard {internal readonly string Code,Name,PayDescription;i
   new FinishStandard("1032(2)","Varnishing Works (Oil Wood Stain)","Varnishing Works (Oil Wood Stain)"),
   new FinishStandard("1032(4)","Ducco Finish","Ducco Finish"),
   new FinishStandard("1032(5)","Textured Finish","Textured Finish")};
- internal static FinishStandard Find(string group){string key=FinishTypeRegistry.Key(group);foreach(var s in All)if(FinishTypeRegistry.Key(s.Name)==key||FinishTypeRegistry.Key(s.Caption)==key||FinishTypeRegistry.Key(s.PayDescription)==key)return s;return null;}
+ internal static FinishStandard Find(string group){string key=FinishTypeRegistry.Key(group);foreach(var s in All)if(FinishTypeRegistry.Key(s.Name)==key||FinishTypeRegistry.Key(s.Caption)==key||FinishTypeRegistry.Key(s.PayDescription)==key)return s;
+  /* any Part I pay item chosen as a finish group (owner, 20 November 2026: "isama na lahat ng items no. sa BOQ group ... ilagay lahat ng
+     nasa Part I") routes like a standard finish: its item no. and description */
+  if(key=="")return null;foreach(var t in PartIItems(null)){var x=new FinishStandard(t.Code,t.Description,t.Description);if(FinishTypeRegistry.Key(x.Name)==key||FinishTypeRegistry.Key(x.Caption)==key)return x;}return null;}
+ /* every Part I (Finishing and other civil works, items 1000 - 1051) pay item of the catalogue and of the linked BACKUP, without duplicates */
+ internal static List<BackupTarget> PartIItems(IEnumerable<BackupTarget> linked){var seen=new HashSet<string>(StringComparer.OrdinalIgnoreCase);var list=new List<BackupTarget>();
+  foreach(var t in BackupPayItemCatalog.Items().Concat(linked??new BackupTarget[0])){if(t==null||string.IsNullOrWhiteSpace(t.Code))continue;var part=BoqParts.For(t.Code,null);if(part==null||!part.Key.StartsWith("I"))continue;
+   if(seen.Add(t.Code.Trim()+"|"+FinishTypeRegistry.Key(t.Description)))list.Add(t);}
+  return list;}
 }
 }

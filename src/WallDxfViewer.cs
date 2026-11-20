@@ -143,7 +143,14 @@ partial class ProgramOfWorksForm {
     Wall Finishes no longer shows Wall ID, Side and Area basis - finishes are measured by their own length x height x quantity.
     The values stay in the same columns (new rows: no wall, side A, Dimensions), so saved projects open and compute as before.
     The "Show walls on DXF" button is not added. */
- void AddFinishDxfButton(){if(wallFinishes==null)return;foreach(int c in new[]{3,5,6})if(c<wallFinishes.Columns.Count)wallFinishes.Columns[c].Visible=false;}
+ void AddFinishDxfButton(){if(wallFinishes==null)return;foreach(int c in new[]{3,4,5,6})if(c<wallFinishes.Columns.Count)wallFinishes.Columns[c].Visible=false;
+  /* same columns as Ceiling / Floor Finishes (owner, 20 November 2026: "yung columns sa wall finishes i-same na lang sa ceiling at floor
+     finish"): Entry ID, Description, Finish ID, Length, Height, Qty, Deduction m2 (total), Gross m2, Net finish m2, Status. Type is
+     taken from the BOQ group of the Finish ID (paint / tiles / other). */
+  wallFinishes.Columns[10].HeaderText="Deduction m2 (total)";wallFinishes.Columns[10].ToolTipText="Total excluded / opening area for all units in this entry. Deducted once, not once per unit.";
+  wallFinishes.Columns[11].HeaderText="Gross m2";wallFinishes.Columns[12].HeaderText="Net finish m2";}
+ /* the finish type from its BOQ group (Type column hidden): painting -> Paint, tiles -> Tiles, else the stored type or Other */
+ internal static string WallFinishKind(string group,string stored){string g=(group??"").ToUpperInvariant();if(g.Contains("PAINT"))return "Paint";if(g.Contains("TILE"))return "Tiles";return string.IsNullOrWhiteSpace(stored)?"Tiles":stored;}
  /* Wall Finishes: the drawing with its Wall IDs; a click gives the ID to the selected finish row */
  void ShowWallsForFinishes(){if(wallViewer==null||wallViewer.IsDisposed){string path=lastWallDxf;if(path==null||!File.Exists(path)){using(var open=new OpenFileDialog{Title="Open the floor plan DXF (with Wall IDs)",Filter="AutoCAD DXF (*.dxf)|*.dxf"}){if(open.ShowDialog(this)!=DialogResult.OK)return;path=open.FileName;}}
    try{OpenWallDxfViewer(path);}catch(Exception ex){MessageBox.Show(this,"Cannot open the DXF: "+ex.Message,"Show walls on DXF");return;}}

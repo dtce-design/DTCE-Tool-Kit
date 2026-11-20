@@ -4518,7 +4518,7 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			AddGrid("Door & Window Schedule", wood, "Overall opening dimensions in metres, INCLUDING jamb/frame. Leaf size = opening less jamb thickness. Paint: leaf faces/edges + exposed jamb. Window includes sill. Door thickness is fixed at 45mm. Door hinges/locksets are automatic; set Swing/Sliding/Fixed and leaves/unit. Select deductions in CHB Openings.");
 			AddGrid("Aluminum Doors & Windows", aluminum, "Opening dimensions include the full rough opening/frame for CHB deduction. No aluminum painting is included. Select this schedule and quantity in CHB Openings to deduct it from a wall.");
 			AddGrid("CHB Estimate", walls, "Enter Width x Height x Qty OR Gross Area (leave the other method blank), then choose 100 or 150 mm thickness. Add / edit openings to deduct up to 3 door/window schedules. Pale-yellow cells are inputs; net areas are automatic.");
-			finishSchedule = FinishScheduleGrid();InstallFinishPayItemPicker();
+			finishSchedule = FinishScheduleGrid();InstallFinishPayItemPicker();AddFinishLocationColumn(finishSchedule);
 			AddGrid("Finish Schedule", finishSchedule, "GUIDE: Type a Group name for each Finish ID (example: Porcelain Glazed Tiles and Trims). Reuse the same spelling to combine areas across floors, walls and ceilings. Prescribed names use fixed Excel cells; custom names appear in POW Finish Types.");
 			wallFinishes = FinishGrid(true);
 			ceilingFinishes = FinishGrid(false);
@@ -5819,7 +5819,7 @@ worksExcelTimer.Tick += async delegate
 					Top = 60,
 					Width = 900
 				};
-				foreach (string item in finishGroups.Keys.OrderBy((string k) => k))
+				foreach (string item in finishGroups.Keys.Where(k => FinishFor(k, CategoryOf(grid))).OrderBy((string k) => k))
 				{
 					ids.Items.Add(item);
 				}
@@ -5888,6 +5888,7 @@ worksExcelTimer.Tick += async delegate
 		private void ReadFinishSchedule()
 		{
 			finishGroups.Clear();
+			ReadFinishLocations();
 			foreach (DataGridViewRow item in (IEnumerable)finishSchedule.Rows)
 			{
 				if (item.IsNewRow)
@@ -5936,13 +5937,14 @@ worksExcelTimer.Tick += async delegate
 					dataGridView.Columns.Insert(2, dataGridViewComboBoxColumn);
 					dataGridViewComboBoxColumn.DefaultCellStyle.BackColor = ModernUi.Input;
 				}
-				string[] source = (from v in (from v in finishGroups.Keys.Concat(from DataGridViewRow r in dataGridView.Rows
+				string category = CategoryOf(dataGridView);
+				string[] source = (from v in (from v in finishGroups.Keys.Where(k => FinishFor(k, category)).Concat(from DataGridViewRow r in dataGridView.Rows
 							where !r.IsNewRow
 							select Cell(r, 2))
 						where v != ""
 						select v).Distinct(StringComparer.OrdinalIgnoreCase)
 					orderby v
-					select v).ToArray();
+					select v).ToArray(); /* only the Finish IDs for this tab's location (v5.1.5) */
 				dataGridViewComboBoxColumn.Items.Clear();
 				dataGridViewComboBoxColumn.Items.Add("");
 				dataGridViewComboBoxColumn.Items.AddRange(source.Cast<object>().ToArray());
@@ -6574,7 +6576,7 @@ worksExcelTimer.Tick += async delegate
 							Code = Cell(item, 2),
 							Category = keyValuePair.Key,
 							Wall = (flag ? Cell(item, 3) : ""),
-							Kind = (flag ? Cell(item, 4) : "Other"),
+							Kind = (flag ? WallFinishKind(finishGroups.ContainsKey(Cell(item, 2)) ? finishGroups[Cell(item, 2)] : "", Cell(item, 4)) : "Other"),
 							MaterialName = (finishGroups.ContainsKey(Cell(item, 2)) ? finishGroups[Cell(item, 2)] : ""),
 							Side = (flag ? (Cell(item, 5) == "" ? "A" : Cell(item, 5)) : "A"), /* hidden on Wall Finishes (v5.1.3): blank = one face */
 							Basis = (flag ? (Cell(item, 6) == "" ? "Dimensions" : Cell(item, 6)) : "Dimensions")
@@ -6625,7 +6627,7 @@ worksExcelTimer.Tick += async delegate
 						}
 						finishItems.Add(finishItem);
 						item.Tag = finishItem;
-						item.Cells[num].Value = (flag ? num3 : finishItem.GrossPerFace(null, wallOpenings)).ToString("0.00");
+						item.Cells[num].Value = (flag ? finishItem.GrossPerFace(wallItem, wallOpenings) : finishItem.GrossPerFace(null, wallOpenings)).ToString("0.00"); /* Wall Finishes shows Gross m2 like Ceiling / Floor (v5.1.5) */
 						item.Cells[num + 1].Value = finishItem.Total(wallItem, wallOpenings).ToString("0.00");
 						item.Cells[num2].Value = (string.IsNullOrWhiteSpace(finishItem.MaterialName) ? "Type group in Finish Schedule" : "Ready");
 					}
@@ -8710,6 +8712,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 						string value;
 						int index = finishAssignments.Rows.Add((dataGridView == wallFinishes) ? "Wall" : ((dataGridView == ceilingFinishes) ? "Ceiling" : "Floor"), Cell(item, 0), Cell(item, 1), Cell(item, 2), finishGroups.TryGetValue(Cell(item, 2), out value) ? value : "");
 						finishAssignments.Rows[index].Tag = item;
+						FilterAssignmentChoices(finishAssignments.Rows[index], (dataGridView == wallFinishes) ? "Wall" : ((dataGridView == ceilingFinishes) ? "Ceiling" : "Floor"));
 						if (Cell(item, 0) == text)
 						{
 							finishAssignments.CurrentCell = finishAssignments.Rows[index].Cells[3];
