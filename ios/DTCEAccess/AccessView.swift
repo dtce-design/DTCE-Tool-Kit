@@ -64,10 +64,10 @@ struct AccessView: View {
                             } else {
                             ZStack(alignment:.topLeading) {
                                 TextEditor(text:$model.request).font(.system(.footnote,design:.monospaced)).foregroundStyle(.primary).scrollContentBackground(.hidden).frame(minHeight:100).padding(8).textInputAutocapitalization(.characters).autocorrectionDisabled().accessibilityLabel("User request code")
-                                if model.request.isEmpty { Text("Paste the BEAM request code here").font(.footnote.monospaced()).foregroundStyle(.secondary).padding(.horizontal,13).padding(.top,16).allowsHitTesting(false) }
+                                if model.request.isEmpty { Text("Paste the DTCE request code here").font(.footnote.monospaced()).foregroundStyle(.secondary).padding(.horizontal,13).padding(.top,16).allowsHitTesting(false) }
                             }.background(inputSurface,in:RoundedRectangle(cornerRadius:10)).overlay(RoundedRectangle(cornerRadius:10).strokeBorder(outline,lineWidth:1))
-                            Text("Paste the complete BEAM request from the User app.").font(.caption).foregroundStyle(.secondary)
-                            ForEach([(1,"Beam Schedule Formatter"),(64,"Slab Schedule Formatter"),(2,"Program of Works / Estimators"),(4,"Splice, Development & Hooks"),(16,"Purlin Design"),(32,"Truss Connections"),(128,"Wind Load (NSCP 2015)"),(256,"Beam Deflection Check")],id:\.0) { app in
+                            Text("Paste the complete request (DTCE-...) from the User app.").font(.caption).foregroundStyle(.secondary)
+                            ForEach([(1,"Beam Schedule Formatter"),(64,"Slab Schedule Formatter"),(2,"Program of Works / Estimators"),(4,"Splice, Development & Hooks"),(16,"Purlin Design"),(32,"Truss Connections"),(128,"Wind Load (NSCP 2015)"),(256,"Beam Deflection Check"),(4096,"Bar Bending Schedule"),(512,"Truss Support on RC"),(1024,"Strap Foundation"),(2048,"Earthquake Load & RSA Curve Builder")],id:\.0) { app in
                                 Toggle(app.1,isOn:Binding(get:{model.allowedApps.contains(app.0)},set:{enabled in if enabled {model.allowedApps.insert(app.0)} else {model.allowedApps.remove(app.0)} })).tint(accent)
                             }
                             Label("Project Information included",systemImage:"checkmark.circle.fill").foregroundStyle(accent).font(.caption)

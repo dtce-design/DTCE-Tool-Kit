@@ -43,10 +43,10 @@ static class AccessCodes {
  return Granted&&ProgramAccess.Allows(allowedApps,app);
  #endif
  }
- public static int AppFor(System.Windows.Forms.Form form){return (form is EstimatorForm||form is SlabEstimatorForm||form is ProgramOfWorksForm)?2:form is RebarLengthForm?4:form is PurlinDesignForm?16:form is TrussConnectionForm?32:form is WindDesignForm?128:form is SlabFormatterForm?64:form is ProjectInformationForm?8:1;} public static string NewRequest(){byte[] bytes=new byte[20];using(var r=RandomNumberGenerator.Create())r.GetBytes(bytes);return "BEAM-"+BitConverter.ToString(bytes).Replace("-","");}
+ public static int AppFor(System.Windows.Forms.Form form){return (form is EstimatorForm||form is SlabEstimatorForm||form is ProgramOfWorksForm)?2:form is RebarLengthForm?4:form is PurlinDesignForm?16:form is TrussConnectionForm?32:form is CuttingListForm?ProgramAccess.BarBendingSchedule:form is DesignSheetForm?ProgramAccess.ForSheet(((DesignSheetForm)form).Kind):form is WindDesignForm?128:form is SlabFormatterForm?64:form is ProjectInformationForm?8:1;} public static string NewRequest(){byte[] bytes=new byte[20];using(var r=RandomNumberGenerator.Create())r.GetBytes(bytes);/* request prefix DTCE- (owner, 20 November 2026: "pwede bang palitan yung prefix ng DTCE?"); BEAM- requests from older versions stay valid */return "DTCE-"+BitConverter.ToString(bytes).Replace("-","");}
  public static string Normalize(string value){return new string((value??"").Where(c=>!char.IsWhiteSpace(c)).ToArray()).ToUpperInvariant();}
  static string CleanCode(string value){return new string((value??"").Where(c=>!char.IsWhiteSpace(c)).ToArray());}
- public static bool ValidRequest(string value){return System.Text.RegularExpressions.Regex.IsMatch(Normalize(value),"^BEAM-[A-F0-9]{40}$");}
+ public static bool ValidRequest(string value){return System.Text.RegularExpressions.Regex.IsMatch(Normalize(value),"^(DTCE|BEAM)-[A-F0-9]{40}$");}
  public static string PublicKey(){using(var s=typeof(AccessCodes).Assembly.GetManifestResourceStream("AccessPublicKey.xml")){if(s==null)throw new Exception("Missing embedded access verification key.");using(var r=new StreamReader(s))return r.ReadToEnd();}}
  public static string KeyId(string publicKey){using(var hash=SHA256.Create())return BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(publicKey))).Replace("-","").Substring(0,16);}
  public static string Generate(string request,string privateKey){return GenerateAt(request,privateKey,DateTime.UtcNow,AllApps);}
