@@ -6863,6 +6863,7 @@ worksExcelTimer.Tick += async delegate
 								Height = Number(item, 5),
 								Quantity = Count(item, 6),
 								JambDepth = (woodRow ? Number(item, 7) : 0.0),
+								JambGroups = (woodRow && woodJambGroups.ContainsKey(Cell(item, 0))) ? woodJambGroups[Cell(item, 0)] : null,
 								JambThickness = (woodRow ? Number(item, 8) : 0.0),
 								LeafThickness = (woodRow ? 0.045 : 0.0),
 								Faces = ((woodRow && OpeningPaint(item, PaintLeafColumn)) ? Count(item, 10) : 0), /* owner, 18 November 2026: Paint faces is only needed when the leaf is painted */
@@ -6924,7 +6925,8 @@ worksExcelTimer.Tick += async delegate
 					errors.Add(ex2.Message);
 				}
 				ids.Clear();
-				foreach (DataGridViewRow item2 in MasonryGrids().SelectMany((DataGridView g) => g.Rows.Cast<DataGridViewRow>()))
+				foreach (DataGridView masonryGrid in MasonryGrids()) EnsureOpeningsIncludedColumn(masonryGrid);
+				foreach (DataGridViewRow item2 in MasonryGrids().SelectMany((DataGridView g) => g.Rows.Cast<DataGridViewRow>()).ToList())
 				{
 					if (item2.IsNewRow)
 					{
@@ -6979,6 +6981,7 @@ worksExcelTimer.Tick += async delegate
 						item2.Cells[8].Value = wallItem.Deduction(wallOpenings).ToString("0.00");
 						item2.Cells[9].Value = num2.ToString("0.00");
 						item2.Cells[10].Value = wallItem.Blocks(wallOpenings);
+						ShowOpeningsIncluded(item2, wallItem.Id);
 						item2.Cells[11].Value = (WallHasOpeningIssue(wallItem.Id) ? "Review this wall's invalid opening before using quantities" : thicknessMissing ? "Select the CHB / block thickness (mm); 150 mm assumed for now" : "Ready");
 					}
 					catch (Exception ex3)
@@ -8451,27 +8454,56 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 			return double.TryParse(Cell(r, 18), NumberStyles.Float, CultureInfo.InvariantCulture, out t) && t >= 50 && t <= 400 ? t : 150.0;
 		}
 
+		/* Owner (20 November 2026, "ipakita din yung mga opening na na-include sa masonry", "irerecord yung jamb based sa CHB wall"):
+		   each CHB / masonry wall row lists the openings deducted from it, with the jamb depth taken from that wall's thickness. */
+		internal const string OpeningsIncludedColumn = "OpeningsIncluded";
+
+		private void ShowOpeningsIncluded(DataGridViewRow row, string wallId)
+		{
+			var grid = row.DataGridView;
+			if (grid == null || !grid.Columns.Contains(OpeningsIncludedColumn)) return;
+			string jamb = WallThicknessMm(row).ToString("0", CultureInfo.InvariantCulture);
+			var lines = wallOpenings.Where(o => string.Equals((o.Wall ?? "").Trim(), (wallId ?? "").Trim(), StringComparison.OrdinalIgnoreCase)).GroupBy(o => o.Id, StringComparer.OrdinalIgnoreCase)
+				.Select(g => { var o = g.First(); int units = g.Sum(x => x.Quantity); return o.Id + " x" + units + " (" + o.Width.ToString("0.##", CultureInfo.InvariantCulture) + " x " + o.Height.ToString("0.##", CultureInfo.InvariantCulture) + " m" + (o.Wood ? ", jamb " + jamb + " mm" : "") + ")"; }).ToList();
+			row.Cells[OpeningsIncludedColumn].Value = lines.Count == 0 ? "" : string.Join("; ", lines);
+		}
+
+		private void EnsureOpeningsIncludedColumn(DataGridView grid)
+		{
+			if (grid != null && !grid.Columns.Contains(OpeningsIncludedColumn))
+			{
+				var column = new DataGridViewTextBoxColumn { Name = OpeningsIncludedColumn, HeaderText = "Openings included (jamb depth from this wall)", ReadOnly = true, Width = 280, SortMode = DataGridViewColumnSortMode.NotSortable };
+				column.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+				column.DefaultCellStyle.ForeColor = PowTheme.Muted;
+				grid.Columns.Add(column);
+				var after = grid.Columns.Cast<DataGridViewColumn>().FirstOrDefault(c => c.HeaderText == "Openings m2");
+				if (after != null) try { column.DisplayIndex = Math.Min(grid.Columns.Count - 1, after.DisplayIndex + 1); } catch (InvalidOperationException) { }
+			}
+		}
+
+		/* jamb depth groups per opening ID, from the thickness of each wall it is assigned to (v1.50.19) */
+		private readonly Dictionary<string, List<KeyValuePair<double, int>>> woodJambGroups = new Dictionary<string, List<KeyValuePair<double, int>>>(StringComparer.OrdinalIgnoreCase);
+
 		private void AutomaticWoodDimensions(DataGridViewRow row)
 		{
 			double num = ((jambDepthDefault == null) ? 150.0 : ((double)jambDepthDefault.Value));
-			string[] assigned = (from x in openingAssignments
-				where string.Equals(x.Schedule, Cell(row, 0), StringComparison.OrdinalIgnoreCase)
-				select x.Wall).ToArray();
-			if (assigned.Length == 0 && Cell(row, 2) != "")
+			Func<string, double?> thickness = wall => { var hit = MasonryGrids().SelectMany((DataGridView g) => g.Rows.Cast<DataGridViewRow>()).FirstOrDefault(r => !r.IsNewRow && string.Equals(Cell(r, 0), wall, StringComparison.OrdinalIgnoreCase)); return hit == null ? (double?)null : WallThicknessMm(hit); };
+			string id = Cell(row, 0);
+			/* the row's own Wall ID (or the setting) for units not assigned to a wall */
+			double rest = (Cell(row, 2) != "" ? thickness(Cell(row, 2)) : null) ?? num;
+			var groups = new Dictionary<double, int>();
+			int assignedUnits = 0;
+			foreach (var link in openingAssignments.Where(x => string.Equals(x.Schedule, id, StringComparison.OrdinalIgnoreCase)))
 			{
-				assigned = new string[1] { Cell(row, 2) };
+				double t = thickness(link.Wall) ?? rest;
+				int q; groups.TryGetValue(t, out q); groups[t] = q + link.Quantity; assignedUnits += link.Quantity;
 			}
-			double[] array = (from r in MasonryGrids().SelectMany((DataGridView g) => g.Rows.Cast<DataGridViewRow>())
-				where !r.IsNewRow && assigned.Contains(Cell(r, 0), StringComparer.OrdinalIgnoreCase)
-				select WallThicknessMm(r)).ToArray();
-			if (array.Distinct().Count() > 1)
-			{
-				throw new Exception("Opening " + Cell(row, 0) + " is assigned to walls of different thickness (" + string.Join(" / ", array.Distinct().Select(t => t.ToString("0", CultureInfo.InvariantCulture) + "mm")) + "). Use separate opening IDs so each jamb depth matches its wall.");
-			}
-			if (array.Length != 0)
-			{
-				num = array[0];
-			}
+			int units = 0; int.TryParse(Cell(row, 6), NumberStyles.Integer, CultureInfo.InvariantCulture, out units);
+			if (units > assignedUnits) { int q; groups.TryGetValue(rest, out q); groups[rest] = q + units - assignedUnits; }
+			if (groups.Count == 0) groups[rest] = Math.Max(units, 0);
+			num = groups.OrderByDescending(g => g.Value).ThenByDescending(g => g.Key).First().Key;
+			if (id != "") woodJambGroups[id] = groups.Count > 1 ? groups.OrderByDescending(g => g.Key).Select(g => new KeyValuePair<double, int>(g.Key / 1000.0, g.Value)).ToList() : null;
+			row.Cells[4].ToolTipText = groups.Count > 1 ? "Jamb depth by wall: " + string.Join(", ", groups.OrderByDescending(g => g.Key).Select(g => g.Value + " pc" + (g.Value == 1 ? "" : "s") + " at " + g.Key.ToString("0", CultureInfo.InvariantCulture) + " mm")) : "";
 			row.Cells[7].Value = (num / 1000.0).ToString("0.###", CultureInfo.InvariantCulture);
 			row.Cells[8].Value = (((jambThicknessDefault == null) ? 50.0 : ((double)jambThicknessDefault.Value)) / 1000.0).ToString("0.###", CultureInfo.InvariantCulture);
 			row.Cells[9].Value = "45";

@@ -80,7 +80,8 @@ partial class ProgramOfWorksForm {
  int[] DurationRainy(out int[] used){return ContractDurationCalc.Averages(ContractDurationCalc.Filter(durationRainRecords,durationRainEntered,durationPreparedDate),out used);}
  /* national holidays and the last rainfall records are put in when the project is created or opened, not when the tab is first
     shown, so opening the Contract Duration tab does not mark the project as changed (a new POW asked to save on close) */
- void EnsureDurationDefaults(){if(durationHolidayList.Count==0)foreach(var h in ContractDurationCalc.Standard(durationStartDate.Year,durationStartDate.Year+3))durationHolidayList.Add(h);
+ void EnsureDurationDefaults(){/* the date prepared of the Project Information is the POW preparation date */try{var info=ProjectInfoStore.Read();if(info.Prepared.HasValue)durationPreparedDate=info.Prepared.Value;}catch(Exception){}
+  if(durationHolidayList.Count==0)foreach(var h in ContractDurationCalc.Standard(durationStartDate.Year,durationStartDate.Year+3))durationHolidayList.Add(h);
   if(durationRainRecords.Count==0){Dictionary<int,DateTime?[]> dates;foreach(var p in ContractDurationCalc.LastRecords(out dates)){durationRainRecords[p.Key]=(int?[])p.Value.Clone();DateTime?[] d;durationRainEntered[p.Key]=dates.TryGetValue(p.Key,out d)&&d!=null?(DateTime?[])d.Clone():new DateTime?[12];}}}
  void AddContractDuration(){EnsureDurationDefaults();var page=new TabPage("Contract Duration");
   var top=new FlowLayoutPanel{Dock=DockStyle.Top,Height=44,Padding=new Padding(10,6,10,0),WrapContents=false};

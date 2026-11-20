@@ -14,6 +14,15 @@ class OpeningJambAutoTests {
   wood.Rows[r].Cells[2].Value="W150";auto.Invoke(pow,new object[]{wood.Rows[r]});Check(Convert.ToString(wood.Rows[r].Cells[7].Value)=="0.15","150mm CHB wall: jamb depth 0.15 m");
   wood.Rows[r].Cells[2].Value="AAC1";auto.Invoke(pow,new object[]{wood.Rows[r]});Check(Convert.ToString(wood.Rows[r].Cells[7].Value)=="0.1","100mm AAC wall: jamb depth 0.10 m");
   wood.Rows[r].Cells[2].Value="";auto.Invoke(pow,new object[]{wood.Rows[r]});Check(Convert.ToString(wood.Rows[r].Cells[7].Value)=="0.15","no wall: the Unassigned CHB thickness setting (150 mm)");
+  /* v1.50.19: one opening ID in walls of different thickness - each wall's units use that wall's jamb depth */
+  {var links=(System.Collections.Generic.List<OpeningLink>)t.GetField("openingAssignments",F).GetValue(pow);links.Add(new OpeningLink{Schedule="D-05",Wall="W100",Quantity=1});links.Add(new OpeningLink{Schedule="D-05",Wall="W150",Quantity=2});
+   int m=wood.Rows.Add();wood.Rows[m].Cells[0].Value="D-05";wood.Rows[m].Cells[6].Value="3";auto.Invoke(pow,new object[]{wood.Rows[m]});
+   var groups=((System.Collections.Generic.Dictionary<string,System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<double,int>>>)t.GetField("woodJambGroups",F).GetValue(pow))["D-05"];
+   Check(groups!=null&&groups.Count==2&&groups.Any(g=>Math.Abs(g.Key-0.15)<1e-9&&g.Value==2)&&groups.Any(g=>Math.Abs(g.Key-0.10)<1e-9&&g.Value==1),"mixed walls: 2 units at 150 mm and 1 unit at 100 mm, no error");
+   Check(Convert.ToString(wood.Rows[m].Cells[7].Value)=="0.15","the jamb depth shown is the one used by most units");
+   var door=new OpeningItem{Id="D-05",Description="Door",Material="Wood",Kind="Door",Width=0.9,Height=2.1,Quantity=3,JambThickness=0.05,JambDepth=0.15,JambGroups=groups};double perimeter=2*2.1+0.9;
+   Check(Math.Abs(door.JambPaint-(perimeter*(0.15+0.1)*2+perimeter*(0.10+0.1)*1))<1e-9,"jamb paint adds each wall's jamb depth");
+   links.Clear();}
   /* v1.50.18: Opening ID prefix sets the type; windows are Aluminum or Steel only */
   Func<int,string> type=x=>Convert.ToString(wood.Rows[x].Cells[3].Value);Func<int,string> mat=x=>Convert.ToString(wood.Rows[x].Cells[ProgramOfWorksForm.OpeningMaterialColumn].Value);
   int d=wood.Rows.Add();wood.Rows[d].Cells[3].Value="Window";Check(mat(d)=="Aluminum","choosing Window switches a wood row to Aluminum");wood.Rows[d].Cells[0].Value="D-01";Check(type(d)=="Door"&&mat(d)=="Aluminum","D prefix: Door, material kept");

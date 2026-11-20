@@ -9,7 +9,10 @@ class OpeningItem {
  public double LeafWidth{get{return Width-2*JambThickness;}}public double LeafHeight{get{return Height-(Kind=="Window"?2:1)*JambThickness;}}
  public double EffectiveThickness{get{return Wood&&Kind=="Door"?OpeningHardware.WoodDoorThickness:LeafThickness;}}
  public double LeafPaint{get{return Wood&&PaintLeaf?(Faces*LeafWidth*LeafHeight+2*(LeafWidth+LeafHeight*(Kind=="Door"?Leaves:1))*EffectiveThickness)*Quantity:0;}}
- public double JambPaint{get{return Wood&&PaintJamb?((2*Height+Width+(Kind=="Window"?Width:0))*(JambDepth+2*JambThickness))*Quantity:0;}}
+ /* owner, 20 November 2026 ("magkaiba talaga ang jamb depth ... based sa thk ng masonry wall"): one opening ID in walls of
+    different thickness - each group of units uses the jamb depth of its own wall (depth m, units); null = JambDepth for all */
+ public List<KeyValuePair<double,int>> JambGroups;
+ public double JambPaint{get{if(!(Wood&&PaintJamb))return 0;double perimeter=2*Height+Width+(Kind=="Window"?Width:0);if(JambGroups!=null&&JambGroups.Count>0)return JambGroups.Sum(g=>perimeter*(g.Key+2*JambThickness)*g.Value);return perimeter*(JambDepth+2*JambThickness)*Quantity;}}
  /* owner, 20 November 2026: "no locket hinges if aluminum" - aluminum doors and windows come with their own hardware */public bool NoHardware{get{return Material=="Aluminum";}}
  public int EffectiveHinges{get{if(Material=="Manual"||Material=="Opening"||NoHardware||Operation=="Fixed"||Operation=="Sliding")return 0;if(Kind=="Door")return checked(OpeningHardware.PerLeaf(Wood?LeafHeight:Height,(Wood?LeafWidth:Width)/Leaves)*Leaves);return HingesPerUnit;}}
  public int EffectiveLocks{get{if(Material=="Manual"||Material=="Opening"||NoHardware||Operation=="Fixed")return 0;return Kind=="Door"?1:LocksPerUnit;}}
