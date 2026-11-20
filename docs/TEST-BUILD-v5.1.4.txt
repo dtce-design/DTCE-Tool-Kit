@@ -1,0 +1,16 @@
+DTCE Tool Kit v5.1.4 test build (20 November 2026) - not uploaded to the Microsoft Store (owner: "yung mga susunod huwag na muna iupload")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: wall finishes without a Wall ID come off plaster and masonry paint.
+
+- "Iminus na lang sa plaster at paint yung mga wall tiles and finishes?" (owner: "check mo if ano ang maganda; sa lumang set up pwede
+  kasing madaming wall ID sa isang wall finish"). Wall finish rows no longer carry a Wall ID (v5.1.3), so their area is taken off the
+  project totals:
+  - Tiles and Other finishes: off the net plaster and off the masonry paint (as tiles linked to a wall always were);
+  - Paint finishes: off the masonry paint only (that row is the paint; the plaster stays under it).
+  The deduction is shared over the walls in proportion to their plaster / paint area, so each wall in the Bill of Quantities stays
+  positive and the totals are right; the cells show the share in their tooltip. If the finishes are larger than the plaster or
+  paint, that total is 0 and a review note is shown.
+- Rows that still have a Wall ID (older projects) keep their per-wall deduction as before.
+
+Includes v5.1.3 and earlier builds (see their notes).

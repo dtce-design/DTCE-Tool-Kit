@@ -6693,6 +6693,7 @@ worksExcelTimer.Tick += async delegate
 					errors.Add("Wall " + wallItem2.Id + ": " + ex2.Message);
 				}
 			}
+			ApplyUnlinkedFinishDeductions(errors);
 		}
 
 		private void AppendFinishReport(StringBuilder b)
