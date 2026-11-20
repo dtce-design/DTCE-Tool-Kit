@@ -15,5 +15,8 @@ class MemberBbsTests {
   /* into a schedule without beams */
   var s=new CutSettings{Config=cfg};var r=new CutResult();BeamCutting.AddMembers(r,pieces,s);Check(r.Pieces.Count==pieces.Count&&r.Patterns.Count>0&&r.Pieces.First(p=>p.Shape.StartsWith("Hoop")).ShapeCode=="HOOP","members join the schedule with shapes and cutting patterns");
   using(var doc=BbsReport.Build(r,s,new BbsInfo{Number="BBS-02"}))Check(doc.Sheets.Count>=3,"schedule with columns and footings prints");
+  /* RCDC-style schedule per element (v6.0.4): bend radius per NSCP 2015 Table 425.3.1 / 425.3.2 */
+  Check(BbsReport.BendRadius(new CutPiece{ShapeCode="STRAIGHT",Diameter=20})==0&&BbsReport.BendRadius(new CutPiece{ShapeCode="HOOK1",Diameter=20})==60&&BbsReport.BendRadius(new CutPiece{ShapeCode="HOOP",Diameter=10})==20&&BbsReport.BendRadius(new CutPiece{ShapeCode="HOOK2",Diameter=28})==112,"bend radius 3db hooks up to 25 mm, 2db ties, 4db 28-36 mm");
+  var rep=new RichReport("BBS",true);BbsReport.AddElementSchedules(rep,r,s,"4");using(var d2=rep.Build())Check(d2.Sheets.Count>=1,"element schedules print for columns and footings");
   Console.WriteLine("PASS: "+checks+" member bar bending schedule checks");}
 }

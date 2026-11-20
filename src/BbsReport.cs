@@ -4,7 +4,7 @@ namespace BeamScheduleFormatter {
    lahat ng report ganito"): schedule information, shape key, the schedule with a sketch of every bar, weights, the cutting
    pattern of each commercial bar, the NSCP 2015 special moment frame detailing check, review items and blank signatures. */
 class BbsInfo {public string Number="",Revision="",Status="",Source="",Curtailment="",Prepared="",Checked="",Approved="";}
-static class BbsReport {
+static partial class BbsReport {
  static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
  /* shape codes of this schedule; the sketch and A / B / C define the bend */
  internal static string Code(string shape){switch(shape){case "HOOK1":return "L1";case "HOOK2":return "U2";case "HOOP":return "H5";case "CROSSTIE":return "X3";default:return "S0";}}
@@ -27,9 +27,7 @@ static class BbsReport {
   rep.Heading(r.Geometry.Count>0?"3  BEAM DETAILS - ELEVATION AND SECTIONS":"3  MEMBER DETAILS");if(r.Geometry.Count==0)rep.Paragraph("No beam lines in this schedule. Columns, slabs and footings come from the Bill of Quantities take-off; their shapes are in the shape key and in the schedule sketches.",true);
   foreach(var geo0 in r.Geometry){var geo=geo0;var strips=BeamDetailPaper.Strips(geo);foreach(var st0 in strips){var st=st0;rep.Figure(300,(g,rect)=>BeamDetailPaper.DrawElevation(g,rect,r,geo,st[0],st[1]),"Elevation of beam line "+geo.Line+(strips.Count>1?", spans "+(st[0]+1)+" to "+(st[1]+1)+" (strip "+(strips.IndexOf(st)+1)+" of "+strips.Count+", strips meet at the match lines)":"")+": bars with their marks and cut lengths (mm), laps, allowed splice zones (green), hoop zones and the section cuts.");}
    int rows=BeamDetailPaper.SectionRows(r,geo,width);for(int first=0;first<rows;first+=2){int f=first,n=Math.Min(2,rows-first);rep.Figure(BeamDetailPaper.SectionsHeight(n),(g,rect)=>BeamDetailPaper.DrawSections(g,rect,r,geo,f,n),"Sections of beam line "+geo.Line+(rows>2?" ("+(f/2+1)+")":"")+" at the left face (A), midspan (B) and right face (C) of the spans, to the scale shown; identical sections are drawn once (TYP.) with the cuts they stand for.");}}
-  rep.Heading("4  BAR BENDING SCHEDULE").Table(new[]{"Member","Bar mark","Type & size","Mbrs","Each","Total no.","Length (mm)","Shape","Sketch (not to scale)","A","B","C","kg"},
-   shown.Select(p=>new[]{p.Member,p.BarMark+(p.Manual?" *":p.Edited?" †":""),"G"+p.Grade+" Ø"+p.Diameter,p.Lines.ToString(Inv),p.PerLine.ToString(Inv),p.Pieces.ToString(Inv),(p.Length*1000).ToString("0",Inv),Code(p.ShapeCode),"",Dim(p.DimA),Dim(p.DimB),Dim(p.DimC),p.Kg.ToString("0.00",Inv)}),
-   new float[]{10,9,8,6,6,6,8,7,15,7,6,5,7},8,26,(g,cell,i)=>{var p=Schematic(shown[i]);BarShapes.Draw(g,new RectangleF(cell.X+4,cell.Y,cell.Width-8,cell.Height),p,false,shown[i].Manual||shown[i].Edited?Color.FromArgb(180,90,20):Color.FromArgb(25,90,160),null);});
+  AddElementSchedules(rep,r,s,"4");
   rep.Paragraph("Lengths in mm. * added on the cutting list, † edited on the cutting list. Cut lengths include the bend allowances; check the bent shape on site against A, B, C.",true);
   var weights=r.Pieces.GroupBy(x=>new{x.Grade,x.Diameter}).OrderBy(x=>x.Key.Grade).ThenBy(x=>x.Key.Diameter).Select(x=>new[]{"Grade "+x.Key.Grade,"Ø"+x.Key.Diameter+" mm",EstimatorEngine.UnitMass(x.Key.Diameter).ToString("0.000",Inv),x.Sum(p=>p.Pieces*p.Length).ToString("0.00",Inv),x.Sum(p=>p.Kg).ToString("0.00",Inv)}).ToList();weights.Add(new[]{"TOTAL","","","",r.Pieces.Sum(p=>p.Kg).ToString("0.00",Inv)});
   rep.Heading("5  WEIGHT SUMMARY").Table(new[]{"Grade","Bar size","Unit mass (kg/m)","Total length (m)","Weight (kg)"},weights,new float[]{18,18,20,22,22},row=>row[0]=="TOTAL"?(Color?)Color.FromArgb(232,236,240):null);
