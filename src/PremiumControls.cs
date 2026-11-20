@@ -1,4 +1,4 @@
-using System;using System.Runtime.CompilerServices;using System.Drawing;using System.Drawing.Drawing2D;using System.Windows.Forms;
+﻿using System;using System.Runtime.CompilerServices;using System.Drawing;using System.Drawing.Drawing2D;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 // Common visual components. Native controls retain keyboard/accessibility/click behavior.
 static class PremiumControls {
@@ -36,8 +36,8 @@ static class PremiumControls {
   var panel=new Panel{Dock=DockStyle.Top,Height=66,Padding=new Padding(20,13,20,13),BackColor=DesktopAppearance.Palette.Chrome,ForeColor=PowTheme.Ink,Tag="appearance-header"};
   /* No "Workspaces" back button: each workspace is its own window (owner, 19 November 2026). */
   title.AutoSize=false;title.Dock=DockStyle.Fill;title.TextAlign=ContentAlignment.MiddleLeft;title.Padding=new Padding(0,0,0,0);title.Font=new Font("Segoe UI Semibold",14,FontStyle.Regular);title.ForeColor=PowTheme.Ink;title.Tag="appearance-header-title";
-  var brand=new Label{Text="DTCE  /  ENGINEERING",Dock=DockStyle.Right,Width=185,TextAlign=ContentAlignment.MiddleRight,ForeColor=PowTheme.Teal,Tag="appearance-brand",Font=new Font("Segoe UI",9,FontStyle.Bold)};
-  panel.Controls.Add(title);panel.Controls.Add(brand);return panel;
+  /* the window's info icon replaces the "DTCE / ENGINEERING" caption (owner, 20 November 2026) */var info=InfoButton.Icon();info.Dock=DockStyle.Right;
+  panel.Controls.Add(title);panel.Controls.Add(info);return panel;
  }
 }
 class PremiumSectionHeading:Control {
