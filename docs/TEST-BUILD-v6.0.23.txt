@@ -1,0 +1,8 @@
+DTCE Tool Kit v6.0.23 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (beam elevation; "yung bar shape ng lapping sa elevation di naman pinapakita"): a bar cranked at its lap (K4 / K5) is drawn
+with its crank in the BBS report elevation and in the model - the lap length A offset towards the inside of the beam, then the
+crank B back to the bar line.
+Checked on Linux/Mono only (B_Schedule_-_Revised.dxf, B-001 over three spans). Tests: BeamCuttingListTests, MemberBbsTests.
+
+Includes v6.0.22 and earlier builds.

@@ -34,6 +34,10 @@ static class BeamDetailPaper {
  static Font Bold(){return new Font("Segoe UI",7.5f,FontStyle.Bold,GraphicsUnit.Point);}
  static void Center(Graphics g,string t,Font f,Brush b,float cx,float y){var sz=g.MeasureString(t,f);g.DrawString(t,f,b,cx-sz.Width/2,y);}
  static void DimH(Graphics g,Pen pen,Font f,Brush b,float a,float c,float y,string text){g.DrawLine(pen,a,y,c,y);g.DrawLine(pen,a,y-3,a,y+3);g.DrawLine(pen,c,y-3,c,y+3);var sz=g.MeasureString(text,f);if(c-a>sz.Width+2)g.DrawString(text,f,b,(a+c)/2-sz.Width/2,y-sz.Height);else g.DrawString(text,f,b,(a+c)/2-sz.Width/2,y+1);}
+ /* a bar along the beam; a bar cranked at its lap (K4 / K5) shows the crank (owner, 20 November 2026: "yung bar shape ng lapping sa
+    elevation di naman pinapakita"): the lap length A sits offset towards the inside of the beam, then the crank B returns to the bar line */
+ internal static void BarLine(Graphics g,Pen pen,CutPiece p,float a,float b,float y,Func<double,float> X){if(p.ShapeCode==null||!p.ShapeCode.StartsWith("CRANK")||p.DimA<=0){g.DrawLine(pen,a,y,b,y);return;}
+  float off=p.Top?4f:-4f,xa=X(p.Start+p.DimA/1000.0),xb=Math.Max(X(p.Start+(p.DimA+p.DimB)/1000.0),xa+4);if(xb>=b){g.DrawLine(pen,a,y,b,y);return;}g.DrawLines(pen,new[]{new PointF(a,y+off),new PointF(xa,y+off),new PointF(xb,y),new PointF(b,y)});}
  /* ---------------- elevation ---------------- */
  public static void DrawElevation(Graphics g,RectangleF area,CutResult r,CutLineGeometry geo,int fromSpan=0,int toSpan=-1){if(toSpan<0)toSpan=geo.Ln.Length-1;double w0=geo.SupportStart[fromSpan],w1=geo.SupportStart[toSpan+1]+geo.SupportWidth[toSpan+1];bool whole=fromSpan==0&&toSpan==geo.Ln.Length-1;var pieces=r.Pieces.Where(p=>p.Line==geo.Line).ToList();g.SmoothingMode=SmoothingMode.AntiAlias;
   using(var small=Small())using(var bold=Bold())using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted))using(var dim=new Pen(PowTheme.Muted,.6f)){
@@ -68,7 +72,7 @@ static class BeamDetailPaper {
    /* layer spacer bars (end view across the beam) between the first and second lane of the face */
    using(var sb=new SolidBrush(Color.FromArgb(150,110,60)))foreach(var p in pieces.Where(x=>x.Location.StartsWith("Layer spacer")&&x.End>w0&&x.Start<w1)){int n2=Math.Max(2,p.PerLine);float y=p.Top?beamTop+10:beamBottom-10;for(int k=0;k<n2;k++){double x=p.Start+(p.End-p.Start)*k/(n2-1);g.FillEllipse(sb,X(x)-1.8f,y-1.8f,3.6f,3.6f);}}
    /* bars with leaders to their labels */
-   foreach(var p in pieces.Where(x=>Longitudinal(x)&&x.End>w0+1e-6&&x.Start<w1-1e-6)){float y=laneY(p),a=X(p.Start),b=X(p.End);using(var pen=new Pen(BarColor(p),1.4f)){g.DrawLine(pen,a,y,b,y);if(p.ShapeCode=="HOOK1"||p.ShapeCode=="HOOK2"||p.ShapeCode=="CRANKHOOK"){float hook=p.Top?12:-12;if(p.Start<=geo.Cover+1e-6)g.DrawLine(pen,a,y,a,y+hook);if(p.End>=geo.Total-geo.Cover-1e-6)g.DrawLine(pen,b,y,b,y+hook);}}
+   foreach(var p in pieces.Where(x=>Longitudinal(x)&&x.End>w0+1e-6&&x.Start<w1-1e-6)){float y=laneY(p),a=X(p.Start),b=X(p.End);using(var pen=new Pen(BarColor(p),1.4f)){BarLine(g,pen,p,a,b,y,X);if(p.ShapeCode=="HOOK1"||p.ShapeCode=="HOOK2"||p.ShapeCode=="CRANKHOOK"){float hook=p.Top?12:-12;if(p.Start<=geo.Cover+1e-6)g.DrawLine(pen,a,y,a,y+hook);if(p.End>=geo.Total-geo.Cover-1e-6)g.DrawLine(pen,b,y,b,y+hook);}}
     int k=labelRow[p];string t=labelText[p];if(t==null)continue;var sz=g.MeasureString(t,small);float va=Math.Max(a,X(w0)),vb=Math.Min(b,X(w1)),vm=(va+vb)/2;float lx=labelX[p],ly=p.Top?beamTop-13-k*11:beamBottom+2+k*11;vm=Math.Max(lx+2,Math.Min(lx+sz.Width-2,vm));
     using(var lead=new Pen(Color.FromArgb(140,BarColor(p)),.5f))g.DrawLine(lead,vm,y,vm,p.Top?ly+sz.Height-2:ly+2);using(var bg=new SolidBrush(Color.FromArgb(225,255,255,255)))g.FillRectangle(bg,lx,ly,sz.Width,sz.Height-2);using(var tb=new SolidBrush(BarColor(p)))g.DrawString(t,small,tb,lx,ly-1);}
    /* spans left out of the estimate: greyed, only the dowels of the spans beside them */
