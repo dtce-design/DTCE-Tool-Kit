@@ -1,4 +1,4 @@
-using System;using System.Linq;using System.Drawing;using System.Globalization;using System.Collections.Generic;using System.Text;using System.Xml;using System.Windows.Forms;
+﻿using System;using System.Linq;using System.Drawing;using System.Globalization;using System.Collections.Generic;using System.Text;using System.Xml;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 class ExtraWorkGrid {public string Key,Kind,Group;public DataGridView Grid;public int Inputs;}
 class ExtraMaterialControls {public ComboBox Fc,Small,Large;public NumericUpDown Cover,Offset;public FlowLayoutPanel Panel;}
@@ -59,10 +59,12 @@ partial class ProgramOfWorksForm {
      /* Owner (18 November 2026): a schedule typed in "Tie spacing mm / count / schedule" (e.g. 1 - 50mm, 11 - 75mm, AND REST AT
         200mm C/C) is read as a spacing schedule even when the input method still says Spacing (mm). */
      int scheduledSets=item.Key=="StructuralColumn"&&(Cell(row,11)=="Spacing schedule"||ColumnTieSchedule.Looks(Cell(row,12)))?ColumnTieSchedule.Count(Cell(row,12),Number(row,2),Number(row,3),Number(row,4),Count(row,10),(double)settings.Cover.Value,cfg):0;
-     if(item.Inputs==16||item.Key=="StructuralColumn")q=MiscStructureTakeoff.Member(item.Kind,Cell(row,0),Cell(row,1),Number(row,2),Number(row,3),Number(row,4),Count(row,5),(double)settings.Cover.Value,Count(row,6),Count(row,7),OptionalCount(row,9)>0?Count(row,8):0,OptionalCount(row,9),Count(row,10),scheduledSets>0?"Number of ties":Cell(row,11),scheduledSets>0?scheduledSets:Number(row,12),(double)settings.Offset.Value,OptionalNumber(row,13),Cell(row,14)!=""&&bool.Parse(Cell(row,14)),OptionalCount(row,15),cfg);
+     var levelRanges=item.Key=="StructuralColumn"?ColumnRanges(RowMark(row)):null;
+     if(levelRanges!=null&&levelRanges.Count>0)q=ColumnByLevels(item,row,levelRanges,cfg,settings);
+     else if(item.Inputs==16||item.Key=="StructuralColumn")q=MiscStructureTakeoff.Member(item.Kind,Cell(row,0),Cell(row,1),Number(row,2),Number(row,3),Number(row,4),Count(row,5),(double)settings.Cover.Value,Count(row,6),Count(row,7),OptionalCount(row,9)>0?Count(row,8):0,OptionalCount(row,9),Count(row,10),scheduledSets>0?"Number of ties":Cell(row,11),scheduledSets>0?scheduledSets:Number(row,12),(double)settings.Offset.Value,OptionalNumber(row,13),Cell(row,14)!=""&&bool.Parse(Cell(row,14)),OptionalCount(row,15),cfg);
      else q=MiscStructureTakeoff.Panel(item.Kind,Cell(row,0),Cell(row,1),Number(row,2),Number(row,3),Number(row,4),Count(row,5),(double)settings.Cover.Value,Count(row,6),MiscStructureTakeoff.Bars(Count(row,7),Cell(row,8),Number(row,9)),MiscStructureTakeoff.Bars(Count(row,10),Cell(row,11),Number(row,12)),OptionalNumber(row,13),OptionalNumber(row,14),int.Parse(Cell(row,15)),int.Parse(Cell(row,16)),Cell(row,17)!=""&&bool.Parse(Cell(row,17)),cfg);
      if(scheduledSets>0)q.Steel.Result.Lines.Find(l=>l.Part=="Stirrups").Formula+="; schedule = "+Cell(row,12)+"; main hoop counted once per station; open pieces entered separately.";
-     if(item.Key=="StructuralColumn")ColumnOpenTies.Add(q,Number(row,3),Number(row,4),(double)settings.Cover.Value,Count(row,10),OptionalCount(row,16),OptionalCount(row,17),columnOpenHooks.Text,cfg);
+     if(item.Key=="StructuralColumn"&&(levelRanges==null||levelRanges.Count==0))ColumnOpenTies.Add(q,Number(row,3),Number(row,4),(double)settings.Cover.Value,Count(row,10),OptionalCount(row,16),OptionalCount(row,17),columnOpenHooks.Text,cfg);
      row.Tag=q;bool slope=item.Group=="Slope Protection Works";(slope?slopeQuantities:miscQuantities).Add(q);(slope?slopePlan:miscPlan).AddRange(CommercialBars.Allocate(new[]{q.Steel},cfg,miscStock));row.Cells[item.Inputs].Value=q.Concrete;row.Cells[item.Inputs+1].Value=q.Forms;row.Cells[item.Inputs+2].Value=q.Steel.Result.Total;row.Cells[StatusIndex(item.Grid)].Value="Estimated";
     }else RecalculateSiteRow(item,row);
    }catch(Exception ex){row.Cells[StatusIndex(item.Grid)].Value=ex.Message;errors.Add(item.Kind+" "+Cell(row,0)+": "+ex.Message);}}

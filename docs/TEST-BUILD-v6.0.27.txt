@@ -1,0 +1,19 @@
+DTCE Tool Kit v6.0.27 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH:
+- Manual column schedule in the Bill of Quantities, per level range ("manual sched sa boq hindi sa bbs"; "sa column dapat per
+  elevation siya kasi baka magbago rebar per height"): the Manual column schedules (Reinforced Concrete Works > Column Estimate)
+  have From level (m) and To level (m). A mark may have one row per level range (e.g. C1 0.00-3.50 8-Ø20, C1 3.50-7.00 8-Ø16). A
+  Column Estimate row with that mark takes every range: its height is the full height, and each range is taken off with its own
+  section, bars and ties; the bars of a range lap into the range above with the compression lap (NSCP 425.5.5.1). Marks without
+  levels, and projects saved before, work as before. The Bar Bending Schedule takes these columns with Load from Bill of
+  Quantities, one bar mark per range.
+- The column / footing schedules added to the Bar Bending Schedule in v6.0.26 are removed (they belong in the Bill of Quantities).
+- Cut bars and the beam estimate curtailment ("yung cut bars diba may curtailment setting"): the Bar Bending Schedule already used
+  the same curtailment as the beam estimate (top L/4 at end and continuous supports; bottom midspan bars from L/6; bottom at supports
+  L/4); top bars in the middle only (more top bars at midspan than at the supports) were missing - they are now the central L/2 plus
+  the cut-end allowance, as in the beam estimate.
+Checked on Linux/Mono only. Tests: BeamCuttingListTests (90), MemberSchedulesTests (29, with the level-range checks),
+MemberBbsTests, EstimatorRowIncludeTests.
+
+Includes v6.0.26 and earlier builds.
