@@ -59,5 +59,11 @@ class StrapFootingTests {
    grid.Rows[0].Cells["Fy"].Value="999";typeof(StrapFootingForm).GetMethod("StoreSupportReactions",fl).Invoke(form,null);string u;var srows=TrussSupport.Reactions(((TextBox)typeof(StrapFootingForm).GetField("reactions",fl).GetValue(form)).Text,out u);Check(srows.Count==6&&srows.Any(r=>r.Node=="2"&&Math.Abs(r.Fy-999)<1e-9)&&srows.Count(r=>r.Node=="1")==2,"editing a support's reactions updates only that support in the STAAD table");}
    var flags=System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance;var doc=(CalculationDocument)typeof(StrapFootingForm).GetMethod("BuildDocument",flags).Invoke(form,null);Check(doc.Sheets.Count>=4,"report pages");
    string xml=form.Snapshot();Check(xml.Contains("<Footing ")&&xml.Contains("<Strap "),"footings and straps are saved");using(var again=new StrapFootingForm()){again.Restore(xml);Check(again.Snapshot()==xml,"sheet round-trips");}}
+  /* v5.1.6: do the bars fit in one layer? (strap: 400 wide, 40 cover, Ø10 stirrups -> 300 mm inside; Ø25 with 25 mm clear -> 6 per layer) */
+  {var fit=list.Single(x=>x.Name=="Strap top bars fit in one layer");Check(fit.Demand==4&&fit.Capacity==6&&fit.Demand<=fit.Capacity,"4-25 fits in one layer of a 400 mm strap (6 per layer)");
+   var crowd=new StrapInput();crowd.Nodes.Add(new StrapNode{Node="1",B=1.6,L=2.8,T=.6,Ex=.6});crowd.Nodes.Add(new StrapNode{Node="2",X=6,B=2.6,L=2.6,T=.6});crowd.Straps.Add(new StrapBeam{From="1",To="2",Width=.4,Depth=.8,Top="8-25",Bottom="3-20"});
+   var cst=new Dictionary<SupportCheck,List<string>>();var cl=StrapFooting.Check(crowd,StrapFooting.Cases(crowd,rows,new List<string>()),new List<string>(),cst);var cf=cl.Single(x=>x.Name=="Strap top bars fit in one layer");
+   Check(cf.Demand==8&&cf.Capacity==6&&cf.Demand>cf.Capacity&&cst[cf].Any(t=>t.Contains("does not fit in one layer: 2 layers (6 + 2)")),"8-25 does not fit in one layer: flagged with the 2 layers it needs");
+   Check(list.Any(x=>x.Name=="Footing bars fit in one layer (clear spacing)"&&x.Capacity>=x.Demand),"footing bar clear spacing checked");}
   Console.WriteLine("PASS: "+checks+" strap foundation checks");}
 }

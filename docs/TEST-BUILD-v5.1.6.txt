@@ -1,0 +1,13 @@
+DTCE Tool Kit v5.1.6 test build (20 November 2026) - not uploaded to the Microsoft Store (owner: "yung mga susunod huwag na muna iupload")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: Strap Foundation - do the bars fit in one layer.
+
+- Strap bars ("icheck mo din sa strap foundation if kasya naman yung no. of bars sa isang layer"): new checks "Strap top bars fit in
+  one layer" and "Strap bottom bars fit in one layer" (NSCP 425.2.1). Width inside the stirrups = bw - 2 cover - 2 stirrup Ø; clear
+  spacing >= max(25 mm, db, 4/3 aggregate) gives the most bars per layer; the number of bars is checked against it. When they do not
+  fit, the check fails and the steps say how many layers they need (for example 6 + 2) with Ø25 spacers, or to widen the strap /
+  use bigger bars. Example: 400 mm strap, 40 cover, Ø10 stirrups -> 300 mm; Ø25 bars -> 6 per layer: 4-25 fits, 8-25 does not.
+- Footing bars: new check "Footing bars fit in one layer (clear spacing)": s - db >= max(25 mm, db, 4/3 aggregate).
+
+Includes v5.1.5 and earlier builds (see their notes).
