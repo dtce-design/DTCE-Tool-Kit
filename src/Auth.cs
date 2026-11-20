@@ -70,30 +70,30 @@ partial class CodeGeneratorForm:Form {
  internal static int SelectedPrograms(CheckedListBox apps){int selected=0;for(int n=0;n<ProgramAccess.Ids.Length;n++)if(apps.GetItemChecked(n))selected|=ProgramAccess.Ids[n];return selected;}
  TextBox request,output;Label message;string privateKey;
  public CodeGeneratorForm(){AppBrand.Apply(this);
-  Text="DTCE Tool Kit Admin - Code Generator";ClientSize=new Size(940,715);StartPosition=FormStartPosition.CenterScreen;FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;Font=new Font("Segoe UI",10);BackColor=Color.FromArgb(245,248,251);
-  Controls.Add(new Label{Text="DTCE TOOL KIT - ACCESS ADMIN",Location=new Point(25,22),Size=new Size(890,35),Font=new Font("Segoe UI",18,FontStyle.Bold)});
-  Controls.Add(new Label{Text="Paste the request from the user's currently open app.",Location=new Point(335,75),Size=new Size(575,25)});
-  request=new TextBox{Location=new Point(335,107),Size=new Size(575,78),Multiline=true,MaxLength=200};Controls.Add(request);
-  Controls.Add(new Label{Text="APPS ALLOWED",Location=new Point(25,75),Size=new Size(280,25),Font=new Font("Segoe UI",11,FontStyle.Bold)});Controls.Add(new Label{Text="GENERATED ACCESS CODE",Location=new Point(335,200),Size=new Size(575,25),Font=new Font("Segoe UI",11,FontStyle.Bold)});
-  var apps=new CheckedListBox{Location=new Point(25,110),Size=new Size(280,270),CheckOnClick=true,BorderStyle=BorderStyle.FixedSingle,BackColor=Color.White,Font=new Font("Segoe UI",11),IntegralHeight=false,HorizontalScrollbar=true};apps.Items.AddRange(ProgramAccess.Names);Controls.Add(apps);Controls.Add(new Label{Text="Project Information is included automatically with valid access.",Location=new Point(25,385),Size=new Size(280,40)});apps.ItemCheck+=(o,e)=>output.Clear();
-  var generate=new Button{Text="Generate selected app access",Location=new Point(25,430),Size=new Size(280,50)};Controls.Add(generate);
-  output=new TextBox{Location=new Point(335,230),Size=new Size(575,210),Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical,Font=new Font("Consolas",10),BackColor=Color.White};Controls.Add(output);
-  var copy=new Button{Text="Copy access code",Location=new Point(335,455),Size=new Size(280,40)};copy.Click+=(o,e)=>{if(output.Text!="")LoginForm.Copy(output.Text);};Controls.Add(copy);
-  var clear=new Button{Text="Clear",Location=new Point(630,455),Size=new Size(280,40)};clear.Click+=(o,e)=>{request.Clear();output.Clear();};Controls.Add(clear);
+  Text="DTCE Tool Kit Admin - Code Generator";ClientSize=new Size(940,600);/* one screen, no scrolling (owner, 20 November 2026: "gawin 1 screen kasya sa lahat") */StartPosition=FormStartPosition.CenterScreen;FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;Font=new Font("Segoe UI",10);BackColor=Color.FromArgb(245,248,251);
+  Controls.Add(new Label{Text="DTCE TOOL KIT - ACCESS ADMIN",Location=new Point(25,12),Size=new Size(890,34),Font=new Font("Segoe UI",16,FontStyle.Bold)});
+  Controls.Add(new Label{Text="Paste the request from the user's currently open app.",Location=new Point(345,58),Size=new Size(565,24)});
+  request=new TextBox{Location=new Point(345,84),Size=new Size(565,60),Multiline=true,MaxLength=200};Controls.Add(request);
+  Controls.Add(new Label{Text="APPS ALLOWED",Location=new Point(25,58),Size=new Size(300,24),Font=new Font("Segoe UI",11,FontStyle.Bold)});Controls.Add(new Label{Text="GENERATED ACCESS CODE",Location=new Point(345,154),Size=new Size(565,24),Font=new Font("Segoe UI",11,FontStyle.Bold)});
+  var apps=new CheckedListBox{Location=new Point(25,84),Size=new Size(300,272),CheckOnClick=true,BorderStyle=BorderStyle.FixedSingle,BackColor=Color.White,Font=new Font("Segoe UI",11),IntegralHeight=false,HorizontalScrollbar=true};apps.Items.AddRange(ProgramAccess.Names);Controls.Add(apps);Controls.Add(new Label{Text="Project Information is included automatically with valid access.",Location=new Point(25,360),Size=new Size(300,36)});apps.ItemCheck+=(o,e)=>output.Clear();
+  var generate=new Button{Text="Generate selected app access",Location=new Point(25,400),Size=new Size(300,40)};Controls.Add(generate);
+  output=new TextBox{Location=new Point(345,180),Size=new Size(565,150),Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical,Font=new Font("Consolas",10),BackColor=Color.White};Controls.Add(output);
+  var copy=new Button{Text="Copy access code",Location=new Point(345,338),Size=new Size(277,36)};copy.Click+=(o,e)=>{if(output.Text!="")LoginForm.Copy(output.Text);};Controls.Add(copy);
+  var clear=new Button{Text="Clear",Location=new Point(633,338),Size=new Size(277,36)};clear.Click+=(o,e)=>{request.Clear();output.Clear();};Controls.Add(clear);
   message=new Label{Location=new Point(25,420),Size=new Size(280,145)};Controls.Add(message);
   request.TextChanged+=(o,e)=>output.Clear();
-  var import=new Button{Text="Import existing key",Location=new Point(25,485),Size=new Size(280,32)};Controls.Add(import);
-  message.Location=new Point(25,525);message.Size=new Size(280,120);
+  var import=new Button{Text="Import existing key",Location=new Point(25,446),Size=new Size(146,34)};Controls.Add(import);
+  message.Location=new Point(25,488);message.Size=new Size(300,100);
   Action loadKey=()=>{try{privateKey=AdminKeyStore.Load();generate.Enabled=true;message.Text="Key ID: "+AccessCodes.KeyId(AccessCodes.PublicKey())+"\nOwner only. Keep a backup of your existing key.";}catch(Exception){privateKey=null;generate.Enabled=false;message.Text="Import your existing AdminPrivateKey.dat. It must match this app and be used under its original Windows account.";}};
   import.Click+=(o,e)=>{using(var dialog=new OpenFileDialog{Title="Import existing Admin private key",Filter="Admin private key|AdminPrivateKey.dat",CheckFileExists=true}){if(dialog.ShowDialog(this)!=DialogResult.OK)return;try{AdminKeyStore.Import(dialog.FileName);output.Clear();loadKey();}catch(Exception){MessageBox.Show(this,"Cannot import this key. Use the matching original key under its original Windows account.","Key import failed");}}};
-  var certification=new CheckBox{Text="Store certification (30 days)",Location=new Point(335,520),Size=new Size(360,30)};Controls.Add(certification);
-  Controls.Add(new Label{Text="Exact User version",Location=new Point(335,560),Size=new Size(160,25)});
-  var certVersion=new TextBox{Text=Engine.Version,Location=new Point(505,557),Size=new Size(160,30),Enabled=false};Controls.Add(certVersion);
-  Controls.Add(new Label{Text="Certification: no request needed; all apps included. Share only in Notes for certification. Anyone with the code can use this version until expiry.",Location=new Point(335,610),Size=new Size(575,70)});
+  var certification=new CheckBox{Text="Store certification (30 days)",Location=new Point(345,386),Size=new Size(360,28)};Controls.Add(certification);
+  Controls.Add(new Label{Text="Exact User version",Location=new Point(345,422),Size=new Size(160,25)});
+  var certVersion=new TextBox{Text=Engine.Version,Location=new Point(515,419),Size=new Size(160,30),Enabled=false};Controls.Add(certVersion);
+  Controls.Add(new Label{Text="Certification: no request needed; all apps included. Share only in Notes for certification. Anyone with the code can use this version until expiry.",Location=new Point(345,456),Size=new Size(565,50)});
   certification.CheckedChanged+=(o,e)=>{output.Clear();request.Enabled=!certification.Checked;apps.Enabled=!certification.Checked;certVersion.Enabled=certification.Checked;generate.Text=certification.Checked?"Generate certification code":"Generate selected app access";};
   certVersion.TextChanged+=(o,e)=>output.Clear();
   loadKey();
-  var exportMobile=new Button{Text="Export key for iPhone",Location=new Point(25,610),Size=new Size(280,40)};Controls.Add(exportMobile);
+  var exportMobile=new Button{Text="Export key for iPhone",Location=new Point(179,446),Size=new Size(146,34)};Controls.Add(exportMobile);
   exportMobile.Click+=async(o,e)=>{
    try{
     string key=AdminKeyStore.Load();string password;
