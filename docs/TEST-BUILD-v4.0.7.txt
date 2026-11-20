@@ -1,0 +1,21 @@
+DTCE Tool Kit v4.0.7 (was v1.49.7) test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: extends the existing Truss Support on RC design sheet (presentable calculation sheet).
+
+Truss Support on RC - design calculation sheet ("dapat maganda very detail and presentable ... may mga models diagrams")
+- New report layout (A4, 7.5 pt body): 1 Design basis (NSCP 2015 Section 417 / ACI 318-14, AISC 360-10, AISC DG1),
+  2 Materials and inputs tables, 3 Drawings to scale, 4 STAAD support reactions (rows with a failing check shaded),
+  5 Design checks, 6 Summary table, signature block (left blank), 7 Notes and limitations.
+- Figure 1: plan, elevation along the truss and 3D view at a standard scale with a scale bar; failing parts red.
+- Figure 2: SECTION A-A across the truss showing the angle bars (2L or 1L, toe welds, gusset between the vertical legs),
+  base plate, grout, anchors with washer and heavy hex nut; and an ANCHOR BOLT DETAIL with projection, embedment hef,
+  total length B, thread length, hook eh and the bolt specification.
+- Every check is shown as formula -> substitution -> result, the governing node / load case, demand <= capacity,
+  ratio and an OK / NOT OK badge. Long tables continue on the next page with the header repeated; a heading stays
+  with what follows it.
+- The new section/anchor detail is also shown in the Plate and anchors tab.
+- Presets renamed "Example A / Example B (from a sample drawing)" - they are samples, not standards.
+- The report does not approve the design; the signature lines stay blank.
+
+Includes v4.0.6 (was v1.49.6) and earlier local builds (see their notes).

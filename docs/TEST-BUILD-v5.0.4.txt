@@ -1,0 +1,15 @@
+DTCE Tool Kit v5.0.4 (was v1.50.4) test build (20 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: Project Information - saved projects list.
+
+Saved project information ("sa tabi niya maglagay na lang ng saved Project Info, na nakasave sa app. para iclick na lang yung
+title iloload na lang")
+- Every saved project information (title, location, implementing office, office address, date prepared) is kept in the app, in
+  the user's local application data (BeamTools\ProjectLibrary.xml, outside the versioned installation folder), newest first, up
+  to 300 projects. Saving the same title and location again refreshes it and moves it to the top.
+- Project Information window: a "Saved project information" list beside the fields with a search box. Click a title to load all
+  its fields; then "Save project information" makes it the current project. "Remove from the list" deletes a saved entry (with a
+  confirmation). Starting a new Program of Works still clears only the current project, not the list.
+
+Includes v5.0.3 (was v1.50.3) and earlier local builds (see their notes).

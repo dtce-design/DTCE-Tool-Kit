@@ -1,0 +1,22 @@
+DTCE Tool Kit v2.3.0 (was v1.47.0) test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+
+Beam Cutting List ("Gawin interactive yung sa cutting list dapat minomodify din", "Pati yung bar bending schedule,
+yung pwedeng iissue for construction", "Yung curtail kunin yung standard sa pow")
+- Curtailment follows the Program of Works beam estimate standard: extra top bars L/4 past the support face (L/3
+  still available), extra bottom bars from L/6 off each face, and the same "Main piece allowance" choices as POW
+  (none / Ld at both piece ends - default / 1 x lap / hook Ldh, cut-end Ld) added at the cut ends.
+- The cutting list is editable: type a new cut length or pieces per line on any bar (edited cells are highlighted
+  with the calculated value in the tooltip; typing the calculated value back clears the edit); Delete removes a bar;
+  Add bar adds a bar to the member of the selected row (location, diameter, length and pieces editable); Reset edits
+  restores the calculated list. Edits flow into the estimate per span, the commercial bars and the reports, and are
+  saved in the cutting list file.
+- New Bar bending schedule tab: member, bar mark, type and size, number of members, number in each, total, length of
+  each bar, shape (straight, L-bar, U-bar, closed hoop, crosstie) and A / B / C outside dimensions, weight. BBS
+  number, revision, status (For review / For approval / For construction) and Prepared / Checked / Approved names.
+- Print bar bending schedule: printable / PDF schedule with the project title block, totals per grade and diameter,
+  notes on dimensions, curtailment and edits, open review items, and blank signature and date lines. The program
+  never marks a schedule as approved; it is valid for construction only when signed by the responsible engineer.
+
+Includes v2.2.0 (was v1.46.0) and earlier local builds (see their notes).

@@ -1,26 +1,29 @@
-DTCE Tool Kit v2.0.0 (20 November 2026) - release for the Microsoft Store (owner request); same content as the v1.50.19 test build.
+DTCE Tool Kit v2.0.0 (was v1.44.0) test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
 
-Windows checks: GitHub Windows CI must pass before the Store upload. A Store upload is not certification.
-MAJOR release (owner, 20 November 2026: a new design sheet raises MAJOR). Strap Foundation design sheet, Bar Bending Schedule
-extensions, manual column / footing schedules, separate access for the new workspaces and Program of Works refinements
-(v1.50.0 - v1.50.19). Latest changes: BOQ status lists only exclusions and issues; jamb depth per wall; openings shown on each masonry wall.
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
 
-- Bill of Quantities status ("alisin mo na ito sa status, yung mga na exclude lang and other issues"): working automatic LS
-  items (for example 1007(2), 1008(2), 1010(4), 1004(2): "1 LS from included mapped quantities") are no longer listed. The
-  status shows errors, quantities not mapped, pay items with excluded quantities, and an automatic LS item that came out
-  0 LS because none of its mapped quantities is included.
-- Contract Duration fix: national holidays and the last rainfall records are filled in when a Program of Works is created or
-  opened, not when the Contract Duration tab is first shown. Opening that tab no longer marks an unchanged project as changed
-  (a new POW asked to save on close). The holidays and rain records are still saved with the project.
-- Jamb depth per wall ("magkaiba talaga ang jamb depth. yung depth na gagamitin ay based sa thk ng masonry wall"): an opening ID
-  assigned to walls of different thickness is no longer an error. The units in each wall use the jamb depth of that wall
-  (for example D-03: 1 in a 100 mm wall at 0.10 m, 1 in a 150 mm wall at 0.15 m) and the jamb paint adds them. Units not
-  assigned to a wall follow the row's Wall ID, or the Unassigned CHB thickness setting. Hovering the opening's width shows
-  the split.
-- Openings on each wall ("ipakita din yung mga opening na na-include sa masonry", "irerecord yung jamb based sa CHB wall"): every
-  CHB / masonry wall row has an "Openings included (jamb depth from this wall)" column beside Openings m2, listing each opening
-  deducted from it with its units, size and, for wooden doors / windows, the jamb depth taken from that wall's thickness.
-- The POW preparation date (from Project Information) is also set when the POW is created or opened, so opening the Contract
-  Duration tab does not mark the project as changed.
+Cutting List workspace - Beam Cutting List ("gawa ka din ng beam cutting list ... another workspace ito";
+"Upload lang ng schedule, set up na lang ng dimensions span supports etc. lagyan na lang ng check if ano yung
+isasama sa estimate per span. Splice same na sa design sheet ng splices. Icheck yung splicing zones as per
+nscp. Generate cutting list and estimates")
+- New "Cutting List" card on the Workspaces window (uses the Program of Works access).
+- Load the beam schedule DXF (formatted or manual schedules; several files allowed). Enter the beam lines one
+  row per span: line ID, beam mark, clear span, left / right support widths, slab thickness, identical lines
+  and an "In estimate" tick.
+- Lap, development and hook lengths come from the chosen Splice, Development & Hooks configuration (the same
+  values as that design sheet; top-bar factor for top bars).
+- Continuous top and bottom bars run the whole line with 90-degree hooks into the exterior supports and are
+  spliced only in the allowed zones: special moment frame per NSCP 2015 418.6.3.3 (no lap in a joint or within
+  2h of a joint face, hoops over the lap at not more than d/4 or 100 mm - checked against the stirrup spacing);
+  ordinary frame option (top bars in the middle third, bottom bars over interior supports). Pieces never exceed
+  the chosen longest bar. Hooked ends are checked against Ldh and the support width; stirrup end zones against
+  2h (418.6.4.1).
+- Extra top bars over supports (Ln/3 or Ln/4 past the face), extra bottom bars, side-face bars, stirrups and
+  crossties per span (both manual L/M/R and formatted "1-50mm, n-s mm, REST AT" spacings).
+- Results: cutting list (bar mark, location, cut length, pieces, shape, weight), splice zone check, estimate per
+  span (rebar by diameter, stirrup sets, concrete and forms below the slab; unticked spans are left out of the
+  estimate only), commercial bars to buy, review list; print preview / PDF report; copy; save / open
+  (.beam-cutting.xml).
+- Column, foundation and slab cutting lists are next.
 
-Includes v1.50.18 and earlier builds (see their notes).
+Includes v1.43.0 and earlier local builds (see their notes).

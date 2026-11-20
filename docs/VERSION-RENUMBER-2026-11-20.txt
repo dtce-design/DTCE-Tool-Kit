@@ -1,0 +1,56 @@
+DTCE Tool Kit version renumbering (20 November 2026)
+
+Owner: "hindi ba major yung bagong design sheet?", "icheck mo din yung mga previous para marenumber sila".
+Rule from now on: a new design sheet or workspace raises MAJOR (MINOR and PATCH reset); other new features raise MINOR;
+fixes, adjustments and extensions of an existing workspace or design sheet raise PATCH.
+
+Renumbered from v1.44.0 (the first new workspace after the last Microsoft Store version, v1.5.0):
+  v1.44.x -> v2.0.x  Bar Bending Schedule / Cutting List workspace
+  v1.45.x -> v2.1.x, v1.46.x -> v2.2.x (Earthquake Load tab in the existing sheet), v1.47.x -> v2.3.x
+  v1.48.x -> v3.0.x  Truss Support on RC design sheet
+  v1.49.x -> v4.0.x  Base Plate & Anchor Bolts design sheet (removed later; it is part of Truss Support on RC)
+  v1.50.x -> v5.0.x  Strap Foundation design sheet
+The Microsoft Store release requested on 20 November 2026 is v5.0.19 (formerly v1.50.19).
+Versions before v1.44.0 and GitHub releases / tags already published (up to v1.20.0) keep their numbers.
+
+Old -> new:
+  v1.44.0 -> v2.0.0
+  v1.45.0 -> v2.1.0
+  v1.46.0 -> v2.2.0
+  v1.47.0 -> v2.3.0
+  v1.48.0 -> v3.0.0
+  v1.48.1 -> v3.0.1
+  v1.49.0 -> v4.0.0
+  v1.49.1 -> v4.0.1
+  v1.49.2 -> v4.0.2
+  v1.49.3 -> v4.0.3
+  v1.49.4 -> v4.0.4
+  v1.49.5 -> v4.0.5
+  v1.49.6 -> v4.0.6
+  v1.49.7 -> v4.0.7
+  v1.49.8 -> v4.0.8
+  v1.49.9 -> v4.0.9
+  v1.49.10 -> v4.0.10
+  v1.49.11 -> v4.0.11
+  v1.49.12 -> v4.0.12
+  v1.49.13 -> v4.0.13
+  v1.50.0 -> v5.0.0
+  v1.50.1 -> v5.0.1
+  v1.50.2 -> v5.0.2
+  v1.50.3 -> v5.0.3
+  v1.50.4 -> v5.0.4
+  v1.50.5 -> v5.0.5
+  v1.50.6 -> v5.0.6
+  v1.50.7 -> v5.0.7
+  v1.50.8 -> v5.0.8
+  v1.50.9 -> v5.0.9
+  v1.50.10 -> v5.0.10
+  v1.50.11 -> v5.0.11
+  v1.50.12 -> v5.0.12
+  v1.50.13 -> v5.0.13
+  v1.50.14 -> v5.0.14
+  v1.50.15 -> v5.0.15
+  v1.50.16 -> v5.0.16
+  v1.50.17 -> v5.0.17
+  v1.50.18 -> v5.0.18
+  v1.50.19 -> v5.0.19

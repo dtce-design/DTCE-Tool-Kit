@@ -1,0 +1,19 @@
+DTCE Tool Kit v4.0.9 (was v1.49.9) test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only; PDF saving needs the Windows qpdf tools). Not a Microsoft Store release.
+PATCH: extends the existing Bar Bending Schedule workspace (beams).
+
+Beam elevation and sections in the printed BBS, on A3 ("Hindi mo sinama yung section ng beam at elevation sa report? Para ma
+visualize clearly? Gamit ng A3 para ok")
+- The printed bar bending schedule is now A3 landscape (print, preview and PDF). Other reports stay A4.
+- New section 3 "Beam details - elevation and sections", for every beam line:
+  - Elevation: supports S1, S2 ..., beam outline and slab, every bar on its own lane with a leader to its mark, number, size
+    and cut length, 90° hooks at the exterior supports, laps (orange, NG in red), allowed splice zones (green), hoop ticks and
+    hoop zones (legs, size, spacing), section cuts, support widths, clear spans with the beam mark and size, the 2h hoop
+    zones at every face, and the overall length. Depth is drawn larger than the horizontal scale for clarity.
+  - Sections 1A / 1B / 1C ... at the left face, midspan and right face of every span at a standard scale (1:10, 1:15 ...):
+    concrete, slab line, hoop with 135° hooks and crossties, top and bottom bars at their diameter with their count and size,
+    side-face bars, width / depth dimensions, hoop spacing at that point, cover, and the bar marks present.
+- Sections renumbered: 4 Bar bending schedule, 5 Weight summary, 6 Cutting list, 7 SMF check, 8 Splice zone check.
+
+Includes v4.0.8 (was v1.49.8) and earlier local builds (see their notes).

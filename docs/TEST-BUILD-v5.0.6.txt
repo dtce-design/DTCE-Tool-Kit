@@ -1,0 +1,15 @@
+DTCE Tool Kit v5.0.6 (was v1.50.6) test build (20 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: Strap Foundation - sliding and overturning ("sa strap design include check in sliding overturning").
+
+- Overturning (service cases): each group of footings tied by straps (or a footing on its own) is checked tipping about the
+  outer edge of its footings toward +X, -X, +Z and -Z (+Y / -Y when Z is up). Overturning moment = column moments + horizontal
+  reactions x the STAAD support height above the base; resisting moment = column loads, footing + soil and strap weights x
+  their distance to that edge. FS = Mr / Mo >= the required FS (new input, default 1.5). The governing direction and case are
+  reported with the derivation.
+- Sliding: per footing (μ R / H) and, for strapped footings, for the whole group (μ ΣR / ΣH, the straps tie the footings);
+  required FS is a new input (default 1.5). The per-footing sliding check now also runs when only service cases are given.
+- A group without horizontal reactions or column moments is noted instead of checked.
+
+Includes v5.0.5 (was v1.50.5) and earlier local builds (see their notes).

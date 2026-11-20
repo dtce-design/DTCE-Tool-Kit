@@ -154,7 +154,8 @@ Later versions again need a new explicit request.
 New owner request (20 November 2026, "release mo na sa microdoft store"): publish v1.50.18 (User and Admin) the same way after
 its Windows CI passes (merge PR #11 to main, then publish_microsoft_store=true; replace_pending_store_submission stays false
 unless the owner asks). It supersedes the v1.32.0 request. Owner (20 November 2026) chose to release v1.50.19 instead (includes the BOQ status
-change), renumbered v2.0.0 at the owner's request. Later versions again need a new explicit request.
+change), renumbered v5.0.19 at the owner's request (versions since v1.44.0 renumbered, see docs/VERSION-RENUMBER-2026-11-20.txt).
+Later versions again need a new explicit request.
 
 ## Version numbers (18 November 2026)
 
@@ -165,8 +166,10 @@ Owner (19 November 2026, "Bakit di nasusunod ang version no naming major.minor.b
 numbers already given (v1.48.0). A build that only fixes, adjusts or extends an existing workspace or design sheet raises PATCH
 (1.48.0 -> 1.48.1); MINOR goes up only when a whole new workspace or design sheet is added (then PATCH resets).
 Owner (20 November 2026, "hindi ba major yung bagong design sheet?"; chose v2.0.0): a whole new design sheet or workspace now
-raises MAJOR (then MINOR and PATCH reset, e.g. 2.0.0 -> 3.0.0). Fixes, adjustments and extensions of an existing workspace or
-design sheet still raise PATCH (2.0.0 -> 2.0.1); MINOR is for other new features. The release after v1.50.19 is v2.0.0.
+raises MAJOR (then MINOR and PATCH reset, e.g. 5.0.19 -> 6.0.0). Fixes, adjustments and extensions of an existing workspace or
+design sheet still raise PATCH (5.0.19 -> 5.0.20); MINOR is for other new features. Owner ("icheck mo din yung mga previous para
+marenumber sila"): versions since v1.44.0 were renumbered by this rule (v1.44 -> 2.0, v1.45-1.47 -> 2.1-2.3, v1.48 -> 3.0,
+v1.49 -> 4.0, v1.50.x -> 5.0.x); v1.50.19 is v5.0.19. Earlier versions and published GitHub tags keep their numbers.
 
 ## Linked Excel workbook and version names (19 November 2026)
 

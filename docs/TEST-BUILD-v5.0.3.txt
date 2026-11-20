@@ -1,0 +1,16 @@
+DTCE Tool Kit v5.0.3 (was v1.50.3) test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: Strap Foundation - visualization ("Mas maayos na visualization").
+
+- 3D view: turn it by dragging (yaw / pitch), zoom with the wheel, "Reset 3D view"; footing tops coloured by the soil pressure
+  of the shown load case with a q / qa colour scale; "Show / hide reinforcement (3D)" shows the concrete see-through with the
+  footing bottom mesh both ways (red along X, blue across), the strap top bars (red), bottom bars (green) and the stirrups.
+- Plan: grid lines through the columns with bubbles (1, 2, 3 ... along X; A, B, C ... across) and dimension chains of the column
+  spacing; each footing coloured by its soil pressure (cells from q avg and the pressure gradient) with the q / qa scale; red
+  outline for a failing footing; labels moved clear of the straps.
+- Strap elevation: top and bottom bars, stirrups at their spacing and the footing bottom bars drawn with their labels; moment
+  values at both column faces; clearer spacing.
+- Report: plan with the pressure map and grid, 3D view with pressures, 3D reinforcement view, strap elevations with bars.
+
+Includes v5.0.2 (was v1.50.2) and earlier local builds (see their notes).

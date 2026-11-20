@@ -1,0 +1,20 @@
+DTCE Tool Kit v4.0.4 (was v1.49.4) test build (19 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: extends the existing Truss Support on RC design sheet and Bar Bending Schedule workspace.
+
+("May model sana para sa truss anchorage para ma visualization", "Ganon din sana sa BBS may visualization",
+"Iscale naman yung drawing")
+Truss Support on RC
+- New 3D view beside the plan and elevation: RC support (see-through), base plate, gusset, anchor bolts with nuts and
+  hooks; drag to turn it, double-click to reset; failing parts are red as in the other views.
+- Plan and elevation are drawn at one standard scale (1:1, 1:2, 1:5, 1:10, 1:15, 1:20 ... the largest that fits),
+  shown with a scale bar; the plate thickness is drawn to scale too.
+Bar Bending Schedule
+- Model: "True scale" (on by default) draws the beam depth, cover, bar positions, hooks and laps at the same scale as
+  the length; zoom in to read the detail, drag up / down / left / right to pan. The current scale is shown (1:n on
+  screen). Untick it for the earlier exaggerated depth.
+- Bar bending schedule tab: a SKETCH column with the shape of every bar, and a to-scale drawing of the selected bar on
+  the right with A / B / C, cut length, pieces and weight.
+
+Includes v4.0.3 (was v1.49.3) and earlier local builds (see their notes).

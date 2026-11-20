@@ -1,0 +1,15 @@
+DTCE Tool Kit v5.0.15 (was v1.50.15) test build (20 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: insert rows in the Program of Works sheets.
+
+- Insert row ("sa pow allow maginsert ng rows up or below the selected row"): right-click a row on any Program of Works
+  measurement sheet and choose "Insert row above" or "Insert row below". A blank row is placed above or below the row of the
+  selected cell and the cursor moves to it (same column). Inserting below the last row, or on the blank new row, places it
+  just above the new row.
+- The inserted row stays blank - it is not estimated and gets no automatic ID until something is typed in it. When you start
+  typing, it takes the same defaults as a new row (for example side forms and materials).
+- Ctrl+Z removes the inserted row; Ctrl+Y inserts it again. Existing IDs, links and saved projects are not changed. A row left
+  blank is not saved.
+
+Includes v5.0.14 (was v1.50.14) and earlier local builds (see their notes).
