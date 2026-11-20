@@ -11,21 +11,21 @@ sealed class DxfWall {public string Id,Layer,Source;public double LengthM,Thickn
 static class WallDxfImport {
  static readonly CultureInfo IC=CultureInfo.InvariantCulture;
  static readonly Regex IdPattern=new Regex(@"^\s*([A-Za-z]{1,4}\s*-?\s*\d{1,4}[A-Za-z]?)\s*$");
- sealed class Ent {public string Type,Layer="";public Dictionary<int,List<string>> G=new Dictionary<int,List<string>>();
+ internal sealed class Ent {public string Type,Layer="";public Dictionary<int,List<string>> G=new Dictionary<int,List<string>>();
   public string S(int c){List<string> v;return G.TryGetValue(c,out v)&&v.Count>0?v[0]:"";}
   public double D(int c){double d;return double.TryParse(S(c),NumberStyles.Float,IC,out d)?d:double.NaN;}
   public List<double> All(int c){List<string> v;var r=new List<double>();if(G.TryGetValue(c,out v))foreach(var s in v){double d;if(double.TryParse(s,NumberStyles.Float,IC,out d))r.Add(d);}return r;}}
  internal static string CleanText(string t){t=Regex.Replace(t??"",@"\\[A-Za-z][^;\\]*;","");t=t.Replace("\\P"," ").Replace("{","").Replace("}","").Replace("<>","");return t.Trim();}
  internal static string AsId(string text){var m=IdPattern.Match(CleanText(text));return m.Success?Regex.Replace(m.Groups[1].Value,@"\s+","").ToUpperInvariant():null;}
  internal static double? LayerThickness(string layer){var m=Regex.Match(layer??"",@"(?<!\d)(75|90|100|125|150|175|200|250|300)(?!\d)");return m.Success?double.Parse(m.Value,IC):(double?)null;}
- static List<Ent> Entities(string text,out int units){units=0;var lines=text.Replace("\r\n","\n").Replace('\r','\n').Split('\n');var list=new List<Ent>();bool inEntities=false;Ent cur=null;
+ internal static List<Ent> Entities(string text,out int units){units=0;var lines=text.Replace("\r\n","\n").Replace('\r','\n').Split('\n');var list=new List<Ent>();bool inEntities=false;Ent cur=null;
   for(int i=0;i+1<lines.Length;i+=2){int code;if(!int.TryParse(lines[i].Trim(),out code))continue;string v=lines[i+1].Trim();
    if(code==9&&v=="$INSUNITS"&&i+3<lines.Length){int u;if(int.TryParse(lines[i+3].Trim(),out u))units=u;continue;}
    if(code==0){if(cur!=null){list.Add(cur);cur=null;}if(v=="SECTION")continue;if(v=="ENDSEC"){inEntities=false;continue;}if(inEntities)cur=new Ent{Type=v};continue;}
    if(code==2&&!inEntities&&v=="ENTITIES"){inEntities=true;continue;}
    if(cur==null)continue;if(code==8)cur.Layer=v;List<string> slot;if(!cur.G.TryGetValue(code,out slot))cur.G[code]=slot=new List<string>();slot.Add(v);}
   if(cur!=null)list.Add(cur);return list;}
- static double ToMetres(double value,int units){if(units==6)return value;if(units==4)return value/1000;if(units==5)return value/100;if(units==1)return value*0.0254;return value>50?value/1000:value;}
+ internal static double ToMetres(double value,int units){if(units==6)return value;if(units==4)return value/1000;if(units==5)return value/100;if(units==1)return value*0.0254;return value>50?value/1000:value;}
  /* reads the walls of a DXF; defaultThicknessMm when the layer carries none */
  internal static List<DxfWall> Read(string text,double defaultThicknessMm){int units;var ents=Entities(text,out units);
   var labels=ents.Where(e=>e.Type=="TEXT"||e.Type=="MTEXT").Select(e=>new{Id=AsId(e.S(1)+(e.Type=="MTEXT"?e.S(3):"")),X=e.D(10),Y=e.D(20)}).Where(l=>l.Id!=null&&!double.IsNaN(l.X)&&!double.IsNaN(l.Y)).ToList();
@@ -52,9 +52,8 @@ partial class ProgramOfWorksForm {
  void AddWallDxfButton(){var page=tabs.TabPages.Cast<TabPage>().FirstOrDefault(p=>p.Text=="CHB Estimate");if(page==null)return;var bar=page.Controls.OfType<FlowLayoutPanel>().FirstOrDefault();if(bar==null)return;
   Button(bar,"Load walls from DXF",LoadWallsFromDxf);bar.Visible=true;}
  void LoadWallsFromDxf(){string path;using(var open=new OpenFileDialog{Title="Open the floor plan DXF with the wall dimensions",Filter="AutoCAD DXF (*.dxf)|*.dxf"}){if(open.ShowDialog(this)!=DialogResult.OK)return;path=open.FileName;}
-  List<DxfWall> found;try{found=WallDxfImport.Read(File.ReadAllText(path),150);}catch(Exception ex){MessageBox.Show(this,"Cannot read the DXF: "+ex.Message,"Load walls from DXF");return;}
-  if(found.Count==0){MessageBox.Show(this,"No wall dimensions were found. Dimension each CHB wall run (aligned or linear dimension), or draw the walls on a layer named WALL / CHB, and save as DXF.","Load walls from DXF");return;}
-  ImportWalls(found,Path.GetFileName(path),true);}
+  /* the drawing opens in the app; the owner clicks the walls (owner, 20 November 2026) */
+  try{OpenWallDxfViewer(path);}catch(Exception ex){MessageBox.Show(this,"Cannot open the DXF: "+ex.Message,"Load walls from DXF");}}
  /* shows the walls found for review and adds / updates them on CHB Estimate; returns the number of rows added or updated */
  internal int ImportWalls(List<DxfWall> found,string source,bool ask){
   var used=new HashSet<string>(walls.Rows.Cast<DataGridViewRow>().Where(r=>!r.IsNewRow).Select(r=>Cell(r,0)).Where(s=>s!=""),StringComparer.OrdinalIgnoreCase);
@@ -65,7 +64,8 @@ partial class ProgramOfWorksForm {
   if(ask){using(var form=new Form{Text="Walls from "+source,Width=900,Height=560,MinimumSize=new Size(700,420),StartPosition=FormStartPosition.CenterParent,Font=Font}){AppBrand.Apply(form);
     var grid=new DataGridView{Dock=DockStyle.Fill,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill};
     grid.Columns.Add(new DataGridViewCheckBoxColumn{HeaderText="Add",FillWeight=30});foreach(var h in new[]{"Wall ID","Length m","CHB thickness mm","Layer","From"})grid.Columns.Add(h,h);grid.Columns[4].ReadOnly=grid.Columns[5].ReadOnly=true;
-    foreach(var w in found){int n=grid.Rows.Add(true,w.Id,w.LengthM.ToString("0.###",CultureInfo.InvariantCulture),w.ThicknessMm.ToString("0",CultureInfo.InvariantCulture),w.Layer,w.Source+(used.Contains(w.Id)?" (updates existing row)":""));}
+    /* rows are filled once the window is shown (a grid filled while hidden can paint blank) */
+    form.Shown+=(fs,fe)=>{if(grid.Rows.Count>0)return;foreach(var w in found)grid.Rows.Add(true,w.Id,w.LengthM.ToString("0.###",CultureInfo.InvariantCulture),w.ThicknessMm.ToString("0",CultureInfo.InvariantCulture),w.Layer,w.Source+(used.Contains(w.Id)?" (updates existing row)":""));};
     var top=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,Padding=new Padding(10,6,10,4)};
     top.Controls.Add(new Label{AutoSize=true,MaximumSize=new Size(840,0),ForeColor=PowTheme.Muted,Padding=new Padding(0,6,0,0),Text=found.Count+" wall run(s) found. Edit the ID, length or thickness before adding; an existing Wall ID gets its length and thickness updated. Enter the wall heights on CHB Estimate."});
     var bottom=new FlowLayoutPanel{Dock=DockStyle.Bottom,AutoSize=true,FlowDirection=FlowDirection.RightToLeft,Padding=new Padding(10)};var ok=new Button{Text="Add to CHB Estimate",AutoSize=true};var cancel=new Button{Text="Cancel",AutoSize=true,DialogResult=DialogResult.Cancel};bottom.Controls.Add(cancel);bottom.Controls.Add(ok);form.CancelButton=cancel;

@@ -8469,9 +8469,8 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 		{
 			var grid = row.DataGridView;
 			if (grid == null || !grid.Columns.Contains(OpeningsIncludedColumn)) return;
-			string jamb = WallThicknessMm(row).ToString("0", CultureInfo.InvariantCulture);
 			var lines = wallOpenings.Where(o => string.Equals((o.Wall ?? "").Trim(), (wallId ?? "").Trim(), StringComparison.OrdinalIgnoreCase)).GroupBy(o => o.Id, StringComparer.OrdinalIgnoreCase)
-				.Select(g => { var o = g.First(); int units = g.Sum(x => x.Quantity); return o.Id + " x" + units + " (" + o.Width.ToString("0.##", CultureInfo.InvariantCulture) + " x " + o.Height.ToString("0.##", CultureInfo.InvariantCulture) + " m" + (o.Wood ? ", jamb " + jamb + " mm" : "") + ")"; }).ToList();
+				.Select(g => g.First().Id + " x" + g.Sum(x => x.Quantity)).ToList(); /* owner, 20 November 2026: "opening ID na lang ang ilagay tapos yung bilang" */
 			row.Cells[OpeningsIncludedColumn].Value = lines.Count == 0 ? "" : string.Join("; ", lines);
 		}
 
@@ -8479,7 +8478,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 		{
 			if (grid != null && !grid.Columns.Contains(OpeningsIncludedColumn))
 			{
-				var column = new DataGridViewTextBoxColumn { Name = OpeningsIncludedColumn, HeaderText = "Openings included (jamb depth from this wall)", ReadOnly = true, Width = 280, SortMode = DataGridViewColumnSortMode.NotSortable };
+				var column = new DataGridViewTextBoxColumn { Name = OpeningsIncludedColumn, HeaderText = "Openings included", ReadOnly = true, Width = 170, SortMode = DataGridViewColumnSortMode.NotSortable };
 				column.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
 				column.DefaultCellStyle.ForeColor = PowTheme.Muted;
 				grid.Columns.Add(column);

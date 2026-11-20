@@ -27,6 +27,23 @@ class WallDxfImportTests {
   var rows=grid.Rows.Cast<DataGridViewRow>().Where(r=>!r.IsNewRow).ToList();Check(rows.Count==3,"existing W-05 updated, two new rows");
   var r5=rows.Single(r=>Convert.ToString(r.Cells[0].Value)=="W-05");Check(Convert.ToString(r5.Cells[2].Value)=="3.5"&&Convert.ToString(r5.Cells[18].Value)=="100"&&Convert.ToString(r5.Cells[3].Value)=="2.8","existing wall: length and thickness updated, height kept");
   var rn=rows.Where(r=>Convert.ToString(r.Cells[0].Value)!="W-05").ToList();Check(rn.All(r=>Convert.ToString(r.Cells[3].Value)==""),"height is left for manual input");Check(rn.Any(r=>Convert.ToString(r.Cells[0].Value)=="W001"),"automatic ID for the unlabelled wall");
+  /* v5.2.0: the drawing in the app - click a dimension / wall line, measure two points, labels written back to the DXF */
+  {var dw=DxfDrawing.Parse(header+ents);Check(dw.Segs.Count(x=>x.Dimension)==3&&dw.Texts.Count==1&&dw.Units==4,"drawing parsed (dimensions, labels, units)");
+   var viewer=new WallDxfViewer(dw,"plan.dxf",new HashSet<string>(StringComparer.OrdinalIgnoreCase){"W001"},150);
+   var hit=viewer.HitTest(1750,40,200);Check(hit!=null&&hit.Dimension&&hit.OwnId=="W-05","clicking near a dimension finds it");
+   var p1=viewer.Pick(hit);Check(p1.Id=="W-05"&&Math.Abs(p1.LengthM-3.5)<1e-9&&viewer.Pick(hit)==null,"picked once: ID from the dimension, length 3.5 m");
+   var p2=viewer.Pick(viewer.HitTest(23000,20000,200));Check(p2.Id=="W002"&&Math.Abs(p2.LengthM-6)<1e-9,"next free automatic ID (W001 already used)");
+   var m=viewer.Measure(0,0,0,2500);Check(m.Id=="W003"&&Math.Abs(m.LengthM-2.5)<1e-9,"measure two points");
+   string labelled=dw.WithLabels(viewer.Picked,250);var relabelled=DxfDrawing.Parse(labelled);Check(relabelled.Texts.Count==4&&relabelled.Texts.Any(t=>t.Text=="W-05"&&t.Layer=="DTCE-WALL-ID")&&relabelled.Segs.Count==dw.Segs.Count,"Wall IDs written into the DXF as TEXT");}
+  /* v5.2.0: linked viewer - the measurement goes to the selected row: width from the drawing, Wall ID and thickness from the row */
+  {var host=new Form{Width=1200,Height=500};host.Controls.Add(grid);host.Show();Application.DoEvents();
+   var target=grid.Rows.Cast<DataGridViewRow>().First(r=>Convert.ToString(r.Cells[0].Value)=="W-05");grid.CurrentCell=target.Cells[1];
+   var pickW=new DxfWall{Id="W009",LengthM=4.2,ThicknessMm=150,Layer="CHB-150"};Check(pow.AssignFromViewer(pickW),"assigned");
+   Check(Convert.ToString(target.Cells[2].Value)=="4.2"&&pickW.Id=="W-05"&&pickW.ThicknessMm==100,"selected row gets the width; its Wall ID and CHB thickness label the drawing");
+   Check(grid.CurrentRow.Index==target.Index+1,"the next row is selected for the next measurement");
+   grid.CurrentCell=grid.Rows[grid.NewRowIndex].Cells[1];int before=grid.Rows.Cast<DataGridViewRow>().Count(r=>!r.IsNewRow);var fresh=new DxfWall{Id="W009",LengthM=2.75,ThicknessMm=150};pow.AssignFromViewer(fresh);
+   Check(grid.Rows.Cast<DataGridViewRow>().Count(r=>!r.IsNewRow)==before+1&&grid.Rows.Cast<DataGridViewRow>().Any(r=>Convert.ToString(r.Cells[0].Value)==fresh.Id&&Convert.ToString(r.Cells[2].Value)=="2.75"),"a blank new row becomes a new wall");
+   host.Controls.Remove(grid);host.Close();}
   /* the Openings button and the openings list come right after the gross area */
   var g19=grid.Columns[19];var action=grid.Columns["EditWallOpeningsAction"];var list=grid.Columns[ProgramOfWorksForm.OpeningsIncludedColumn];
   Check(action.DisplayIndex==g19.DisplayIndex+1&&list.DisplayIndex==action.DisplayIndex+1&&!action.Frozen,"Openings button and list after OR Gross area");
