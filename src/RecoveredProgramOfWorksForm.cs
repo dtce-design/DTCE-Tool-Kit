@@ -5774,7 +5774,14 @@ worksExcelTimer.Tick += async delegate
             WallOpeningRowAction.Attach(g, row => {
                 g.CurrentCell = row.Cells[1];
                 EditWallOpenings(g);
-            });
+            }, g.Columns[19]);
+			EnsureOpeningsIncludedColumn(g);
+			/* final display order: ... OR Gross area, Openings button, openings included, Less openings ... (data indexes unchanged) */
+			{
+				var order = new List<DataGridViewColumn> { g.Columns[0], g.Columns[1], g.Columns[18], g.Columns[2], g.Columns[3], g.Columns[4], g.Columns[19], g.Columns["EditWallOpeningsAction"], g.Columns[OpeningsIncludedColumn], g.Columns[8], g.Columns[9], g.Columns[12], g.Columns[15], g.Columns[16], g.Columns[17], g.Columns[11] };
+				foreach (var c in g.Columns.Cast<DataGridViewColumn>()) if (!order.Contains(c)) order.Add(c);
+				for (int i = 0; i < order.Count; i++) try { order[i].DisplayIndex = i; } catch (InvalidOperationException) { }
+			}
 			return g;
 		}
 
@@ -8476,7 +8483,8 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 				column.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
 				column.DefaultCellStyle.ForeColor = PowTheme.Muted;
 				grid.Columns.Add(column);
-				var after = grid.Columns.Cast<DataGridViewColumn>().FirstOrDefault(c => c.HeaderText == "Openings m2");
+				/* beside the Openings button (after the gross area), else after Openings m2 */
+				var after = grid.Columns.Contains("EditWallOpeningsAction") ? grid.Columns["EditWallOpeningsAction"] : grid.Columns.Cast<DataGridViewColumn>().FirstOrDefault(c => c.HeaderText == "Openings m2" || c.HeaderText == "Less openings m2");
 				if (after != null) try { column.DisplayIndex = Math.Min(grid.Columns.Count - 1, after.DisplayIndex + 1); } catch (InvalidOperationException) { }
 			}
 		}
