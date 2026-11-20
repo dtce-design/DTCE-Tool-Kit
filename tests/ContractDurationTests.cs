@@ -2,7 +2,7 @@ using System;using System.Collections.Generic;using System.Linq;using BeamSchedu
 // Owner (19 November 2026): Contract Duration tab, checked against the owner's "COMPUTATION OF ESTIMATED PROJECT DURATION" sheet.
 class ContractDurationTests {
  static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}
- static void Main(){
+ [STAThread]static void Main(){
   /* the owner's PAGASA table (rainfall above 7.5 mm), years 2020-2026 */
   var rec=new Dictionary<int,int?[]>{
    {2020,new int?[]{null,null,null,null,null,null,null,null,null,null,9,13}},
@@ -39,5 +39,9 @@ class ContractDurationTests {
   var rec2=new Dictionary<int,int?[]>(ContractDurationCalc.AparriRecords());var ent2=ContractDurationCalc.AparriEntered();rec2[2026]=(int?[])rec2[2026].Clone();rec2[2026][8]=20;ent2[2026]=(DateTime?[])ent2[2026].Clone();ent2[2026][8]=new DateTime(2026,12,5);
   int[] u3;var before=ContractDurationCalc.Averages(ContractDurationCalc.Filter(rec2,ent2,new DateTime(2026,11,19)),out u3);var after=ContractDurationCalc.Averages(ContractDurationCalc.Filter(rec2,ent2,new DateTime(2026,12,10)),out u3);
   Check(before[8]==7&&after[8]!=7,"a value entered after the POW was prepared does not change its rainy days");
+  /* v1.50.19: opening the Contract Duration tab does not mark a new Program of Works as changed (CI hung on the save prompt) */
+  {AccessCodes.Granted=true;var F=System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance;var w=new ProgramOfWorksForm();string saved=(string)typeof(ProgramOfWorksForm).GetField("saved",F).GetValue(w);
+   w.Show();System.Windows.Forms.Application.DoEvents();var tabs=(System.Windows.Forms.TabControl)typeof(ProgramOfWorksForm).GetField("tabs",F).GetValue(w);foreach(System.Windows.Forms.TabPage page in tabs.TabPages){tabs.SelectedTab=page;System.Windows.Forms.Application.DoEvents();}
+   string now=(string)typeof(ProgramOfWorksForm).GetMethod("DataXml",F).Invoke(w,null);Check(saved==now&&now.Contains("<Holiday "),"a new POW stays unchanged after its tabs are opened; holidays are part of the saved project");w.Hide();}
   Console.WriteLine("PASS: "+checks+" contract duration checks");}
 }

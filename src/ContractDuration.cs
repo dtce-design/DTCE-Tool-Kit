@@ -78,7 +78,11 @@ partial class ProgramOfWorksForm {
  DateTime durationStartDate=DateTime.Today;int durationWorkingOverride;readonly List<DurationHoliday> durationHolidayList=new List<DurationHoliday>();readonly SortedDictionary<int,int?[]> durationRainRecords=new SortedDictionary<int,int?[]>();readonly Dictionary<int,DateTime?[]> durationRainEntered=new Dictionary<int,DateTime?[]>();DateTime durationPreparedDate=DateTime.Today;DateTimePicker durationPrepared;
  /* rainy days used by this POW: values entered on or before its preparation date */
  int[] DurationRainy(out int[] used){return ContractDurationCalc.Averages(ContractDurationCalc.Filter(durationRainRecords,durationRainEntered,durationPreparedDate),out used);}
- void AddContractDuration(){var page=new TabPage("Contract Duration");
+ /* national holidays and the last rainfall records are put in when the project is created or opened, not when the tab is first
+    shown, so opening the Contract Duration tab does not mark the project as changed (a new POW asked to save on close) */
+ void EnsureDurationDefaults(){if(durationHolidayList.Count==0)foreach(var h in ContractDurationCalc.Standard(durationStartDate.Year,durationStartDate.Year+3))durationHolidayList.Add(h);
+  if(durationRainRecords.Count==0){Dictionary<int,DateTime?[]> dates;foreach(var p in ContractDurationCalc.LastRecords(out dates)){durationRainRecords[p.Key]=(int?[])p.Value.Clone();DateTime?[] d;durationRainEntered[p.Key]=dates.TryGetValue(p.Key,out d)&&d!=null?(DateTime?[])d.Clone():new DateTime?[12];}}}
+ void AddContractDuration(){EnsureDurationDefaults();var page=new TabPage("Contract Duration");
   var top=new FlowLayoutPanel{Dock=DockStyle.Top,Height=44,Padding=new Padding(10,6,10,0),WrapContents=false};
   durationStart=new DateTimePicker{Format=DateTimePickerFormat.Custom,CustomFormat="MMMM d, yyyy",Width=170,Value=durationStartDate};
   durationWorkingDays=new NumericUpDown{Minimum=0,Maximum=5000,Width=80,Value=0};
@@ -167,6 +171,7 @@ partial class ProgramOfWorksForm {
   if(e!=null){DateTime d;if(DateTime.TryParseExact(e.GetAttribute("start"),"yyyy-MM-dd",CultureInfo.InvariantCulture,DateTimeStyles.None,out d))durationStartDate=d;if(DateTime.TryParseExact(e.GetAttribute("prepared"),"yyyy-MM-dd",CultureInfo.InvariantCulture,DateTimeStyles.None,out d))durationPreparedDate=d;int w;if(int.TryParse(e.GetAttribute("workingDays"),out w)&&w>0)durationWorkingOverride=w;
    foreach(XmlElement x in e.SelectNodes("Holiday"))if(DateTime.TryParseExact(x.GetAttribute("date"),"yyyy-MM-dd",CultureInfo.InvariantCulture,DateTimeStyles.None,out d))durationHolidayList.Add(new DurationHoliday{Date=d,Name=x.GetAttribute("name"),Type=x.GetAttribute("type")});
    foreach(XmlElement x in e.SelectNodes("Rain")){int year;if(!int.TryParse(x.GetAttribute("year"),out year))continue;var parts=x.GetAttribute("days").Split(',');var values=new int?[12];for(int m=0;m<12&&m<parts.Length;m++){int v;if(int.TryParse(parts[m],out v))values[m]=v;}durationRainRecords[year]=values;var dates=new DateTime?[12];var ds=x.GetAttribute("entered").Split(',');for(int m=0;m<12&&m<ds.Length;m++){DateTime dd;if(DateTime.TryParseExact(ds[m],"yyyy-MM-dd",CultureInfo.InvariantCulture,DateTimeStyles.None,out dd))dates[m]=dd;}durationRainEntered[year]=dates;}}
+  EnsureDurationDefaults();
   if(durationStart!=null){durationFilling=true;try{durationStart.Value=durationStartDate;durationWorkingDays.Value=durationWorkingOverride;durationPrepared.Value=durationPreparedDate;}finally{durationFilling=false;}ShowHolidayGrid();ShowRainGrid();}}
 }
 }
