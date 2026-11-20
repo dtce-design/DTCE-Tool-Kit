@@ -37,26 +37,72 @@ abstract class DesignSheetForm:Form {
  internal void Restore(string xml){var doc=new XmlDocument{XmlResolver=null};using(var reader=XmlReader.Create(new StringReader(xml),new XmlReaderSettings{DtdProcessing=DtdProcessing.Prohibit,XmlResolver=null,MaxCharactersInDocument=64000000}))doc.Load(reader);if(doc.DocumentElement.Name!="DesignSheet"||doc.DocumentElement.GetAttribute("type")!=kind||doc.DocumentElement.GetAttribute("version")!="1")throw new Exception("Choose a matching design-sheet file.");var values=new Dictionary<string,string>();foreach(XmlElement element in doc.DocumentElement.SelectNodes("Input")){string key=element.GetAttribute("key");if(RetiredInput(key)&&!Inputs.ContainsKey(key))continue;if(!Inputs.ContainsKey(key)||values.ContainsKey(key))throw new Exception("Invalid/duplicate design input.");values[key]=element.InnerText;}foreach(var pair in Inputs)if(!values.ContainsKey(pair.Key)){if(!OptionalSavedInput(pair.Key))throw new Exception("Incomplete design sheet.");values[pair.Key]=pair.Value is CheckBox?((CheckBox)pair.Value).Checked.ToString():pair.Value.Text;}foreach(var pair in values){var combo=Inputs[pair.Key] as ComboBox;if(combo!=null&&!combo.Items.Contains(pair.Value))throw new Exception("Saved profile or selection is unavailable: "+pair.Key);if(Inputs[pair.Key] is CheckBox)bool.Parse(pair.Value);}ReadAdditionalState(doc.DocumentElement);Restoring=true;try{foreach(var pair in values){var check=Inputs[pair.Key] as CheckBox;if(check!=null)check.Checked=bool.Parse(pair.Value);else Inputs[pair.Key].Text=pair.Value;}}finally{Restoring=false;}AfterRestore();Calculate();}
 }
 class PurlinDesignForm:DesignSheetForm {
- /* owner (20 November 2026): "alisin na yung section properties sa purlin design na tab, icompute na lang internally" and
-    "masmagandang workspace ng purlin design": one input page in groups (member, geometry, loads, material); the section
-    properties are always computed from the handbook profile and shown read-only beside the section */
- readonly ComboBox profiles;readonly Label computed=new Label{Width=1050,Height=40,Tag="FullWidth",ForeColor=PowTheme.Ink,BackColor=Color.FromArgb(244,247,250),Padding=new Padding(12,8,12,8),Font=new Font("Segoe UI",9.5f),UseMnemonic=false};
+ /* owner (20 November 2026): "alisin na yung section properties sa purlin design na tab, icompute na lang internally",
+    "masmagandang workspace", "di nakakaprofessional tignan, ang kalat pa": one clean page - a compact input form on the left
+    (label and unit beside each input, in four groups), and on the right the section, its computed properties and the results of
+    the workbook checks, recalculated as the inputs change. The full calculation stays in the Calculation report tab. */
+ static readonly Color Back=Color.FromArgb(242,244,246),Card=Color.White,Line=Color.FromArgb(222,227,232),Pass=Color.FromArgb(28,122,84),Fail=Color.FromArgb(190,45,45);
+ readonly ComboBox profiles;readonly Label verdict=new Label{Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI Semibold",12f),UseMnemonic=false,Padding=new Padding(14,0,0,0)};
+ readonly Label verdictNote=new Label{Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleRight,ForeColor=PowTheme.Muted,UseMnemonic=false,Padding=new Padding(0,0,14,0)};
+ readonly SummaryTable props=Table(new[]{"Property","Value"}),checks=Table(new[]{"Check","Actual","Allowed","Ratio","Result"});readonly Timer live=new Timer{Interval=350};
  public PurlinDesignForm():base("Purlin Design | Workbook ASD checks","Purlin-Design"){
-  var page=Section("Purlin design","Based on PS Design of Purlin.xlsm. Signed wind normal to roof; negative values represent uplift/suction. This sheet evaluates the listed workbook flexure/deflection checks, not the complete cold-formed member design.\r\n\r\nSection properties are computed from the Regan handbook dimensions (handbook PDF pp.43-44 gives dimensions and mass only): nonoverlapping rectangular plates, bend radii neglected; Ixy is kept for Z shapes. Additional buckling, shear and connection checks remain outside this sheet.");
-  Group(page,"MEMBER AND SECTION");NumberField(page,"Name","Member / purlin name","Purlin");profiles=Choice(page,"Profile","Regan handbook purlin profile",SteelCatalog.Profiles.Where(p=>p.Kind=="Purlin").Select(p=>p.Name).ToArray());
-  page.Controls.Add(new SteelSectionPreview(()=>SteelCatalog.Find(profiles.Text),()=>false,profiles));page.Controls.Add(computed);
-  Group(page,"GEOMETRY");Choice(page,"Support","Support",new[]{"Simply supported","Cantilever"});NumberField(page,"Span","Span / cantilever length m","5");NumberField(page,"Spacing","Purlin spacing m","0.4");NumberField(page,"Angle","Roof angle deg","13");Choice(page,"SagRods","Effective sag rods",new[]{"0","1","2"});Choice(page,"Ceiling","Ceiling type",new[]{"Not supporting ceiling","Supporting nonplaster ceiling","Supporting plaster ceiling"});
-  Group(page,"LOADS");NumberField(page,"Dead","Superimposed dead load kPa","0.35");NumberField(page,"Live","Roof live load kPa","1");NumberField(page,"WindPressure","Signed pressure kPa","0");NumberField(page,"WindSuction","Signed suction kPa","0");
-  Group(page,"MATERIAL");NumberField(page,"Fy","Specified yield strength MPa","248");NumberField(page,"E","Modulus of elasticity MPa","200000");Toggle(page,"AlternateIncrease","Workbook alternate 4/3 allowable increase",true);
-  profiles.SelectedIndexChanged+=(s,e)=>ShowProperties();ShowProperties();
+  var flow=Section("Purlin design","Based on PS Design of Purlin.xlsm. Signed wind normal to roof; negative values represent uplift/suction. This sheet evaluates the listed workbook flexure/deflection checks, not the complete cold-formed member design.\r\n\r\nSection properties are computed from the Regan handbook dimensions (handbook PDF pp.43-44 gives dimensions and mass only): nonoverlapping rectangular plates, bend radii neglected; Ixy is kept for Z shapes. Additional buckling, shear and connection checks remain outside this sheet.");
+  var page=(TabPage)flow.Parent;page.Controls.Clear();flow.Dispose();page.BackColor=Back;
+  var root=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,RowCount=1,Padding=new Padding(14),BackColor=Back};root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,410));root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));root.RowStyles.Add(new RowStyle(SizeType.Percent,100));
+  /* inputs */
+  var left=new Panel{Dock=DockStyle.Fill,AutoScroll=true,BackColor=Back,Padding=new Padding(0,0,12,0)};var form=new TableLayoutPanel{Dock=DockStyle.Top,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,ColumnCount=2,BackColor=Card,Padding=new Padding(16,6,16,14)};form.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,52));form.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,48));Border(form);left.Controls.Add(form);
+  Heading(form,"Member");Text(form,"Name","Name","Purlin");profiles=Pick(form,"Profile","Profile",SteelCatalog.Profiles.Where(p=>p.Kind=="Purlin").Select(p=>p.Name).ToArray());
+  Heading(form,"Geometry");Pick(form,"Support","Support",new[]{"Simply supported","Cantilever"});Text(form,"Span","Span / cantilever (m)","5");Text(form,"Spacing","Purlin spacing (m)","0.4");Text(form,"Angle","Roof angle (deg)","13");Pick(form,"SagRods","Effective sag rods",new[]{"0","1","2"});Pick(form,"Ceiling","Ceiling",new[]{"Not supporting ceiling","Supporting nonplaster ceiling","Supporting plaster ceiling"});
+  Heading(form,"Loads");Text(form,"Dead","Superimposed dead (kPa)","0.35");Text(form,"Live","Roof live (kPa)","1");Text(form,"WindPressure","Wind pressure (kPa)","0");Text(form,"WindSuction","Wind suction (kPa)","0");
+  Heading(form,"Material");Text(form,"Fy","Yield strength Fy (MPa)","248");Text(form,"E","Modulus E (MPa)","200000");var inc=new CheckBox{Text="Alternate 4/3 allowable increase (workbook)",Checked=true,AutoSize=true,Margin=new Padding(0,8,0,2)};form.Controls.Add(inc);form.SetColumnSpan(inc,2);Inputs.Add("AlternateIncrease",inc);
+  /* section, properties and results */
+  var right=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,RowCount=3,BackColor=Back,Padding=Padding.Empty};right.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,62));right.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,38));right.RowStyles.Add(new RowStyle(SizeType.Absolute,52));right.RowStyles.Add(new RowStyle(SizeType.Percent,55));right.RowStyles.Add(new RowStyle(SizeType.Percent,45));
+  var band=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,BackColor=Card,Margin=new Padding(0,0,0,10)};band.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,55));band.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,45));band.Controls.Add(verdict,0,0);band.Controls.Add(verdictNote,1,0);Border(band);right.Controls.Add(band,0,0);right.SetColumnSpan(band,2);
+  var preview=new SteelSectionPreview(()=>SteelCatalog.Find(profiles.Text),()=>false,profiles){Dock=DockStyle.Fill,Tag=null};right.Controls.Add(CardOf("Section",preview,new Padding(0,0,10,10)),0,1);right.Controls.Add(CardOf("Computed section properties",props,new Padding(0,0,0,10)),1,1);
+  var results=CardOf("Workbook checks (ASD flexure and deflection)",checks,Padding.Empty);right.Controls.Add(results,0,2);right.SetColumnSpan(results,2);
+  root.Controls.Add(left,0,0);root.Controls.Add(right,1,0);page.Controls.Add(root);
+  live.Tick+=(s,e)=>{live.Stop();Evaluate();};FormClosed+=(s,e)=>live.Dispose();foreach(var c in Inputs.Values){c.TextChanged+=(s,e)=>Changed();var cb=c as CheckBox;if(cb!=null)cb.CheckedChanged+=(s,e)=>Changed();var co=c as ComboBox;if(co!=null)co.SelectedIndexChanged+=(s,e)=>Changed();}
+  Evaluate();
  }
- static void Group(FlowLayoutPanel page,string title){page.Controls.Add(new Label{Text=title,Width=1050,Height=34,Tag="FullWidth",Font=ModernUi.Strong,ForeColor=PowTheme.Teal,Padding=new Padding(0,10,0,0),Margin=new Padding(0,6,0,2),UseMnemonic=false});}
- void ShowProperties(){try{var p=PurlinProperties.Calculate(SteelCatalog.Find(profiles.Text));Func<double,string> f=v=>v.ToString("#,##0.##",CultureInfo.InvariantCulture);
-   computed.Text="Computed section properties (used in the checks):   A = "+f(p.Area)+" mm²   Ix = "+f(p.Ix)+" mm⁴   Iy = "+f(p.Iy)+" mm⁴   Ixy = "+f(p.Ixy)+" mm⁴   Sx = "+f(p.Sx)+" mm³   Sy = "+f(p.Sy)+" mm³";}
-  catch(Exception ex){computed.Text="Section properties: "+ex.Message;}}
- protected override void AfterRestore(){ShowProperties();}
+ void Changed(){if(Restoring)return;live.Stop();live.Start();}
+ static void Border(Control c){c.Paint+=(s,e)=>{using(var p=new Pen(Line))e.Graphics.DrawRectangle(p,0,0,c.Width-1,c.Height-1);};}
+ static SummaryTable Table(string[] heads){var t=new SummaryTable{Columns=heads,Weights=heads.Length>2?new[]{3.2f,1.3f,1.3f,.9f,.8f}:new[]{1f,1.4f}};return t;}
+ static Panel CardOf(string title,Control body,Padding margin){var card=new Panel{Dock=DockStyle.Fill,BackColor=Card,Padding=new Padding(14,40,14,12),Margin=margin};Border(card);card.Paint+=(s,e)=>{using(var f=new Font("Segoe UI Semibold",10f))using(var b=new SolidBrush(PowTheme.Ink))e.Graphics.DrawString(title,f,b,12,12);};body.Dock=DockStyle.Fill;card.Controls.Add(body);return card;}
+ static void Heading(TableLayoutPanel form,string text){var l=new Label{Text=text.ToUpperInvariant(),AutoSize=true,Font=new Font("Segoe UI Semibold",8.5f),ForeColor=PowTheme.Teal,Margin=new Padding(0,14,0,4),UseMnemonic=false};form.Controls.Add(l);form.SetColumnSpan(l,2);}
+ void Row(TableLayoutPanel form,string key,string label,Control input){var l=new Label{Text=label,AutoSize=false,Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,ForeColor=PowTheme.Ink,Margin=new Padding(0,3,8,3),UseMnemonic=false,Height=30};input.Dock=DockStyle.Fill;input.Margin=new Padding(0,3,0,3);form.Controls.Add(l);form.Controls.Add(input);Inputs.Add(key,input);}
+ void Text(TableLayoutPanel form,string key,string label,string value){Row(form,key,label,new TextBox{Text=value,BorderStyle=BorderStyle.FixedSingle,TextAlign=HorizontalAlignment.Right});}
+ ComboBox Pick(TableLayoutPanel form,string key,string label,string[] values){var c=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,DropDownWidth=320,FlatStyle=FlatStyle.Flat};c.Items.AddRange(values);if(values.Length>0)c.SelectedIndex=0;Row(form,key,label,c);return c;}
+ PurlinDesignInput Input(){var profile=SteelCatalog.Find(Value("Profile"));var p=PurlinProperties.Calculate(profile);return new PurlinDesignInput{Name=Value("Name"),Profile=profile,Properties=p,Support=Value("Support"),Span=Number("Span"),Spacing=Number("Spacing"),Angle=Number("Angle"),SagRods=int.Parse(Value("SagRods")),Ceiling=Value("Ceiling"),Dead=Number("Dead"),Live=Number("Live"),WindPressure=Number("WindPressure"),WindSuction=Number("WindSuction"),Fy=Number("Fy"),E=Number("E"),AlternateIncrease=((CheckBox)Inputs["AlternateIncrease"]).Checked};}
+ void Evaluate(){Func<double,string> f=v=>v.ToString("#,##0.##",CultureInfo.InvariantCulture);
+  try{var p=PurlinProperties.Calculate(SteelCatalog.Find(profiles.Text));props.Clear();foreach(var row in new[]{new[]{"Area A",f(p.Area)+" mm²"},new[]{"Ix",f(p.Ix)+" mm⁴"},new[]{"Iy",f(p.Iy)+" mm⁴"},new[]{"Ixy",f(p.Ixy)+" mm⁴"},new[]{"Sx",f(p.Sx)+" mm³"},new[]{"Sy",f(p.Sy)+" mm³"}})props.Add(row);}catch(Exception ex){props.Clear();props.Add(new[]{"Section",ex.Message});}
+  checks.Clear();
+  try{var input=Input();var r=PurlinDesigner.Calculate(input);Action<string,string,string,double> add=(name,actual,allowed,ratio)=>checks.Add(new[]{name,actual,allowed,ratio.ToString("0.00",CultureInfo.InvariantCulture),ratio<=1?"OK":"NG"},ratio<=1?Pass:Fail);
+   add("Combined flexure, basic allowable","","",r.Basic);add("Combined flexure, alternate allowable"+(input.AlternateIncrease?" (4/3)":""),"","",r.Alternate);
+   add("Live load deflection",f(r.LiveDeflection)+" mm",f(r.LiveLimit)+" mm",r.LiveLimit>0?r.LiveDeflection/r.LiveLimit:0);add("Dead + live deflection",f(r.TotalDeflection)+" mm",f(r.TotalLimit)+" mm",r.TotalLimit>0?r.TotalDeflection/r.TotalLimit:0);
+   double worst=new[]{r.Basic,r.Alternate,r.LiveLimit>0?r.LiveDeflection/r.LiveLimit:0,r.TotalLimit>0?r.TotalDeflection/r.TotalLimit:0}.Max();bool ok=r.WithinWorkbookChecks;
+   verdict.Text=(ok?"✓  Passes the workbook checks":"✕  Does not pass the workbook checks");verdict.ForeColor=ok?Pass:Fail;verdictNote.Text=input.Profile.Name+"  ·  "+input.Support.ToLowerInvariant()+", "+f(input.Span)+" m  ·  governing ratio "+worst.ToString("0.00",CultureInfo.InvariantCulture);}
+  catch(Exception ex){verdict.Text="Enter the inputs";verdict.ForeColor=PowTheme.Muted;verdictNote.Text=ex.Message;}}
+ protected override void AfterRestore(){Evaluate();}
  /* files saved before v6.0.13 kept a Section properties tab */
  protected override bool RetiredInput(string key){return new[]{"Verified","Ix","Iy","Ixy","Sx","Sy"}.Contains(key);}
- protected override string BuildReport(){var profile=SteelCatalog.Find(Value("Profile"));var p=PurlinProperties.Calculate(profile);var input=new PurlinDesignInput{Name=Value("Name"),Profile=profile,Properties=p,Support=Value("Support"),Span=Number("Span"),Spacing=Number("Spacing"),Angle=Number("Angle"),SagRods=int.Parse(Value("SagRods")),Ceiling=Value("Ceiling"),Dead=Number("Dead"),Live=Number("Live"),WindPressure=Number("WindPressure"),WindSuction=Number("WindSuction"),Fy=Number("Fy"),E=Number("E"),AlternateIncrease=((CheckBox)Inputs["AlternateIncrease"]).Checked};return PurlinDesigner.Report(input,PurlinDesigner.Calculate(input));}
+ protected override string BuildReport(){var input=Input();return PurlinDesigner.Report(input,PurlinDesigner.Calculate(input));}
+}
+}
+
+namespace BeamScheduleFormatter {
+/* a small read-only table drawn by hand (results and properties summaries of the design sheets): header in muted capitals,
+   hairline row dividers, numbers right-aligned, the last column may carry a status colour */
+sealed class SummaryTable:Control {
+ public string[] Columns=new string[0];public float[] Weights;readonly System.Collections.Generic.List<string[]> rows=new System.Collections.Generic.List<string[]>();readonly System.Collections.Generic.List<Color> status=new System.Collections.Generic.List<Color>();
+ public SummaryTable(){DoubleBuffered=true;ResizeRedraw=true;BackColor=Color.White;Font=new Font("Segoe UI",9.5f);}
+ public void Clear(){rows.Clear();status.Clear();Invalidate();}
+ public void Add(string[] row,Color? last=null){rows.Add(row);status.Add(last??Color.Empty);Invalidate();}
+ internal int Count{get{return rows.Count;}}internal string Cell(int r,int c){return rows[r][c];}
+ protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);var g=e.Graphics;int n=Columns.Length;if(n==0)return;var w=Weights??Enumerable.Repeat(1f,n).ToArray();float total=w.Sum();float[] xs=new float[n+1];for(int i=0;i<n;i++)xs[i+1]=xs[i]+Width*w[i]/total;
+  int rowH=Math.Max(26,Font.Height+12),y=0;using(var head=new Font("Segoe UI Semibold",8.5f))using(var bold=new Font(Font,FontStyle.Bold))using(var line=new Pen(Color.FromArgb(226,230,235))){
+   for(int i=0;i<n;i++)TextRenderer.DrawText(g,Columns[i].ToUpperInvariant(),head,new Rectangle((int)xs[i]+6,y,(int)(xs[i+1]-xs[i])-12,rowH),PowTheme.Muted,(i>0&&n>2&&i<n-1?TextFormatFlags.Right:TextFormatFlags.Left)|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.NoPrefix);
+   y+=rowH;g.DrawLine(line,0,y-1,Width,y-1);
+   for(int r=0;r<rows.Count;r++){for(int i=0;i<n&&i<rows[r].Length;i++){bool st=i==n-1&&status[r]!=Color.Empty;TextRenderer.DrawText(g,rows[r][i]??"",st?bold:Font,new Rectangle((int)xs[i]+6,y,(int)(xs[i+1]-xs[i])-12,rowH),st?status[r]:PowTheme.Ink,(i>0&&n>2&&i<n-1?TextFormatFlags.Right:TextFormatFlags.Left)|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.NoPrefix);}
+    y+=rowH;g.DrawLine(line,0,y-1,Width,y-1);}}}
 }
 }
