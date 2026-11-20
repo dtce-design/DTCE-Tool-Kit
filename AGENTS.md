@@ -153,7 +153,8 @@ its Windows CI passes (publish_microsoft_store=true; replace_pending_store_submi
 Later versions again need a new explicit request.
 New owner request (20 November 2026, "release mo na sa microdoft store"): publish v1.50.18 (User and Admin) the same way after
 its Windows CI passes (merge PR #11 to main, then publish_microsoft_store=true; replace_pending_store_submission stays false
-unless the owner asks). It supersedes the v1.32.0 request. Later versions again need a new explicit request.
+unless the owner asks). It supersedes the v1.32.0 request. Owner (20 November 2026) chose to release v1.50.19 instead (includes the BOQ status
+change). Later versions again need a new explicit request.
 
 ## Version numbers (18 November 2026)
 

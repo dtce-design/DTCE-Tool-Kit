@@ -1,4 +1,4 @@
-DTCE Tool Kit v1.50.19 test build (20 November 2026)
+DTCE Tool Kit v1.50.19 build (20 November 2026) - owner asked to release this build to the Microsoft Store
 
 Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
 PATCH: BOQ status lists only exclusions and issues.
