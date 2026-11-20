@@ -15,9 +15,9 @@ class StrapNode {public string Node="";public double X,Z,Cx=.4,Cz=.4,B=1.5,L=1.5
  internal bool ToStraps(int straps){return straps>0&&(Mode=="Straps"||Mode=="Auto"&&Math.Sqrt(Ex*Ex+Ez*Ez)>.001);}}
 class StrapBeam {public string From="",To="",Top="4-20",Bottom="3-20",Stirrups="10@150";public double Width=.4,Depth=.75;}
 class StrapInput {public List<StrapNode> Nodes=new List<StrapNode>();public List<StrapBeam> Straps=new List<StrapBeam>();
- public double Fc=21,Fy=415,Fyt=275,Cover=75,StrapCover=40,Qa=150,Df=1.5,GammaSoil=18,GammaConc=24,SupportHeight=1.0,Friction=.4,Aggregate=20;public string Vertical="Y";
+ public double Fc=21,Fy=415,Fyt=275,Cover=75,StrapCover=40,Qa=150,Df=1.5,GammaSoil=18,GammaConc=24,SupportHeight=1.0,Friction=.4,Aggregate=20,SlidingFS=1.5,OverturningFS=1.5;public string Vertical="Y";
  public Func<string,bool> Factored=StrapFooting.LooksFactored;}
-class StrapCase {public string Case;public bool Factored;public double[] P,R,Mp,Mq,Qmax,Qmin,Qavg,H;public double[] MuA,MuB,Shear,W;}
+class StrapCase {public string Case;public bool Factored;public double[] P,R,Mp,Mq,Qmax,Qmin,Qavg,H,Hp,Hq,Mrp,Mrq,Wf;public double[] MuA,MuB,Shear,W;}
 static class StrapFooting {
  static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
  internal static string F(double v,string f="0.0"){return double.IsInfinity(v)?"∞":v.ToString(f,Inv);}
@@ -38,8 +38,8 @@ static class StrapFooting {
  internal static double FootingWeight(StrapInput i,StrapNode n){return n.B*n.L*(n.T*i.GammaConc+Math.Max(0,i.Df-n.T)*i.GammaSoil);}
  internal static double StrapWeight(StrapInput i,StrapBeam s){return s.Width*s.Depth*i.GammaConc;}
  /* one load case: soil resultants R, strap end moments and shears, soil pressures */
- internal static StrapCase Solve(StrapInput inp,string name,Dictionary<string,SupportReaction> rows,bool factored){int n=inp.Nodes.Count,m=inp.Straps.Count,N=n+2*m;var A=new double[N,N];var rhs=new double[N];var load=new Load[n];var W=new double[n];var res=new StrapCase{Case=name,Factored=factored,P=new double[n],R=new double[n],Mp=new double[n],Mq=new double[n],Qmax=new double[n],Qmin=new double[n],Qavg=new double[n],H=new double[n],MuA=new double[m],MuB=new double[m],Shear=new double[m],W=new double[m]};
-  for(int k=0;k<n;k++){SupportReaction r;if(!rows.TryGetValue(inp.Nodes[k].Node,out r))throw new Exception("Load case "+name+" has no reaction at node "+inp.Nodes[k].Node+".");load[k]=LoadOf(r,inp.Vertical);res.P[k]=load[k].P;res.H[k]=Math.Sqrt(load[k].Hp*load[k].Hp+load[k].Hq*load[k].Hq);W[k]=factored?0:FootingWeight(inp,inp.Nodes[k]);}
+ internal static StrapCase Solve(StrapInput inp,string name,Dictionary<string,SupportReaction> rows,bool factored){int n=inp.Nodes.Count,m=inp.Straps.Count,N=n+2*m;var A=new double[N,N];var rhs=new double[N];var load=new Load[n];var W=new double[n];var res=new StrapCase{Case=name,Factored=factored,P=new double[n],R=new double[n],Mp=new double[n],Mq=new double[n],Qmax=new double[n],Qmin=new double[n],Qavg=new double[n],H=new double[n],Hp=new double[n],Hq=new double[n],Mrp=new double[n],Mrq=new double[n],Wf=new double[n],MuA=new double[m],MuB=new double[m],Shear=new double[m],W=new double[m]};
+  for(int k=0;k<n;k++){SupportReaction r;if(!rows.TryGetValue(inp.Nodes[k].Node,out r))throw new Exception("Load case "+name+" has no reaction at node "+inp.Nodes[k].Node+".");load[k]=LoadOf(r,inp.Vertical);res.P[k]=load[k].P;res.H[k]=Math.Sqrt(load[k].Hp*load[k].Hp+load[k].Hq*load[k].Hq);res.Hp[k]=load[k].Hp;res.Hq[k]=load[k].Hq;res.Mrp[k]=load[k].Mp;res.Mrq[k]=load[k].Mq;W[k]=factored?0:FootingWeight(inp,inp.Nodes[k]);res.Wf[k]=W[k];}
   var u=new double[m,2];var L=new double[m];var ia=new int[m];var ib=new int[m];double[] wStrap=new double[m];
   for(int s=0;s<m;s++){ia[s]=Index(inp,inp.Straps[s].From);ib[s]=Index(inp,inp.Straps[s].To);var a=inp.Nodes[ia[s]];var b=inp.Nodes[ib[s]];L[s]=Length(a,b);u[s,0]=(b.X-a.X)/L[s];u[s,1]=(b.Z-a.Z)/L[s];wStrap[s]=(factored?1.2:1.0)*StrapWeight(inp,inp.Straps[s]);res.W[s]=wStrap[s];}
   Func<int,double[]> t=s=>new[]{u[s,1],-u[s,0]};
@@ -80,6 +80,8 @@ static class StrapFooting {
    if(service.Count>0){var g=service.OrderByDescending(c=>c.Qmax[k]).First();double w=FootingWeight(inp,nd);
     Add(list,steps,"Bearing pressure (service)","413.3.1",id,g.Case,g.Qmax[k],inp.Qa,"kPa","R = P + W(footing + soil) +/- strap shears = "+F(g.P[k])+" + "+F(w)+" -> R = "+F(g.R[k])+" kN","q = R / A +/- M / S = "+F(g.R[k])+" / "+F(area,"0.00")+" +/- ...  ->  q avg "+F(g.Qavg[k])+", q max "+F(g.Qmax[k])+" kPa","residual moment on the footing (not taken by straps): Mx "+F(g.Mp[k])+", Mz "+F(g.Mq[k])+" kN·m","q max <= qa (gross allowable bearing) = "+F(inp.Qa)+" kPa");
     var u2=service.OrderBy(c=>c.Qmin[k]).First();double ratio=u2.Qavg[k]<=0?double.PositiveInfinity:(u2.Qmax[k]-u2.Qavg[k])/u2.Qavg[k];var cc=new SupportCheck{Name="Full contact, no uplift (service)",Clause="413.3",Node=id,Case=u2.Case,Demand=u2.Qmax[k]-u2.Qavg[k],Capacity=u2.Qavg[k],Unit="kPa",Ratio=ratio};list.Add(cc);steps[cc]=new List<string>{"q min = q avg - Δq = "+F(u2.Qavg[k])+" - "+F(u2.Qmax[k]-u2.Qavg[k])+" = "+F(u2.Qmin[k])+" kPa (must be >= 0)","Δq / q avg <= 1 keeps the whole footing in contact"};}
+   if(service.Count>0){double fsS=inp.SlidingFS;var gs=service.OrderByDescending(c=>c.R[k]<=0?double.PositiveInfinity:fsS*c.H[k]/(inp.Friction*c.R[k])).First();double resist=inp.Friction*Math.Max(0,gs.R[k]);
+    Add(list,steps,"Sliding of the footing (service), FS >= "+F(fsS,"0.0#"),"Geotechnical (μ R / H)",id,gs.Case,fsS*gs.H[k],resist,"kN","H = √(Hx² + H"+(inp.Vertical=="Z"?"y":"z")+"²) = "+F(gs.H[k])+" kN at the column","friction μ R = "+F(inp.Friction,"0.00")+" x "+F(gs.R[k])+" = "+F(resist)+" kN (passive soil and the strap not counted)","FS = μ R / H = "+(gs.H[k]>1e-9?F(resist/gs.H[k],"0.00"):"∞")+";  "+F(fsS,"0.0#")+" H <= μ R");}
    if(factored.Count==0)continue;
    var gf=factored.OrderByDescending(c=>c.Qmax[k]).First();double qu=gf.Qmax[k];var bars=ParseBars(nd.Bars);double T=nd.T*1000,d=T-inp.Cover-bars.Dia;if(d<=0){notes.Add(id+": footing too thin for the cover and bars.");continue;}
    foreach(int dir in new[]{0,1}){double B=dir==0?nd.B:nd.L,Lw=dir==0?nd.L:nd.B,e=dir==0?nd.Ex:nd.Ez,c=dir==0?nd.Cx:nd.Cz;double l1=B/2-e-c/2,l2=B/2+e-c/2,lc=Math.Max(l1,l2);string ax=dir==0?"X":(inp.Vertical=="Z"?"Y":"Z");
@@ -104,8 +106,6 @@ static class StrapFooting {
     Add(list,steps,"Development of bars along "+ax+" from the column face","413.2.8 / 425.4.2.3",id,"-",ld,avail,"mm","ld = fy ψt ψe ψs / (1.1 λ √fc' (cb + Ktr)/db) db = "+F(inp.Fy,"0")+" x "+F(psiS,"0.0")+" / (1.1 x "+F(sq,"0.00")+" x "+F(conf,"0.00")+") x "+db+" = "+F(ld,"0")+" mm (>= 300; cb = "+F(cb,"0")+" mm, Ktr = 0)","available = cantilever "+F(lc,"0")+" - 75 end cover = "+F(avail,"0")+" mm"+(ld>avail?" - use standard hooks at the bar ends":""));}
    {double A1=nd.Cx*nd.Cz;double ext=Math.Min(Math.Min(Math.Min(nd.B/2-nd.Ex-nd.Cx/2,nd.B/2+nd.Ex-nd.Cx/2),Math.Min(nd.L/2-nd.Ez-nd.Cz/2,nd.L/2+nd.Ez-nd.Cz/2)),2*nd.T);ext=Math.Max(0,ext);double A2=(nd.Cx+2*ext)*(nd.Cz+2*ext);double ratio=Math.Min(2,Math.Sqrt(A2/A1));double phiBn=.65*.85*inp.Fc*A1*1e6*ratio/1000;double Pu=factored.Max(c=>c.P[k]);
     Add(list,steps,"Bearing at the column base","422.8.3",id,factored.OrderByDescending(c=>c.P[k]).First().Case,Pu,phiBn,"kN","A1 = "+F(nd.Cx*1000,"0")+" x "+F(nd.Cz*1000,"0")+" mm;  A2 = (c + 2e)² with e = min(edge distances, 2h) = "+F(ext*1000,"0")+" mm -> √(A2/A1) = "+F(ratio,"0.00")+" (<= 2)","φBn = 0.65 x 0.85 fc' A1 √(A2/A1) = "+F(phiBn)+" kN;  Pu = "+F(Pu)+" kN (dowels per 416.3.4: at least 0.005 Ag across the interface)");}
-   if(service.Count>0){var gs=service.OrderByDescending(c=>c.R[k]<=0?double.PositiveInfinity:1.5*c.H[k]/(inp.Friction*c.R[k])).First();double resist=inp.Friction*Math.Max(0,gs.R[k]);
-    Add(list,steps,"Sliding (service), FS >= 1.5","Geotechnical (μ R / H >= 1.5)",id,gs.Case,1.5*gs.H[k],resist,"kN","H = √(Hx² + H"+(inp.Vertical=="Z"?"y":"z")+"²) = "+F(gs.H[k])+" kN at the column","friction μ R = "+F(inp.Friction,"0.00")+" x "+F(gs.R[k])+" = "+F(resist)+" kN (passive soil and the strap not counted)","1.5 H <= μ R");}
    foreach(var c in cases)if(c.R[k]<0){notes.Add(id+": the soil reaction is negative in load case "+c.Case+" ("+F(c.R[k])+" kN) - the strap lifts this footing; add weight or change the layout.");break;}}
   for(int s=0;s<inp.Straps.Count;s++){var st=inp.Straps[s];var a=inp.Nodes[Index(inp,st.From)];var b=inp.Nodes[Index(inp,st.To)];double L=Length(a,b);string id="S"+st.From+"-"+st.To;if(factored.Count==0)continue;
    double ux=(b.X-a.X)/L,uz=(b.Z-a.Z)/L;double ha=(Math.Abs(ux)*a.Cx+Math.Abs(uz)*a.Cz)/2,hb=(Math.Abs(ux)*b.Cx+Math.Abs(uz)*b.Cz)/2;
@@ -120,10 +120,34 @@ static class StrapFooting {
     double avMin=Math.Max(.062*sq*bw/inp.Fyt,.35*bw/inp.Fyt)*stir.Spacing;Add(list,steps,"Strap minimum stirrups","409.6.3.3",id,vCase,vMax>.5*.75*Vc?avMin:0,Av,"mm²","Av,min / s = max(0.062 √fc' bw / fyt, 0.35 bw / fyt) = "+F(avMin/stir.Spacing,"0.000")+" mm²/mm -> "+F(avMin,"0")+" mm² at s = "+F(stir.Spacing,"0")+(vMax>.5*.75*Vc?" (Vu > 0.5 φVc)":" (not required: Vu <= 0.5 φVc)"),"provided 2 legs Ø"+stir.Dia+" = "+F(Av,"0")+" mm²");}
    foreach(var bars in new[]{top,bot}){double inner=bw-2*inp.StrapCover-2*stir.Dia;int per=BeamCutting.PerLayer(inner,bars.Dia,inp.Aggregate);Add(list,steps,"Strap "+(bars==top?"top":"bottom")+" bars in one layer","425.2.1",id,"-",bars.Count,per,"bars","clear spacing >= max(25, db, 4/3 aggregate) = "+F(Math.Max(25,Math.Max(bars.Dia,4.0/3*inp.Aggregate)),"0")+" mm -> "+per+" bars of Ø"+bars.Dia+" fit in "+F(inner,"0")+" mm",bars.Count>per?"two layers would reduce d: widen the strap or use bigger bars":"one layer as assumed for d");}
    if(h>900)notes.Add(id+": strap deeper than 900 mm - provide skin reinforcement on both side faces over h/2 (NSCP 409.7.2.3).");}
+  SystemStability(inp,service,list,steps,notes);
   notes.Add("Straps are designed as beams clear of the soil: place them on a compressible fill or a void form so they do not bear on the ground.");
   notes.Add("Footing flexure uses the largest factored net pressure over the whole footing (conservative). Punching does not include the eccentric shear transfer of an unbalanced moment (422.6.3.6).");
   notes.Add("The strap moment is taken at the column faces with the footing reactions concentrated at the columns: conservative within the footing length.");
   return list;}
+ /* overturning and sliding of each group of footings tied by straps (owner, 20 November 2026: "sa strap design include check in
+    sliding overturning"): the group tips about the outer edge of its footings in +X, -X, +Z and -Z; resisting = the vertical
+    loads (column loads, footing, soil and strap weights) times their distance to the edge; overturning = the horizontal
+    reactions times the support height plus the column moments, toward that edge (service cases) */
+ static void SystemStability(StrapInput inp,List<StrapCase> service,List<SupportCheck> list,Dictionary<SupportCheck,List<string>> steps,List<string> notes){if(service.Count==0)return;int n=inp.Nodes.Count;
+  var group=new int[n];for(int k=0;k<n;k++)group[k]=k;Func<int,int> find=null;find=k=>group[k]==k?k:(group[k]=find(group[k]));foreach(var st in inp.Straps){int a=Index(inp,st.From),b=Index(inp,st.To);if(a>=0&&b>=0)group[find(a)]=find(b);}
+  string q=inp.Vertical=="Z"?"Y":"Z";
+  foreach(var members in Enumerable.Range(0,n).GroupBy(k=>find(k)).Select(gr=>gr.ToList())){var ids=members.Select(k=>"F"+inp.Nodes[k].Node).ToList();string id=members.Count>1?"Group "+string.Join("+",ids):ids[0];
+   var straps=inp.Straps.Where(st=>members.Contains(Index(inp,st.From))).ToList();
+   double xmin=members.Min(k=>inp.Nodes[k].X+inp.Nodes[k].Ex-inp.Nodes[k].B/2),xmax=members.Max(k=>inp.Nodes[k].X+inp.Nodes[k].Ex+inp.Nodes[k].B/2),zmin=members.Min(k=>inp.Nodes[k].Z+inp.Nodes[k].Ez-inp.Nodes[k].L/2),zmax=members.Max(k=>inp.Nodes[k].Z+inp.Nodes[k].Ez+inp.Nodes[k].L/2);
+   SupportCheck worst=null;List<string> worstLines=null;double worstFs=double.PositiveInfinity;
+   foreach(var c in service){
+    /* vertical loads: column loads at the columns, footing + soil at the footing centres, strap weights at the strap middles */
+    var loads=new List<double[]>();foreach(int k in members){var nd=inp.Nodes[k];loads.Add(new[]{nd.X,nd.Z,c.P[k]});loads.Add(new[]{nd.X+nd.Ex,nd.Z+nd.Ez,c.Wf[k]});}
+    foreach(var st in straps){var a=inp.Nodes[Index(inp,st.From)];var b=inp.Nodes[Index(inp,st.To)];loads.Add(new[]{(a.X+b.X)/2,(a.Z+b.Z)/2,StrapWeight(inp,st)*Length(a,b)});}
+    double V=loads.Sum(l=>l[2]);
+    double mo1=members.Sum(k=>c.Mrq[k]-inp.SupportHeight*c.Hp[k]);/* toward +X */double mo2=members.Sum(k=>-c.Mrp[k]-inp.SupportHeight*c.Hq[k]);/* toward +plan q */
+    foreach(var dir in new[]{new{Name="+X",Mo=mo1,Mr=loads.Sum(l=>l[2]*(xmax-l[0]))},new{Name="-X",Mo=-mo1,Mr=loads.Sum(l=>l[2]*(l[0]-xmin))},new{Name="+"+q,Mo=mo2,Mr=loads.Sum(l=>l[2]*(zmax-l[1]))},new{Name="-"+q,Mo=-mo2,Mr=loads.Sum(l=>l[2]*(l[1]-zmin))}}){
+     if(dir.Mo<=1e-6)continue;double fs=dir.Mr/dir.Mo;if(fs<worstFs){worstFs=fs;worst=new SupportCheck{Name="Overturning (service), FS >= "+F(inp.OverturningFS,"0.0#"),Clause="Geotechnical (Mr / Mo)",Node=id,Case=c.Case,Demand=inp.OverturningFS*dir.Mo,Capacity=dir.Mr,Unit="kN·m",Ratio=dir.Mr<=0?double.PositiveInfinity:inp.OverturningFS*dir.Mo/dir.Mr};
+      worstLines=new List<string>{"tipping toward "+dir.Name+" about the outer edge of "+(members.Count>1?"the strapped group ("+string.Join(", ",ids)+")":id),"overturning Mo = Σ (column moment + H x support height "+F(inp.SupportHeight,"0.00")+" m) = "+F(dir.Mo)+" kN·m","resisting Mr = Σ V x distance to the edge (column loads, footing + soil "+(straps.Count>0?"and strap ":"")+"weights, V = "+F(V)+" kN) = "+F(dir.Mr)+" kN·m","FS = Mr / Mo = "+F(fs,"0.00")+" >= "+F(inp.OverturningFS,"0.0#")};}}}
+   if(worst!=null){list.Add(worst);steps[worst]=worstLines;}else notes.Add(id+": no overturning moment in the service cases (no horizontal reactions or column moments).");
+   if(members.Count>1){var gs=service.Select(c=>new{C=c,H=Math.Sqrt(Math.Pow(members.Sum(k=>c.Hp[k]),2)+Math.Pow(members.Sum(k=>c.Hq[k]),2)),R=members.Sum(k=>Math.Max(0,c.R[k]))}).OrderByDescending(x=>x.R<=0?double.PositiveInfinity:x.H/x.R).First();if(gs.H>1e-9){double resist=inp.Friction*gs.R;
+     Add(list,steps,"Sliding of the strapped group (service), FS >= "+F(inp.SlidingFS,"0.0#"),"Geotechnical (μ ΣR / ΣH)",id,gs.C.Case,inp.SlidingFS*gs.H,resist,"kN","ΣH = "+F(gs.H)+" kN (the straps tie the footings together)","μ ΣR = "+F(inp.Friction,"0.00")+" x "+F(gs.R)+" = "+F(resist)+" kN","FS = "+F(resist/gs.H,"0.00"));}}}}
  /* sagging + moment in strap s at x from the From column */
  internal static double Moment(StrapCase c,int s,double L,double x){return -c.MuA[s]*(1-x/L)+c.MuB[s]*(x/L)+c.W[s]*x*(L-x)/2;}
 }
