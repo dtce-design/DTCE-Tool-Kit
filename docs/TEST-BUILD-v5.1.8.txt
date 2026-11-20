@@ -1,0 +1,15 @@
+DTCE Tool Kit v5.1.8 test build (20 November 2026) - final build for the Microsoft Store upload (owner: "final na yan tapos i-upload na sa
+Microsoft Store"). Upload is not certification; Partner Center status is reported as returned.
+
+PATCH (extension of the Finishing Works workspace):
+- Finish Schedule Location now offers Other ("additional finishing location other").
+- New Finishing Works sub tab "Other Finishes" after Floor Finishes ("tapos another sub tab other finishes"): same columns as Ceiling /
+  Floor Finishes (Entry ID, Description, Finish ID, Length, Width, Qty, Deduction, Gross, Net, Status); its Finish ID list shows the
+  Finish IDs with Location Other or blank. Its areas go to the Finish ID group / BOQ item like the other finish tabs, appear in Assign
+  Finishes at Start and in the finish material breakdown. Row IDs use the prefix OF. Saved as section OtherFinishes; older files open
+  with an empty Other Finishes tab.
+
+Checked on Linux/Mono (UnlinkedFinishTests 21, FinishQuantities, FinishTypeGrouping, ProgramOfWorks, PowInsertRow, WorksSummaryLayout).
+Windows CI must pass before the Store upload.
+
+Includes v5.1.7 and earlier builds (see their notes).

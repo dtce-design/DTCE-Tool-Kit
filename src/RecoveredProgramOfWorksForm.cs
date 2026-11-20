@@ -186,6 +186,8 @@ namespace BeamScheduleFormatter
 
 		private readonly DataGridView floorFinishes;
 
+		private readonly DataGridView otherFinishes; /* Other Finishes sub tab (owner, 20 November 2026) */
+
 		private readonly Label status = new Label
 		{
 			Dock = DockStyle.Bottom,
@@ -1965,7 +1967,7 @@ namespace BeamScheduleFormatter
 			{
 				return MergeSources(((key == "Plaster") ? plasterResults : paintResults).Select((KeyValuePair<string, PlasterTakeoff> p) => SourceQuantity(p.Key, p.Value.Net, "m2")));
 			}
-			string category = ((key == "WallTiles") ? "Wall" : ((key == "CeilingFinishes") ? "Ceiling" : ((key == "FloorFinishes") ? "Floor" : "")));
+			string category = ((key == "WallTiles") ? "Wall" : ((key == "CeilingFinishes") ? "Ceiling" : ((key == "FloorFinishes") ? "Floor" : ((key == "OtherFinishes") ? "Other" : ""))));
 			return MergeSources(from f in finishItems
 				where f.Category == category && (key != "WallTiles" || f.Kind == "Tiles")
 				select SourceQuantity(f.Id + " | " + f.Description, f.Total(FindWall(f.Wall), wallOpenings, finishItems), "m2"));
@@ -4523,9 +4525,11 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			wallFinishes = FinishGrid(true);
 			ceilingFinishes = FinishGrid(false);
 			floorFinishes = FinishGrid(false);
+			otherFinishes = FinishGrid(false);
 			AddGrid("Wall Finishes", wallFinishes, "Wall ID links the finish to CHB. Side A/B identify the two wall faces. Choose the Finish ID in the Finish ID column (defined in Finishing Works > Start); its Group controls all summarized areas. Tiles deduct from plaster on selected faces only. Whole wall (auto) uses net CHB area; Dimensions requires the actual opening overlap as deduction per face.");
 			AddGrid("Ceiling Finishes", ceilingFinishes, "Enter measurement ID, dimensions and quantity. Deduction is total openings/voids for this entry in m2; it is deducted once. Choose the Finish ID in the Finish ID column (defined in Finishing Works > Start).");
 			AddGrid("Floor Finishes", floorFinishes, "Enter finish code, dimensions and quantity. Deduction is total excluded area for this entry in m2; it is deducted once. Choose the Finish ID in the Finish ID column (defined in Finishing Works > Start); its schedule Group controls area totals. No percentage factor is added.");
+			AddGrid("Other Finishes", otherFinishes, "Finishes that are not wall, ceiling or floor (for example stair, counter, column or fascia finishes). Enter finish code, dimensions and quantity. Deduction is total excluded area for this entry in m2; it is deducted once. Choose the Finish ID in the Finish ID column; Finish IDs with Location Other (or blank) are listed. Its schedule Group controls area totals.");
 			AddMasonryMaterials();
 			AddStructuralSteel();
 			AddRoofing();
@@ -4663,12 +4667,13 @@ worksExcelTimer.Tick += async delegate
 				pages["Door & Window Schedule"]
 			});
 			pages["Finishing Start"].Text = "Start";
-			AddSection("Finishing Works", new TabPage[6]
+			AddSection("Finishing Works", new TabPage[7]
 			{
 				pages["Finishing Start"],
 				pages["Wall Finishes"],
 				pages["Ceiling Finishes"],
 				pages["Floor Finishes"],
+				pages["Other Finishes"],
 				pages["Moulding"],
 				pages["Railing Estimate"]
 			});
@@ -5918,7 +5923,7 @@ worksExcelTimer.Tick += async delegate
 
 		private void RefreshFinishIDs()
 		{
-			DataGridView[] array = new DataGridView[3] { wallFinishes, ceilingFinishes, floorFinishes };
+			DataGridView[] array = new DataGridView[4] { wallFinishes, ceilingFinishes, floorFinishes, otherFinishes };
 			foreach (DataGridView dataGridView in array)
 			{
 				DataGridViewComboBoxColumn dataGridViewComboBoxColumn = dataGridView.Columns[2] as DataGridViewComboBoxColumn;
@@ -5956,7 +5961,7 @@ worksExcelTimer.Tick += async delegate
 			filling = true;
 			try
 			{
-				DataGridView[] array = new DataGridView[3] { wallFinishes, ceilingFinishes, floorFinishes };
+				DataGridView[] array = new DataGridView[4] { wallFinishes, ceilingFinishes, floorFinishes, otherFinishes };
 				foreach (DataGridView dataGridView in array)
 				{
 					foreach (DataGridViewRow item in (IEnumerable)dataGridView.Rows)
@@ -6531,11 +6536,12 @@ worksExcelTimer.Tick += async delegate
 			ReadFinishSchedule();
 			RefreshFinishIDs();
 			HashSet<string> hashSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-			KeyValuePair<string, DataGridView>[] array = new KeyValuePair<string, DataGridView>[3]
+			KeyValuePair<string, DataGridView>[] array = new KeyValuePair<string, DataGridView>[4]
 			{
 				new KeyValuePair<string, DataGridView>("Wall", wallFinishes),
 				new KeyValuePair<string, DataGridView>("Ceiling", ceilingFinishes),
-				new KeyValuePair<string, DataGridView>("Floor", floorFinishes)
+				new KeyValuePair<string, DataGridView>("Floor", floorFinishes),
+				new KeyValuePair<string, DataGridView>("Other", otherFinishes)
 			};
 			for (int i = 0; i < array.Length; i++)
 			{
@@ -6640,7 +6646,7 @@ worksExcelTimer.Tick += async delegate
 				}
 			}
 			finishTypeCells.Include(finishItems.Select((FinishItem f) => f.MaterialName));
-			DataGridView[] array2 = new DataGridView[3] { wallFinishes, ceilingFinishes, floorFinishes };
+			DataGridView[] array2 = new DataGridView[4] { wallFinishes, ceilingFinishes, floorFinishes, otherFinishes };
 			foreach (DataGridView dataGridView in array2)
 			{
 				foreach (DataGridViewRow item2 in (IEnumerable)dataGridView.Rows)
@@ -7412,6 +7418,7 @@ worksExcelTimer.Tick += async delegate
 				{ "WallFinishes", wallFinishes },
 				{ "CeilingFinishes", ceilingFinishes },
 				{ "FloorFinishes", floorFinishes },
+				{ "OtherFinishes", otherFinishes },
 				{ "InsulationRolls", insulationRolls },
 				{ "RoofProfiles", roofProfiles },
 				{ "RoofSheets", roofSheets },
@@ -7491,6 +7498,7 @@ worksExcelTimer.Tick += async delegate
 						return Enumerable.Range(0, 11).Concat(new int[2] { 14, 15 }).ToArray();
 					case "CeilingFinishes":
 					case "FloorFinishes":
+					case "OtherFinishes":
 						return Enumerable.Range(0, 7).Concat(new int[2] { 10, 11 }).ToArray();
 					default:
 						return Enumerable.Range(0, 13).Concat(new int[4] { 20, 21, 22, 24 }).ToArray();
@@ -8672,7 +8680,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 				Font = new Font("Segoe UI", 11f, FontStyle.Bold)
 			});
 			tabPage.Controls.Add(splitContainer);
-			DataGridView[] array2 = new DataGridView[3] { wallFinishes, ceilingFinishes, floorFinishes };
+			DataGridView[] array2 = new DataGridView[4] { wallFinishes, ceilingFinishes, floorFinishes, otherFinishes };
 			foreach (DataGridView dataGridView in array2)
 			{
 				/* Owner (18 November 2026, "pano ko i-assign yung mga na-measure kong area sa Finish ID"): the Finish ID can be
@@ -8694,7 +8702,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 			DataGridViewComboBoxColumn obj = (DataGridViewComboBoxColumn)finishAssignments.Columns[3];
 			obj.Items.Clear();
 			obj.Items.Add("");
-			obj.Items.AddRange((from v in (from v in finishGroups.Keys.Concat(from r in new DataGridView[3] { wallFinishes, ceilingFinishes, floorFinishes }.SelectMany((DataGridView g) => g.Rows.Cast<DataGridViewRow>())
+			obj.Items.AddRange((from v in (from v in finishGroups.Keys.Concat(from r in new DataGridView[4] { wallFinishes, ceilingFinishes, floorFinishes, otherFinishes }.SelectMany((DataGridView g) => g.Rows.Cast<DataGridViewRow>())
 						where !r.IsNewRow
 						select Cell(r, 2))
 					where v != ""
@@ -8702,7 +8710,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 				orderby v
 				select v).Cast<object>().ToArray());
 			finishAssignments.Rows.Clear();
-			DataGridView[] array = new DataGridView[3] { wallFinishes, ceilingFinishes, floorFinishes };
+			DataGridView[] array = new DataGridView[4] { wallFinishes, ceilingFinishes, floorFinishes, otherFinishes };
 			foreach (DataGridView dataGridView in array)
 			{
 				foreach (DataGridViewRow item in (IEnumerable)dataGridView.Rows)
@@ -8710,9 +8718,9 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 					if (!item.IsNewRow && !Empty(item))
 					{
 						string value;
-						int index = finishAssignments.Rows.Add((dataGridView == wallFinishes) ? "Wall" : ((dataGridView == ceilingFinishes) ? "Ceiling" : "Floor"), Cell(item, 0), Cell(item, 1), Cell(item, 2), finishGroups.TryGetValue(Cell(item, 2), out value) ? value : "");
+						int index = finishAssignments.Rows.Add(CategoryOf(dataGridView), Cell(item, 0), Cell(item, 1), Cell(item, 2), finishGroups.TryGetValue(Cell(item, 2), out value) ? value : "");
 						finishAssignments.Rows[index].Tag = item;
-						FilterAssignmentChoices(finishAssignments.Rows[index], (dataGridView == wallFinishes) ? "Wall" : ((dataGridView == ceilingFinishes) ? "Ceiling" : "Floor"));
+						FilterAssignmentChoices(finishAssignments.Rows[index], CategoryOf(dataGridView));
 						if (Cell(item, 0) == text)
 						{
 							finishAssignments.CurrentCell = finishAssignments.Rows[index].Cells[3];

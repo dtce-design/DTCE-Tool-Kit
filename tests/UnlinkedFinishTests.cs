@@ -31,4 +31,19 @@ class UnlinkedFinishTests {
    Check(s2.Rows.Cast<DataGridViewRow>().Any(r=>Convert.ToString(r.Cells[0].Value)=="CL-1"&&Convert.ToString(r.Cells[s2.Columns[ProgramOfWorksForm.FinishLocationColumn].Index].Value)=="Ceiling"),"location read back");
    string old=xml.Replace(" loc=\"Ceiling\"","").Replace(" loc=\"Wall\"","");var pow3=new ProgramOfWorksForm();pow3.OpenProjectXml(old);var s3=(DataGridView)typeof(ProgramOfWorksForm).GetField("finishSchedule",F).GetValue(pow3);
    Check(s3.Rows.Cast<DataGridViewRow>().Where(r=>!r.IsNewRow).All(r=>Convert.ToString(r.Cells[s3.Columns[ProgramOfWorksForm.FinishLocationColumn].Index].Value)==""),"older files: blank location (all tabs)");}
+  /* v5.1.8: Finish Schedule location Other and the Other Finishes sub tab */
+  {int li=sched.Columns[ProgramOfWorksForm.FinishLocationColumn].Index;Check(((DataGridViewComboBoxColumn)sched.Columns[li]).Items.Contains("Other"),"Location offers Other");
+   int r0=sched.Rows.Add("OT-1","Stair nosing","Granite stair finish");sched.Rows[r0].Cells[li].Value="Other";
+   var oth=(DataGridView)typeof(ProgramOfWorksForm).GetField("otherFinishes",F).GetValue(pow);Check(oth!=null,"Other Finishes grid exists");
+   int o=oth.Rows.Add("OF001","Stair treads","OT-1","2","1.5","3","1");pow.Recalculate();
+   Func<DataGridView,List<string>> ids=g=>((DataGridViewComboBoxColumn)g.Columns[2]).Items.Cast<object>().Select(Convert.ToString).ToList();
+   var ceil2=(DataGridView)typeof(ProgramOfWorksForm).GetField("ceilingFinishes",F).GetValue(pow);
+   Check(ids(oth).Contains("OT-1")&&!ids(oth).Contains("CL-1")&&!ids(oth).Contains("FT-1")&&!ids(ceil2).Contains("OT-1")&&!ids(fin).Contains("OT-1"),"Other Finishes offers Other (and unassigned) Finish IDs only");
+   Check(Math.Abs(Convert.ToDouble(oth.Rows[o].Cells[8].Value)-8)<1e-6,"Other finish net area 2 x 1.5 x 3 - 1 = 8 m2 (got "+oth.Rows[o].Cells[8].Value+")");
+   var fi=((System.Collections.IEnumerable)typeof(ProgramOfWorksForm).GetField("finishItems",F).GetValue(pow)).Cast<FinishItem>().ToList();Check(fi.Any(x=>x.Category=="Other"&&x.Code=="OT-1"),"Other finish is a finish item (goes to its Finish ID group / BOQ item)");
+   var nav=(TabControl)typeof(ProgramOfWorksForm).GetField("tabs",F).GetValue(pow);var fw=nav.TabPages.Cast<TabPage>().Single(t=>t.Text=="Finishing Works").Controls.OfType<TabControl>().Single();
+   Check(fw.TabPages.Cast<TabPage>().Select(t=>t.Text).SequenceEqual(new[]{"Start","Wall Finishes","Ceiling Finishes","Floor Finishes","Other Finishes","Moulding","Railing Estimate"}),"Other Finishes sub tab after Floor Finishes");
+   string xml=(string)typeof(ProgramOfWorksForm).GetMethod("DataXml",F).Invoke(pow,null);Check(xml.Contains("loc=\"Other\""),"Other location saved");
+   var pow4=new ProgramOfWorksForm();pow4.OpenProjectXml(xml);var oth4=(DataGridView)typeof(ProgramOfWorksForm).GetField("otherFinishes",F).GetValue(pow4);
+   Check(oth4.Rows.Cast<DataGridViewRow>().Any(r=>!r.IsNewRow&&Convert.ToString(r.Cells[0].Value)=="OF001"&&Convert.ToString(r.Cells[2].Value)=="OT-1"),"Other Finishes rows read back");}
   Console.WriteLine("PASS: "+checks+" wall finishes without Wall ID off plaster / paint checks.");Environment.Exit(0);}}

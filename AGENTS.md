@@ -161,7 +161,8 @@ Microsoft Store until the owner asks again (GitHub pushes to the development bra
 Result 20 November 2026: v5.0.20 merged to main (GitHub release OK). Store run 44688569445: both uploads were refused with
 HTTP 409 InvalidState (a leftover uncommitted draft in state 'None'); nothing was changed in Partner Center.
 New owner request (20 November 2026, "ito na ang iupload sa microsoft store"; chose v5.1.7): publish v5.1.7 (User and Admin)
-instead of v5.0.20, the same way after its Windows CI passes. scripts/submit_store.py now deletes only an uncommitted draft that
+instead of v5.0.20, the same way after its Windows CI passes. Owner then added Location Other / Other Finishes and said
+"final na yan tapos i-upload na sa Microsoft Store": the Store release is v5.1.8 (User and Admin). scripts/submit_store.py now deletes only an uncommitted draft that
 the Store refuses with 409 InvalidState and creates a new submission; a submission in certification is still never cancelled
 unless replace_pending_store_submission=true is asked for. Later versions again need a new explicit request.
 
