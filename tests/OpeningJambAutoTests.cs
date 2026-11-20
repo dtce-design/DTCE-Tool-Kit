@@ -14,4 +14,16 @@ class OpeningJambAutoTests {
   wood.Rows[r].Cells[2].Value="W150";auto.Invoke(pow,new object[]{wood.Rows[r]});Check(Convert.ToString(wood.Rows[r].Cells[7].Value)=="0.15","150mm CHB wall: jamb depth 0.15 m");
   wood.Rows[r].Cells[2].Value="AAC1";auto.Invoke(pow,new object[]{wood.Rows[r]});Check(Convert.ToString(wood.Rows[r].Cells[7].Value)=="0.1","100mm AAC wall: jamb depth 0.10 m");
   wood.Rows[r].Cells[2].Value="";auto.Invoke(pow,new object[]{wood.Rows[r]});Check(Convert.ToString(wood.Rows[r].Cells[7].Value)=="0.15","no wall: the Unassigned CHB thickness setting (150 mm)");
-  Console.WriteLine("PASS: "+checks+" automatic jamb depth from CHB / masonry wall thickness and hidden jamb columns.");Environment.Exit(0);}}
+  /* v1.50.18: Opening ID prefix sets the type; windows are Aluminum or Steel only */
+  Func<int,string> type=x=>Convert.ToString(wood.Rows[x].Cells[3].Value);Func<int,string> mat=x=>Convert.ToString(wood.Rows[x].Cells[ProgramOfWorksForm.OpeningMaterialColumn].Value);
+  int d=wood.Rows.Add();wood.Rows[d].Cells[3].Value="Window";Check(mat(d)=="Aluminum","choosing Window switches a wood row to Aluminum");wood.Rows[d].Cells[0].Value="D-01";Check(type(d)=="Door"&&mat(d)=="Aluminum","D prefix: Door, material kept");
+  int wi=wood.Rows.Add();wood.Rows[wi].Cells[3].Value="Door";wood.Rows[wi].Cells[ProgramOfWorksForm.OpeningMaterialColumn].Value="Wood";wood.Rows[wi].Cells[0].Value="w-02";Check(type(wi)=="Window"&&mat(wi)=="Aluminum","W prefix: Window, wood switched to Aluminum");
+  Check(Convert.ToString(wood.Rows[wi].Cells[11].Value)=="0"&&Convert.ToString(wood.Rows[wi].Cells[12].Value)=="0","aluminum window: no lockset / hinges");
+  wood.Rows[wi].Cells[ProgramOfWorksForm.OpeningMaterialColumn].Value="Steel";Check(mat(wi)=="Steel","Steel window allowed");
+  wood.Rows[wi].Cells[ProgramOfWorksForm.OpeningMaterialColumn].Value="PVC";Check(mat(wi)=="Aluminum","PVC window not allowed");
+  wood.Rows[wi].Cells[ProgramOfWorksForm.OpeningMaterialColumn].Value="Wood";Check(mat(wi)=="Aluminum","Wood window not allowed");
+  int auto2=wood.Rows.Add();wood.Rows[auto2].Cells[3].Value="Door";wood.Rows[auto2].Cells[0].Value="WD001";Check(type(auto2)=="Door","automatic WD001 ID is not read as a window");
+  int other=wood.Rows.Add();wood.Rows[other].Cells[3].Value="Door";wood.Rows[other].Cells[0].Value="X1";Check(type(other)=="Door","other prefixes keep the chosen type");
+  int op=wood.Rows.Add();wood.Rows[op].Cells[0].Value="O-01";Check(type(op)=="Opening"&&mat(op)=="","O prefix: plain opening without material");
+  Check(ProgramOfWorksForm.TypeFromOpeningId(" d12 ")=="Door"&&ProgramOfWorksForm.TypeFromOpeningId("W3")=="Window"&&ProgramOfWorksForm.TypeFromOpeningId("o5")=="Opening"&&ProgramOfWorksForm.TypeFromOpeningId("")==null,"prefix rule");
+  Console.WriteLine("PASS: "+checks+" automatic jamb depth, hidden jamb columns and Opening ID prefix / window material checks.");Environment.Exit(0);}}

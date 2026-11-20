@@ -1,0 +1,14 @@
+DTCE Tool Kit v1.50.18 test build (20 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: Opening ID prefix (D / W / O) sets the type; windows are Aluminum or Steel.
+
+- Door & Window Schedule ("kapag ako naglagay ng Opening ID e if D yung prefix is door na yung type and W is Window"):
+  typing an Opening ID that starts with D (D1, D-01, d2 ...) sets Type = Door; one that starts with W sets Type = Window; one that starts with O
+  ("and O prefix opening", "material is wala") sets Type = Opening with no material and no hardware.
+  The automatic WD001 numbering is not read as a window. Other IDs keep the type you choose.
+- Windows ("if window aluminum or steel lang"): a window is Aluminum or Steel only. A window row on Wood or PVC switches to
+  Aluminum, and choosing Wood or PVC for a window shows a note and keeps Aluminum. Aluminum windows have no lockset / hinges.
+- Only your own edits trigger these rules; saved projects open unchanged (an older wood / PVC window stays until it is edited).
+
+Includes v1.50.17 and earlier local builds (see their notes).

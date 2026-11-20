@@ -13,11 +13,28 @@ partial class ProgramOfWorksForm {
  readonly HashSet<string> removedMouldingOpenings=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
  void AddOpeningMaterialColumn(DataGridView g,string fallback){
   var column=new DataGridViewComboBoxColumn{Name="OpeningMaterial",HeaderText="Material",Width=110,DisplayStyle=DataGridViewComboBoxDisplayStyle.DropDownButton};column.Items.AddRange(OpeningMaterials);g.Columns.Add(column);
-  column.DefaultCellStyle.BackColor=ModernUi.Input;column.ToolTipText="Wood: jamb, leaf and paint are measured. Aluminum / PVC: opening area, no paint or wooden jamb; door hardware still counted.";
+  column.DefaultCellStyle.BackColor=ModernUi.Input;column.ToolTipText="Wood: jamb, leaf and paint are measured. Aluminum / PVC / Steel: opening area, no paint or wooden jamb. Windows are Aluminum or Steel only. Aluminum has no lockset / hinges.";
   foreach(int c in new[]{22,23,24})g.Columns[c].Visible=false;/* opening moulding is chosen in Finishing Works > Moulding */
-  g.DefaultValuesNeeded+=(s,e)=>{if(e.Row.Cells[OpeningMaterialColumn].Value==null)e.Row.Cells[OpeningMaterialColumn].Value=fallback;};
+  g.DefaultValuesNeeded+=(s,e)=>{if(e.Row.Cells[OpeningMaterialColumn].Value==null)e.Row.Cells[OpeningMaterialColumn].Value=fallback;};AttachOpeningIdRules(g);
   g.RowsAdded+=(s,e)=>{if(filling)return;for(int i=e.RowIndex;i<e.RowIndex+e.RowCount&&i<g.Rows.Count;i++){var row=g.Rows[i];if(!row.IsNewRow&&row.Cells[OpeningMaterialColumn].Value==null)row.Cells[OpeningMaterialColumn].Value=fallback;}};
   g.CellValueChanged+=(s,e)=>{if(filling||e.RowIndex<0||e.ColumnIndex!=OpeningMaterialColumn)return;var row=g.Rows[e.RowIndex];bool woodRow=OpeningMaterial(row,true)=="Wood";filling=true;try{row.Cells[11].Value=woodRow&&Cell(row,3)=="Door"?"1":"0";row.Cells[12].Value=!woodRow?"0":Cell(row,3)=="Door"?"3":"2";}finally{filling=false;}Recalculate();};}
+ /* Owner (20 November 2026): "kapag ako naglagay ng Opening ID e if D yung prefix is door na yung type and W is Window, if
+    window aluminum or steel lang". Typing an Opening ID that starts with D sets Type = Door, W sets Type = Window, O sets Type = Opening (no material) (the automatic
+    WD001 numbering is not read as a window). A window is Aluminum or Steel only: a window row on Wood or PVC is switched to
+    Aluminum, and choosing Wood or PVC for a window is not allowed. Only the user's own edits trigger this; saved projects open
+    unchanged. */
+ internal static readonly string[] WindowMaterials={"Aluminum","Steel"};
+ internal static string TypeFromOpeningId(string id){id=(id??"").Trim().ToUpperInvariant();if(id==""||System.Text.RegularExpressions.Regex.IsMatch(id,@"^WD\d+$"))return null;return id[0]=='D'?"Door":id[0]=='W'?"Window":id[0]=='O'?"Opening":null;}
+ void AttachOpeningIdRules(DataGridView g){
+  g.CellValueChanged+=(s,e)=>{if(filling||e.RowIndex<0||g==manualOpeningsGrid||g.Rows[e.RowIndex].IsNewRow&&e.ColumnIndex!=0)return;if(e.ColumnIndex!=0&&e.ColumnIndex!=3&&e.ColumnIndex!=OpeningMaterialColumn)return;var row=g.Rows[e.RowIndex];bool changed=false;string message=null;
+   filling=true;try{
+    if(e.ColumnIndex==0){string type=TypeFromOpeningId(Cell(row,0));if(type!=null&&Cell(row,3)!=type){row.Cells[3].Value=type;changed=true;}}
+    if(Cell(row,3)=="Window"&&!WindowMaterials.Contains(OpeningMaterial(row,g==wood))){if(e.ColumnIndex==OpeningMaterialColumn)message="Windows are Aluminum or Steel only.";row.Cells[OpeningMaterialColumn].Value="Aluminum";changed=true;}
+    /* O prefix (owner: "and O prefix opening", "material is wala"): a plain opening has no material and no hardware */
+    if(Cell(row,3)=="Opening"){if(Convert.ToString(row.Cells[OpeningMaterialColumn].Value)!=""){row.Cells[OpeningMaterialColumn].Value="";changed=true;}if(changed){row.Cells[11].Value="0";row.Cells[12].Value="0";}}
+    else if(changed){bool woodRow=OpeningMaterial(row,g==wood)=="Wood";row.Cells[11].Value=woodRow&&Cell(row,3)=="Door"?"1":"0";row.Cells[12].Value=!woodRow?"0":Cell(row,3)=="Door"?"3":"2";}}
+   finally{filling=false;}
+   if(changed&&message==null)Recalculate();if(message!=null&&g.IsHandleCreated)g.BeginInvoke((Action)(()=>{MessageBox.Show(g.FindForm(),message,"Door & Window Schedule",MessageBoxButtons.OK,MessageBoxIcon.Information);Recalculate();}));};}
  static void PlaceOpeningMaterialColumn(DataGridView g){if(g.Columns.Count>OpeningMaterialColumn)g.Columns[OpeningMaterialColumn].DisplayIndex=Math.Min(g.Columns.Count-1,g.Columns[3].DisplayIndex+1);}
  static string OpeningMaterial(DataGridViewRow row,bool woodGrid){string v=row.Cells.Count>OpeningMaterialColumn?Convert.ToString(row.Cells[OpeningMaterialColumn].Value).Trim():"";var match=OpeningMaterials.FirstOrDefault(m=>string.Equals(m,v,StringComparison.OrdinalIgnoreCase));return match??(woodGrid?"Wood":"Aluminum");}
  /* Owner (18 November 2026, "if PVC or aluminum, wala naman ng leaves, wala na rin paint jamb"): for PVC / aluminum rows the
