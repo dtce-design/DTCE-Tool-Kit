@@ -1,0 +1,11 @@
+DTCE Tool Kit v1.50.19 test build (20 November 2026)
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: BOQ status lists only exclusions and issues.
+
+- Bill of Quantities status ("alisin mo na ito sa status, yung mga na exclude lang and other issues"): working automatic LS
+  items (for example 1007(2), 1008(2), 1010(4), 1004(2): "1 LS from included mapped quantities") are no longer listed. The
+  status shows errors, quantities not mapped, pay items with excluded quantities, and an automatic LS item that came out
+  0 LS because none of its mapped quantities is included.
+
+Includes v1.50.18 and earlier builds (see their notes).

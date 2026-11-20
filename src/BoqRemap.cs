@@ -14,7 +14,8 @@ partial class ProgramOfWorksForm {
  // Collected while the BOQ is rebuilt; shown in the status panel under the table.
  void NoteBoqStatus(BackupBillItem item,List<BackupDemand> sources){string head=item.Code+" "+item.Description;
   if(item.ManualInputText!=null)boqStatusNotes.Add(new BoqStatusNote{Kind="Error",Text=head+": invalid manual quantity \""+item.ManualInputText+"\"",Item=item});
-  foreach(var d in sources){if(d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal)){boqStatusNotes.Add(new BoqStatusNote{Kind="Automatic LS",Text=head+": "+(d.Quantity>0?"1 LS from included mapped quantities":"0 LS - no mapped quantity included"),Item=item});continue;}
+  foreach(var d in sources){if(d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal)){/* owner, 20 November 2026 ("alisin mo na ito sa status, yung mga na exclude lang and other issues"): a working automatic LS
+     (1 LS) is not listed; only an LS item left at 0 is, because nothing mapped is included */if(d.Quantity<=0)boqStatusNotes.Add(new BoqStatusNote{Kind="Automatic LS",Text=head+": 0 LS - no mapped quantity included",Item=item});continue;}
    }
   /* Owner (18 November 2026, "huwag na isa-isahin, yung parent item no. lang ilagay"): one Excluded line per pay item. */
   var excluded=sources.Where(d=>!d.ManualOverride&&!d.Key.StartsWith(LsIncludePrefix,StringComparison.Ordinal)&&!BoqIncluded(d.Key,item)).ToList();
