@@ -1,0 +1,14 @@
+DTCE Tool Kit v1.50.7 test build (20 November 2026) - not pushed (owner: "huwag mo munang ipush")
+
+Not tested on Windows yet (Linux/Mono checks only). Not a Microsoft Store release.
+PATCH: start window (launcher).
+
+- No scroll bar on the start window ("bakit kapag minaximize ko tapos binalik sa dating size niya nagkakaroon ng scroll. alisin
+  ang scroll, ifix ang size ng buttons, at window saka iadjust yung window if may additional workspace"; "pwedeng magdagdag ng
+  column or rows pero hindi pwedeng magkascroll").
+- The workspace cards have a fixed size (359 x 86). The window opens with two columns; widening it adds columns, and the window
+  height always follows the number of rows (an added workspace makes the window taller, never a scroll bar). After maximize /
+  restore the layout is rebuilt. When a resize ends the width snaps to whole columns, so the cards end on the header's right
+  edge.
+
+Includes v1.50.6 and earlier local builds (see their notes).
