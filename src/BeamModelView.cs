@@ -16,7 +16,7 @@ class BeamModelView:Control {
  public void Fit(){zoom=1;offset=0;offsetY=0;Invalidate();}
  static bool Longitudinal(CutPiece p){return BeamCutting.Longitudinal(p);}
  /* lanes: pieces of a face that overlap (laps, extra bars) go on separate lanes */
- void Lanes(){lane.Clear();topLanes=bottomLanes=0;foreach(bool top in new[]{true,false}){var ends=new List<double>();foreach(var p in pieces.Where(x=>Longitudinal(x)&&x.Top==top).OrderBy(x=>x.Location.Contains("continuous")?0:1).ThenBy(x=>x.Start)){int k=ends.FindIndex(e=>e<p.Start-1e-6);if(k<0){ends.Add(p.End);k=ends.Count-1;}else ends[k]=p.End;lane[p]=k;}if(top)topLanes=ends.Count;else bottomLanes=ends.Count;}}
+ void Lanes(){lane.Clear();topLanes=bottomLanes=0;foreach(bool top in new[]{true,false}){int cnt;foreach(var kv in BeamDetailPaper.AssignLanes(pieces.Where(x=>Longitudinal(x)&&x.Top==top),out cnt))lane[kv.Key]=kv.Value;if(top)topLanes=cnt;else bottomLanes=cnt;}}
  RectangleF Elevation{get{return new RectangleF(40,46,Math.Max(100,Width-SectionWidth-80),Math.Max(120,Height-150));}}
  int SectionWidth{get{return Math.Min(300,Math.Max(220,Width/4));}}
  float X(double x){var e=Elevation;return (float)(e.Left+(x/geo.Total*e.Width)*zoom-offset);}
@@ -35,7 +35,7 @@ class BeamModelView:Control {
    var el=Elevation;var clip=g.Clip;g.SetClip(new RectangleF(el.Left-30,el.Top-10,el.Width+60,el.Height+80));
    /* supports and splice zones */
    using(var support=new HatchBrush(HatchStyle.BackwardDiagonal,Color.FromArgb(160,160,160),Color.FromArgb(235,235,235)))using(var edge=new Pen(Color.Gray))for(int i=0;i<geo.SupportStart.Length;i++){float a=X(geo.SupportStart[i]),b=X(geo.SupportStart[i]+geo.SupportWidth[i]);float ext=trueScale?Math.Max(20,DepthPx*.8f):30;g.FillRectangle(support,a,BeamTop-ext,b-a,BeamBottom-BeamTop+2*ext);g.DrawRectangle(edge,a,BeamTop-ext,b-a,BeamBottom-BeamTop+2*ext);g.DrawString("S"+(i+1),small,muted,a,BeamBottom+32);}
-   /* thin bands along the face concerned, as in the report */using(var zoneBrush=new SolidBrush(Color.FromArgb(110,60,170,90))){foreach(var z in geo.TopZones)g.FillRectangle(zoneBrush,X(z[0]),BeamTop+1,X(z[1])-X(z[0]),4);foreach(var z in geo.BottomZones)g.FillRectangle(zoneBrush,X(z[0]),BeamBottom-5,X(z[1])-X(z[0]),4);}
+   /* allowed splice zones: dimensions under the spans (no fill in the beam) */using(var zp=new Pen(Color.FromArgb(60,140,90))){Action<List<double[]>,float,string> zd=(zones,zy,name)=>{foreach(var z in zones){float za=X(z[0]),zb=X(z[1]);g.DrawLine(zp,za,zy,zb,zy);g.DrawLine(zp,za,zy-3,za,zy+3);g.DrawLine(zp,zb,zy-3,zb,zy+3);string t=name;using(var sf=new Font("Segoe UI",7.5f)){var sz=g.MeasureString(t,sf);if(zb-za>sz.Width)using(var zb2=new SolidBrush(Color.FromArgb(40,120,75)))g.DrawString(t,sf,zb2,(za+zb)/2-sz.Width/2,zy-sz.Height);}}};zd(geo.TopZones,BeamBottom+94,"splice zone, top");zd(geo.BottomZones,BeamBottom+114,"splice zone, bottom");}
    /* beam outline */
    using(var outline=new Pen(PowTheme.Ink,1.4f))g.DrawRectangle(outline,X(0),BeamTop,X(geo.Total)-X(0),BeamBottom-BeamTop);
    /* stirrups */
@@ -57,7 +57,7 @@ class BeamModelView:Control {
    using(var dim=new Pen(PowTheme.Muted))for(int j=0;j<geo.Ln.Length;j++){float a=X(geo.FaceLeft[j]),b=X(geo.FaceRight[j]),y=BeamBottom+52;g.DrawLine(dim,a,y,b,y);g.DrawLine(dim,a,y-4,a,y+4);g.DrawLine(dim,b,y-4,b,y+4);string t="Span "+(j+1)+" ("+geo.Marks[j]+")  Ln = "+geo.Ln[j].ToString("0.000",Inv)+" m";var size=g.MeasureString(t,small);if(b-a>size.Width)g.DrawString(t,small,muted,(a+b)/2-size.Width/2,y+3);}
    g.Clip=clip;
    /* legend */
-   float lx=el.Left,ly=Height-26;foreach(var item in new[]{new{T="Top continuous",C=Color.FromArgb(25,90,160)},new{T="Top extra",C=Color.FromArgb(110,150,210)},new{T="Bottom continuous",C=Color.FromArgb(20,120,90)},new{T="Bottom extra",C=Color.FromArgb(90,170,130)},new{T="Lap",C=Color.FromArgb(230,140,20)},new{T="Allowed splice zone",C=Color.FromArgb(150,200,160)}}){using(var b=new SolidBrush(item.C))g.FillRectangle(b,lx,ly+4,16,8);g.DrawString(item.T,small,muted,lx+20,ly);lx+=g.MeasureString(item.T,small).Width+40;}
+   float lx=el.Left,ly=Height-26;foreach(var item in new[]{new{T="Top continuous",C=Color.FromArgb(25,90,160)},new{T="Top extra",C=Color.FromArgb(110,150,210)},new{T="Bottom continuous",C=Color.FromArgb(20,120,90)},new{T="Bottom extra",C=Color.FromArgb(90,170,130)},new{T="Lap",C=Color.FromArgb(230,140,20)},new{T="Allowed splice zone (dimension)",C=Color.FromArgb(60,140,90)}}){using(var b=new SolidBrush(item.C))g.FillRectangle(b,lx,ly+4,16,8);g.DrawString(item.T,small,muted,lx+20,ly);lx+=g.MeasureString(item.T,small).Width+40;}
    {double ratio=e.Graphics.DpiX/25.4/(PxPerM/1000);string t=(trueScale?"Scale 1:":"Horizontal scale 1:")+ratio.ToString(ratio>=100?"0":"0.#",Inv)+" on screen"+(trueScale?" (both directions)":" - depth exaggerated");var sz=g.MeasureString(t,small);g.DrawString(t,small,muted,el.Right-sz.Width,Height-26);}
    DrawSection(g,font,small,ink,muted);}}
  void DrawSection(Graphics g,Font font,Font small,Brush ink,Brush muted){var box=new RectangleF(Width-SectionWidth-10,40,SectionWidth,Height-80);using(var line=new Pen(PowTheme.Line))g.DrawLine(line,box.Left-10,box.Top,box.Left-10,box.Bottom);if(double.IsNaN(sectionX))return;

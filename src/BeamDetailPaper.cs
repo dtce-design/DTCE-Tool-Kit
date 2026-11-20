@@ -34,6 +34,11 @@ static class BeamDetailPaper {
  static Font Bold(){return new Font("Segoe UI",7.5f,FontStyle.Bold,GraphicsUnit.Point);}
  static void Center(Graphics g,string t,Font f,Brush b,float cx,float y){var sz=g.MeasureString(t,f);g.DrawString(t,f,b,cx-sz.Width/2,y);}
  static void DimH(Graphics g,Pen pen,Font f,Brush b,float a,float c,float y,string text){g.DrawLine(pen,a,y,c,y);g.DrawLine(pen,a,y-3,a,y+3);g.DrawLine(pen,c,y-3,c,y+3);var sz=g.MeasureString(text,f);if(c-a>sz.Width+2)g.DrawString(text,f,b,(a+c)/2-sz.Width/2,y-sz.Height);else g.DrawString(text,f,b,(a+c)/2-sz.Width/2,y+1);}
+ /* lanes: the pieces of one lapped bar stay on one lane so the lap reads as two bars side by side with the crank (owner, 20 November
+    2026: "ayusin mo na lang yung naka cranked na lapping") */
+ internal static Dictionary<CutPiece,int> AssignLanes(IEnumerable<CutPiece> pieces,out int count){var lane=new Dictionary<CutPiece,int>();Func<CutPiece,string> run=p=>{string id=p.Id??"";int t=id.IndexOf('~');if(t>=0)id=id.Substring(0,t);return id.Contains(".")?id.Substring(0,id.LastIndexOf('.')):id;};
+  var runs=pieces.GroupBy(run).Select(q=>q.ToList()).OrderBy(q=>q.Any(p=>p.Location.Contains("continuous"))?0:1).ThenBy(q=>q.Min(p=>p.Start)).ToList();var ends=new List<double>();
+  foreach(var list in runs){double start=list.Min(p=>p.Start),end=list.Max(p=>p.End);int k=ends.FindIndex(e=>e<start-1e-6);if(k<0){ends.Add(end);k=ends.Count-1;}else ends[k]=end;foreach(var p in list)lane[p]=k;}count=ends.Count;return lane;}
  /* a bar along the beam; a bar cranked at its lap (K4 / K5) shows the crank (owner, 20 November 2026: "yung bar shape ng lapping sa
     elevation di naman pinapakita"): the lap length A sits offset towards the inside of the beam, then the crank B returns to the bar line */
  internal static void BarLine(Graphics g,Pen pen,CutPiece p,float a,float b,float y,Func<double,float> X){if(p.ShapeCode==null||!p.ShapeCode.StartsWith("CRANK")||p.DimA<=0){g.DrawLine(pen,a,y,b,y);return;}
@@ -44,7 +49,7 @@ static class BeamDetailPaper {
    g.DrawString("ELEVATION - BEAM LINE "+geo.Line+(whole?"":"  -  SPANS "+(fromSpan+1)+" TO "+(toSpan+1)+" OF "+geo.Ln.Length)+"  ("+string.Join(", ",geo.Marks.Skip(fromSpan).Take(toSpan-fromSpan+1).Distinct())+")",bold,ink,area.Left+6,area.Top+4);
    g.DrawString("Horizontal scale 1:"+F0((w1-w0)*1000/((area.Width-60)/72*25.4))+" on A3; depth drawn larger for clarity. Bar marks per the schedule.",small,muted,area.Left+6,area.Top+16);
    /* lanes */
-   var lane=new Dictionary<CutPiece,int>();int[] lanes=new int[2];foreach(bool top in new[]{true,false}){var ends=new List<double>();foreach(var p in pieces.Where(x=>Longitudinal(x)&&x.Top==top).OrderBy(x=>x.Location.Contains("continuous")?0:1).ThenBy(x=>x.Start)){int k=ends.FindIndex(e=>e<p.Start-1e-6);if(k<0){ends.Add(p.End);k=ends.Count-1;}else ends[k]=p.End;lane[p]=k;}lanes[top?0:1]=ends.Count;}
+   var lane=new Dictionary<CutPiece,int>();int[] lanes=new int[2];foreach(bool top in new[]{true,false}){int cnt;foreach(var kv in AssignLanes(pieces.Where(x=>Longitudinal(x)&&x.Top==top),out cnt))lane[kv.Key]=kv.Value;lanes[top?0:1]=cnt;}
    float x0=area.Left+30,width=area.Width-60;Func<double,float> X=x=>(float)(x0+(x-w0)/(w1-w0)*width);var outerClip=g.Clip;g.SetClip(new RectangleF(X(w0)-18,area.Top,X(w1)-X(w0)+36,area.Height));
    /* bar labels (owner, 20 November 2026: "overcrowded yung labels ng beam elevation"): mark and bars only (cut lengths are in the
       schedule), each placed in the nearest label row where it does not touch another label */
@@ -57,8 +62,7 @@ static class BeamDetailPaper {
    /* supports */
    using(var hatch=new HatchBrush(HatchStyle.BackwardDiagonal,Color.FromArgb(150,150,150),Color.FromArgb(238,238,238)))using(var edge=new Pen(Color.Gray,.8f))for(int i=fromSpan;i<=toSpan+1;i++){float a=X(geo.SupportStart[i]),b=X(geo.SupportStart[i]+geo.SupportWidth[i]);g.FillRectangle(hatch,a,beamTop-22,b-a,beamH+44);g.DrawRectangle(edge,a,beamTop-22,b-a,beamH+44);Center(g,"S"+(i+1),bold,ink,(a+b)/2,beamTop-labelRowsTop-26);}
    /* allowed splice zones */
-   /* a thin band along the face concerned (owner, 20 November 2026: "di naman maayos yung elevation" - no full green fill) */
-   using(var zone=new SolidBrush(Color.FromArgb(110,60,170,90))){foreach(var z in geo.TopZones)g.FillRectangle(zone,X(z[0]),beamTop+1,X(z[1])-X(z[0]),3);foreach(var z in geo.BottomZones)g.FillRectangle(zone,X(z[0]),beamBottom-4,X(z[1])-X(z[0]),3);}
+   /* allowed splice zones are given as dimensions under the beam (owner: "alisin mo na yung splice zone, label na lang or dimension") */
    using(var outline=new Pen(PowTheme.Ink,1.1f))g.DrawRectangle(outline,X(w0),beamTop,X(w1)-X(w0),beamH);
    for(int j=0;j<geo.Slab.Length;j++)if(geo.Slab[j]>0){float ts=(float)(geo.Slab[j]/geo.Depth[j]*beamH);using(var slab=new Pen(PowTheme.Muted,.6f){DashStyle=DashStyle.Dash})g.DrawLine(slab,X(geo.FaceLeft[j]),beamTop+ts,X(geo.FaceRight[j]),beamTop+ts);}
    /* hoops: ticks at their spacing; zone labels below the beam */
@@ -89,13 +93,15 @@ static class BeamDetailPaper {
    float dy=hoopLine+16;for(int i=fromSpan;i<=toSpan+1;i++)DimH(g,dim,small,muted,X(geo.SupportStart[i]),X(geo.SupportStart[i]+geo.SupportWidth[i]),dy,F0(geo.SupportWidth[i]*1000));
    for(int j=fromSpan;j<=toSpan;j++){DimH(g,dim,small,muted,X(geo.FaceLeft[j]),X(geo.FaceRight[j]),dy,"Ln "+F0(geo.Ln[j]*1000)+"  ("+geo.Marks[j]+" "+F0(geo.Width[j]*1000)+"x"+F0(geo.Depth[j]*1000)+")");
     double h2=2*geo.Depth[j];if(geo.Ln[j]>2*h2){DimH(g,dim,small,muted,X(geo.FaceLeft[j]),X(geo.FaceLeft[j]+h2),dy+14,"2h "+F0(h2*1000));DimH(g,dim,small,muted,X(geo.FaceRight[j]-h2),X(geo.FaceRight[j]),dy+14,"2h "+F0(h2*1000));}}
+   {Action<List<double[]>,float,string> zoneDims=(zones,zy,name)=>{using(var zp=new Pen(Color.FromArgb(60,140,90),.6f))foreach(var z in zones.Where(q=>q[1]>w0&&q[0]<w1)){float za=X(Math.Max(z[0],w0)),zb=X(Math.Min(z[1],w1));DimH(g,zp,small,new SolidBrush(Color.FromArgb(40,120,75)),za,zb,zy,name+" "+F0((Math.Min(z[1],w1)-Math.Max(z[0],w0))*1000));}};
+    zoneDims(geo.TopZones,dy+46,"splice zone, top");zoneDims(geo.BottomZones,dy+60,"splice zone, bottom");}
    DimH(g,dim,small,muted,X(w0),X(w1),dy+30,whole?"overall "+F0(geo.Total*1000):"S"+(fromSpan+1)+" to S"+(toSpan+2)+": "+F0((w1-w0)*1000)+"  (line overall "+F0(geo.Total*1000)+")");
    g.Clip=outerClip;
    /* match lines where a strip meets the next one */
    using(var match=new Pen(Color.FromArgb(120,60,160),1.2f){DashStyle=DashStyle.DashDotDot}){if(fromSpan>0){float mx=X(w0+geo.SupportWidth[fromSpan]/2);g.DrawLine(match,mx,beamTop-40,mx,dy+50);g.DrawString("MATCH LINE S"+(fromSpan+1)+" (previous strip)",small,new SolidBrush(Color.FromArgb(120,60,160)),mx+3,dy+40);}
     if(toSpan<geo.Ln.Length-1){float mx=X(w1-geo.SupportWidth[toSpan+1]/2);g.DrawLine(match,mx,beamTop-40,mx,dy+50);var t="MATCH LINE S"+(toSpan+2)+" (next strip)";var sz=g.MeasureString(t,small);g.DrawString(t,small,new SolidBrush(Color.FromArgb(120,60,160)),mx-sz.Width-3,dy+40);}}
    /* legend */
-   float lx2=area.Left+8,ly2=area.Bottom-14;foreach(var item in new[]{new{T="Top continuous",C=Color.FromArgb(25,90,160)},new{T="Top extra",C=Color.FromArgb(95,135,200)},new{T="Bottom continuous",C=Color.FromArgb(20,120,90)},new{T="Bottom extra",C=Color.FromArgb(70,160,115)},new{T="Lap (Class B)",C=Color.FromArgb(230,140,20)},new{T="Extra hoops over lap",C=Color.FromArgb(200,110,20)},new{T="Allowed splice zone",C=Color.FromArgb(150,200,160)},new{T="Section cut",C=Color.FromArgb(200,40,40)}}){using(var b=new SolidBrush(item.C))g.FillRectangle(b,lx2,ly2+3,12,6);g.DrawString(item.T,small,muted,lx2+15,ly2);lx2+=g.MeasureString(item.T,small).Width+28;}}}
+   float lx2=area.Left+8,ly2=area.Bottom-14;foreach(var item in new[]{new{T="Top continuous",C=Color.FromArgb(25,90,160)},new{T="Top extra",C=Color.FromArgb(95,135,200)},new{T="Bottom continuous",C=Color.FromArgb(20,120,90)},new{T="Bottom extra",C=Color.FromArgb(70,160,115)},new{T="Lap (Class B)",C=Color.FromArgb(230,140,20)},new{T="Extra hoops over lap",C=Color.FromArgb(200,110,20)},new{T="Allowed splice zone (dimension)",C=Color.FromArgb(60,140,90)},new{T="Section cut",C=Color.FromArgb(200,40,40)}}){using(var b=new SolidBrush(item.C))g.FillRectangle(b,lx2,ly2+3,12,6);g.DrawString(item.T,small,muted,lx2+15,ly2);lx2+=g.MeasureString(item.T,small).Width+28;}}}
  /* ---------------- sections ---------------- */
  static readonly int[] Scales={5,10,15,20,25,30,40,50};
  public static void DrawSections(Graphics g,RectangleF area,CutResult r,CutLineGeometry geo,int firstRow,int rowCount){var cuts=Groups(r,geo);int perRow=Math.Max(1,(int)(area.Width/SectionBoxW));float boxW=area.Width/perRow;

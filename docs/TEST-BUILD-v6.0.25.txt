@@ -1,0 +1,11 @@
+DTCE Tool Kit v6.0.25 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (beam elevation; "alisin mo na yung splice zone, label na lang or dimension ... ayusin mo na lang yung naka cranked na
+lapping"):
+- The allowed splice zones are no longer drawn in the beam: they are dimensions under it - "splice zone, top" and "splice zone,
+  bottom" with their length - in the BBS report elevation and in the model.
+- Lapped bars: the pieces of one bar stay on one lane, so a lap reads as the straight end of one piece beside the cranked start
+  of the next, with the crank back to the bar line (before, the second piece went to another lane).
+Checked on Linux/Mono only (B_Schedule_-_Revised.dxf, B-001 over three spans). Tests: BeamCuttingListTests, MemberBbsTests.
+
+Includes v6.0.24 and earlier builds.
