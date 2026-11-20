@@ -154,7 +154,7 @@ Later versions again need a new explicit request.
 New owner request (20 November 2026, "release mo na sa microdoft store"): publish v1.50.18 (User and Admin) the same way after
 its Windows CI passes (merge PR #11 to main, then publish_microsoft_store=true; replace_pending_store_submission stays false
 unless the owner asks). It supersedes the v1.32.0 request. Owner (20 November 2026) chose to release v1.50.19 instead (includes the BOQ status
-change). Later versions again need a new explicit request.
+change), renumbered v2.0.0 at the owner's request. Later versions again need a new explicit request.
 
 ## Version numbers (18 November 2026)
 
@@ -164,6 +164,9 @@ build after v1.4.135 is v1.5.0. Keep src/Program.cs Version, src/AssemblyInfo.cs
 Owner (19 November 2026, "Bakit di nasusunod ang version no naming major.minor.bug"; chose "Fixes as PATCH only"): keep the
 numbers already given (v1.48.0). A build that only fixes, adjusts or extends an existing workspace or design sheet raises PATCH
 (1.48.0 -> 1.48.1); MINOR goes up only when a whole new workspace or design sheet is added (then PATCH resets).
+Owner (20 November 2026, "hindi ba major yung bagong design sheet?"; chose v2.0.0): a whole new design sheet or workspace now
+raises MAJOR (then MINOR and PATCH reset, e.g. 2.0.0 -> 3.0.0). Fixes, adjustments and extensions of an existing workspace or
+design sheet still raise PATCH (2.0.0 -> 2.0.1); MINOR is for other new features. The release after v1.50.19 is v2.0.0.
 
 ## Linked Excel workbook and version names (19 November 2026)
 
