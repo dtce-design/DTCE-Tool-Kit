@@ -1,0 +1,10 @@
+DTCE Tool Kit v6.0.47 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (all tables; owner: "sa lahat ng tables di ko naman na makita if anong cell ang input lang at cell na automatic computation"):
+- Input cells are pale yellow and computed cells (automatic IDs, quantities, weights, status) pale green-grey in every editable table
+  (Bill of Quantities sheets, estimates, design sheet tables); dark mode uses darker versions of the same two colours. The two were
+  almost the same white before.
+- The sheet subtitle says it: "Yellow cells: enter values · Green cells: computed automatically".
+Checked on Linux/Mono only. Tests: AppearanceUiTests, AppearancePreferencesTests.
+
+Includes v6.0.46 and earlier builds.

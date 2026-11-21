@@ -10,7 +10,7 @@ static class RcWorksheetLayout {
    var navigation=new NavigationTabs{Dock=DockStyle.Fill,AccessibleName=title+" workspace tabs"};
    var measurements=new TabPage("Measurements"){Name="Measurements",Padding=new Padding(14,10,14,14),AutoScroll=false};input.Dock=DockStyle.Fill;measurements.Controls.Add(input);input.Visible=true;
    if(source!=null){source.Dock=DockStyle.Top;measurements.Controls.Add(source);}
-   var heading=new WorksheetHeading{Text=title,Subtitle="Enter measurements below  ·  Calculated quantities update automatically"};heading.SetGuide(guide);measurements.Controls.Add(heading);
+   var heading=new WorksheetHeading{Text=title,Subtitle="Yellow cells: enter values  ·  Green cells: computed automatically"};heading.SetGuide(guide);measurements.Controls.Add(heading);
    navigation.TabPages.Add(measurements);foreach(var page in pages){page.Padding=new Padding(14,10,14,14);page.AutoScroll=false;navigation.TabPages.Add(page);}
    summaries.Dispose();if(oldHost!=null&&oldHost!=summaries)oldHost.Dispose();
    foreach(var label in owner.Controls.OfType<Label>().Where(l=>l.Dock==DockStyle.Top))label.Visible=false;

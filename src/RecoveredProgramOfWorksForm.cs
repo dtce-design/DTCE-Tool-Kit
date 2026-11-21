@@ -5306,7 +5306,7 @@ worksExcelTimer.Tick += async delegate
 			tabPage.Controls.Add(grid);
 			tabPage.Controls.Add(flowLayoutPanel);
 			tabPage.Controls.Add(value);
-            var heading = new WorksheetHeading { Text=title, Subtitle=grid.ReadOnly?"Computed quantities and source breakdown":"Enter measurements below  ·  Calculated quantities update automatically" };
+            var heading = new WorksheetHeading { Text=title, Subtitle=grid.ReadOnly?"Computed quantities and source breakdown":"Yellow cells: enter values  ·  Green cells: computed automatically" };
             heading.SetGuide(note);
             tabPage.Controls.Add(heading);
 			tabs.TabPages.Add(tabPage);
