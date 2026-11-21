@@ -26,12 +26,12 @@ class Dxf {
  public List<Entity> Records=new List<Entity>();
  public static Dxf Read(string path){using(var f=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite))using(var r=new StreamReader(f,Encoding.UTF8,true))return Parse(r.ReadToEnd());}
  public static Dxf Parse(string text){
-  if(text.StartsWith("AutoCAD Binary DXF"))throw new Exception("Binary DXF ito. Sa AutoCAD, i-save bilang ASCII DXF muna.");
+  if(text.StartsWith("AutoCAD Binary DXF"))throw new Exception("This is a binary DXF. In AutoCAD, save it as an ASCII DXF first.");
   var lines=text.Replace("\r","").Split('\n');int len=lines.Length;while(len>0&&lines[len-1]=="")len--;
-  if(len%2!=0)throw new Exception("Hindi kumpleto ang DXF file (may nawawalang group-code pair).");
+  if(len%2!=0)throw new Exception("The DXF file is incomplete (a group-code pair is missing).");
   var d=new Dxf();Entity e=null;
-  for(int i=0;i<len;i+=2){int c;if(!int.TryParse(lines[i].Trim(),out c))throw new Exception("Hindi valid na ASCII DXF ang file. Line "+(i+1)+".");if(c==0||e==null){e=new Entity();d.Records.Add(e);}e.P.Add(new Pair(c,lines[i+1]));}
-  if(!d.Records.Any(x=>x.Type=="EOF"))throw new Exception("Hindi kumpleto ang DXF: walang EOF.");return d;
+  for(int i=0;i<len;i+=2){int c;if(!int.TryParse(lines[i].Trim(),out c))throw new Exception("The file is not a valid ASCII DXF. Line "+(i+1)+".");if(c==0||e==null){e=new Entity();d.Records.Add(e);}e.P.Add(new Pair(c,lines[i+1]));}
+  if(!d.Records.Any(x=>x.Type=="EOF"))throw new Exception("The DXF is incomplete: no EOF.");return d;
  }
  public List<Entity> ModelEntities(){bool inside=false;var result=new List<Entity>();foreach(var e in Records){if(e.Type=="SECTION"&&e.Get(2)=="ENTITIES"){inside=true;continue;}if(inside&&e.Type=="ENDSEC")break;if(inside&&e.Get(67,"0").Trim()!="1"&&e.Get(410,"Model")=="Model")result.Add(e);}return result;}
  public void Write(string path){using(var w=new StreamWriter(path,false,new UTF8Encoding(false))){foreach(var e in Records)foreach(var p in e.P){w.WriteLine(p.Code.ToString().PadLeft(3));w.WriteLine(p.Value);}}}
@@ -72,7 +72,7 @@ class TemplateLayout {
  public string LegText(string value){string raw=Leg.Get(1);return raw.StartsWith("{")&&raw.Contains(";")?raw.Substring(0,raw.LastIndexOf(';')+1)+value+"}":value;}
 }
 class Engine {
- public const string Version="6.0.36";
+ public const string Version="6.0.37";
  public static string Normal(string s){return Regex.Replace(s.ToUpperInvariant().Replace("%%C","Ø").Replace("\\U+2205","Ø").Replace("--","-"),@"\s+","");}
  public static string Format(string s){if(s=="-"||s=="--")return "--";s=s.Replace("#","%%C").Replace("\\U+2205","%%C").Replace("%%c","%%C");s=Regex.Replace(s,@"^(\d+)-","$1 - ");return Regex.Replace(s,@"(%%C\d+)(EF)$","$1 EF");}
  const string BeamToken=@"\d*[A-Z]+\d+";
@@ -80,12 +80,12 @@ class Engine {
  static Regex numberPattern=new Regex(BeamToken,RegexOptions.IgnoreCase);
  public static bool ValidPrefix(string prefix){return !string.IsNullOrWhiteSpace(prefix)&&prefix.Length<=20&&Regex.IsMatch(prefix,@"^\d*[A-Z]{1,12}$",RegexOptions.IgnoreCase);}
  public static Analysis Analyze(string path){
-  if(Path.GetExtension(path).ToLowerInvariant()!=".dxf")throw new Exception("DXF ang kailangan. Sa AutoCAD, gamitin ang Save As > DXF para sa DWG file.");
+  if(Path.GetExtension(path).ToLowerInvariant()!=".dxf")throw new Exception("A DXF file is needed. In AutoCAD, use Save As > DXF for a DWG file.");
   var d=Dxf.Read(path);var texts=d.ModelEntities().Where(e=>e.Type=="TEXT"||e.Type=="MTEXT").Select(e=>e.Copy(true)).ToList();
-  if(texts.Any(e=>e.Get(1).Trim().ToUpperInvariant()=="ORIGINAL BEAM NUMBERS"))throw new Exception("Formatted output DXF ito. Piliin ang original source schedule para hindi mabago ang original beam references.");
-  if(texts.Count==0)throw new Exception("Walang readable text sa model space. Explode ang table/block sa isang COPY ng drawing, saka i-save bilang DXF.");
+  if(texts.Any(e=>e.Get(1).Trim().ToUpperInvariant()=="ORIGINAL BEAM NUMBERS"))throw new Exception("This is a formatted output DXF. Choose the original source schedule so that the original beam references are kept.");
+  if(texts.Count==0)throw new Exception("No readable text in model space. Explode the table / block in a COPY of the drawing, then save it as DXF.");
   var marks=texts.Where(e=>markPattern.IsMatch(e.Get(1).Replace(" ",""))).OrderByDescending(e=>e.Num(20)).ThenBy(e=>e.Num(10)).ToList();
-  if(marks.Count==0)throw new Exception("Hindi makita ang original beam marks (hal. B1, 2B1, 3B1, 4B1, RD1 o URFB1). Piliin ang original schedule DXF, hindi ang na-format na output.");
+  if(marks.Count==0)throw new Exception("The original beam marks (e.g. B1, 2B1, 3B1, 4B1, RD1 or URFB1) were not found. Choose the original schedule DXF, not the formatted output.");
   // Locate the beam-mark column; reinforcement labels must never become beam marks.
   double markX=marks.Min(e=>e.Num(10));marks=marks.Where(e=>Math.Abs(e.Num(10)-markX)<Math.Max(50,Math.Abs(markX)*.001)).ToList();
   if(marks.Count>2000)throw new Exception("Masyadong maraming rows. Maximum 2,000 rows bawat file.");
@@ -94,11 +94,11 @@ class Engine {
   var b=headers.Where(e=>e.Get(1).Trim().ToUpperInvariant()=="B").OrderByDescending(e=>e.Num(20)).FirstOrDefault();
   var dp=headers.Where(e=>e.Get(1).Trim().ToUpperInvariant()=="D").OrderByDescending(e=>e.Num(20)).FirstOrDefault();
   var subs=headers.Where(e=>new[]{"LEFT","MID SPAN","MIDSPAN","RIGHT"}.Contains(e.Get(1).Trim().ToUpperInvariant())).OrderBy(e=>e.Num(10)).ToList();
-  if(b==null||dp==null||subs.Count!=9)throw new Exception("Hindi tugma ang source table. Kailangan ang B/D, 3 bottom, 3 top, at 3 shear columns (LEFT / MID SPAN / RIGHT), gaya ng original 4B schedule.");
+  if(b==null||dp==null||subs.Count!=9)throw new Exception("The source table does not match. B / D, 3 bottom, 3 top and 3 shear columns (LEFT / MID SPAN / RIGHT) are needed, as in the original 4B schedule.");
   var sfr=headers.FirstOrDefault(e=>e.Get(1).Trim().ToUpperInvariant()=="SFR");var diagonal=headers.FirstOrDefault(e=>e.Get(1).Trim().ToUpperInvariant()=="DIAGONAL");var remarks=headers.FirstOrDefault(e=>e.Get(1).Trim().ToUpperInvariant()=="REMARKS");
-  if(sfr==null)throw new Exception("Hindi makita ang SFR column sa source table.");
+  if(sfr==null)throw new Exception("The SFR column was not found in the source table.");
   var centers=new List<double>{b.Num(10),dp.Num(10)};centers.AddRange(subs.Select(e=>e.Num(10)));centers.Add(sfr.Num(10));centers.Add(diagonal!=null?diagonal.Num(10):sfr.Num(10)+(sfr.Num(10)-subs.Last().Num(10)));centers.Add(remarks!=null?remarks.Num(10):centers.Last()+(centers.Last()-sfr.Num(10)));
-  if(!centers.SequenceEqual(centers.OrderBy(v=>v)))throw new Exception("Hindi inaasahan ang order ng table columns. I-check muna ang source DXF.");
+  if(!centers.SequenceEqual(centers.OrderBy(v=>v)))throw new Exception("Unexpected order of the table columns. Check the source DXF first.");
   double firstGap=marks.Count>1?marks[0].Num(20)-marks[1].Num(20):1120;
   var horizontals=d.ModelEntities().Where(e=>e.Type=="LINE"&&Math.Abs(e.Num(20)-e.Num(21))<.01&&Math.Abs(e.Num(10)-e.Num(11))>(centers[11]-centers[0])*.8&&e.Num(20)>highest).Select(e=>e.Num(20)).OrderBy(v=>v).ToList();
   double topOffset=horizontals.Count>0?horizontals[0]-highest:firstGap*.424107142857;
@@ -112,23 +112,23 @@ class Engine {
    var r=new BeamRow();r.SourceRows.Add(i+1);
    foreach(var t in rowTexts){string text=t.Get(1).Trim();if(t.Num(10)<markBoundary){
      if(text.Length==0)continue;
-     if(!Regex.IsMatch(text.Replace(" ",""),@"^,?"+BeamToken+@"(?:,"+BeamToken+@")*,?$",RegexOptions.IgnoreCase))throw new Exception("May hindi inaasahang text sa beam-mark column: "+text+". Isang schedule lang dapat ang nasa source.");
-     foreach(Match m in numberPattern.Matches(text)){if(!allBeamNumbers.Add(m.Value))throw new Exception("Paulit-ulit na original beam number: "+m.Value+". I-check ang source drawing.");r.Numbers.Add(m.Value.ToUpperInvariant());}continue;
+     if(!Regex.IsMatch(text.Replace(" ",""),@"^,?"+BeamToken+@"(?:,"+BeamToken+@")*,?$",RegexOptions.IgnoreCase))throw new Exception("Unexpected text in the beam-mark column: "+text+". The source should hold one schedule only.");
+     foreach(Match m in numberPattern.Matches(text)){if(!allBeamNumbers.Add(m.Value))throw new Exception("Repeated original beam number: "+m.Value+". Check the source drawing.");r.Numbers.Add(m.Value.ToUpperInvariant());}continue;
     }
     int col=0;double best=double.MaxValue;for(int j=0;j<centers.Count;j++){double diff=Math.Abs(t.Num(10)-centers[j]);if(diff<best){best=diff;col=j;}}
     if(text!="+")r.Cells[col].Add(text);
    }
-   if(r.Numbers.Count==0)throw new Exception("Walang beam number sa row "+(i+1));
-   for(int c=0;c<8;c++)if(r.Cells[c].Count==0)throw new Exception("May kulang na size/reinforcement sa row "+(i+1)+" ("+string.Join(",",r.Numbers)+").");
-   if(r.Cells.Skip(2).Take(6).Any(v=>v.Count>3))throw new Exception("Higit sa tatlong reinforcement layers sa row "+(i+1)+". Hindi ito suportado; i-check ang source bago mag-export.");
+   if(r.Numbers.Count==0)throw new Exception("No beam number in row "+(i+1));
+   for(int c=0;c<8;c++)if(r.Cells[c].Count==0)throw new Exception("Missing size / reinforcement in row "+(i+1)+" ("+string.Join(",",r.Numbers)+").");
+   if(r.Cells.Skip(2).Take(6).Any(v=>v.Count>3))throw new Exception("More than three reinforcement layers in row "+(i+1)+". This is not supported; check the source before exporting.");
    r.OriginalShear.Add(new[]{r.Cell(8),r.Cell(9),r.Cell(10)});ApplySpacing(r);a.Source.Add(r);
   }
   a.BeamCount=allBeamNumbers.Count;return a;
  }
  public static string FloorFor(string prefix){prefix=(prefix??"").Trim().ToUpperInvariant();if(prefix=="B"||prefix=="GB")return "GROUND FLOOR";if(prefix=="RD")return "ROOF DECK";if(prefix=="RFB"||prefix=="RF")return "ROOF FLOOR";if(prefix=="URFB"||prefix=="URF")return "UPPER ROOF FLOOR";int n;var s=Regex.Match(prefix,@"\d+").Value;if(!int.TryParse(s,out n))return "FLOOR";string[] names={"","FIRST FLOOR","SECOND FLOOR","THIRD FLOOR","FOURTH FLOOR","FIFTH FLOOR","SIXTH FLOOR","SEVENTH FLOOR","EIGHTH FLOOR","NINTH FLOOR","TENTH FLOOR"};return n<names.Length?names[n]:"LEVEL "+n;}
  public static void ApplySpacing(BeamRow r){
-  var p=new List<string[]>();for(int c=8;c<=10;c++){string s=r.Cell(c);var m=Regex.Match(s,@"^(\d+)-(\d+)L-(?:#|%%[Cc]|Ø|∅)(\d+)@(\d+)\s*C/C$",RegexOptions.IgnoreCase);if(m.Success)p.Add(new[]{m.Groups[1].Value,m.Groups[2].Value,m.Groups[3].Value,m.Groups[4].Value});else if(s=="-"||s=="--")p.Add(null);else throw new Exception("Hindi mabasa ang stirrup notation: "+s+". Inaasahan: 17-4L-#10@100 C/C.");}
-  if(p.All(t=>t==null))throw new Exception("Walang stirrup data sa row "+r.SourceRows[0]);
+  var p=new List<string[]>();for(int c=8;c<=10;c++){string s=r.Cell(c);var m=Regex.Match(s,@"^(\d+)-(\d+)L-(?:#|%%[Cc]|Ø|∅)(\d+)@(\d+)\s*C/C$",RegexOptions.IgnoreCase);if(m.Success)p.Add(new[]{m.Groups[1].Value,m.Groups[2].Value,m.Groups[3].Value,m.Groups[4].Value});else if(s=="-"||s=="--")p.Add(null);else throw new Exception("Stirrup notation cannot be read: "+s+". Inaasahan: 17-4L-#10@100 C/C.");}
+  if(p.All(t=>t==null))throw new Exception("No stirrup data in row "+r.SourceRows[0]);
   r.Leg=string.Join("/",p.Where(t=>t!=null).Select(t=>t[1]+"L").Distinct());r.Diameter=string.Join("/",p.Where(t=>t!=null).Select(t=>"%%C"+t[2]).Distinct());
   r.Notes.Clear();string scope=string.Join(", ",r.Numbers)+": ";
   bool bothEnds=p[0]!=null&&p[2]!=null;
@@ -146,7 +146,7 @@ class Engine {
   else {var bits=new List<string>();string[] labels={"L","MID","R"};for(int i=0;i<3;i++)bits.Add(labels[i]+": "+(p[i]==null?"--":p[i][0]+" - "+p[i][3]+"mm"));r.Spacing=string.Join("; ",bits)+" C/C";}
  }
  public static List<BeamRow> Consolidate(Analysis a,Settings s){
-  if(!ValidPrefix(s.Prefix))throw new Exception("Ang prefix ay dapat gaya ng B, GB, 2B, 3B, 4B, RD o URFB; walang spaces o symbols.");if(string.IsNullOrWhiteSpace(s.Floor)||s.Floor.Length>60||s.Floor.IndexOfAny(new[]{'{','}','\\','\r','\n'})>=0)throw new Exception("Ilagay ang floor title, hal. FOURTH FLOOR.");
+  if(!ValidPrefix(s.Prefix))throw new Exception("The prefix must be like B, GB, 2B, 3B, 4B, RD or URFB, without spaces or symbols.");if(string.IsNullOrWhiteSpace(s.Floor)||s.Floor.Length>60||s.Floor.IndexOfAny(new[]{'{','}','\\','\r','\n'})>=0)throw new Exception("Enter the floor title, e.g. FOURTH FLOOR.");
   var groups=new List<BeamRow>();var seen=new Dictionary<string,BeamRow>();
   foreach(var source in a.Source){var r=source.Copy();ApplySpacing(r);string sig=r.Signature();BeamRow old;
    if(s.Merge&&seen.TryGetValue(sig,out old)){old.Numbers.AddRange(r.Numbers);old.SourceRows.AddRange(r.SourceRows);old.OriginalShear.AddRange(r.OriginalShear);old.Notes.AddRange(r.Notes);}else{groups.Add(r);if(!seen.ContainsKey(sig))seen.Add(sig,r);}
@@ -219,7 +219,7 @@ class Engine {
  public static string Mapping(Result r){var b=new StringBuilder();b.AppendLine("New mark,Original source rows,Original beam numbers,Original left stirrups,Original mid stirrups,Original right stirrups,Final spacing,Adjustment notes");foreach(var row in r.Rows)for(int i=0;i<row.SourceRows.Count;i++){var raw=row.OriginalShear[i];b.AppendLine(string.Join(",",new[]{row.Mark,row.SourceRows[i].ToString(),string.Join(", ",row.Numbers),raw[0],raw[1],raw[2],row.Spacing,string.Join("; ",row.Notes)}.Select(Csv)));}return b.ToString();}
  public static void Export(Result r,string path){
   string folder=Path.GetDirectoryName(Path.GetFullPath(path));string temp=Path.Combine(folder,"."+Guid.NewGuid().ToString("N")+".dxf");
-  try{r.Drawing.Write(temp);var check=Dxf.Read(temp);int count=check.ModelEntities().Count(e=>e.Type=="MTEXT"&&Regex.IsMatch(e.Get(1),@"^\d*[A-Z]+-\d{3,}$"));if(count!=r.Rows.Count)throw new Exception("Hindi pumasa sa export verification ang DXF.");File.Copy(temp,path,true);}finally{if(File.Exists(temp))File.Delete(temp);}
+  try{r.Drawing.Write(temp);var check=Dxf.Read(temp);int count=check.ModelEntities().Count(e=>e.Type=="MTEXT"&&Regex.IsMatch(e.Get(1),@"^\d*[A-Z]+-\d{3,}$"));if(count!=r.Rows.Count)throw new Exception("The DXF did not pass the export verification.");File.Copy(temp,path,true);}finally{if(File.Exists(temp))File.Delete(temp);}
 
  }
 }
@@ -257,7 +257,7 @@ partial class MainForm:Form {
  public MainForm(){AppBrand.Apply(this);if(!AccessCodes.CanUseApp(1))throw new Exception("Beam Formatter is not included in your current access.");
   Text="Beam Schedule Formatter v"+Engine.Version;Icon=Icon.ExtractAssociatedIcon(Application.ExecutablePath);Width=1280;Height=820;MinimumSize=new Size(1120,700);StartPosition=FormStartPosition.CenterScreen;Font=new Font("Segoe UI",9.5f);BackColor=Color.FromArgb(243,246,250);AutoScaleMode=AutoScaleMode.Dpi;AllowDrop=true;
   var header=new Panel{Dock=DockStyle.Top,Height=82,BackColor=Navy,Padding=new Padding(24,12,24,10)};var title=new Label{Text="BEAM SCHEDULE FORMATTER  v"+Engine.Version,Font=new Font("Segoe UI Semibold",18),ForeColor=Color.White,Dock=DockStyle.Top,Height=34};var sub=new Label{Text="Standard Drawing1 template  •  Developed by Engr. Daryl O. Tomaneng",ForeColor=Color.FromArgb(165,190,211),Dock=DockStyle.Bottom,Height=22};header.Controls.Add(title);header.Controls.Add(sub);
-  status=new Label{Dock=DockStyle.Bottom,Height=34,Padding=new Padding(18,8,8,0),BackColor=Color.White,ForeColor=Muted,Text="Ready. Piliin o i-drop ang original beam schedule DXF."};
+  status=new Label{Dock=DockStyle.Bottom,Height=34,Padding=new Padding(18,8,8,0),BackColor=Color.White,ForeColor=Muted,Text="Ready. Load or drop the original beam schedule DXF."};
   var side=new Panel{Dock=DockStyle.Left,Width=246,Padding=new Padding(12),BackColor=Color.White};var flow=new FlowLayoutPanel{Dock=DockStyle.Fill,FlowDirection=FlowDirection.TopDown,WrapContents=false,AutoScroll=true};side.Controls.Add(flow);
   AddLabel(flow,"01   SOURCE DRAWING",true);AddLabel(flow,"Original beam schedule DXF");sourceBox=new TextBox{Width=194,ReadOnly=true,BackColor=Color.FromArgb(245,248,251),Height=30};flow.Controls.Add(sourceBox);browse=ButtonOf("Choose DXF…",194,false);browse.Click+=(o,e)=>Choose();flow.Controls.Add(browse);
   AddLabel(flow,"\n02   STANDARD TEMPLATE",true);AddLabel(flow,"Schedule of beams  ·  built-in\nArial / Arial Bold\nText: 2.0  ·  Headers: 2.5\nRow height: 8 units\nOriginal layers included",false,96);
@@ -267,7 +267,7 @@ partial class MainForm:Form {
   AddLabel(flow,"Beam marks are excluded from comparison.\nOriginal beam numbers stay beside each group.",false,58);
   var actions=new FlowLayoutPanel{Dock=DockStyle.Bottom,Height=112,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(0,4,0,0)};
   ActionPanel=actions;
-  process=ButtonOf("Build preview",194,true);process.Enabled=false;process.Click+=async(o,e)=>await BuildAsync();actions.Controls.Add(process);export=ButtonOf("Export revised DXF",194,false);export.Enabled=false;export.Click+=(o,e)=>ExportFile();actions.Controls.Add(export);side.Controls.Add(actions);
+  process=ButtonOf("Build preview",194,true);process.Click+=async(o,e)=>await BuildAsync();actions.Controls.Add(process);export=ButtonOf("Export revised DXF",194,false);export.Enabled=false;export.Click+=(o,e)=>ExportFile();actions.Controls.Add(export);side.Controls.Add(actions);
   var content=new Panel{Dock=DockStyle.Fill,Padding=new Padding(18)};summary=new Label{Dock=DockStyle.Top,Height=66,Font=new Font("Segoe UI Semibold",12),ForeColor=Navy,Text="Your revised schedule\nChoose a DXF to start.",Padding=new Padding(3,6,0,0)};
   tabs=new NavigationTabs{Dock=DockStyle.Fill};var tableTab=new TabPage("Schedule values"){BackColor=Color.White};var cadTab=new TabPage("CAD layout preview"){BackColor=Color.FromArgb(33,40,46)};
   grid=new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,AllowUserToResizeRows=false,RowHeadersVisible=false,SelectionMode=DataGridViewSelectionMode.CellSelect,MultiSelect=false,BackgroundColor=Color.White,BorderStyle=BorderStyle.None,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.None,EnableHeadersVisualStyles=false,ColumnHeadersHeight=42};
@@ -318,11 +318,11 @@ partial class MainForm:Form {
   for(int i=0;i<ranges.Length;i++){var a=grid.GetCellDisplayRectangle(ranges[i][0],-1,false);var b=grid.GetCellDisplayRectangle(ranges[i][1],-1,false);var r=Rectangle.FromLTRB(a.Left,a.Top,b.Right,a.Top+32);var visible=Rectangle.Intersect(r,new Rectangle(i==0?1:frozenRight,0,grid.ClientSize.Width-(i==0?1:frozenRight)-1,grid.ColumnHeadersHeight));if(visible.Width<=0)continue;var state=e.Graphics.Save();e.Graphics.SetClip(visible);using(var brush=new SolidBrush(Navy))e.Graphics.FillRectangle(brush,r);using(var pen=new Pen(Color.FromArgb(210,220,230)))e.Graphics.DrawRectangle(pen,r.Left,r.Top,r.Width-1,r.Height-1);TextRenderer.DrawText(e.Graphics,titles[i],grid.ColumnHeadersDefaultCellStyle.Font,r,Color.White,TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter|TextFormatFlags.NoPadding);e.Graphics.Restore(state);}
  }
  Button ButtonOf(string text,int w,bool primary){return new Button{Text=text,Width=w,Height=40,FlatStyle=FlatStyle.Flat,BackColor=primary?Accent:Color.FromArgb(233,241,246),ForeColor=primary?Color.White:Navy,Cursor=Cursors.Hand,Margin=new Padding(0,5,0,4)};}
- void InvalidatePreview(){if(result!=null){result=null;export.Enabled=false;status.Text="May nabagong settings. I-click ang Build preview para i-update.";}}
+ void InvalidatePreview(){if(result!=null){result=null;export.Enabled=false;status.Text="Settings changed. Click Build preview to update.";}}
  async void Choose(){using(var dialog=new OpenFileDialog{Title="Choose original beam schedule DXF",Filter="AutoCAD DXF (*.dxf)|*.dxf",CheckFileExists=true})if(dialog.ShowDialog(this)==DialogResult.OK)await LoadFile(dialog.FileName);}
- void SetBusy(bool value,string message){busy=value;UseWaitCursor=value;browse.Enabled=!value;process.Enabled=!value&&analysis!=null;export.Enabled=!value&&result!=null;prefixBox.Enabled=!value;floorBox.Enabled=!value;merge.Enabled=!value;status.Text=message;}
- async Task LoadFile(string path){analysis=null;result=null;grid.Rows.Clear();sourceBox.Text="";summary.Text="Loading source DXF…";SetBusy(true,"Binabasa ang source DXF…");try{var a=await Task.Run(()=>Engine.Analyze(path));analysis=a;sourceBox.Text=Path.GetFileName(path);new ToolTip().SetToolTip(sourceBox,path);prefixBox.Text=a.Prefix;floorBox.Text=a.Floor;summary.Text=a.Source.Count+" source rows  ·  "+a.BeamCount+" original beam numbers\nReady for standard formatting.";status.Text="Loaded. Automatic preview…";}catch(Exception ex){MessageBox.Show(this,ex.Message,"Hindi mabasa ang source",MessageBoxButtons.OK,MessageBoxIcon.Warning);summary.Text="Walang source DXF na naka-load.";status.Text="Hindi na-load ang file. "+ex.Message;}finally{SetBusy(false,status.Text);}if(analysis!=null)await BuildAsync();}
- async Task BuildAsync(){if(analysis==null)return;var settings=new Settings{Prefix=prefixBox.Text.Trim(),Floor=floorBox.Text.Trim(),Merge=merge.Checked};SetBusy(true,"Inaayos ang table at kino-compare ang rows…");try{var r=await Task.Run(()=>Engine.Build(analysis,settings));var bitmap=await Task.Run(()=>Preview.Render(r.Drawing));result=r;FillGrid();var old=picture.Image;picture.Image=bitmap;if(old!=null)old.Dispose();int merged=r.SourceCount-r.Rows.Count;summary.Text=r.SourceCount+" source rows  →  "+r.Rows.Count+" final groups  ·  "+r.BeamCount+" beam numbers\n"+merged+" duplicate rows consolidated  ·  standard template applied";status.Text="Preview ready. I-review ang values o CAD layout, saka Export revised DXF.";}catch(Exception ex){result=null;MessageBox.Show(this,ex.Message,"Hindi makagawa ng preview",MessageBoxButtons.OK,MessageBoxIcon.Warning);status.Text="Hindi natuloy ang formatting: "+ex.Message;}finally{SetBusy(false,status.Text);}}
+ void SetBusy(bool value,string message){busy=value;UseWaitCursor=value;browse.Enabled=!value;process.Enabled=!value;export.Enabled=!value&&result!=null;prefixBox.Enabled=!value;floorBox.Enabled=!value;merge.Enabled=!value;status.Text=message;}
+ async Task LoadFile(string path){analysis=null;result=null;grid.Rows.Clear();sourceBox.Text="";summary.Text="Loading source DXF…";SetBusy(true,"Reading the source DXF…");try{var a=await Task.Run(()=>Engine.Analyze(path));analysis=a;sourceBox.Text=Path.GetFileName(path);new ToolTip().SetToolTip(sourceBox,path);prefixBox.Text=a.Prefix;floorBox.Text=a.Floor;summary.Text="Loaded DXF: "+Path.GetFileName(path)+"  ·  "+a.Source.Count+" source rows, "+a.BeamCount+" original beam numbers";status.Text="Loaded. Automatic preview…";}catch(Exception ex){MessageBox.Show(this,ex.Message,"Source cannot be read",MessageBoxButtons.OK,MessageBoxIcon.Warning);summary.Text="Loaded DXF: none";status.Text="The file was not loaded. "+ex.Message;}finally{SetBusy(false,status.Text);}if(analysis!=null)await BuildAsync();}
+ async Task BuildAsync(){if(analysis==null){MessageBox.Show(this,"Load an original beam schedule DXF first.","Beam preview");return;}var settings=new Settings{Prefix=prefixBox.Text.Trim(),Floor=floorBox.Text.Trim(),Merge=merge.Checked};SetBusy(true,"Arranging the table and comparing the rows…");try{var r=await Task.Run(()=>Engine.Build(analysis,settings));var bitmap=await Task.Run(()=>Preview.Render(r.Drawing));result=r;FillGrid();var old=picture.Image;picture.Image=bitmap;if(old!=null)old.Dispose();int merged=r.SourceCount-r.Rows.Count;summary.Text="Loaded DXF: "+Path.GetFileName(sourceBox.Text)+"  ·  "+r.SourceCount+" source rows > "+r.Rows.Count+" output rows, "+r.BeamCount+" beam numbers, "+merged+" duplicate rows merged";status.Text="Preview ready. Review the values or the DXF preview, then Export revised DXF.";}catch(Exception ex){result=null;MessageBox.Show(this,ex.Message,"Preview could not be built",MessageBoxButtons.OK,MessageBoxIcon.Warning);status.Text="Formatting stopped: "+ex.Message;}finally{SetBusy(false,status.Text);}}
  void FillGrid(){grid.Rows.Clear();if(result==null)return;foreach(var r in result.Rows){var vals=new List<object>{r.Mark,r.Cell(0),r.Cell(1)};for(int c=2;c<8;c++)vals.Add(string.Join("\r\n+ ",r.Cells[c].Select(Engine.Format)).Replace("%%C","Ø"));vals.Add(r.Leg);vals.Add(r.Diameter.Replace("%%C","Ø"));vals.Add(r.Spacing);vals.Add(Engine.Format(r.Cell(11)).Replace("%%C","Ø"));vals.Add(string.Join(", ",r.Numbers));grid.Rows.Add(vals.ToArray());}grid.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders);ShowDetails();}
  static string OriginalStirrupDisplay(string raw){
   if(string.IsNullOrWhiteSpace(raw)||raw=="-"||raw=="--")return "-- (blank in source)";
@@ -351,10 +351,10 @@ partial class MainForm:Form {
   if(r.Cantilever)b.AppendLine("CANTILEVER: Spacing applies TO FREE END.");
   detail.Text=b.ToString();
  }
- void ExportFile(){if(!AccessCodes.CanUseApp(1)){MessageBox.Show("Access code required.");return;}if(result==null)return;using(var dialog=new SaveFileDialog{Title="Export revised beam schedule",Filter="AutoCAD DXF (*.dxf)|*.dxf",FileName=prefixBox.Text+" Schedule - Revised.dxf",OverwritePrompt=true}){if(dialog.ShowDialog(this)!=DialogResult.OK)return;if(!AccessCodes.CanUseApp(1)){MessageBox.Show("Access expired. Renew access before exporting.");return;}try{string target=Path.GetFullPath(dialog.FileName);if(string.Equals(target,Path.GetFullPath(analysis.Path),StringComparison.OrdinalIgnoreCase))throw new Exception("Pumili ng bagong filename. Pinapanatili ng app ang original source DXF.");Engine.Export(result,target);status.Text="Saved: "+target;MessageBox.Show(this,"Na-save ang revised DXF.\n\n"+result.Rows.Count+" final groups · "+result.BeamCount+" original beam numbers\n\n"+target,"Export complete",MessageBoxButtons.OK,MessageBoxIcon.Information);}catch(Exception ex){MessageBox.Show(this,ex.Message,"Hindi na-export",MessageBoxButtons.OK,MessageBoxIcon.Error);}}}
+ void ExportFile(){if(!AccessCodes.CanUseApp(1)){MessageBox.Show("Access code required.");return;}if(result==null)return;using(var dialog=new SaveFileDialog{Title="Export revised beam schedule",Filter="AutoCAD DXF (*.dxf)|*.dxf",FileName=prefixBox.Text+" Schedule - Revised.dxf",OverwritePrompt=true}){if(dialog.ShowDialog(this)!=DialogResult.OK)return;if(!AccessCodes.CanUseApp(1)){MessageBox.Show("Access expired. Renew access before exporting.");return;}try{string target=Path.GetFullPath(dialog.FileName);if(string.Equals(target,Path.GetFullPath(analysis.Path),StringComparison.OrdinalIgnoreCase))throw new Exception("Choose a new file name. The app keeps the original source DXF.");Engine.Export(result,target);status.Text="Saved: "+target;MessageBox.Show(this,"Revised DXF saved.\n\n"+result.Rows.Count+" final groups · "+result.BeamCount+" original beam numbers\n\n"+target,"Export complete",MessageBoxButtons.OK,MessageBoxIcon.Information);}catch(Exception ex){MessageBox.Show(this,ex.Message,"Not exported",MessageBoxButtons.OK,MessageBoxIcon.Error);}}}
  void CreateTree(Control c){typeof(Control).GetMethod("CreateControl",BindingFlags.Instance|BindingFlags.NonPublic,null,new[]{typeof(bool)},null).Invoke(c,new object[]{true});c.PerformLayout();foreach(Control child in c.Controls)CreateTree(child);}
  public async Task TestLoad(string path){await LoadFile(path);await BuildAsync();}
- public void RenderForTest(string path,string imagePath){analysis=Engine.Analyze(path);sourceBox.Text=Path.GetFileName(path);prefixBox.Text=analysis.Prefix;floorBox.Text=analysis.Floor;result=Engine.Build(analysis,new Settings{Prefix=analysis.Prefix,Floor=analysis.Floor,Merge=true});FillGrid();summary.Text=result.SourceCount+" source rows  →  "+result.Rows.Count+" final groups  ·  "+result.BeamCount+" beam numbers\n"+(result.SourceCount-result.Rows.Count)+" duplicate rows consolidated  ·  standard template applied";process.Enabled=true;export.Enabled=true;status.Text="Preview ready. I-review ang values o CAD layout, saka Export revised DXF.";typeof(Control).GetMethod("CreateControl",BindingFlags.Instance|BindingFlags.NonPublic,null,new[]{typeof(bool)},null).Invoke(this,new object[]{true});PerformLayout();foreach(Control child in Controls)CreateTree(child);using(var b=new Bitmap(Width,Height)){DrawToBitmap(b,new Rectangle(0,0,Width,Height));b.Save(imagePath);}}
+ public void RenderForTest(string path,string imagePath){analysis=Engine.Analyze(path);sourceBox.Text=Path.GetFileName(path);prefixBox.Text=analysis.Prefix;floorBox.Text=analysis.Floor;result=Engine.Build(analysis,new Settings{Prefix=analysis.Prefix,Floor=analysis.Floor,Merge=true});FillGrid();summary.Text="Loaded DXF: "+Path.GetFileName(sourceBox.Text)+"  ·  "+result.SourceCount+" source rows > "+result.Rows.Count+" output rows, "+result.BeamCount+" beam numbers";process.Enabled=true;export.Enabled=true;status.Text="Preview ready. Review the values or the DXF preview, then Export revised DXF.";typeof(Control).GetMethod("CreateControl",BindingFlags.Instance|BindingFlags.NonPublic,null,new[]{typeof(bool)},null).Invoke(this,new object[]{true});PerformLayout();foreach(Control child in Controls)CreateTree(child);using(var b=new Bitmap(Width,Height)){DrawToBitmap(b,new Rectangle(0,0,Width,Height));b.Save(imagePath);}}
 }
 
 static class Program {
