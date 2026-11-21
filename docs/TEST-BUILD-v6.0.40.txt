@@ -1,0 +1,9 @@
+DTCE Tool Kit v6.0.40 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Slab Formatter; owner: "yung color ng header di parehas"):
+- The slab schedule header uses the Beam Formatter colours: group titles (BOTTOM / TOP REINFORCEMENT, ALONG SHORT / LONG SPAN, OVER
+  LONG / SHORT SUPPORT) in navy bands with white text; column captions (SLAB MARKED, SLAB THICKNESS, FULL LENGTH, CURTAILED,
+  CONTINUOUS SUPPORT, END SUPPORT, DISTRIBUTION) in dark text on the light header, the same font and dividers.
+Checked on Linux/Mono only. Tests: SlabFormatterTests.
+
+Includes v6.0.39 and earlier builds.
