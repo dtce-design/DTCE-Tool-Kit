@@ -6026,7 +6026,8 @@ worksExcelTimer.Tick += async delegate
 				Width = o.Width,
 				Height = o.Height,
 				Quantity = o.Quantity
-			}).ToList(), list);
+			}).ToList(), list, WallUnits, o => manual.All(m => m != o && !string.Equals(m.Id, o.Id, StringComparison.OrdinalIgnoreCase)) && manualOpeningTotals.Contains(o.Id));
+			foreach (OpeningItem m in manual) manualOpeningTotals.Remove(m.Id);
 			WallItem wallItem = FindWall(wallId);
 			if (wallItem != null)
 			{
@@ -6147,7 +6148,7 @@ worksExcelTimer.Tick += async delegate
 					dataGridViewComboBoxColumn.Items.Add(item.Id);
 				}
 				grid.Columns.Add(dataGridViewComboBoxColumn);
-				string[] array = new string[5] { "Description", "Width m", "Height m", "Qty on this wall", "Manual ID" };
+				string[] array = new string[5] { "Description", "Width m", "Height m", "Qty per wall unit", "Manual ID" };
 				foreach (string text in array)
 				{
 					grid.Columns.Add(text, text);
@@ -6281,7 +6282,7 @@ worksExcelTimer.Tick += async delegate
 						double.TryParse(Cell(item3, 2), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
 						double.TryParse(Cell(item3, 3), NumberStyles.Float, CultureInfo.InvariantCulture, out result2);
 						double.TryParse(Cell(item3, 4), NumberStyles.Float, CultureInfo.InvariantCulture, out result3);
-						double num6 = ((Cell(item3, 0) == "(none)") ? 0.0 : (result * result2 * result3));
+						double num6 = ((Cell(item3, 0) == "(none)") ? 0.0 : (result * result2 * result3 * WallUnits(wallId)));
 						item3.Cells[6].Value = num6.ToString("0.00");
 						num5 += num6;
 						OpeningItem source;
@@ -6297,7 +6298,7 @@ worksExcelTimer.Tick += async delegate
 									num8 += result4;
 								}
 							}
-							item3.Cells[7].Value = (double)(source.Quantity - num7) - num8;
+							item3.Cells[7].Value = (double)(source.Quantity - num7) - num8 * WallUnits(wallId);
 							item3.Cells[7].Style.ForeColor = (((double)(source.Quantity - num7) - num8 < 0.0) ? Color.Firebrick : PowTheme.Ink);
 						}
 						else
@@ -6947,7 +6948,8 @@ worksExcelTimer.Tick += async delegate
 				}
 				try
 				{
-					wallOpenings.AddRange(OpeningLinks.Resolve(openings, openingAssignments));
+					ConvertLegacyOpeningTotals();
+					wallOpenings.AddRange(OpeningLinks.Resolve(openings, openingAssignments, WallUnits, o => manualOpeningTotals.Contains(o.Id)));
 				}
 				catch (Exception ex2)
 				{
@@ -7558,7 +7560,7 @@ worksExcelTimer.Tick += async delegate
 				}
 			}
 			finishTypeCells.Write(xmlElement);
-			OpeningLinks.Write(xmlElement, openingAssignments);
+			OpeningLinks.Write(xmlElement, openingAssignments, manualOpeningTotals);
 			BackupBill.Write(xmlElement, backupBill);
 			WriteBackupBillRoutes(xmlElement);
 			WriteSchedule(xmlElement);
@@ -7799,6 +7801,7 @@ worksExcelTimer.Tick += async delegate
 				finishTypeCells = finishTypeRegistry;
 				openingAssignments.Clear();ClearParkedWallOpenings();
 				openingAssignments.AddRange(collection);
+				legacyOpeningTotals = OpeningLinks.Legacy(xmlDocument.DocumentElement); manualOpeningTotals = OpeningLinks.ManualTotals(xmlDocument.DocumentElement);
 				foreach (KeyValuePair<string, DataGridView> item3 in Tables())
 				{
 					XmlElement xmlElement3 = xmlDocument.DocumentElement[item3.Key];
@@ -8533,7 +8536,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 			foreach (var link in openingAssignments.Where(x => string.Equals(x.Schedule, id, StringComparison.OrdinalIgnoreCase)))
 			{
 				double t = thickness(link.Wall) ?? rest;
-				int q; groups.TryGetValue(t, out q); groups[t] = q + link.Quantity; assignedUnits += link.Quantity;
+				int n = link.Total ? link.Quantity : link.Quantity * WallUnits(link.Wall); int q; groups.TryGetValue(t, out q); groups[t] = q + n; assignedUnits += n;
 			}
 			int units = 0; int.TryParse(Cell(row, 6), NumberStyles.Integer, CultureInfo.InvariantCulture, out units);
 			if (units > assignedUnits) { int q; groups.TryGetValue(rest, out q); groups[rest] = q + units - assignedUnits; }

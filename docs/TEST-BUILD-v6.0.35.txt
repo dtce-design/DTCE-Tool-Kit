@@ -1,0 +1,15 @@
+DTCE Tool Kit v6.0.35 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Masonry openings; owner: Wall Qty 2 with opening Qty 1 means 2 openings; chose "per wall unit"):
+- The opening quantity of a wall (Door & Window Schedule links and manual openings) now counts per unit of the wall group:
+  Wall Qty 2 x opening Qty 1 = 2 openings deducted from the CHB, 2 lintels, and 2 units taken from the schedule quantity. The
+  openings dialog column is "Qty per wall unit"; its area and the units left in the schedule follow the Wall Qty.
+- The schedule quantity is checked against Qty per wall unit x Wall Qty (message shows the units needed).
+- Jamb depth groups of an opening ID used in walls of different thickness count the same units.
+- Files saved before: an opening total is divided by the Wall Qty where it divides evenly (same quantities as before); where it
+  does not, it is kept as the total for the group (saved that way until edited in the wall's openings).
+- Schedule rows with a Wall ID typed directly (older way) keep their schedule quantity.
+Checked on Linux/Mono only. Tests: OpeningLintelTests (17), OpeningJambAutoTests, UnlinkedFinishTests, WallDxfImportTests,
+UpdateAndQuantityTests.
+
+Includes v6.0.34 and earlier builds.
