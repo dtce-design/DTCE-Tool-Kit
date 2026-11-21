@@ -186,6 +186,10 @@ Certification is not guaranteed. v6.0.49 and later need a new explicit request.
 Owner (21 November 2026, "Iupload sa apple store app"): upload the native iPhone app (DTCE Access Admin, ios/) to App Store
 Connect: run the workflow on main with publish_ios=true (publish_microsoft_store stays false). This authorizes this upload only;
 App Store review submission/release in App Store Connect and later iPhone uploads need a new explicit request. Pages stays off.
+Done 21 November 2026: 1.1.0 was refused (version already approved, train closed), so the iPhone app is now 1.1.1 (PR #14).
+Run 44913008843 (Windows build job re-run once after the EarthworkFootingTests exit code, all 124 checks passed): DTCE Access Admin
+1.1.1 build 239.2 uploaded; App Store Connect processing VALID (available for TestFlight). Not submitted for App Store review.
+Apple warned that from April 2027 iPhone apps must be built with the iOS 27 SDK (Xcode 27) or later.
 
 ## Program of Works name (20 November 2026)
 
