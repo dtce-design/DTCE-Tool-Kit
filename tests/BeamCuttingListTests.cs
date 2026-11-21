@@ -10,7 +10,7 @@ class BeamCuttingListTests {
  [STAThread]static void Main(){
   var cfg=CalculationStore.All().First(c=>c.Name.Contains("FC28")&&c.Name.Contains("G40/G60"));var row=Row();Func<string,BeamRow> find=m=>m=="B-1"?row:null;
   Func<bool[],List<CutSpan>> line=include=>new List<CutSpan>{new CutSpan{Line="B1",Mark="B-1",Ln=6,LeftSupport=.4,RightSupport=.4,Slab=.1,Include=include[0]},new CutSpan{Line="B1",Mark="B-1",Ln=7,LeftSupport=.4,RightSupport=.4,Slab=.1,Include=include[1]},new CutSpan{Line="B1",Mark="B-1",Ln=6,LeftSupport=.4,RightSupport=.4,Slab=.1,Include=include[2]}};
-  var s=new CutSettings{Config=cfg};var r=BeamCutting.Build(line(new[]{true,true,true}),find,s);
+  /* the original checks use stirrup end zones of 25% of Ln */var s=new CutSettings{Config=cfg,ShearZones=false};var r=BeamCutting.Build(line(new[]{true,true,true}),find,s);
   Check(r.Errors.All(e=>!e.Contains("splice zone")),"continuous bars find splice zones: "+string.Join(" | ",r.Errors));
   double total=4*.4+19,cover=.04;
   foreach(var group in new[]{new{Top=true,Dia=20,Count=2},new{Top=false,Dia=16,Count=2}}){var pieces=r.Pieces.Where(p=>p.Location.Contains("continuous")&&p.Diameter==group.Dia&&p.Top==group.Top).ToList();Check(pieces.Count>=2&&pieces.All(p=>p.PerLine==group.Count),(group.Top?"top":"bottom")+" continuous bars are spliced pieces of the smallest count");
@@ -20,7 +20,7 @@ class BeamCuttingListTests {
   var topExtra=r.Pieces.Where(p=>p.Location.StartsWith("Top extra over support")).ToList();Check(topExtra.Count==2&&topExtra.All(p=>p.PerLine==2),"two interior supports with 2 extra top bars each");Near(topExtra[0].Length,6/4.0+.4+7/4.0+2*BeamCutting.Ld(s,20,true),"POW standard: extra top bar = L/4 + support + L/4 + Ld at both cut ends");
   var exterior=r.Pieces.Where(p=>p.Location.StartsWith("Top extra at support")).ToList();Check(exterior.Count==2&&exterior.All(p=>p.PerLine==2&&p.Shape.Contains("hook")),"exterior supports get hooked extra top bars");
   var bottom=r.Pieces.Where(p=>p.Location.StartsWith("Bottom extra, span")).ToList();Check(bottom.Count==3&&bottom.All(p=>p.PerLine==1),"one extra bottom bar per span");Near(bottom[1].Length,7*2/3.0+2*BeamCutting.Ld(s,16,false),"POW standard: bottom extra from L/6 off each face + Ld at both cut ends");
-  var none=BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg,Allowance=0});Near(none.Pieces.First(p=>p.Location.StartsWith("Bottom extra, span 2")).Length,7*2/3.0,"no allowance: 2/3 L only");
+  var none=BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg,Allowance=0,ShearZones=false});Near(none.Pieces.First(p=>p.Location.StartsWith("Bottom extra, span 2")).Length,7*2/3.0,"no allowance: 2/3 L only");
   var est=r.Spans;Check(est.Count==3,"three span estimates");Check(est[0].Ties==15+15+16,"6 m span stirrups: 15 + 15 + 16 sets ("+est[0].Ties+")");
   Near(est.Sum(e=>e.Kg),r.Pieces.Sum(p=>p.Kg),"all steel is shared to the spans");
   /* owner (20 November 2026, "again yung bend sa lap zone"): the bar entering a lap is cranked there, A = the lap length */
@@ -37,7 +37,7 @@ class BeamCuttingListTests {
    var dowels=part.Pieces.Where(p=>p.Location.Contains("dowel (abang) into span 2")).ToList();Check(dowels.Count>0,"unticked span: dowels into it");
    Check(dowels.All(p=>{double lap=BeamCutting.SpliceLap(s,p.Diameter,p.Top);bool fromLeft=p.Start<g2.FaceLeft[1];return fromLeft?Math.Abs(p.End-(g2.FaceLeft[1]+lap))<1e-6:Math.Abs(p.Start-(g2.FaceRight[1]-lap))<1e-6;}),"dowels reach one Class B lap past the face");
    Check(!part.Pieces.Any(p=>p.Start>g2.FaceLeft[1]+1e-6&&p.End<g2.FaceRight[1]-1e-6),"nothing else inside the unticked span");Check(g2.Included!=null&&!g2.Included[1],"geometry marks the span left out");}
-  var ordinary=BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg,SpecialMomentFrame=false});foreach(var c in ordinary.Splices.Where(c=>c.Diameter==20)){double face=.4+(c.Span==1?0:c.Span==2?6.4:13.8),ln=c.Span==2?7:6;Check(c.From>=face+ln/3-1e-9&&c.To<=face+2*ln/3+1e-9,"ordinary frame: top laps in the middle third");}
+  var ordinary=BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg,SpecialMomentFrame=false,ShearZones=false});foreach(var c in ordinary.Splices.Where(c=>c.Diameter==20)){double face=.4+(c.Span==1?0:c.Span==2?6.4:13.8),ln=c.Span==2?7:6;Check(c.From>=face+ln/3-1e-9&&c.To<=face+2*ln/3+1e-9,"ordinary frame: top laps in the middle third");}
   var bad=line(new[]{true,true,true});bad[1].LeftSupport=.5;Check(BeamCutting.Build(bad,find,s).Errors.Any(e=>e.Contains("same support")),"different widths for one support are reported");
   var shortBar=BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg,MaxBar=6});Check(shortBar.Pieces.All(p=>p.Length<=6+1e-9||p.Shape=="REVIEW")||shortBar.Errors.Count>0,"6 m bars: pieces fit or the line is flagged");
   Check(BeamCutting.Report(r,s,line(new[]{true,true,true})).Contains("SPLICE ZONE CHECK"),"report");
@@ -88,5 +88,14 @@ class BeamCuttingListTests {
   {var mid=new BeamRow{Mark="BT"};string[] v={"300","500","2-#16","2-#16","2-#16","2-#20","4-#20","2-#20","1-2L-#10@100 C/C","1-2L-#10@200 C/C","1-2L-#10@100 C/C","--","--","--"};for(int i=0;i<14;i++)mid.Cells[i].Add(v[i]);var ms=new CutSettings{Config=cfg};
    var mr=BeamCutting.Build(new System.Collections.Generic.List<CutSpan>{new CutSpan{Line="M1",Mark="BT",Ln=6,LeftSupport=.4,RightSupport=.4,Slab=.1,Include=true}},m=>mid,ms);var te=mr.Pieces.Where(p=>p.Location.StartsWith("Top extra, midspan")).ToList();
    Check(te.Count==1&&te[0].PerLine==2&&Math.Abs(te[0].Length-(3+2*BeamCutting.EndAllowance(ms,20,true,2)))<1e-9,"top bars in the middle only: central L/2 + cut-end allowance");}
+  /* short spans (2h zones narrower than the lap): the top bars stay complete, lapped and cranked at midspan, the lap reported NG */
+  {var deep=new BeamRow{Mark="BD"};string[] v={"400","800","5-#12","5-#12","5-#12","5-#16","3-#16","5-#16","1-2L-#10@70 C/C","1-2L-#10@120 C/C","1-2L-#10@70 C/C","--","--","--"};for(int i=0;i<14;i++)deep.Cells[i].Add(v[i]);var ds=new CutSettings{Config=cfg};
+   var line5=Enumerable.Range(0,5).Select(i=>new CutSpan{Line="D1",Mark="BD",Ln=4,LeftSupport=.5,RightSupport=.5,Slab=.1,Include=true}).ToList();var dr=BeamCutting.Build(line5,m=>deep,ds);
+   var tc=dr.Pieces.Where(p=>p.Top&&p.Location.Contains("continuous")).OrderBy(p=>p.Start).ToList();Check(tc.Count>=2&&Math.Abs(tc.Last().End-(dr.Geometry[0].Total-ds.Cover/1000))<1e-6&&tc.Zip(tc.Skip(1),(x,y)=>y.Start<x.End).All(b=>b),"short spans: the top continuous bars reach the far end with laps");
+   Check(tc.Skip(1).All(p=>p.ShapeCode.StartsWith("CRANK"))&&dr.Splices.Any(c=>c.Diameter==16&&!c.Ok&&c.Note.Contains("mechanical")),"short spans: laps cranked, reported NG with the mechanical splice advice");}
+  /* stirrup end zones as the beam curtailment shear zones: ductile D x 2, non-ductile L / 3 */
+  {var shr=BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg});var shrRow=find("B-1");double h2=2*double.Parse(shrRow.Cell(1),System.Globalization.CultureInfo.InvariantCulture)/1000;
+   Check(Math.Abs(BeamCutting.EndZoneLength(shrRow,6,new CutSettings{Config=cfg})-Math.Min(h2,3))<1e-9&&Math.Abs(BeamCutting.EndZoneLength(shrRow,6,new CutSettings{Config=cfg,SpecialMomentFrame=false})-2)<1e-9,"end zones: ductile 2h, non-ductile L/3");
+   Check(!shr.Errors.Any(e=>e.Contains("end stirrup zone")),"2h end zones need no end-zone warning");}
   Console.WriteLine("PASS: "+checks+" beam cutting list checks");}
 }

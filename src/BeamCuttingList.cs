@@ -17,7 +17,7 @@ namespace BeamScheduleFormatter {
 class CutSpan {public string Line="",Mark="";public double Ln,LeftSupport,RightSupport,Slab;public bool Include=true;public int Quantity=1;}
 class CutSettings {
  /* cut lengths rounded up to this step in mm (owner, 20 November 2026: "option yung cutting by 5 or by 25mm or input"); 0 = exact */public double CutRounding;
- public LengthConfiguration Config;public double Cover=40,MaxBar=12,EndZone=.25,TopExtension=.25,BottomCut=1.0/6,TieOffset=.05,HookFactor=6;
+ public LengthConfiguration Config;/* stirrup end zones as the beam curtailment shear zones (owner, 20 November 2026: Curtailment Settings - ductile D x 2, non-ductile L / 3); false = EndZone of the span */public bool ShearZones=true;public double Cover=40,MaxBar=12,EndZone=.25,TopExtension=.25,BottomCut=1.0/6,TieOffset=.05,HookFactor=6;
  /* curtailment standard of the Program of Works beam estimate (owner, 19 November 2026: "Yung curtail kunin yung standard sa pow"):
     extra top bars L/4 past the support face, extra bottom bars from L/6 off each face, plus the POW main piece allowance at cut ends -
     0 none, 1 Ld at both piece ends, 2 one lap per piece, 3 hook Ldh / cut-end Ld */
@@ -52,6 +52,7 @@ static class BeamCutting {
  internal sealed class TieZone {public double From,To,Spacing,First;public int Count,Legs,Dia;public string Name;}
  /* stirrup zones of one span measured from the left face: the left / middle / right cells of a manual schedule, or the
     "1-50mm, n-s mm, REST AT r mm C/C" spacing of a formatted (revised) schedule */
+ internal static double EndZoneLength(BeamRow row,double ln,CutSettings s){double len=ln*s.EndZone;if(s.ShearZones){double h;if(s.SpecialMomentFrame&&row!=null&&double.TryParse(row.Cell(1),NumberStyles.Float,Inv,out h)&&h>0)len=2*h/1000;else if(!s.SpecialMomentFrame)len=ln/3;}return Math.Min(len,ln/2);}
  static List<TieZone> TieZones(BeamRow row,double ln,CutSettings s){var list=new List<TieZone>();
   if(!string.IsNullOrEmpty(row.RevisedSpacing)){var leg=Regex.Match(row.Leg??"",@"^(\d+)L$");var dm=Regex.Match(Engine.Normal(row.Diameter??"").Replace("#","O").Replace("Ø","O"),@"^O(\d+)$");if(!leg.Success||!dm.Success)throw new Exception(row.Mark+": mixed or unknown stirrup legs / diameter; a project tie detail is needed.");int legs=int.Parse(leg.Groups[1].Value),dia=int.Parse(dm.Groups[1].Value);
    var m=Regex.Match(row.RevisedSpacing,@"^1\s*-\s*(?<first>\d+)\s*mm,\s*(?:(?<n>\d+)\s*-\s*(?<s>\d+)mm,?\s+)?(?:AND\s+)?REST\s+AT\s+(?<rest>\d+)\s*mm,?\s+(?<end>C/C|TO FREE END)$",RegexOptions.IgnoreCase);int nl=0,nr=0;double sl=0,sr=0,rest,first;
@@ -60,7 +61,7 @@ static class BeamCutting {
    if(rest<=0||first<=0)throw new Exception(row.Mark+": invalid stirrup spacing.");double a=first+nl*sl,b=ln-first-nr*sr;if(b<a)throw new Exception(row.Mark+": the end stirrup groups do not fit the "+F(ln)+" m span.");
    list.Add(new TieZone{Name="left",From=0,To=a,Spacing=nl>0?sl:rest,Count=1+nl,Legs=legs,Dia=dia,First=first});list.Add(new TieZone{Name="middle",From=a,To=b,Spacing=rest,Count=Math.Max(0,(int)Math.Ceiling((b-a)/rest-1e-10)-1),Legs=legs,Dia=dia});list.Add(new TieZone{Name="right",From=b,To=ln,Spacing=nr>0?sr:rest,Count=1+nr,Legs=legs,Dia=dia});return list;}
   var ties=Enumerable.Range(8,3).Select(c=>ParseTie(row.Cell(c))).ToArray();if(ties.All(t=>t==null))throw new Exception(row.Mark+": no stirrup spacing in the schedule.");if(ties[0]==null)ties[0]=ties[1]??ties[2];if(ties[2]==null)ties[2]=ties[1]??ties[0];if(ties[1]==null)ties[1]=ties[0].Spacing<=ties[2].Spacing?ties[0]:ties[2];
-  double off=s.TieOffset;double[] bounds={off,ln*s.EndZone,ln*(1-s.EndZone),ln-off};if(bounds[1]<bounds[0])throw new Exception("The end zone is shorter than the first stirrup offset.");string[] names={"left","middle","right"};
+  double off=s.TieOffset,end=EndZoneLength(row,ln,s);double[] bounds={off,end,ln-end,ln-off};if(bounds[1]<bounds[0])throw new Exception("The end zone is shorter than the first stirrup offset.");string[] names={"left","middle","right"};
   for(int z=0;z<3;z++){var t=ties[z];list.Add(new TieZone{First=z==0?off:0,Name=names[z],From=z==0?0:bounds[z],To=z==2?ln:bounds[z+1],Spacing=t.Spacing,Count=(int)Math.Ceiling(Math.Max(0,bounds[z+1]-bounds[z])/t.Spacing-1e-10)+(z==2?1:0),Legs=t.Legs,Dia=t.Dia});}return list;}
  sealed class Geo {public List<CutSpan> Spans;public double[] SupportStart,SupportWidth,FaceLeft,FaceRight;public double Total;public BeamRow[] Rows;public double[] Width,Depth;}
  static int Count(Dictionary<int,int> bars,int dia){int n;return bars.TryGetValue(dia,out n)?n:0;}
@@ -73,7 +74,7 @@ static class BeamCutting {
  public static CutResult Build(IEnumerable<CutSpan> rows,Func<string,BeamRow> schedule,CutSettings s){
   var result=new CutResult();if(s.Config==null)throw new Exception("Choose a Splice, Development & Hooks configuration.");s.Config.Validate();
   if(s.Stocks==null||s.Stocks.Count==0)throw new Exception("Choose at least one commercial bar length.");if(!s.Stocks.Contains(s.MaxBar))throw new Exception("The longest bar to use must be one of the commercial lengths.");
-  if(s.EndZone<=0||s.EndZone>=.5)throw new Exception("End zone must be more than 0% and less than 50% of the span.");if(s.Cover<=0||s.Cover>150)throw new Exception("Cover must be more than 0 and up to 150 mm.");
+  if(!s.ShearZones&&(s.EndZone<=0||s.EndZone>=.5))throw new Exception("End zone must be more than 0% and less than 50% of the span.");if(s.Cover<=0||s.Cover>150)throw new Exception("Cover must be more than 0 and up to 150 mm.");
   var lines=new List<List<CutSpan>>();foreach(var row in rows){if(row==null)continue;if(lines.Count==0||!string.Equals(lines[lines.Count-1][0].Line,row.Line,StringComparison.OrdinalIgnoreCase))lines.Add(new List<CutSpan>());lines[lines.Count-1].Add(row);}
   var seen=new HashSet<string>(StringComparer.OrdinalIgnoreCase);foreach(var line in lines)if(!seen.Add(line[0].Line))result.Errors.Add("Beam line "+line[0].Line+": its spans must be listed together, one after the other.");
   if(result.Errors.Count>0)return result;
@@ -141,7 +142,7 @@ static class BeamCutting {
    foreach(var t in zones){if(t.Count<=0)continue;var shape=HookGeometry.TieParts(g.Width[j]*1000,g.Depth[j]*1000,t.Dia,t.Legs,o);estimates[j].Ties+=t.Count*lineQty;double a=g.FaceLeft[j]+t.From,b2=g.FaceLeft[j]+t.To;
     add(new CutPiece{BarMark=nextMark(),Location="Stirrups, span "+(j+1)+" "+t.Name+" ("+t.Legs+"L @ "+(t.Spacing*1000).ToString("0",Inv)+" mm)",Diameter=t.Dia,PerLine=t.Count,Length=shape.MainHoop,Start=a,End=b2,Shape="Hoop, 135° hooks",SecB=g.Width[j]*1000,SecH=g.Depth[j]*1000,Span=j+1});
     if(t.Legs>2)add(new CutPiece{BarMark=nextMark(),Location="Crossties, span "+(j+1)+" "+t.Name,Diameter=t.Dia,PerLine=t.Count*(t.Legs-2),Length=shape.AdditionalLeg,Start=a,End=b2,Shape="Crosstie 90°/135°",SecB=g.Width[j]*1000,SecH=g.Depth[j]*1000,Span=j+1});}
-   if(s.SpecialMomentFrame&&string.IsNullOrEmpty(row.RevisedSpacing)){double need=2*g.Depth[j];if(ln*s.EndZone+1e-9<need)result.Errors.Add("Beam line "+id+" span "+(j+1)+": the end stirrup zone ("+F(ln*s.EndZone)+" m) is shorter than 2h = "+F(need)+" m (NSCP 418.6.4.1).");if(s.TieOffset>.05+1e-9)result.Errors.Add("Beam line "+id+": first hoop is more than 50 mm from the support face (NSCP 418.6.4.4).");}}
+   if(s.SpecialMomentFrame&&string.IsNullOrEmpty(row.RevisedSpacing)){double need=2*g.Depth[j],endLen=EndZoneLength(row,ln,s);if(endLen+1e-9<need&&endLen<ln/2-1e-9)result.Errors.Add("Beam line "+id+" span "+(j+1)+": the end stirrup zone ("+F(endLen)+" m) is shorter than 2h = "+F(need)+" m (NSCP 418.6.4.1).");if(s.TieOffset>.05+1e-9)result.Errors.Add("Beam line "+id+": first hoop is more than 50 mm from the support face (NSCP 418.6.4.4).");}}
   /* layer spacer bars (owner, 19 November 2026: "Sa BBS sinama mo ba yung bar spacer? If may 2 layers ganon. Kasi 25mm yun e"):
      where the bars of a face need two or more layers, Ø25 spacer bars across the beam between the layers at the set spacing;
      lapped pieces of one bar count once (contact laps lie side by side) */
@@ -213,7 +214,7 @@ static class BeamCutting {
   double p=xs;int piece=0;
   while(true){bool firstPiece=piece==0;double startHook=firstPiece?hook:0;
    if(xe-p+startHook+hook<=s.MaxBar+1e-9){add(new CutPiece{BarMark=barMark+(piece>0?"."+(piece+1):""),Location=face+" continuous "+(piece==0?"(one length)":"(last piece)"),Diameter=dia,Top=top,PerLine=count,Length=xe-p+startHook+hook,Start=p,End=xe,Shape=firstPiece?"90° hooks both ends":"Cranked lap splice, 90° hook one end",LapMm=firstPiece?0:lap*1000});break;}
-   double reach=p+s.MaxBar-startHook;double best=double.NaN;double[] chosen=null;bool preferred=true;
+   double reach=p+s.MaxBar-startHook;double best=double.NaN;double[] chosen=null;bool preferred=true,forced=false;
    /* lap position (owner, 19 November 2026: "Sure ka sa mga lap location?"): special moment frames - top bars lapped about midspan,
       bottom bars near the ends of the allowed zone (just outside 2h, away from the midspan positive moment); the farthest such
       position within reach of the bar is used. Only when none fits is the lap put at the farthest allowed point (flagged). */
@@ -221,6 +222,11 @@ static class BeamCutting {
     if(top)cands.Add(Math.Max(z[0],Math.Min(limit-lap,mid-lap/2)));else{if(z[1]<=reach+1e-9)cands.Add(z[1]-lap);cands.Add(z[0]);}
     foreach(double c in cands){if(c+1e-9<z[0]||c+lap>limit+1e-9||c<=p+lap)continue;if(double.IsNaN(best)||c>best){best=c;chosen=z;}}}
    if(chosen==null){preferred=!s.SpecialMomentFrame;foreach(var z in zones){double end=Math.Min(z[1],reach);double start=end-lap;if(start+1e-9<z[0]||start<=p+lap)continue;if(double.IsNaN(best)||start>best){best=start;chosen=z;}}}
+   /* no allowed zone can take the lap (owner, 20 November 2026: "bat sa top walang cranked bars" - a short span with 2h zones
+      leaves less room than the Class B lap): the lap goes to midspan of the farthest span within reach, still cranked, so the line
+      keeps all its bars; the splice check reports it NG (Type 2 mechanical splices or a longer bar) */
+   if(chosen==null){for(int j=0;j<n;j++){double mid=(g.FaceLeft[j]+g.FaceRight[j])/2,st=mid-lap/2;if(st<=p+lap||st+lap>reach+1e-9)continue;if(double.IsNaN(best)||st>best){best=st;chosen=new double[]{g.FaceLeft[j],g.FaceRight[j],j};}}
+    if(chosen!=null){forced=true;preferred=false;result.Errors.Add("Beam line "+g.Spans[0].Line+" "+face.ToLowerInvariant()+" "+dia+" mm: the lap ("+F(lap)+" m) does not fit an allowed splice zone; lapped at midspan of span "+((int)chosen[2]+1)+" - use Type 2 mechanical splices or a longer bar there.");}}
    if(chosen==null){result.Errors.Add("Beam line "+g.Spans[0].Line+" "+face.ToLowerInvariant()+" "+dia+" mm: no allowed splice zone within reach of a "+s.MaxBar.ToString("0.##",Inv)+" m bar from "+F(p)+" m (lap "+F(lap)+" m). Use a longer bar or review the splice zones.");add(new CutPiece{BarMark=barMark+"."+(piece+1),Location=face+" continuous (NO VALID SPLICE)",Diameter=dia,Top=top,PerLine=count,Length=Math.Min(s.MaxBar,xe-p+startHook),Start=p,End=Math.Min(xe,reach),Shape="REVIEW"});break;}
    int span=(int)chosen[2];add(new CutPiece{BarMark=barMark+"."+(piece+1),Location=face+" continuous piece "+(piece+1)+" (lap in span "+(span+1)+")",Diameter=dia,Top=top,PerLine=count,Length=best+lap-p+startHook,Start=p,End=best+lap,Shape=firstPiece?"90° hook one end":"Cranked lap splice",LapMm=firstPiece?0:lap*1000});
    var check=new CutSplice{Line=g.Spans[0].Line,Bar=barMark,Diameter=dia,Span=span+1,From=best,To=best+lap,Lap=lap,ZoneFrom=chosen[0],ZoneTo=chosen[1],Ok=true,Status="OK"};
@@ -234,6 +240,7 @@ static class BeamCutting {
     else check.Note="Hoops over the lap at "+(worst*1000).ToString("0",Inv)+" mm <= "+(limit*1000).ToString("0",Inv)+" mm.";
     check.Note+=" Class B lap, "+(top?"top":"bottom")+(preferred?(top?" bars about midspan.":" bars just outside 2h, away from midspan."):" - no preferred position within reach: lapped at the farthest allowed point; consider a longer bar or a coupler.");}
    else check.Note=top?"Top bars spliced in the middle third.":"Bottom bars spliced over the interior support.";
+   if(forced){check.Ok=false;check.Status="NG";check.ZoneFrom=check.ZoneTo=0;check.Note="Lap longer than the allowed splice zone (NSCP 418.6.3.3: not within 2h of the faces) - lapped at midspan; use Type 2 mechanical splices or a longer bar. "+check.Note;}
    result.Splices.Add(check);p=best;piece++;if(piece>200)throw new Exception("Too many splices; check the span lengths.");}
  }
  /* POW main piece allowance at the cut ends of a curtailed bar (per end), the same choices as the beam estimate */
@@ -261,7 +268,7 @@ static class BeamCutting {
  internal static string ShapeName(string code){switch(code){case "CRANK":return "Cranked bar at lap splice";case "CRANKHOOK":return "Cranked at lap, 90° hook other end";case "HOOK1":return "L-bar (90° hook one end)";case "HOOK2":return "U-bar (90° hooks both ends)";case "HOOP":return "Closed hoop, 135° hooks";case "CROSSTIE":return "Crosstie 135° / 90°";default:return "Straight";}}
  internal static int GradeOf(LengthConfiguration c,int dia){if(dia<=12)return c.GradeSmall;if(dia>=16)return c.GradeLarge;throw new Exception("13-15 mm bars need a project-specific grade.");}
  public static string Report(CutResult r,CutSettings s,IEnumerable<CutSpan> spans){var b=new StringBuilder();
-  b.AppendLine("BEAM CUTTING LIST AND ESTIMATE");b.AppendLine();b.AppendLine("## 01  BASIS");foreach(var note in r.Notes)b.AppendLine(note);b.AppendLine("Cover "+s.Cover.ToString("0",Inv)+" mm; longest bar "+s.MaxBar.ToString("0.##",Inv)+" m; commercial lengths "+CommercialBars.FormatLengths(s.Stocks)+" m; stirrup end zones "+(s.EndZone*100).ToString("0.#",Inv)+"% of the clear span.");b.AppendLine();
+  b.AppendLine("BEAM CUTTING LIST AND ESTIMATE");b.AppendLine();b.AppendLine("## 01  BASIS");foreach(var note in r.Notes)b.AppendLine(note);b.AppendLine("Cover "+s.Cover.ToString("0",Inv)+" mm; longest bar "+s.MaxBar.ToString("0.##",Inv)+" m; commercial lengths "+CommercialBars.FormatLengths(s.Stocks)+" m; stirrup end zones "+(s.ShearZones?(s.SpecialMomentFrame?"2h (ductile, D x 2)":"L / 3 (non-ductile)"):(s.EndZone*100).ToString("0.#",Inv)+"% of the clear span")+" where the schedule gives no spacing text.");b.AppendLine();
   b.AppendLine("## 02  BEAM LINES");b.AppendLine("Line      Span  Mark        Ln (m)   Left supp (mm)  Right supp (mm)  Slab (mm)  Qty  In estimate");foreach(var sp in spans)b.AppendLine(sp.Line.PadRight(10)+"".PadRight(6)+sp.Mark.PadRight(12)+F(sp.Ln).PadRight(9)+(sp.LeftSupport*1000).ToString("0",Inv).PadRight(16)+(sp.RightSupport*1000).ToString("0",Inv).PadRight(17)+(sp.Slab*1000).ToString("0",Inv).PadRight(11)+sp.Quantity.ToString(Inv).PadRight(5)+(sp.Include?"Yes":"No"));b.AppendLine();
   if(r.Errors.Count>0){b.AppendLine("## 03  REVIEW REQUIRED");foreach(var e in r.Errors)b.AppendLine("- "+e);b.AppendLine();}
   b.AppendLine("## 04  SPLICE ZONE CHECK");b.AppendLine("Line      Bar          Dia  Span  Lap from-to (m)      Allowed zone (m)     Lap (m)  Result");foreach(var c in r.Splices)b.AppendLine(c.Line.PadRight(10)+c.Shown.PadRight(13)+c.Diameter.ToString(Inv).PadRight(5)+c.Span.ToString(Inv).PadRight(6)+(F(c.From)+" - "+F(c.To)).PadRight(21)+(F(c.ZoneFrom)+" - "+F(c.ZoneTo)).PadRight(21)+F(c.Lap).PadRight(9)+c.Status+"  "+c.Note);if(r.Splices.Count==0)b.AppendLine("No splices: every continuous bar fits one length.");b.AppendLine();
