@@ -39,5 +39,12 @@ class OpeningLintelTests {
    var root=new System.Xml.XmlDocument().CreateElement("P");root.OwnerDocument.AppendChild(root);OpeningLinks.Write(root,new[]{new OpeningLink{Wall="W9",Schedule="X",Quantity=2}});var again=OpeningLinks.Read(root);Check(!again[0].Total&&!OpeningLinks.Legacy(root),"new files are per wall unit");}
   var auto=(CheckBox)t.GetField("autoLintels",F).GetValue(pow);auto.Checked=false;t.GetMethod("Recalculate",F,null,Type.EmptyTypes,null).Invoke(pow,null);
   Check(!((System.Collections.Generic.List<MiscStructureQuantity>)t.GetField("miscQuantities",F).GetValue(pow)).Any(q=>q.Kind==LintelSchedule.Kind),"turned off: no automatic lintels");
+  /* RC wall side B bars (owner, 21 November 2026) and insulation roll defaults 1 m x 50 m */
+  {var b1=new FootingBarSpec{Diameter=12,Spacing=200};var b2=new FootingBarSpec{Diameter=12,Spacing=250};var cfgW=CalculationStore.Resolve(21,40,275,40,275);
+   var same=RCWallTakeoff.Calculate("W","x",5,3,200,1,25,2,b1,b2,0,0,2,0,false,cfgW);var diff=RCWallTakeoff.Calculate("W","x",5,3,200,1,25,2,b1,b2,0,0,2,0,false,cfgW,new FootingBarSpec{Diameter=16,Spacing=150},null);
+   Check(same.Steel.Result.Lines.Count==4&&Math.Abs(same.Steel.Result.Lines.Sum(l=>l.Kg)-2*RCWallTakeoff.Calculate("W","x",5,3,200,1,25,1,b1,b2,0,0,2,0,false,cfgW).Steel.Result.Lines.Sum(l=>l.Kg))<1e-6,"two layers without side B input = side A twice");
+   var vb=diff.Steel.Result.Lines.Single(l=>l.Part=="VERTICAL / side B");Check(vb.Diameter==16&&vb.PiecesPerBeam==(int)Math.Ceiling((5-0.05-0.016)/0.15-1e-10)+1,"side B vertical bars with their own diameter and spacing");
+   Check(diff.Steel.Result.Lines.Single(l=>l.Part=="HORIZONTAL / side B").Diameter==12,"side B horizontal blank = as side A");
+   var ins=(DataGridView)t.GetField("insulationRolls",F).GetValue(pow);Check(ins.Rows.Cast<DataGridViewRow>().All(ir=>Convert.ToString(ir.Cells[1].Value)=="1"&&Convert.ToString(ir.Cells[2].Value)=="50"),"insulation rolls 1 m x 50 m by default");}
   Console.WriteLine("PASS: "+checks+" automatic lintel checks");pow.Dispose();}
 }

@@ -2475,7 +2475,7 @@ namespace BeamScheduleFormatter
 			string[] insulationTypes = InsulationTypes;
 			foreach (string text in insulationTypes)
 			{
-				insulationRolls.Rows.Add(text, "", "", "");
+				insulationRolls.Rows.Add(text, "1", "50", ""); /* supplier roll 1 m x 50 m by default (owner, 21 November 2026: "gawin roll width 1 m length 50m") */
 			}
 			TabPage tabPage = tabs.TabPages.Cast<TabPage>().First((TabPage p) => p.Text == "Roofing Start");
 			TabPage tabPage2 = new TabPage("Roof profiles");
@@ -2580,6 +2580,7 @@ namespace BeamScheduleFormatter
 				{
 					throw new Exception("Missing insulation roll settings: " + type);
 				}
+				if (Cell(dataGridViewRow, 1) == "" || Cell(dataGridViewRow, 2) == "") { bool wasFilling = filling; filling = true; try { if (Cell(dataGridViewRow, 1) == "") dataGridViewRow.Cells[1].Value = "1"; if (Cell(dataGridViewRow, 2) == "") dataGridViewRow.Cells[2].Value = "50"; } finally { filling = wasFilling; } }
 				/* Owner (17 November 2026): show the roll area for every type with width and length, not only types used on a roof. */
 				double rollWidth, rollLength;
 				dataGridViewRow.Cells[3].Value = (double.TryParse(Cell(dataGridViewRow, 1), NumberStyles.Float, CultureInfo.InvariantCulture, out rollWidth) && double.TryParse(Cell(dataGridViewRow, 2), NumberStyles.Float, CultureInfo.InvariantCulture, out rollLength) && rollWidth > 0.0 && rollLength > 0.0) ? (rollWidth * rollLength).ToString("0.00", CultureInfo.InvariantCulture) : "";
@@ -4605,7 +4606,7 @@ worksExcelTimer.Tick += async delegate
 			};
 			OrganizeSections();
             ConfigureRcWorkspaces();
-            AddOpeningLintelsTab();AddRebarSummaryTabs();ArrangeRcCommandBars();
+            AddOpeningLintelsTab();AddRebarSummaryTabs();ArrangeRcCommandBars();ArrangeCheckFirst();
             ConfigureAngleQuantityView();
             InstallRecovery();
             /* closing the Program of Works ends its project: the next one starts with blank project information */
@@ -5356,6 +5357,9 @@ worksExcelTimer.Tick += async delegate
 				AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None,
 				SelectionMode = DataGridViewSelectionMode.CellSelect
 			};
+			/* a dropdown or checkbox applies at once, not only after leaving the cell (owner, 21 November 2026: "wala naman nangyayare sa rebar layer
+			   if ginawa kong 1 and 2") */
+			g.CurrentCellDirtyStateChanged += delegate { if (!filling && g.IsCurrentCellDirty && (g.CurrentCell is DataGridViewComboBoxCell || g.CurrentCell is DataGridViewCheckBoxCell)) { g.CommitEdit(DataGridViewDataErrorContexts.Commit); g.EndEdit(); } };
 			foreach (string text in headers)
 			{
 				g.Columns.Add(text, text);
@@ -7459,7 +7463,7 @@ worksExcelTimer.Tick += async delegate
 			case "PlumbingMembers":
 				return Enumerable.Range(0, 24).ToArray();
 			case "RCWalls":
-				return Enumerable.Range(0, 22).ToArray();
+				return Enumerable.Range(0, 22).Concat(new[] { 27, 28, 29, 30 }).ToArray();
 			case "PlumbingPipes":
 				return Enumerable.Range(0, 5).ToArray();
 			case "PlumbingLS":
@@ -8771,6 +8775,13 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 				"Grade <=12 mm", "Grade >=16 mm", "Concrete m3", "Formworks m2", "Net rebar kg", "Rebar TO BUY kg", "Status"
 			}, 22);
 			AddCombo(rcWalls, 7, "Rebar layers (both ways)", new string[2] { "1", "2" });
+			/* side B of a two-layer wall: its own diameter and spacing, blank = as side A (owner, 21 November 2026) */
+			foreach (string sideB in new[] { "Side B vertical dia mm", "Side B vertical spacing mm", "Side B horizontal dia mm", "Side B horizontal spacing mm" })
+			{
+				var column = new DataGridViewTextBoxColumn { HeaderText = sideB, Width = 110, SortMode = DataGridViewColumnSortMode.NotSortable, ToolTipText = "Two layers only: the bars on side B. Blank = the same as side A." };
+				column.DefaultCellStyle.BackColor = ModernUi.Input;
+				rcWalls.Columns.Add(column);
+			}
 			AddCombo(rcWalls, 16, "Formed main faces (0/1/2)", new string[3] { "2", "1", "0" });
 			AddCombo(rcWalls, 17, "Formed vertical ends (0/1/2)", new string[3] { "2", "1", "0" });
 			rcWalls.Columns.RemoveAt(18);
@@ -8830,6 +8841,15 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 			};
 			rcWalls.Columns[24].DisplayIndex = 8;
 			rcWalls.Columns[25].DisplayIndex = 9;
+		}
+
+		/* side B bars of a two-layer RC wall; a blank diameter keeps side A, a blank spacing takes side A's spacing / count */
+		private FootingBarSpec SideB(DataGridViewRow row, int dia, int spacing, int aDia, int aSpacing, int aCount)
+		{
+			if (Cell(row, dia) == "" && Cell(row, spacing) == "") return null;
+			int d = Cell(row, dia) == "" ? Count(row, aDia) : Count(row, dia);
+			if (Cell(row, spacing) != "") return new FootingBarSpec { Diameter = d, Spacing = Number(row, spacing) };
+			return new FootingBarSpec { Diameter = d, Spacing = OptionalNumber(row, aSpacing), Count = Cell(row, aCount) == "" ? 0 : Count(row, aCount) };
 		}
 
 		private void UpdateRCWallLayerSummary()
@@ -8960,7 +8980,8 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 						Diameter = Count(item, 11),
 						Spacing = OptionalNumber(item, 12),
 						Count = ((!(Cell(item, 13) == "")) ? Count(item, 13) : 0)
-					}, OptionalNumber(item, 14), OptionalNumber(item, 15), Count(item, 16), Count(item, 17), Cell(item, 18) != "" && bool.Parse(Cell(item, 18)), lengthConfiguration);
+					}, OptionalNumber(item, 14), OptionalNumber(item, 15), Count(item, 16), Count(item, 17), Cell(item, 18) != "" && bool.Parse(Cell(item, 18)), lengthConfiguration,
+						SideB(item, 27, 28, 8, 9, 10), SideB(item, 29, 30, 11, 12, 13));
 					if (!hashSet.Add(rCWallTakeoff.Id))
 					{
 						throw new Exception("Duplicate RC wall ID.");

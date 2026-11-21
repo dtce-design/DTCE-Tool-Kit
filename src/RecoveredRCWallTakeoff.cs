@@ -35,7 +35,7 @@ namespace BeamScheduleFormatter
 
 		public EstimateInput Steel;
 
-		public static RCWallTakeoff Calculate(string id, string description, double length, double height, double thicknessMm, int quantity, double coverMm, int layers, FootingBarSpec vertical, FootingBarSpec horizontal, double verticalEndsMm, double horizontalEndsMm, int formFaces, int endFaces, bool bottomForm, LengthConfiguration cfg)
+		public static RCWallTakeoff Calculate(string id, string description, double length, double height, double thicknessMm, int quantity, double coverMm, int layers, FootingBarSpec vertical, FootingBarSpec horizontal, double verticalEndsMm, double horizontalEndsMm, int formFaces, int endFaces, bool bottomForm, LengthConfiguration cfg, FootingBarSpec verticalB = null, FootingBarSpec horizontalB = null)
 		{
 			if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(description) || cfg == null || vertical == null || horizontal == null)
 			{
@@ -49,9 +49,9 @@ namespace BeamScheduleFormatter
 				throw new Exception("Select 1 or 2 rebar layers; cover/end allowances must be nonnegative and formed faces/ends 0 to 2.");
 			}
 			cfg.Validate();
-			if (2.0 * coverMm + (double)(layers * (vertical.Diameter + horizontal.Diameter)) > thicknessMm)
+			if (2.0 * coverMm + (double)(vertical.Diameter + horizontal.Diameter) + (layers - 1) * (double)((verticalB != null && verticalB.Diameter > 0 ? verticalB.Diameter : vertical.Diameter) + (horizontalB != null && horizontalB.Diameter > 0 ? horizontalB.Diameter : horizontal.Diameter)) > thicknessMm)
 			{
-				double need = 2.0 * coverMm + (double)(layers * (vertical.Diameter + horizontal.Diameter));
+				double need = 2.0 * coverMm + (double)(vertical.Diameter + horizontal.Diameter) + (layers - 1) * (double)((verticalB != null && verticalB.Diameter > 0 ? verticalB.Diameter : vertical.Diameter) + (horizontalB != null && horizontalB.Diameter > 0 ? horizontalB.Diameter : horizontal.Diameter));
 				/* Owner (18 November 2026): say which numbers do not fit, and where the cover comes from. */
 				throw new Exception(string.Format(System.Globalization.CultureInfo.InvariantCulture, "Wall {0:0.#} mm is less than 2 x {1:0.#} mm cover + {2} layer(s) x ({3} + {4} mm bars) = {5:0.#} mm. Set a smaller RC wall cover in Reinforced Concrete Works > Start, then Apply covers to existing entries (NSCP 2015 Table 420.6.1.3.1: 20 mm for walls not exposed to weather or ground), or use a thicker wall.", thicknessMm, coverMm, layers, vertical.Diameter, horizontal.Diameter, need));
 			}
@@ -80,9 +80,13 @@ namespace BeamScheduleFormatter
 				Length = length.ToString("R", CultureInfo.InvariantCulture),
 				Result = new BeamEstimate()
 			};
+			/* side B (second layer) may have its own diameter and spacing (owner, 21 November 2026: "pwedeng magkaiba yung bar ng side A and B
+			   dia and spacing"); blank = the same as side A */
 			for (int i = 0; i < 2; i++)
+			for (int side = 0; side < layers; side++)
 			{
-				FootingBarSpec footingBarSpec = ((i == 0) ? vertical : horizontal);
+				FootingBarSpec sideB = (i == 0) ? verticalB : horizontalB;
+				FootingBarSpec footingBarSpec = side == 1 && sideB != null && sideB.Diameter > 0 ? sideB : ((i == 0) ? vertical : horizontal);
 				double num = ((i == 0) ? length : height);
 				double num2 = ((i == 0) ? height : length);
 				double num3 = ((i == 0) ? verticalEndsMm : horizontalEndsMm);
@@ -101,10 +105,10 @@ namespace BeamScheduleFormatter
 				SteelWeight.Count(num6);
 				double num7 = num2 - 2.0 * rCWallTakeoff.Cover + num3 / 1000.0;
 				double num8 = Math.Ceiling(num7 / 0.025 - 1E-10) * 0.025;
-				for (int j = 0; j < layers; j++)
+				for (int j = side; j <= side; j++)
 				{
 					double num9 = num8 * (double)num6 * (double)quantity;
-					string part = ((i == 0) ? "VERTICAL" : "HORIZONTAL") + " / layer " + (j + 1);
+					string part = ((i == 0) ? "VERTICAL" : "HORIZONTAL") + " / " + (layers == 1 ? "layer 1" : j == 0 ? "side A" : "side B");
 					rCWallTakeoff.Steel.Result.Lines.Add(new EstimateLine
 					{
 						Beam = id,
