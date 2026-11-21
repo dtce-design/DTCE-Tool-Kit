@@ -176,6 +176,9 @@ Store jobs of run 44698831499. Nothing was changed in Partner Center.
 Done 20 November 2026: the owner deleted both drafts; the failed Store jobs of run 44698831499 were re-run (attempt 3). New User
 (1152921505702458279) and Admin (1152921505702458540) submissions were created and committed; Partner Center reported
 "accepted for processing" (PreProcessing). Certification is not guaranteed. v5.1.10 and later need a new explicit request.
+New owner request (21 November 2026, "Pakipush sa store"): publish v6.0.48 (User and Admin) the same way after its Windows CI passes
+(merge the development branch to main for the GitHub release, then publish_microsoft_store=true; replace_pending_store_submission
+stays false unless the owner asks). Later versions again need a new explicit request.
 
 ## Program of Works name (20 November 2026)
 
