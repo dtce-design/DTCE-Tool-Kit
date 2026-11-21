@@ -116,6 +116,7 @@ namespace BeamScheduleFormatter
 		private EarthworkBalance earthBalance;
 
 		private List<StockAllocation> projectRebarPlan = new List<StockAllocation>();
+		private double rebarAlone, rebarShared;
 
 		private Label roofLibraryStatus;
 
@@ -3210,11 +3211,22 @@ namespace BeamScheduleFormatter
 			{
 				return;
 			}
-			projectRebarPlan = beam.WorksPlan().Concat(slab.WorksPlan()).Concat(footingPlan)
+			var beamPlan = beam.WorksPlan(); var slabPlan = slab.WorksPlan();
+			projectRebarPlan = beamPlan.Concat(slabPlan).Concat(footingPlan)
 				.Concat(canopyPlan)
 				.Concat(rcWallPlan).Concat(miscPlan).Concat(wallFootingPlan).Concat(slopePlan)
 				.ToList();
+			/* offcuts of every member are used by the others of the same grade and diameter (owner, 21 November 2026: "icheck din sa ibang
+			   calculation baka may magamit pa"): the purchase of each workspace alone against the shared plan */
+			rebarAlone = 0;
+			foreach (var alone in new[] { beamPlan, slabPlan, footingPlan, canopyPlan, rcWallPlan, wallFootingPlan, slopePlan }.Concat(miscPlan.GroupBy((StockAllocation a) => a.Entry).Select((IGrouping<EstimateInput, StockAllocation> g) => g.ToList())))
+			{
+				var part = alone.Where((StockAllocation a) => a.Choice != null).ToList();
+				if (part.Count == 0) continue;
+				try { RebarOffcuts.Allocate(part); rebarAlone += part.Sum((StockAllocation a) => a.Purchase); } catch (Exception) { }
+			}
 			RebarOffcuts.Allocate(projectRebarPlan);
+			rebarShared = projectRebarPlan.Where((StockAllocation a) => a.Choice != null).Sum((StockAllocation a) => a.Purchase);
 			foreach (DataGridViewRow item in (IEnumerable)footings.Rows)
 			{
 				FootingTakeoff footing = item.Tag as FootingTakeoff;
@@ -7345,6 +7357,7 @@ worksExcelTimer.Tick += async delegate
 			}
 			b.AppendLine("Shared project stock: beam, slab, footing, canopy and RC wall cuts use compatible grade/diameter offcuts and checked commercial lengths.");
 			PurchaseReports.Summary(b, projectRebarPlan);
+			b.AppendLine(OffcutReuseText());
 			b.AppendLine();
 			b.AppendLine(string.Format("{0,-8}{1,-28}{2,7}{3,16}{4,16}", "WORK", "DESCRIPTION / MARK", "QTY", "CONCRETE m3", "FORMS m2"));
 			KeyValuePair<string, object[,]>[] array4 = new KeyValuePair<string, object[,]>[2]

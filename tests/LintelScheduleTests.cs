@@ -14,12 +14,18 @@ class LintelScheduleTests {
   Near(LintelSchedule.HookExtension(12),150,"12 mm hook");Near(LintelSchedule.HookExtension(16),200,"16 mm hook");Near(LintelSchedule.HookExtension(20),250,"20 mm hook");Near(LintelSchedule.HookExtension(25),300,"25 mm hook");
   /* take-off of a 0.90 x 2.10 m door, 2 units, in a 150 mm wall: LB-6A, L = 0.90 + 2 x 0.20 = 1.30 m */
   var cfg=CalculationStore.Resolve(21,40,275,40,275);var door=new OpeningItem{Id="D1",Kind="Door",Wall="W1",Width=.9,Height=2.1,Quantity=2};var wall=new WallItem{Id="W1",Description="x",ThicknessMm=150,Length=5,Height=3,Quantity=1};
-  LintelMark m;var q=LintelSchedule.Takeoff(door,wall,cfg,out m);Check(m.Mark=="LB-6A"&&q.Kind=="Lintel Beam"&&q.Quantity==2,"door lintel mark and units");
+  LintelMark m;var q=LintelSchedule.Takeoff(door,wall,cfg,out m);Check(m.Mark=="LB-6A"&&q.Kind==LintelSchedule.Kind&&q.Quantity==2,"door lintel mark and units");
   Near(q.Concrete,1.3*.15*.3*2,"concrete = L x b x h x units");Near(q.Forms,(2*.3*1.3+.15*.9)*2,"forms = two sides over L + soffit over the opening");
   var bottom=q.Steel.Result.Lines.First(l=>l.Part=="Bottom longitudinal");Check(bottom.Diameter==12&&bottom.PiecesPerBeam==2,"2-12 bottom");Near(bottom.CutLength,1.55,"bottom cut = L - 2 x 30 mm + two 150 mm hooks (1.54), rounded up to 25 mm");
   var ties=q.Steel.Result.Lines.First(l=>l.Part=="Stirrups");Check(ties.PiecesPerBeam==(int)Math.Ceiling((1300-100)/125.0)+1,"ties @ 125 over the lintel");
   var jamb=q.Steel.Result.Lines.First(l=>l.Part=="Jamb bars");Check(jamb.Diameter==12&&jamb.PiecesPerBeam==2,"one jamb bar each side");
   Check(q.Steel.Result.Total>0&&q.Steel.Result.Lines.All(l=>l.Kg>0),"rebar weights");
   var win=new OpeningItem{Id="W2",Kind="Window",Wall="W1",Width=1.2,Height=1.2,Quantity=1};var qw=LintelSchedule.Takeoff(win,wall,cfg,out m);var jw=qw.Steel.Result.Lines.First(l=>l.Part=="Jamb bars");Check(jw.CutLength>=2.1+.3,"window jamb bars run from the floor (head at 2.10 m)");
+  /* an edited schedule is used and can be reset */
+  var edited=LintelSchedule.Defaults.Select(x=>x.Copy()).ToList();edited[5]=LintelSchedule.Parse("LB-6A","6","2.00","150","350","3-12","2-12","-","closed","100","250","-");LintelSchedule.Current=edited;Check(!LintelSchedule.IsDefault,"edited schedule differs");
+  var e6=LintelSchedule.Select(150,1.0);Check(e6.Depth==350&&e6.BottomCount==3&&e6.TieSpacing==100&&e6.Bearing==250,"the edited LB-6A is used");var qe=LintelSchedule.Takeoff(door,wall,cfg,out m);Near(qe.Concrete,(0.9+0.5)*.15*.35*2,"edited size and bearing in the take-off");
+  var round=LintelSchedule.Parse(LintelSchedule.Text(e6).Split('|')[0],"6","2.00","150","350","3-12","2-12","0-10","closed","100","250","");Check(LintelSchedule.Text(round)==LintelSchedule.Text(e6),"schedule text round-trips");
+  bool bad=false;try{LintelSchedule.Parse("X","5","2","150","300","2-12","2-12","-","closed","100","200","");}catch(Exception){bad=true;}Check(bad,"CHB must be 4 or 6");
+  LintelSchedule.Reset();Check(LintelSchedule.IsDefault&&LintelSchedule.Select(150,1.0).Depth==300,"reset gives the report's schedule back");
   Console.WriteLine("PASS: "+checks+" lintel schedule and take-off checks");}
 }

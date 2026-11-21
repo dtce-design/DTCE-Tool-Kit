@@ -1,0 +1,19 @@
+DTCE Tool Kit v6.0.34 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (lintels over openings and rebar offcuts):
+- Own Bill of Quantities item: the automatic lintels are "Lintel Beam over Openings concrete" and "Lintel Beam over Openings forms"
+  (concrete pay item 900(1)i, forms 903(2)), apart from lintels entered by hand in the Lintel Beam sheet.
+- The automatic lintels are shown at the top of Miscellaneous Structures > Lintel Beam (from the masonry walls and their openings,
+  with concrete, formworks and RSB by diameter); the grid under them is only for other lintels entered by hand. The separate
+  "Lintels over Openings" tab is removed.
+- "Edit lintel reinforcement schedule": marks, CHB, largest clear opening, b x h, bottom / top / mid bars, tie type and spacing,
+  bearing and lateral brace can be edited, checked and saved with the project; "Reset to the report" gives the Lintel Beam Design
+  Calculation Report schedule back.
+- Rebar offcuts: checked in every rebar take-off. The Bill of Quantities already uses one shared plan for beam, slab, footing, wall
+  footing, RC wall, canopy, column / miscellaneous members (lintels included) and slope protection: short pieces are cut from the
+  leftovers of other members of the same grade and diameter. The saving is now shown in every "Rebar by grade and diameter" tab and
+  in the report (purchase shared vs. each workspace / member cut alone). Plumbing structures (canal, septic vault, catch basin)
+  share offcuts among themselves only, as their own items.
+Checked on Linux/Mono only. Tests: LintelScheduleTests (27), OpeningLintelTests (11), CommercialBarsTests (836).
+
+Includes v6.0.33 and earlier builds.

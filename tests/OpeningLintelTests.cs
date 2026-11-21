@@ -9,7 +9,7 @@ class OpeningLintelTests {
   int r=wood.Rows.Add();var dr=wood.Rows[r];dr.Cells[0].Value="D1";dr.Cells[1].Value="Main door";dr.Cells[3].Value="Door";dr.Cells[4].Value="0.9";dr.Cells[5].Value="2.1";dr.Cells[6].Value="2";
   var links=(System.Collections.Generic.List<OpeningLink>)t.GetField("openingAssignments",F).GetValue(pow);links.Add(new OpeningLink{Schedule="D1",Wall="W1",Quantity=2});
   t.GetMethod("Recalculate",F,null,Type.EmptyTypes,null).Invoke(pow,null);
-  var misc=(System.Collections.Generic.List<MiscStructureQuantity>)t.GetField("miscQuantities",F).GetValue(pow);var lintels=misc.Where(q=>q.Kind=="Lintel Beam").ToList();
+  var misc=(System.Collections.Generic.List<MiscStructureQuantity>)t.GetField("miscQuantities",F).GetValue(pow);var lintels=misc.Where(q=>q.Kind==LintelSchedule.Kind).ToList();
   Check(lintels.Count==1&&lintels[0].Id.StartsWith("LB-6A")&&lintels[0].Quantity==2,"the door in the 150 mm wall gets LB-6A x 2 ("+string.Join(", ",misc.Select(q=>q.Kind+" "+q.Id))+")");
   var grid=(DataGridView)t.GetField("lintelGrid",F).GetValue(pow);Check(grid!=null&&grid.Rows.Count==2&&Convert.ToString(grid.Rows[0].Cells[0].Value)=="LB-6A","listed under Lintels over Openings");
   Check(Convert.ToString(grid.Rows[1].Cells[0].Value)=="TOTAL"&&Convert.ToString(grid.Rows[1].Cells[15].Value)==lintels[0].Concrete.ToString("0.000",System.Globalization.CultureInfo.InvariantCulture),"total row with concrete");
@@ -21,7 +21,11 @@ class OpeningLintelTests {
    links.Add(new OpeningLink{Schedule="W-1",Wall="W1",Quantity=3});links.Add(new OpeningLink{Schedule="D2",Wall="W2",Quantity=2});t.GetMethod("Recalculate",F,null,Type.EmptyTypes,null).Invoke(pow,null);
    var a=((Label)t.GetField("lintelSummary",F).GetValue(pow)).Text;var b=((Label)t.GetField("chbLintelSummary",F).GetValue(pow)).Text;Console.WriteLine(a);
    Check(a.Contains(": 7 lintels")&&a==b,"7 lintels in both summaries: ["+a+"] / ["+b+"]");}
+  {var bill=(System.Collections.Generic.List<BillQuantity>)t.GetMethod("ExtraBillQuantities",F).Invoke(pow,null);Check(bill.Any(q=>q.Description=="Lintel Beam over Openings concrete"&&q.Quantity>0)&&bill.Any(q=>q.Description=="Lintel Beam over Openings forms"),"own Bill of Quantities item for the lintels over openings");
+   var text=(string)t.GetMethod("OffcutReuseText",F).Invoke(pow,null);Console.WriteLine(text);Check(text.Contains("kg saved"),"offcut reuse is reported");
+   var xml=new System.Xml.XmlDocument();var root=xml.CreateElement("x");LintelSchedule.Current[0]=LintelSchedule.Parse("LB-4A","4","2.00","100","350","1-16","1-12","-","single","125","200","");t.GetMethod("WriteExtraSettings",F).Invoke(pow,new object[]{root});Check(root.GetAttribute("lintelSchedule").Contains("LB-4A|4|2.00|100|350"),"an edited schedule is saved with the project");
+   LintelSchedule.Reset();t.GetMethod("ReadExtraSettings",F).Invoke(pow,new object[]{root});Check(LintelSchedule.Select(100,1).Depth==350,"and read back");LintelSchedule.Reset();}
   var auto=(CheckBox)t.GetField("autoLintels",F).GetValue(pow);auto.Checked=false;t.GetMethod("Recalculate",F,null,Type.EmptyTypes,null).Invoke(pow,null);
-  Check(!((System.Collections.Generic.List<MiscStructureQuantity>)t.GetField("miscQuantities",F).GetValue(pow)).Any(q=>q.Kind=="Lintel Beam"),"turned off: no automatic lintels");
+  Check(!((System.Collections.Generic.List<MiscStructureQuantity>)t.GetField("miscQuantities",F).GetValue(pow)).Any(q=>q.Kind==LintelSchedule.Kind),"turned off: no automatic lintels");
   Console.WriteLine("PASS: "+checks+" automatic lintel checks");pow.Dispose();}
 }
