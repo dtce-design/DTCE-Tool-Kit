@@ -52,6 +52,20 @@ static class BeamCutting {
  internal sealed class TieZone {public double From,To,Spacing,First;public int Count,Legs,Dia;public string Name;}
  /* stirrup zones of one span measured from the left face: the left / middle / right cells of a manual schedule, or the
     "1-50mm, n-s mm, REST AT r mm C/C" spacing of a formatted (revised) schedule */
+ /* stirrup positions of span j from the beam start, the same in the model and the report: the end groups from each face at their
+    spacing, the middle group evenly between the last end stirrups (owner, 21 November 2026: "hindi rin maayos yung sa stirrups") */
+ internal static List<KeyValuePair<double,TieZone>> StirrupPositions(CutLineGeometry geo,int j){var list=new List<KeyValuePair<double,TieZone>>();if(geo==null||j<0||j>=geo.Ties.Count)return list;var zones=geo.Ties[j];double f=geo.FaceLeft[j],ln=geo.FaceRight[j]-geo.FaceLeft[j];
+  var left=zones.FirstOrDefault(z=>z.Name=="left");var right=zones.FirstOrDefault(z=>z.Name=="right");var middle=zones.FirstOrDefault(z=>z.Name=="middle");double last=0,firstRight=ln;
+  if(left!=null&&left.Spacing>0)for(int k=0;k<left.Count;k++){double x=(left.First>0?left.First:.05)+k*left.Spacing;if(x>ln/2+1e-9)break;list.Add(new KeyValuePair<double,TieZone>(f+x,left));last=x;}
+  var rights=new List<KeyValuePair<double,TieZone>>();if(right!=null&&right.Spacing>0)for(int k=0;k<right.Count;k++){double x=ln-(right.First>0?right.First:.05)-k*right.Spacing;if(x<=last+1e-6)break;rights.Add(new KeyValuePair<double,TieZone>(f+x,right));firstRight=x;}
+  if(middle!=null&&middle.Count>0){double gap=(firstRight-last)/(middle.Count+1);for(int k=1;k<=middle.Count;k++)list.Add(new KeyValuePair<double,TieZone>(f+last+k*gap,middle));}
+  rights.Reverse();list.AddRange(rights);return list;}
+ /* the stirrups drawn for span j: schedule positions, and over a lap with extra hoops the schedule hoops plus the extra ones
+    evenly at the closer spacing (true = hoop over a lap) */
+ internal static List<KeyValuePair<double,bool>> StirrupDrawing(CutLineGeometry geo,IEnumerable<CutPiece> pieces,int j){var xs=StirrupPositions(geo,j).Select(q=>q.Key).ToList();var list=new List<KeyValuePair<double,bool>>();
+  var laps=(pieces??Enumerable.Empty<CutPiece>()).Where(p=>p.Span==j+1&&p.Location!=null&&p.Location.StartsWith("Extra hoops over lap")).ToList();
+  foreach(var lp in laps){int inside=xs.Count(x=>x>=lp.Start-1e-9&&x<=lp.End+1e-9);xs.RemoveAll(x=>x>=lp.Start-1e-9&&x<=lp.End+1e-9);int n=inside+lp.PerLine;for(int i=0;i<n;i++)list.Add(new KeyValuePair<double,bool>(lp.Start+(lp.End-lp.Start)*(i+.5)/n,true));}
+  list.AddRange(xs.Select(x=>new KeyValuePair<double,bool>(x,false)));return list.OrderBy(q=>q.Key).ToList();}
  internal static double EndZoneLength(BeamRow row,double ln,CutSettings s){double len=ln*s.EndZone;if(s.ShearZones){double h;if(s.SpecialMomentFrame&&row!=null&&double.TryParse(row.Cell(1),NumberStyles.Float,Inv,out h)&&h>0)len=2*h/1000;else if(!s.SpecialMomentFrame)len=ln/3;}return Math.Min(len,ln/2);}
  static List<TieZone> TieZones(BeamRow row,double ln,CutSettings s){var list=new List<TieZone>();
   if(!string.IsNullOrEmpty(row.RevisedSpacing)){var leg=Regex.Match(row.Leg??"",@"^(\d+)L$");var dm=Regex.Match(Engine.Normal(row.Diameter??"").Replace("#","O").Replace("Ø","O"),@"^O(\d+)$");if(!leg.Success||!dm.Success)throw new Exception(row.Mark+": mixed or unknown stirrup legs / diameter; a project tie detail is needed.");int legs=int.Parse(leg.Groups[1].Value),dia=int.Parse(dm.Groups[1].Value);

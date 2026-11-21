@@ -17,6 +17,11 @@ class BeamCuttingListTests {
    double lap=BeamCutting.SpliceLap(s,group.Dia,group.Top),hook=cfg.Rounded(cfg.Values(group.Dia,false).Cut90)/1000;var laps=r.Splices.Where(c=>c.Diameter==group.Dia).ToList();Check(laps.Count==pieces.Count-1&&laps.All(c=>Math.Abs(c.To-c.From-lap)<1e-9),"laps use the configured lap length");
    Near(pieces.Sum(p=>p.Length),total-2*cover+2*hook+laps.Count*lap,"continuous length = line less cover + 2 hooks + laps");Check(pieces.All(p=>p.Length<=12+1e-9),"no piece longer than the longest bar");
    foreach(var c in laps){Check(c.From>=c.ZoneFrom-1e-9&&c.To<=c.ZoneTo+1e-9,"lap inside its zone");double face=.4+(c.Span==1?0:c.Span==2?6.4:13.8);Check(c.From>=face+1.0-1e-9,"lap starts at least 2h from the left face");}}
+  /* stirrups are drawn where they are counted: one per counted hoop, in order, none doubled up (owner: "hindi rin maayos yung sa stirrups") */
+  {var tg=r.Geometry[0];for(int j=0;j<tg.Ties.Count;j++){var xs=BeamCutting.StirrupPositions(tg,j);var zones=tg.Ties[j];double min=zones.Where(z=>z.Spacing>0).Min(z=>z.Spacing);
+   Check(xs.Count==zones.Sum(z=>z.Count),"span "+(j+1)+": one drawn stirrup per counted stirrup ("+xs.Count+" vs "+zones.Sum(z=>z.Count)+")");
+   Check(xs.All(q=>q.Key>tg.FaceLeft[j]&&q.Key<tg.FaceRight[j]),"stirrups stay inside the clear span");
+   for(int k=1;k<xs.Count;k++)Check(xs[k].Key-xs[k-1].Key>min*.5-1e-9,"span "+(j+1)+": stirrups "+k+" and "+(k+1)+" are not doubled up ("+(xs[k].Key-xs[k-1].Key)+" m)");}}
   var topExtra=r.Pieces.Where(p=>p.Location.StartsWith("Top extra over support")).ToList();Check(topExtra.Count==2&&topExtra.All(p=>p.PerLine==2),"two interior supports with 2 extra top bars each");Near(topExtra[0].Length,6/4.0+.4+7/4.0+2*BeamCutting.Ld(s,20,true),"POW standard: extra top bar = L/4 + support + L/4 + Ld at both cut ends");
   var exterior=r.Pieces.Where(p=>p.Location.StartsWith("Top extra at support")).ToList();Check(exterior.Count==2&&exterior.All(p=>p.PerLine==2&&p.Shape.Contains("hook")),"exterior supports get hooked extra top bars");
   var bottom=r.Pieces.Where(p=>p.Location.StartsWith("Bottom extra, span")).ToList();Check(bottom.Count==3&&bottom.All(p=>p.PerLine==1),"one extra bottom bar per span");Near(bottom[1].Length,7*2/3.0+2*BeamCutting.Ld(s,16,false),"POW standard: bottom extra from L/6 off each face + Ld at both cut ends");
