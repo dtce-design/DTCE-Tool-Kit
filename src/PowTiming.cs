@@ -17,7 +17,7 @@ static class PowTiming {
 }
 partial class ProgramOfWorksForm {
  // Embedded source files are checked after the project is shown, so opening does not wait for large workbooks.
- void VerifySourcesInBackground(PowSourceFiles sources){var files=sources.Files.ToList();if(files.Count==0)return;System.Threading.Tasks.Task.Run(()=>{var bad=new List<string>();foreach(var f in files){try{f.Verify();}catch(Exception){bad.Add(f.Name);}}return bad;}).ContinueWith(t=>{if(IsDisposed||t.IsFaulted||t.Result.Count==0)return;try{BeginInvoke((Action)(()=>MessageBox.Show(this,"These embedded source files in the Program of Works are damaged and cannot be extracted:\n\n"+string.Join("\n",t.Result)+"\n\nThe quantities are not affected. Re-attach the original files under Project files if they are needed.","Project source files",MessageBoxButtons.OK,MessageBoxIcon.Warning)));}catch(InvalidOperationException){}});}
+ void VerifySourcesInBackground(PowSourceFiles sources){var files=sources.Files.ToList();if(files.Count==0)return;System.Threading.Tasks.Task.Run(()=>{var bad=new List<string>();foreach(var f in files){try{f.Verify();}catch(Exception){bad.Add(f.Name);}}return bad;}).ContinueWith(t=>{if(IsDisposed||t.IsFaulted||t.Result.Count==0)return;try{BeginInvoke((Action)(()=>MessageBox.Show(this,"These embedded source files in the Bill of Quantities are damaged and cannot be extracted:\n\n"+string.Join("\n",t.Result)+"\n\nThe quantities are not affected. Re-attach the original files under Project files if they are needed.","Project source files",MessageBoxButtons.OK,MessageBoxIcon.Warning)));}catch(InvalidOperationException){}});}
 
 }
 }

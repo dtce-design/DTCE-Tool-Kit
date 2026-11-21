@@ -1,0 +1,11 @@
+DTCE Tool Kit v6.0.14 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Purlin Design workspace; "ang pangit ng workspace", "di nakakaprofessional tignan, ang kalat pa"): one clean page.
+Left: a compact input form (label beside each input, units in the label) in four groups - Member, Geometry, Loads, Material.
+Right: a result band (passes / does not pass the workbook checks, profile, span and governing ratio), the section preview, the
+computed section properties and the workbook checks (combined flexure basic / alternate, live and dead + live deflection with
+actual, allowed, ratio and OK / NG), recalculated as the inputs change. The full calculation stays in the Calculation report tab.
+The small result tables are drawn by the app (SummaryTable) so they look the same everywhere.
+Checked on Linux/Mono only. Next: the same Studio look for every workspace (design sheets, formatters, BBS, project information).
+
+Includes v6.0.13 and earlier builds.

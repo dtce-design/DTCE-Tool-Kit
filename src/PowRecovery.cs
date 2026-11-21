@@ -33,11 +33,11 @@ partial class ProgramOfWorksForm {
  bool HasUnsavedWorkSafe(){try{return HasUnsavedWork();}catch(Exception){return false;}}
  static bool Automated{get{return !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI"))||!Environment.UserInteractive;}}
  void OfferRecovery(){if(IsDisposed||Automated||HasUnsavedWorkSafe())return;List<PowRecovery.Entry> orphans;try{orphans=PowRecovery.Orphans();}catch(Exception){return;}if(orphans.Count==0)return;var newest=orphans[0];
-  var answer=MessageBox.Show(this,"Unsaved Program of Works work was found from "+newest.Time.ToString("yyyy-MM-dd HH:mm",CultureInfo.CurrentCulture)+(newest.Original!=""?"\nProject: "+newest.Original:"")+"\n\nOpen the recovery copy now? (Yes = open, No = keep it for later, Cancel = delete it)","Recover unsaved work",MessageBoxButtons.YesNoCancel,MessageBoxIcon.Question);
+  var answer=MessageBox.Show(this,"Unsaved Bill of Quantities work was found from "+newest.Time.ToString("yyyy-MM-dd HH:mm",CultureInfo.CurrentCulture)+(newest.Original!=""?"\nProject: "+newest.Original:"")+"\n\nOpen the recovery copy now? (Yes = open, No = keep it for later, Cancel = delete it)","Recover unsaved work",MessageBoxButtons.YesNoCancel,MessageBoxIcon.Question);
   if(answer==DialogResult.Cancel){try{File.Delete(newest.Path);File.Delete(newest.Path.Substring(0,newest.Path.Length-8)+".txt");}catch(Exception){}return;}
   if(answer==DialogResult.Yes)OpenCopy(newest.Path,newest.Original);}
  // Opens a backup / recovery copy. The window is not bound to the project file, so Save asks for a name.
- void OpenCopy(string path,string original){try{Guard();if(HasUnsavedWorkSafe())throw new Exception("This window has unsaved inputs. Save them or use Close Program of Works first.");var snapshot=PowProjectFileWriter.Read(path);OpenProjectDocument(snapshot.Document,snapshot.Sources);currentPowPath=null;knownPowWriteUtc=null;saved="";
+ void OpenCopy(string path,string original){try{Guard();if(HasUnsavedWorkSafe())throw new Exception("This window has unsaved inputs. Save them or use Close Bill of Quantities first.");var snapshot=PowProjectFileWriter.Read(path);OpenProjectDocument(snapshot.Document,snapshot.Sources);currentPowPath=null;knownPowWriteUtc=null;saved="";
    if(powSaveIndicator!=null)powSaveIndicator.Text="Opened copy from "+File.GetLastWriteTime(path).ToString("yyyy-MM-dd HH:mm",CultureInfo.CurrentCulture)+" - use Save to choose where to keep it"+(string.IsNullOrEmpty(original)?"":" (original: "+Path.GetFileName(original)+")");}
   catch(Exception ex){MessageBox.Show(this,ex.Message,"Open copy",MessageBoxButtons.OK,MessageBoxIcon.Warning);}}
  void RestoreBackup(){var items=PowBackupList.For(currentPowPath);using(var form=new Form{Text="Restore backup"+(string.IsNullOrEmpty(currentPowPath)?"":" - "+Path.GetFileName(currentPowPath)),Width=860,Height=480,StartPosition=FormStartPosition.CenterParent,MinimizeBox=false,ShowInTaskbar=false,MinimumSize=new System.Drawing.Size(640,320),Font=new System.Drawing.Font("Segoe UI",9.5f)}){AppBrand.Apply(form);
@@ -52,6 +52,6 @@ partial class ProgramOfWorksForm {
    if(form.ShowDialog(this)==DialogResult.OK&&form.Tag is PowBackupList.Item)OpenCopy(((PowBackupList.Item)form.Tag).Path,currentPowPath);}}
  // Warning when an opened file holds no rows (empty or overwritten project).
  void WarnIfEmptyProject(XmlDocument doc,string path){if(Automated)return;if(doc.DocumentElement.SelectNodes("//Entry").Count>0||doc.DocumentElement["Beam"]!=null||doc.DocumentElement["Slab"]!=null)return;
-  if(MessageBox.Show(this,"\""+Path.GetFileName(path)+"\" has no saved rows.\n\nIf it should contain a project, it may have been replaced by an empty save. Open the list of backups now?","Empty Program of Works",MessageBoxButtons.YesNo,MessageBoxIcon.Warning)==DialogResult.Yes)RestoreBackup();}
+  if(MessageBox.Show(this,"\""+Path.GetFileName(path)+"\" has no saved rows.\n\nIf it should contain a project, it may have been replaced by an empty save. Open the list of backups now?","Empty Bill of Quantities",MessageBoxButtons.YesNo,MessageBoxIcon.Warning)==DialogResult.Yes)RestoreBackup();}
 }
 }

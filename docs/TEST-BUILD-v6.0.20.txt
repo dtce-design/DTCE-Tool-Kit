@@ -1,0 +1,8 @@
+DTCE Tool Kit v6.0.20 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Bar Bending Schedule model; "laging naka true to scale"): the elevation model is always drawn to true scale (same
+horizontal and vertical scale); the "True scale" check box is removed. The BBS report elevation keeps its larger depth for
+legibility on paper.
+Checked on Linux/Mono only. Tests: BeamCuttingListTests.
+
+Includes v6.0.19 and earlier builds.

@@ -1,0 +1,16 @@
+DTCE Tool Kit v6.0.16 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (one look for the workspaces; owner chose "lahat ganyan" and a navy header):
+- Workspace header in navy (matches the folder tabs) with the white title and the info icon at the upper right.
+- Every design sheet page has the same two panes: on the left a compact white input form - one row per input, the label beside
+  its box, numbers right-aligned; on the right the section previews, tables, action rows and their headings. A page without such
+  blocks shows the calculation report on the right, updated from the inputs; a page without inputs uses the full width. Opening
+  the Calculation report tab fills the report.
+- Bar Bending Schedule: settings in a left pane (label beside each input); beam lines and the results on the right.
+- Purlin Design keeps its own page (form left; result band, section, properties and checks right).
+Checked on Linux/Mono only (screens of every design sheet, the Bar Bending Schedule, Project Information and the formatters).
+Tests: BeamDeflectionTests, EarthquakeSiteTests, RsaCurveTests, StrapFootingTests, TrussSupportTests, SteelSectionRefreshUiTests,
+WindBuildingLoadsTests, WindRecoveryTests, BeamCuttingListTests, AppearancePreferencesTests, AppearanceUiTests. ModernUiTests
+and SteelFeatureTests stop on Mono in the Bill of Quantities / estimator code also without these changes; Windows CI runs them.
+
+Includes v6.0.15 and earlier builds.

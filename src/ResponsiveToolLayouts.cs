@@ -1,7 +1,7 @@
 using System;using System.Drawing;using System.Linq;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 partial class MainForm {
- void UseSlabFormatterLayout(){var originalTable=(TabPage)grid.Parent;tabs.Dock=DockStyle.Fill;tabs.TabPages[1].Text="DXF preview";detail.Height=92;var originalControls=Controls.Cast<Control>().ToArray();SuspendLayout();try{foreach(var c in originalControls)Controls.Remove(c);var title=new Label{Text="BEAM SCHEDULE FORMATTER",Dock=DockStyle.Top,Height=54,Padding=new Padding(12),Font=new Font("Segoe UI",18,FontStyle.Bold),ForeColor=PowTheme.Ink};var tools=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,WrapContents=true,Padding=new Padding(8)};browse.Text="Load source DXF";tools.Controls.Add(browse);tools.Controls.Add(new Label{Text="Prefix",AutoSize=true,Padding=new Padding(4,8,0,0)});prefixBox.Width=85;tools.Controls.Add(prefixBox);tools.Controls.Add(new Label{Text="Floor title",AutoSize=true,Padding=new Padding(4,8,0,0)});floorBox.Width=240;tools.Controls.Add(floorBox);merge.AutoSize=true;tools.Controls.Add(merge);tools.Controls.Add(process);tools.Controls.Add(export);ActionPanel=tools;sourceBox.Dock=DockStyle.Top;sourceBox.Height=32;sourceBox.BorderStyle=BorderStyle.None;sourceBox.ReadOnly=true;summary.Dock=DockStyle.Top;summary.Height=52;summary.Font=ModernUi.Body;var notes=new Label{Text="Matching beam geometry and reinforcement are grouped. Original beam numbers and stirrup details remain available below the schedule.",Dock=DockStyle.Top,Height=42,Padding=new Padding(10),ForeColor=PowTheme.Muted};Controls.Add(tabs);Controls.Add(notes);Controls.Add(summary);Controls.Add(sourceBox);Controls.Add(tools);Controls.Add(title);Controls.Add(status);}finally{ResumeLayout(true);}}
+ void UseSlabFormatterLayout(){var originalTable=(TabPage)grid.Parent;tabs.Dock=DockStyle.Fill;tabs.TabPages[1].Text="DXF preview";detail.Height=92;var originalControls=Controls.Cast<Control>().ToArray();SuspendLayout();try{foreach(var c in originalControls)Controls.Remove(c);var title=new Label{Text="BEAM SCHEDULE FORMATTER",Dock=DockStyle.Top,Height=54,Padding=new Padding(12),Font=new Font("Segoe UI",18,FontStyle.Bold),ForeColor=PowTheme.Ink};var tools=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,WrapContents=true,Padding=new Padding(8)};browse.Text="Load source DXF";tools.Controls.Add(browse);tools.Controls.Add(new Label{Text="Prefix",AutoSize=true,Padding=new Padding(4,8,0,0)});prefixBox.Width=85;tools.Controls.Add(prefixBox);tools.Controls.Add(new Label{Text="Floor title",AutoSize=true,Padding=new Padding(4,8,0,0)});floorBox.Width=240;tools.Controls.Add(floorBox);merge.AutoSize=true;tools.Controls.Add(merge);tools.Controls.Add(process);tools.Controls.Add(export);ActionPanel=tools;/* the same layout as the Slab Formatter (owner, 21 November 2026): one "Loaded DXF" line, no empty source box */sourceBox.Visible=false;summary.Dock=DockStyle.Top;summary.Height=45;summary.Padding=new Padding(12);summary.Font=ModernUi.Body;summary.ForeColor=PowTheme.Ink;summary.Text="Loaded DXF: none";var notes=new Label{Text="Matching beam geometry and reinforcement are grouped. Original beam numbers and stirrup details remain available below the schedule.",Dock=DockStyle.Top,Height=47,Padding=new Padding(10)};Controls.Add(tabs);Controls.Add(notes);Controls.Add(summary);Controls.Add(sourceBox);Controls.Add(tools);Controls.Add(title);Controls.Add(status);}finally{ResumeLayout(true);}}
 }
 #if ADMIN_APP
 partial class CodeGeneratorForm {
@@ -20,4 +20,24 @@ partial class CodeGeneratorForm {
    AutoScrollMinSize=new Size(0,Math.Max(message.Bottom,note.Bottom)+12);}finally{arranging=false;}};Resize+=(s,e)=>fit();Shown+=(s,e)=>fit();fit();}
 }
 #endif
+}
+namespace BeamScheduleFormatter {
+/* one look for the Beam and Slab Formatters (owner, 21 November 2026: "sa schedule formatter ayusin mo please hindi parehas, ang pangit
+   ng buttons and etc"): the same title, one command row with the fields and buttons on one line, one info card, the same table */
+static class FormatterChrome {
+ static System.Collections.Generic.IEnumerable<System.Windows.Forms.Control> All(System.Windows.Forms.Control root){foreach(System.Windows.Forms.Control c in root.Controls){yield return c;foreach(var d in All(c))yield return d;}}
+ internal static void Apply(System.Windows.Forms.Form form){
+  var all=All(form).ToList();
+  var title=all.OfType<System.Windows.Forms.Label>().FirstOrDefault(l=>l.Text.EndsWith("SCHEDULE FORMATTER"));if(title!=null){title.Height=52;title.Padding=new System.Windows.Forms.Padding(16,12,0,0);title.Font=new System.Drawing.Font("Segoe UI Semibold",16f);title.BackColor=ModernUi.Surface;}
+  var tools=all.OfType<System.Windows.Forms.FlowLayoutPanel>().FirstOrDefault(p=>p.Controls.OfType<System.Windows.Forms.Button>().Any(b=>b.Text=="Load source DXF"));
+  if(tools!=null){tools.AutoSize=true;tools.AutoSizeMode=System.Windows.Forms.AutoSizeMode.GrowAndShrink;tools.WrapContents=true;tools.Padding=new System.Windows.Forms.Padding(14,6,14,10);tools.BackColor=ModernUi.Surface;
+   foreach(System.Windows.Forms.Control c in tools.Controls){
+    if(c is System.Windows.Forms.Button){var b=(System.Windows.Forms.Button)c;b.AutoSize=true;b.Height=36;b.MinimumSize=new System.Drawing.Size(0,36);b.Margin=new System.Windows.Forms.Padding(0,0,8,0);if(b.Text=="Load source DXF")b.Margin=new System.Windows.Forms.Padding(0,0,18,0);if(b.Text=="Build preview")b.Margin=new System.Windows.Forms.Padding(14,0,8,0);}
+    else if(c is System.Windows.Forms.Label){var l=(System.Windows.Forms.Label)c;l.AutoSize=true;l.Font=ModernUi.Body;l.ForeColor=PowTheme.Muted;l.Padding=System.Windows.Forms.Padding.Empty;l.Margin=new System.Windows.Forms.Padding(6,10,6,0);}
+    else if(c is System.Windows.Forms.TextBox){var t=(System.Windows.Forms.TextBox)c;t.Font=ModernUi.Body;t.Margin=new System.Windows.Forms.Padding(0,6,10,0);t.Width=t.Text.Length>4||t.Width>150?220:70;}
+    else if(c is System.Windows.Forms.CheckBox){var k=(System.Windows.Forms.CheckBox)c;k.AutoSize=true;k.Font=ModernUi.Body;k.Margin=new System.Windows.Forms.Padding(6,9,6,0);}}}
+  foreach(var l in all.OfType<System.Windows.Forms.Label>()){
+   if(l.Text.StartsWith("Loaded DXF")){l.Height=34;l.Padding=new System.Windows.Forms.Padding(16,10,8,0);l.Font=ModernUi.Strong;l.ForeColor=PowTheme.Ink;l.BackColor=ModernUi.Surface;l.AutoEllipsis=true;}
+   else if(l.Text.StartsWith("Matching ")){l.Height=38;l.Padding=new System.Windows.Forms.Padding(16,2,8,10);l.Font=ModernUi.Body;l.ForeColor=PowTheme.Muted;l.BackColor=ModernUi.Surface;l.AutoEllipsis=true;}}}
+}
 }

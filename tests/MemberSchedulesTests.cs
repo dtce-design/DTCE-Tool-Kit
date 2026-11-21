@@ -1,4 +1,4 @@
-using System;using System.Linq;using System.Reflection;using System.Text.RegularExpressions;using System.Windows.Forms;using BeamScheduleFormatter;
+﻿using System;using System.Linq;using System.Reflection;using System.Text.RegularExpressions;using System.Windows.Forms;using BeamScheduleFormatter;
 /* Manual column / footing schedules on the Program of Works and the manual beam schedule manager (v1.50.12) */
 class MemberSchedulesTests {
  static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}
@@ -28,6 +28,17 @@ class MemberSchedulesTests {
   cs.Rows[0].Cells[2].Value="450";pow.Recalculate();Check(Convert.ToString(col.Rows[0].Cells[3].Value)=="450","a schedule change updates the rows");
   col.Rows[0].Cells[ProgramOfWorksForm.ScheduleMarkColumn].Value="";pow.Recalculate();Check(!col.Rows[0].Cells[3].ReadOnly&&Convert.ToString(col.Rows[0].Cells[3].Value)=="450","clearing the mark unlocks the row and keeps the values");
   col.Rows[0].Cells[ProgramOfWorksForm.ScheduleMarkColumn].Value="C9";pow.Recalculate();Check(col.Rows[0].Cells[ProgramOfWorksForm.ScheduleMarkColumn].ErrorText.Contains("not on the"),"unknown mark is flagged");
+  /* a column mark per level range (owner, 20 November 2026: "sa column dapat per elevation siya") */
+  cs.Rows.Add("C2","Stacked","400","400","20","8","","","10","Spacing (mm)","100","","","0","3.5");cs.Rows.Add("C2","Stacked","400","400","16","8","","","10","Spacing (mm)","150","","","3.5","7");
+  int c2=col.Rows.Add();foreach(var p in new[]{"0=C-02","1=Grid B2","2=1","5=1","13=0"}){var kv=p.Split('=');col.Rows[c2].Cells[int.Parse(kv[0])].Value=kv[1];}col.Rows[c2].Cells[ProgramOfWorksForm.ScheduleMarkColumn].Value="C2";pow.Recalculate();
+  Check(Convert.ToString(col.Rows[c2].Cells[2].Value)=="7"&&col.Rows[c2].Cells[2].ReadOnly,"stacked column: full height from its level ranges");
+  var q=col.Rows[c2].Tag as MiscStructureQuantity;Check(q!=null&&Math.Abs(q.Concrete-0.4*0.4*7)<1e-6,"stacked column: concrete over both ranges");
+  var lo=q.Steel.Result.Lines.First(l=>l.Part.StartsWith("Column longitudinal")&&l.Diameter==20);var hi=q.Steel.Result.Lines.First(l=>l.Part.StartsWith("Column longitudinal")&&l.Diameter==16);
+  Check(lo.Part.Contains("0.00 to 3.50")&&hi.Part.Contains("3.50 to 7.00")&&lo.PiecesPerBeam==8&&hi.PiecesPerBeam==8,"stacked column: bars per level range");
+  Check(lo.CutLength>hi.CutLength-1e-9&&lo.Formula.Contains("compression lap")&&!hi.Formula.Contains("compression lap"),"lower range laps into the range above, the top range does not");
+  Check(q.Steel.Result.Lines.Count(l=>l.Part=="Stirrups")==2,"stacked column: ties per level range");
+  Check(cs.Rows.Cast<DataGridViewRow>().All(x=>x.Cells[0].ErrorText==""),"a mark with level ranges is not a duplicate");
+  string stacked=Xml();New(stacked);Check(Xml()==stacked,"level ranges are saved and read back");
   /* manual beam schedules: add, edit (rename follows the takeoff rows), delete */
   var est=new EstimatorForm(null);var beams=(DataGridView)typeof(EstimatorForm).GetField("beams",F).GetValue(est);
   est.AddManual(Beam("B1","300","500"));est.AddManual(Beam("B2","250","400"));int b=beams.Rows.Add();beams.Rows[b].Cells[1].Value="B1";

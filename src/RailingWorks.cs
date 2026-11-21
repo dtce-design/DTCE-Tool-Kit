@@ -52,8 +52,8 @@ partial class ProgramOfWorksForm {
  internal List<BillQuantity> RailingQuantities(){var list=new List<BillQuantity>();if(railings.Count==0)return list;
   /* Owner (18 November 2026): no railing weights in Bill of Quantities; one BOQ line to map ("isang map lang") with the
      6 m pieces to buy broken down per material (profile / size), not per member type. Members of the same material share
-     stock lengths and offcuts; each material line names the railing rows it covers. */
-  var pieces=new BillQuantity{Section="Railing",Description="Railing pieces to buy (6 m stock lengths)",Unit="pcs",Quantity=railingStocks.Count};
+     commercial lengths and offcuts; each material line names the railing rows it covers. */
+  var pieces=new BillQuantity{Section="Railing",Description="Railing pieces to buy (6 m commercial lengths)",Unit="pcs",Quantity=railingStocks.Count};
   /* Breakdown per section, then per size (owner, 18 November 2026: "per size per section"). */
   foreach(var group in railingStocks.GroupBy(x=>x.Specification).Select(g=>new{Stocks=g,Rows=railings.Where(r=>r.Profile==g.Key).ToList()}).OrderBy(x=>x.Rows.Count>0?x.Rows[0].Section:"").ThenBy(x=>x.Stocks.Key)){
    string section=group.Rows.Count>0?group.Rows[0].Section:"";

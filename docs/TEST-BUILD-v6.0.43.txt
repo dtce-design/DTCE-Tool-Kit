@@ -1,0 +1,8 @@
+DTCE Tool Kit v6.0.43 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (owner: "bakit naalis yung settings ng mouse ko na existing"):
+- Changing the Appearance (Light / Dark / Use system settings) rewrote the settings file and dropped the Horizontal scroll choice;
+  both are now kept. Choosing either one leaves the other as it was.
+Checked on Linux/Mono only. Tests: HorizontalWheelTests (8), AppearancePreferencesTests.
+
+Includes v6.0.42 and earlier builds.

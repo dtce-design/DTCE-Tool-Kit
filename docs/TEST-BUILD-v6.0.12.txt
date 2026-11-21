@@ -1,0 +1,18 @@
+DTCE Tool Kit v6.0.12 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Cutting List / BBS report):
+- Bar marks as in the RCDC drawings ("pagparehasin yung bar name sa dxf file"): one numbering per beam line - top bars T1, T2 ..
+  from left to right (the lapped pieces of one bar get consecutive numbers), then bottom bars B.., stirrups and crossties S..,
+  side-face bars SB.., layer spacers SP... The cutting list shows line + mark (B1-T1); the BBS tables show the mark within the
+  element (T1). Edits made on the cutting list stay saved under the bar's own key, so older cutting list files keep their edits.
+- Beam elevation labels ("overcrowded"): RCDC style T1+T2-5NOS-T16 (lapped pieces share one label), stirrup zones
+  S13-15NOS-T10-@100 (2L); cut lengths are left to the schedule; labels take the nearest free row so they no longer overlap.
+  The splice check lists the lapped pieces (T1+T2).
+- One report per kind of member ("kung Beam lang beam lang, if column column lang, if slab slab lang"): Print offers a Beams,
+  Columns, Slabs, Footings or Wall footings report (only the kinds on the list); each has only its own bars, notes, cutting patterns
+  and commercial bars. Column/slab/footing reports leave out the beam lines table and the beam details section.
+- Stirrup shape H5 now has both 135° hooks at the corner ("iisa lang ang hook"); the shape key shows R at a bend and only the
+  codes of the shapes used (S0, L1, U2, H5, X3, K4, K5); the Cutting List BBS grid shows the shape code.
+Checked on Linux/Mono only. Tests: BeamCuttingListTests (84 checks), MemberBbsTests.
+
+Includes v6.0.11 and earlier builds.

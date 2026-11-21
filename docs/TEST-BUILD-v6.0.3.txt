@@ -1,0 +1,19 @@
+DTCE Tool Kit v6.0.3 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Program of Works (POW) workspace UI): POW Studio layout ("ayusin mo ang GUI UI ng POW"; "ganitong UI pero huwag gagayahin
+yung print at dupa", with the owner's POW Studio page as the model).
+- Dark workflow sidebar: 1 Project details, 2 Hauling & prices, 3 Pay items & quantities, 4 Review & print; project card and save
+  state. Header with Workspace / Program of Works (POW), New project, Open project, More (Save project as, Recalculate, Use another
+  POW workbook) and Save project. Project title, location, calendar days and total cost, and a step progress line.
+- 1 Project details: cards with fields bound to FRONT PAGE inputs (implementing office, address, project name lines, location, work
+  location, date prepared, allotted amount, EAO %, component ID, funding, category, program, infrastructure type, target, stories,
+  floor area, scope of works); EAO allocation, component cost and balance shown from the workbook.
+- 2 Hauling & prices: Hauling (six hauling sheets), CMPD, Labor rates, PERR and Indirect Cost as the app's Excel-like sheets with the
+  formula bar (select a cell, type, Enter).
+- 3 Pay items & quantities: total project cost, direct cost and number of pay items with quantity; table of pay items (item no.,
+  description, unit, quantity, unit cost, amount from DETAILED) with search and "Show all pay items"; quantities are typed in the
+  table (written to BACKUP) or come from the Bill of Quantities link; "Open DUPA" / double-click opens the item's DUPA.
+- 4 Review & print: the Excel-like sheets, DUPA list and printing as before (not changed, as asked).
+Checked on Linux/Mono only.
+
+Includes v6.0.2 and earlier builds.

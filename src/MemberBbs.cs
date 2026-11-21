@@ -19,7 +19,7 @@ static class MemberBbs {
      if(l.AdditionalLegs>0&&l.AdditionalLegCut>0)list.Add(new CutPiece{Group=m.Kind,Line=m.Kind+" "+m.Id,BarMark=mark(),Location=part+" (crossties)",Diameter=l.Diameter,Grade=l.Grade,PerLine=sets*l.AdditionalLegs,Lines=qty,Length=l.AdditionalLegCut,Shape="Crosstie 90°/135°",SecB=m.WidthMm,SecH=m.DepthMm});continue;}
     if(l.PiecesPerBeam<=0||l.CutLength<=0)continue;
     bool open=part.StartsWith("Column open ties",StringComparison.OrdinalIgnoreCase);string dir=open&&part.EndsWith("Depth",StringComparison.OrdinalIgnoreCase)?"Depth":"Width";
-    list.Add(new CutPiece{Group=m.Kind,Line=m.Kind+" "+m.Id,BarMark=mark(),Location=part,Diameter=l.Diameter,Grade=l.Grade,PerLine=l.PiecesPerBeam,Lines=qty,Length=l.CutLength,Shape=open?"Crosstie 135°":"Straight",SecB=m.WidthMm,SecH=open?(dir=="Depth"?m.WidthMm:m.DepthMm):m.DepthMm});}
+    list.Add(new CutPiece{Group=m.Kind,Line=m.Kind+" "+m.Id,BarMark=mark(),Location=part,Diameter=l.Diameter,Grade=l.Grade,PerLine=l.PiecesPerBeam,Lines=qty,Length=l.CutLength,Shape=open?"Crosstie 135°":m.Kind=="Column"&&part.StartsWith("Column longitudinal")?"Cranked lap splice":"Straight",SecB=m.WidthMm,SecH=open?(dir=="Depth"?m.WidthMm:m.DepthMm):m.DepthMm});}
    if(n==0&&notes!=null)notes.Add(m.Kind+" "+m.Id+": no bars in the take-off.");}
   return list;}
 }

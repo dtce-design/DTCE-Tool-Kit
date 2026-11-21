@@ -1,4 +1,4 @@
-using System;using System.Linq;using System.Globalization;using System.Drawing;using System.Windows.Forms;
+﻿using System;using System.Linq;using System.Globalization;using System.Drawing;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 static class SlabEntryOptions {
  public static readonly string[] Types={"Elevated","Elevated / cantilever edge","On gravel fill"};
@@ -12,7 +12,7 @@ static class SlabEntryOptions {
 class SlabEntryOptionsForm:Form {
  readonly ComboBox type;readonly TextBox[] fields=new TextBox[7];readonly Label[] labels=new Label[7];readonly CheckBox manual;readonly Label explanation;readonly SlabScheduleRow slab;readonly ToolTip help=new ToolTip{ShowAlways=true,InitialDelay=350,ReshowDelay=150,AutoPopDelay=20000};
  public string SelectedType{get{return Convert.ToString(type.SelectedItem);}}public string[] Values{get;private set;}
- public SlabEntryOptionsForm(string support,string[] initial,SlabScheduleRow schedule){slab=schedule;Text="Slab type and optional settings";ClientSize=new Size(760,655);StartPosition=FormStartPosition.CenterParent;FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;MinimizeBox=false;Font=new Font("Segoe UI",10);BackColor=Color.FromArgb(245,248,251);
+ public SlabEntryOptionsForm(string support,string[] initial,SlabScheduleRow schedule){slab=schedule;Text="Slab type and optional settings";ClientSize=new Size(760,655);StartPosition=FormStartPosition.CenterParent;FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;MinimizeBox=false;Font=new Font("Segoe UI",9.25f);BackColor=Color.FromArgb(245,248,251);
   Controls.Add(new Label{Text="Piliin ang slab type. Automatic ang reinforcement settings mula sa DXF.\nAng disabled fields ay hindi kailangang sagutan. I-hover ang label para sa paliwanag.",Location=new Point(20,15),Size=new Size(720,48)});var typeLabel=new Label{Text="Slab type",Location=new Point(20,72),Size=new Size(120,25)};Controls.Add(typeLabel);type=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Location=new Point(145,68),Width=570};type.Items.AddRange(SlabEntryOptions.Types.Cast<object>().ToArray());type.SelectedItem=SlabEntryOptions.Types.Contains(support)?support:"Elevated";Controls.Add(type);
   explanation=new Label{Location=new Point(20,108),Size=new Size(710,45),ForeColor=Color.FromArgb(24,75,95)};Controls.Add(explanation);manual=new CheckBox{Text="Baguhin ang automatic reinforcement settings (optional)",Location=new Point(20,155),Size=new Size(710,30),Checked=SlabEntryOptions.IsManual(initial,slab)};Controls.Add(manual);
   string[] names={"Haba ng exposed cantilever edges, m bawat panel","Continuous sides sa LONG support (automatic)","End sides sa LONG support (automatic)","Continuous sides sa SHORT support (automatic)","End sides sa SHORT support (automatic)","Katabing panel span: short direction, m","Katabing panel span: long direction, m"};

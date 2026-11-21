@@ -1,0 +1,29 @@
+DTCE Tool Kit v6.0.21 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Bar Bending Schedule, estimates and look):
+- Spans left out of the estimate ("kapag inuncheck ... abang na lang ang matitira", "parang dowel"): the bars of an unticked span
+  (stirrups, its extra bars, side-face bars, spacers, extra hoops) are not listed; the bars of the spans beside it stop one Class B
+  lap length inside it as dowels (abang), marked "dowel (abang) into span n"; laps there are dropped; the steel per span is shared
+  again from the bars that remain; bars edited on the cutting list keep the typed length. The left-out span is greyed and hatched
+  with "SPAN n NOT INCLUDED - dowels (abang) only" in the model and in the BBS report elevation.
+- Bar sketches ("di accurate"): the schedule grid, the selected-bar panel, the report and the site sheets draw the same sketch -
+  long straight parts shortened so hooks and cranks keep their real proportions; A to E give the lengths.
+- Original (source) beam schedule DXF (Test_Schedule_of_Beams.dxf): the Bar Bending Schedule and the beam estimate now also read
+  the original schedule with the Beam Formatter's own parser; each beam number (B1, B3 ...) is a mark. Formatted schedules read
+  as before.
+- Column, Slab, Footing and Wall Footing tabs in the Bar Bending Schedule ("asan yung bbs ng slab, column, foundation"): each
+  shows its bars from the Bill of Quantities take-off with Load from Bill of Quantities and its own report.
+- Readability ("di mabasa"): input captions are no longer cut; long ones wrap onto a second line; the form pane is wider.
+- Buttons ("di makita yung buttons", "parang di siya buttons"): secondary buttons have their own light fill and a clear border.
+- Fewer, non-repeated buttons ("isummarize mo yung buttons huwag gawin redundant"): Beam Estimate - Load beam schedule DXF,
+  Schedules (Add DXF files, Manage DXF files, Manual schedules), Settings (Curtailment settings, Commercial lengths, Splice /
+  development / hooks), Save / Open estimate, Print Preview (prints or saves the PDF; it replaces "Export / print PDF" and
+  "Commercial bars", which showed the same report). Slab Estimate - the same Schedules / Settings menus; Print preview replaces
+  Save PDF.
+- Font sizes one step smaller across the app ("bawasan mo yung font sizes"): body 9.25 pt, titles 15 pt, workspace header 12.5 pt.
+Checked on Linux/Mono only. Tests: BeamCuttingListTests (89), MemberBbsTests, EstimatorRowIncludeTests, PowBeamMarkImportTests,
+ProfessionalTakeoffTests, SlabEstimatorTests, ManualSlabTests, SlabEntryOptionsTests, StrapFootingTests, SteelSectionRefreshUiTests,
+AppearancePreferencesTests, AppearanceUiTests. BeamEarthworksTests, DxfLinkedTablesTests, ModernUiTests and SteelFeatureTests stop
+on Mono in the estimator / Bill of Quantities code also without these changes; Windows CI runs them.
+
+Includes v6.0.20 and earlier builds.

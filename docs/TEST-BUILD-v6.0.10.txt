@@ -1,0 +1,8 @@
+DTCE Tool Kit v6.0.10 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Cutting List, beam lines): the clear span is entered and shown in metres ("clear span in m"). The column is now
+CLEAR SPAN Ln (m). A value over 50 typed in millimetres (for example 5000) is changed to metres (5) in the cell itself, also
+when an older cutting list file with millimetre spans is opened. Reports already show Ln (m).
+Checked on Linux/Mono only (5000 -> 5, 6.5 stays 6.5). Tests: BeamCuttingListTests.
+
+Includes v6.0.9 and earlier builds.

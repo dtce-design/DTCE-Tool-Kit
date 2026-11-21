@@ -62,7 +62,8 @@ class TrussSupportDetailView:Control {
  TrussSupportInput input;double gussetH=250;
  public TrussSupportDetailView(){DoubleBuffered=true;ResizeRedraw=true;Width=1000;Height=460;Tag="FullWidth";BackColor=Color.White;}
  public void Show(TrussSupportInput i,double h){input=i;gussetH=h;Invalidate();}
- protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);e.Graphics.SmoothingMode=SmoothingMode.AntiAlias;if(input==null){using(var b=new SolidBrush(PowTheme.Muted))e.Graphics.DrawString("Enter the plate, anchor and chord sizes to see the section and the anchor bolt detail.",Font,b,12,12);return;}
+ protected override void OnPaint(PaintEventArgs e){/* drawings stay paper-white with dark ink in dark mode (owner, 21 November 2026: "pangit ng dark mode") */if(DesktopAppearance.Palette.Dark)e.Graphics.Clear(Color.White);using(new ReportPaperScope())PaintPaper(e);}
+ void PaintPaper(PaintEventArgs e){base.OnPaint(e);e.Graphics.SmoothingMode=SmoothingMode.AntiAlias;if(input==null){using(var b=new SolidBrush(PowTheme.Muted))e.Graphics.DrawString("Enter the plate, anchor and chord sizes to see the section and the anchor bolt detail.",Font,b,12,12);return;}
   try{TrussSupportDetail.Draw(e.Graphics,new RectangleF(0,0,Width,Height),input,gussetH,e.Graphics.DpiX/25.4,8.5f,"(on screen)");}catch(Exception ex){using(var b=new SolidBrush(Color.Firebrick))e.Graphics.DrawString(ex.Message,Font,b,12,12);}}
 }
 }

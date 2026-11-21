@@ -1,0 +1,9 @@
+DTCE Tool Kit v6.0.17 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Bar Bending Schedule look; owner: "mas pumangit yung Bar Bending Schedule", "ayusin mo basta folder tabs pa din"):
+the beam lines and the results use the whole Beam tab again (results tabs on one row); the settings moved to their own Settings
+tab (folder tab next to Beam) with the same input form as the design sheets and a short explanation beside it. Beam line column
+captions may wrap instead of being cut. Folder tabs kept.
+Checked on Linux/Mono only. Tests: BeamCuttingListTests.
+
+Includes v6.0.16 and earlier builds.

@@ -1,0 +1,9 @@
+DTCE Tool Kit v6.0.19 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Bar Bending Schedule model; "ano itong mahaba"): in the elevation model with true scale on, a bar hooked at both ends
+(U-bar) drew its hook with its straight length B, so a long vertical line stood over the exterior support. The hook legs now use
+A and C of a U-bar, B of an L-bar and E of a K5 bar (cranked at the lap, 90° hook at the exterior support); the K5 hook is also
+drawn in the report elevation.
+Checked on Linux/Mono only (B_Schedule_-_Revised.dxf, B-001 over two spans). Tests: BeamCuttingListTests.
+
+Includes v6.0.18 and earlier builds.

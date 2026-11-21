@@ -119,7 +119,8 @@ sealed class WallDxfViewer:Form {
    if(owner.ChooseWall!=null){string id=owner.WallIdAt(w.X,w.Y,reach);if(id!=null&&owner.ChooseWall(id)){owner.status.Text="Wall ID "+id+" given to the selected Wall Finishes row. Select another row and click another wall.";owner.RefreshTarget();}else if(id==null)owner.status.Text="No Wall ID here - click a wall that has a Wall ID label.";return;}
    if(owner.measure.Checked){var s=owner.Snap(w.X,w.Y,reach);if(owner.firstX==null){owner.firstX=s.X;owner.firstY=s.Y;owner.Status();Invalidate();return;}owner.Measure(owner.firstX.Value,owner.firstY.Value,s.X,s.Y);owner.firstX=owner.firstY=null;owner.Status();return;}
    var seg=owner.HitTest(w.X,w.Y,reach);if(seg!=null)owner.Pick(seg);}
-  protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;var picked=new HashSet<DxfSeg>(owner.pickedSeg.Values);
+  protected override void OnPaint(PaintEventArgs e){/* drawings stay paper-white with dark ink in dark mode (owner, 21 November 2026: "pangit ng dark mode") */if(DesktopAppearance.Palette.Dark)e.Graphics.Clear(Color.White);using(new ReportPaperScope())PaintPaper(e);}
+ void PaintPaper(PaintEventArgs e){base.OnPaint(e);var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;var picked=new HashSet<DxfSeg>(owner.pickedSeg.Values);
    foreach(var s in owner.drawing.Segs.OrderBy(z=>z.Dimension?1:0)){var dl=s.DimLine();var a=ToScreen(dl[0],dl[1]);var b=ToScreen(dl[2],dl[3]);
     if(s.Dimension)using(var ext=new Pen(Color.FromArgb(110,150,229,155),1f)){g.DrawLine(ext,ToScreen(s.X1,s.Y1),a);g.DrawLine(ext,ToScreen(s.X2,s.Y2),b);}double? t=WallDxfImport.LayerThickness(s.Layer);
     Color c=s.Dimension?Color.FromArgb(150,229,155):t==100?Color.FromArgb(255,209,102):t!=null?Color.FromArgb(92,200,255):Color.FromArgb(170,170,170);float width=s.Dimension?1f:t!=null?2.5f:1f;

@@ -1,0 +1,17 @@
+DTCE Tool Kit v6.0.41 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Bill of Quantities):
+- Dropdowns and checkboxes in every Bill of Quantities sheet apply at once (choosing Rebar layers 1 / 2 used to change nothing
+  until the cell was left).
+- RC Wall Estimate: side B of a two-layer wall can have its own bars - new columns Side B vertical dia / spacing and Side B horizontal
+  dia / spacing (blank = as side A; a blank spacing takes side A's spacing). The rebar lines read "side A" / "side B". The side B
+  columns are grey and locked until Rebar layers = 2. Saved with the project; older projects open as before.
+- Checkbox first: Roofing "Insulation?" comes before "Insulation type", which is grey and locked until Insulation? is ticked.
+- Insulation rolls default to 1 m wide x 50 m long (blank values in older projects are filled with 1 x 50).
+- Earthworks Start uses the whole window: the settings in one band across the top, the earthworks summary and the gravel quantities
+  side by side under it, filling the height.
+- Sheet guides: shown by the info icon at the upper right of the window for the open tab; the second small icon in each sheet
+  heading is removed.
+Checked on Linux/Mono only. Tests: OpeningLintelTests (21: lintels, RC wall side B, insulation defaults), UpdateAndQuantityTests.
+
+Includes v6.0.40 and earlier builds.

@@ -1,0 +1,15 @@
+DTCE Tool Kit v6.0.28 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Bar Bending Schedule; "sure ka sa splice zone ng bot at top? bat sa top walang cranked bars"; Curtailment Settings picture):
+- Short spans in a special moment frame: the allowed splice zone (outside 2h from each face, NSCP 418.6.3.3) can be shorter than
+  the Class B lap (e.g. Ln 4.000 m, h 800: zone 800 mm, Ø16 top lap 1550 mm). The top continuous bars used to stop after the first
+  12 m piece ("NO VALID SPLICE"). Now the lap goes to midspan of the farthest span within reach, cranked, so the line keeps all its
+  bars; the splice check marks it NG with "use Type 2 mechanical splices or a longer bar".
+- Stirrup end zones follow the beam curtailment Shear Zones where the schedule gives no spacing text: ductile beam (special moment
+  frame) D x 2, non-ductile L / 3 (new "Stirrup end zones" choice; "% of Ln" stays available). Cutting lists saved before keep
+  their % of Ln.
+- Confirmed against the Curtailment Settings: top L/4 at end and continuous supports; bottom midspan L/6, end and continuous
+  supports L/4 (as before).
+Checked on Linux/Mono only (B_Schedule_-_Revised.dxf B-001, 4.000 m spans). Tests: BeamCuttingListTests (94), MemberBbsTests.
+
+Includes v6.0.27 and earlier builds.

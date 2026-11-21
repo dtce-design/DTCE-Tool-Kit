@@ -19,7 +19,8 @@ static class NscpSpectrum {
 class SpectrumChart:Control {
  internal List<double[]> Points=new List<double[]>();internal double T0,Ts;
  public SpectrumChart(){DoubleBuffered=true;ResizeRedraw=true;Height=340;Width=1000;Tag="FullWidth";BackColor=Color.White;}
- protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;var font=ModernUi.Body;
+ protected override void OnPaint(PaintEventArgs e){/* drawings stay paper-white with dark ink in dark mode (owner, 21 November 2026: "pangit ng dark mode") */if(DesktopAppearance.Palette.Dark)e.Graphics.Clear(Color.White);using(new ReportPaperScope())PaintPaper(e);}
+ void PaintPaper(PaintEventArgs e){base.OnPaint(e);var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;var font=ModernUi.Body;
   using(var ink=new SolidBrush(PowTheme.Ink))g.DrawString("DESIGN RESPONSE SPECTRUM (NSCP 2015 Figure 208-3)",ModernUi.Strong,ink,12,8);
   if(Points.Count<2)return;var plot=new RectangleF(70,44,Math.Max(50,Width-100),Math.Max(50,Height-96));double tMax=Points.Max(p=>p[0]),sMax=Points.Max(p=>p[1])*1.1;
   Func<double,float> X=t=>plot.Left+(float)(t/tMax)*plot.Width;Func<double,float> Y=s=>plot.Bottom-(float)(s/sMax)*plot.Height;

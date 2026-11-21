@@ -1,4 +1,4 @@
-using System;using System.Runtime.CompilerServices;using System.Drawing;using System.Drawing.Drawing2D;using System.Windows.Forms;
+﻿using System;using System.Runtime.CompilerServices;using System.Drawing;using System.Drawing.Drawing2D;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 // Common visual components. Native controls retain keyboard/accessibility/click behavior.
 static class PremiumControls {
@@ -6,7 +6,7 @@ static class PremiumControls {
  internal static Color AccentHover {get{return DesktopAppearance.Palette.AccentHover;}}
  internal static Color AccentSoft {get{return DesktopAppearance.Palette.Selected;}}
  internal static Color Header {get{return DesktopAppearance.Palette.Header;}}
- internal static readonly Font TitleFont=new Font("Segoe UI Semibold",17,FontStyle.Regular);
+ internal static readonly Font TitleFont=new Font("Segoe UI Semibold",15,FontStyle.Regular);
  static readonly ConditionalWeakTable<Button,object> styledButtons=new ConditionalWeakTable<Button,object>();
  internal static void StyleButton(Button button){
   object marker;if(button==null||button.IsDisposed||styledButtons.TryGetValue(button,out marker))return;styledButtons.Add(button,new object());ButtonFocusChrome.Attach(button);
@@ -22,8 +22,10 @@ static class PremiumControls {
    if(button.Width<3||button.Height<3)return;var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;
    g.Clear(button.Parent==null?ModernUi.Surface:button.Parent.BackColor);
    bool hover=button.ClientRectangle.Contains(button.PointToClient(Cursor.Position));
-   Color fill=chrome?(hover?DesktopAppearance.Palette.Selected:DesktopAppearance.Palette.ChromeButton):!button.Enabled?ModernUi.Soft:primary?(pressed?DesktopAppearance.Palette.AccentHover:hover?AccentHover:Accent):pressed?DesktopAppearance.Palette.Selected:hover?DesktopAppearance.Palette.Soft:ModernUi.Surface;
-   using(var path=ModernUi.Rounded(new RectangleF(.5f,.5f,button.Width-1,button.Height-1),4))using(var brush=new SolidBrush(fill))using(var border=new Pen(chrome?PowTheme.Line:primary?fill:button.Focused?Accent:PowTheme.Line)){
+   /* secondary buttons have their own fill and a clear border so they read as buttons on white panels (owner, 20 November 2026:
+      "di makita yung buttons", "parang di siya buttons") */var pal=DesktopAppearance.Palette;Color face=pal.Dark?ModernUi.Surface:Color.FromArgb(236,241,246),faceHover=pal.Dark?pal.Soft:Color.FromArgb(222,231,240),faceDown=pal.Dark?pal.Selected:Color.FromArgb(206,219,232);
+   Color fill=chrome?(hover?pal.Selected:pal.ChromeButton):!button.Enabled?ModernUi.Soft:primary?(pressed?pal.AccentHover:hover?AccentHover:Accent):pressed?faceDown:hover?faceHover:face;
+   using(var path=ModernUi.Rounded(new RectangleF(.5f,.5f,button.Width-1,button.Height-1),4))using(var brush=new SolidBrush(fill))using(var border=new Pen(chrome?PowTheme.Line:primary?fill:button.Focused?Accent:(pal.Dark?PowTheme.Line:Color.FromArgb(160,175,190)))){
     g.FillPath(brush,path);g.DrawPath(border,path);
    }
    var text=Rectangle.Inflate(button.ClientRectangle,-9,-3);
@@ -35,9 +37,9 @@ static class PremiumControls {
  internal static Panel WorkspaceHeader(Label title,Action back){
   var panel=new Panel{Dock=DockStyle.Top,Height=66,Padding=new Padding(20,13,20,13),BackColor=DesktopAppearance.Palette.Chrome,ForeColor=PowTheme.Ink,Tag="appearance-header"};
   /* No "Workspaces" back button: each workspace is its own window (owner, 19 November 2026). */
-  title.AutoSize=false;title.Dock=DockStyle.Fill;title.TextAlign=ContentAlignment.MiddleLeft;title.Padding=new Padding(0,0,0,0);title.Font=new Font("Segoe UI Semibold",14,FontStyle.Regular);title.ForeColor=PowTheme.Ink;title.Tag="appearance-header-title";
-  var brand=new Label{Text="DTCE  /  ENGINEERING",Dock=DockStyle.Right,Width=185,TextAlign=ContentAlignment.MiddleRight,ForeColor=PowTheme.Teal,Tag="appearance-brand",Font=new Font("Segoe UI",9,FontStyle.Bold)};
-  panel.Controls.Add(title);panel.Controls.Add(brand);return panel;
+  title.AutoSize=false;title.Dock=DockStyle.Fill;title.TextAlign=ContentAlignment.MiddleLeft;title.Padding=new Padding(0,0,0,0);title.Font=new Font("Segoe UI Semibold",12.5f,FontStyle.Regular);title.ForeColor=Color.White;title.Tag="appearance-header-title";
+  /* the window's info icon replaces the "DTCE / ENGINEERING" caption (owner, 20 November 2026) */var info=InfoButton.Icon();info.Dock=DockStyle.Right;info.ForeColor=Color.White;
+  panel.Controls.Add(title);panel.Controls.Add(info);return panel;
  }
 }
 class PremiumSectionHeading:Control {

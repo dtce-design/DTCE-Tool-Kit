@@ -166,6 +166,37 @@ instead of v5.0.20, the same way after its Windows CI passes. Owner then added L
 OtherFinishes section), fixed in v5.1.9; owner "upload mo na yan": the Store release is v5.1.9 (User and Admin). scripts/submit_store.py now deletes only an uncommitted draft that
 the Store refuses with 409 InvalidState and creates a new submission; a submission in certification is still never cancelled
 unless replace_pending_store_submission=true is asked for. Later versions again need a new explicit request.
+Owner (20 November 2026, "yan na muna ang pinaka final upload sa microsoft store"): v5.1.9 is the last Store upload for now; do not
+upload v5.1.10 or later until the owner asks again (GitHub pushes to the development branch are still fine).
+Result 20 November 2026: v5.1.9 merged to main (GitHub release OK, run 228). Store run 44698831499 (build re-run once after a
+flaky EarthworkFootingTests exit code): both uploads were refused. The pending drafts were created in Partner Center, not through
+the API, so the API may not update or delete them ("Ingestion API can only update, delete, and commit submissions that are created
+through the API"). The owner must delete the in-progress User and Admin submissions in Partner Center; then re-run the failed
+Store jobs of run 44698831499. Nothing was changed in Partner Center.
+Done 20 November 2026: the owner deleted both drafts; the failed Store jobs of run 44698831499 were re-run (attempt 3). New User
+(1152921505702458279) and Admin (1152921505702458540) submissions were created and committed; Partner Center reported
+"accepted for processing" (PreProcessing). Certification is not guaranteed. v5.1.10 and later need a new explicit request.
+New owner request (21 November 2026, "Pakipush sa store"): publish v6.0.48 (User and Admin) the same way after its Windows CI passes
+(merge the development branch to main for the GitHub release, then publish_microsoft_store=true; replace_pending_store_submission
+stays false unless the owner asks). Later versions again need a new explicit request.
+
+## Program of Works name (20 November 2026)
+
+Owner: "palitan yung Program of Works ng Bill of Quantities". The workspace and every user-visible "Program of Works" text are named
+Bill of Quantities. Internal class names (ProgramOfWorksForm), the .pow.xml file format and the linked workbook sheet names stay.
+
+## POW workbook workspace (20 November 2026)
+
+Owner: the DPWH POW/ABC workbook (V6.02 .xlsm) is reproduced in the app ("buong worksheet sa app, kamukha niyan mismo, para iprint
+na lang thru the app"), keeping every formula and where labor, equipment and materials come from, as a separate workspace that needs
+no password or access code. src/Wb*.cs read and recalculate the workbook; PowWorkbookForm shows and prints it.
+Owner (20 November 2026, "independent na siya sa .xlsm"; "saka lang mapapalitan kapag binago ko, masasave na parang xml"): the
+workbook is built in as src/PowTemplate.xlsx (slim copy of the owner's V6.02 Piggatan workbook made for the app: no macros/printer
+settings; embedded resource "PowTemplate.xlsx" in every build script). Its values stay until the owner types new ones; typed values
+are saved as POW project files *.pow.xml (root <PowWorkbook>). Do not commit the original .xlsm. BACKUP!BC follows the open Bill
+of Quantities workspace (src/BoqPowLink.cs; owner: "yung backup sa pow nakalink sa boq workspace"). Bill of Quantities files are now
+*.boq.xml (root <ProgramOfWorks>) and older *.pow.xml Bill of Quantities files must keep opening. Next: Project Information to
+FRONT PAGE.
 
 ## Version numbers (18 November 2026)
 

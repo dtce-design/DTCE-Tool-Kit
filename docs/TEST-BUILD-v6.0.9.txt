@@ -1,0 +1,8 @@
+DTCE Tool Kit v6.0.9 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Bar Bending Schedule): the BBS report, cutting list and site sheets are in English only ("English BBS report and cutting
+list"). The Filipino halves of the bilingual labels were removed: PART B - SITE SHEETS FOR THE CREW, CUTTING, BENDING, PLACING, BAR
+SIZE COLOURS, KEEP, WARNING, "All sizes in millimetres (mm)", "for: ..." and the placing note.
+Checked on Linux/Mono only. Tests: MemberBbsTests, BeamCuttingListTests.
+
+Includes v6.0.8 and earlier builds.

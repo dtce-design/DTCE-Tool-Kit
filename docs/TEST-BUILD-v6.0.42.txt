@@ -1,0 +1,12 @@
+DTCE Tool Kit v6.0.42 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (horizontal scroll; owner: "bat ayaw gumana ng horizontal scroll, tapos lagyan ng option sa overall settings kung iba yung
+direction ng horizontal scroll"):
+- Tilt wheel / touchpad side scroll and Shift + mouse wheel scroll the table or panel under the pointer sideways; when a table does
+  not take a pixel offset it now moves one column at a time instead of doing nothing.
+- Workspace settings: new "Horizontal scroll" choice - Normal (wheel down / tilt right = scroll right) or Reversed. Saved for this
+  Windows account with the appearance setting; it applies at once.
+Checked on Linux/Mono only (the tilt wheel / touchpad messages need Windows). Tests: HorizontalWheelTests (7),
+AppearancePreferencesTests, AppearanceUiTests.
+
+Includes v6.0.41 and earlier builds.

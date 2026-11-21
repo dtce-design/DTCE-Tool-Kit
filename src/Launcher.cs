@@ -1,14 +1,14 @@
 ﻿using System;using System.Drawing;using System.Linq;using System.Windows.Forms;using System.Collections.Generic;
 namespace BeamScheduleFormatter {
 class LauncherForm:Form {
- Form formatter,slabFormatter,lengths,project,works,cutting;
+ Form formatter,slabFormatter,lengths,project,works,cutting,powWorkbook;
  #if ADMIN_APP
  Form generator;
  #endif
  readonly Panel home=new Panel{Dock=DockStyle.Fill},groupHost=new Panel{Dock=DockStyle.Fill,Visible=false},groupContent=new Panel{Dock=DockStyle.Fill};
  readonly Label groupTitle=new Label{AutoSize=true,Padding=new Padding(18,8,0,0),Font=new Font("Segoe UI",13,FontStyle.Bold)};
  readonly TabControl formatterTabs=new NavigationTabs{Dock=DockStyle.Fill},designTabs=new NavigationTabs{Dock=DockStyle.Fill};readonly Dictionary<string,Form> designModules=new Dictionary<string,Form>();readonly Dictionary<string,Action> designLoaders=new Dictionary<string,Action>();bool loadingDesign,loadingFormatter;readonly Dictionary<string,Action> formatterLoaders=new Dictionary<string,Action>();
- public LauncherForm(){AppBrand.Apply(this);Text="DTCE Tool Kit v"+Engine.Version;/* owner (19 November 2026, "mas compact na window sa startup 2 columns lang") */ClientSize=new Size(780,580);/* owner (20 November 2026, "alisin ang scroll, ifix ang size ng buttons, at window saka iadjust yung window if may additional workspace"): fixed window and card sizes, no maximize; the height follows the number of workspaces */Font=new Font("Segoe UI",10);StartPosition=FormStartPosition.CenterScreen;Controls.Add(home);Controls.Add(groupHost);
+ public LauncherForm(){AppBrand.Apply(this);Text="DTCE Tool Kit v"+Engine.Version;/* owner (19 November 2026, "mas compact na window sa startup 2 columns lang") */ClientSize=new Size(780,580);/* owner (20 November 2026, "alisin ang scroll, ifix ang size ng buttons, at window saka iadjust yung window if may additional workspace"): fixed window and card sizes, no maximize; the height follows the number of workspaces */Font=new Font("Segoe UI",9.25f);StartPosition=FormStartPosition.CenterScreen;Controls.Add(home);Controls.Add(groupHost);
   home.Padding=new Padding(24,20,24,0);
   var dashboard=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=4,Margin=Padding.Empty,Padding=Padding.Empty};
   dashboard.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
@@ -30,7 +30,9 @@ class LauncherForm:Form {
   /* owner (19 November 2026): Project Information always comes first */
   AddCard(cards,"Project Information","Set the project details used in your calculations and reports.",()=>UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8));
   AddCard(cards,"Formatters","Prepare beam and slab schedules from your DXF drawings.",ShowFormatters);
-  AddCard(cards,"Program of Works","Estimate quantities and keep your Bill of Quantities connected.",()=>UseTool(ref works,()=>{var f=new ProgramOfWorksForm();ProgramOfWorksForm.Live=new WeakReference(f);GridFormulas.AttachAll(f);return f;},"Program of Works",null,2));
+  AddCard(cards,"Bill of Quantities","Measure quantities and build the Bill of Quantities with its linked workbook.",()=>UseTool(ref works,()=>{var f=new ProgramOfWorksForm();ProgramOfWorksForm.Live=new WeakReference(f);GridFormulas.AttachAll(f);return f;},"Bill of Quantities",null,2));
+  /* owner (20 November 2026, "gawin yung POW as separate worksheet walang password or code access"): opens without an access code */
+  AddCard(cards,"Program of Works (POW)","DPWH POW workbook: DUPA, Detailed, ABC and BOQ computed and printed in the app.",()=>{try{if(powWorkbook==null||powWorkbook.IsDisposed)powWorkbook=new PowWorkbookForm();ShowTool(powWorkbook,"Program of Works (POW)",null);}catch(Exception ex){MessageBox.Show(this,ex.Message,"Program of Works (POW)");}});
   AddCard(cards,"Bar Bending Schedule","Cutting lists, bar bending and splice details with an interactive model.",()=>UseTool(ref cutting,()=>new CuttingListForm(),"Bar Bending Schedule",null,ProgramAccess.BarBendingSchedule));
   AddCard(cards,"Design Sheets","Rebar, purlins, trusses, strap foundations, wind, earthquake, deflection.",ShowDesignSheets);
   #if ADMIN_APP

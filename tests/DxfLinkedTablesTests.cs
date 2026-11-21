@@ -45,7 +45,7 @@ class DxfLinkedTablesTests {
   string previous=ProjectInfoStore.DirectoryPath,dir=Path.Combine(Path.GetTempPath(),"DTCE-linked-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(dir);ProjectInfoStore.DirectoryPath=dir;
   try{string xml,beamState,slabSnapshot;
    using(var f=new ProgramOfWorksForm()){
-    /* owner (19 November 2026, "isummarize yung buttons"): Save on the bar, Save As in the File menu */var fileMenu=Find(f,"File  ▾") as Button;var menu=fileMenu==null?null:fileMenu.Tag as ContextMenuStrip;Check(Find(f,"Save Program of Works") is Button&&menu!=null&&menu.Items.Cast<ToolStripItem>().Any(i=>i.Text=="Save Program of Works As…"&&((ToolStripMenuItem)i).ShortcutKeyDisplayString=="Ctrl+Shift+S")&&Find(f,"Undo")==null&&Find(f,"Report  ▾")==null,"Save on the bar; Save As in the File menu; no Undo or Report button (Reports main tab)");
+    /* owner (19 November 2026, "isummarize yung buttons"): Save on the bar, Save As in the File menu */var fileMenu=Find(f,"File  ▾") as Button;var menu=fileMenu==null?null:fileMenu.Tag as ContextMenuStrip;Check(Find(f,"Save Bill of Quantities") is Button&&menu!=null&&menu.Items.Cast<ToolStripItem>().Any(i=>i.Text=="Save Bill of Quantities As…"&&((ToolStripMenuItem)i).ShortcutKeyDisplayString=="Ctrl+Shift+S")&&Find(f,"Undo")==null&&Find(f,"Report  ▾")==null,"Save on the bar; Save As in the File menu; no Undo or Report button (Reports main tab)");
     var beam=Get<EstimatorForm>(f,"beam");beam.LoadCatalog(dirty,"Mabanguc Schedule of Beams.dxf");beamState=(string)Call(beam,"State");
     Check(!beamState.Contains("Lal-lo")&&!beamState.Contains("0\nTABLECONTENT\n")&&beamState.Contains("NORTH"),"beam estimate keeps the drawing without the linked table");
     var slab=Get<SlabEstimatorForm>(f,"slab");Call(slab,"AddSource",Inject(SlabDxf(),true),"Slab Schedule.dxf");slabSnapshot=(string)Call(slab,"Snapshot");
@@ -53,7 +53,7 @@ class DxfLinkedTablesTests {
     Check(slabText.Contains("SLAB SCHEDULE")&&!slabText.Contains("Lal-lo")&&!slabText.Contains("0\nACAD_TABLE\n"),"slab estimate keeps the drawing without the linked table");
     string pow=Path.Combine(dir,"Linked.pow.xml");f.SaveTo(pow);xml=File.ReadAllText(pow);}
    var d=new XmlDocument();d.LoadXml(xml);var b=new XmlDocument();b.LoadXml(d.DocumentElement["Beam"].InnerText);
-   foreach(XmlElement x in b.SelectNodes("//ScheduleSources/Source")){Check(!PowPackedText.Read(x).Contains("Lal-lo"),"saved Program of Works holds no linked table");x.RemoveAttribute("encoding");x.InnerText=dirty;}
+   foreach(XmlElement x in b.SelectNodes("//ScheduleSources/Source")){Check(!PowPackedText.Read(x).Contains("Lal-lo"),"saved Bill of Quantities holds no linked table");x.RemoveAttribute("encoding");x.InnerText=dirty;}
    b.DocumentElement.SetAttribute("version","6");d.DocumentElement["Beam"].InnerText=b.OuterXml;
    using(var r=new ProgramOfWorksForm()){r.OpenProjectXml(d.OuterXml);string reopened=(string)Call(Get<EstimatorForm>(r,"beam"),"State");
     Check(reopened==beamState,"an older project that still holds the linked table opens with the cleaned drawing and the same estimate");}}

@@ -1,0 +1,18 @@
+DTCE Tool Kit v6.0.13 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Purlin Design, info buttons):
+- Purlin Design ("alisin na yung section properties sa purlin design na tab, icompute na lang internally"; "masmagandang
+  workspace"): the Section properties tab and the "use verified properties" inputs are removed; the properties are always
+  computed from the Regan handbook profile (rectangular plates, bend radii neglected, Ixy kept for Z shapes) and shown read-only
+  under the section preview. The inputs are on one page in groups: MEMBER AND SECTION, GEOMETRY, LOADS, MATERIAL. Purlin files
+  saved before this build (with the Ix, Iy, Ixy, Sx, Sy and Verified inputs) still open; those values are ignored.
+- Info button ("pagparehasin, icon na lang siya, isang location na lang sa upper right, alisin mo yung DTCE / ENGINEERING";
+  "nagpapalit yung info button based sa tab na nakaopen"): every window has one info icon (ⓘ) at the upper right. It shows the
+  note of the tab that is open (the innermost open tab with a note) and is greyed out on tabs without one. It replaces the
+  "DTCE / ENGINEERING" caption in the workspace header, the Info buttons on design-sheet tabs and the Cutting List beam lines,
+  and the "?" button of the Construction Schedule.
+Checked on Linux/Mono only (purlin round trip, older purlin file, info note per tab). Tests: SteelSectionRefreshUiTests,
+BeamCuttingListTests. SteelFeatureTests stops on Mono in the estimator purchase totals (also without these changes); Windows CI
+runs it.
+
+Includes v6.0.12 and earlier builds.

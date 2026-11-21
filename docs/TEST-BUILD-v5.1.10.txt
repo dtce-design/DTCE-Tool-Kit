@@ -1,0 +1,10 @@
+DTCE Tool Kit v5.1.10 test build (20 November 2026) - not uploaded to the Microsoft Store (owner: v5.1.9 "yan na muna ang pinaka final
+upload sa microsoft store"; later versions need a new explicit request).
+
+PATCH (adjustment): "Program of Works" is renamed "Bill of Quantities" everywhere it is shown ("palitan yung Program of Works ng Bill
+of Quantities"): the Workspaces card and window, Save / Open / Close menu and dialogs, messages, report scope ("Bill of Quantities
+Summary"), the access list (Bill of Quantities / Estimators) in the desktop, mobile and iPhone generators, and the Store listing text
+(used only at the next Store upload). Saved files keep the .pow.xml extension and format, so older files open unchanged; access codes
+and the linked Excel sheet names (POW ...) are unchanged.
+
+Includes v5.1.9 and earlier builds.

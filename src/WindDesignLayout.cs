@@ -3,7 +3,7 @@ namespace BeamScheduleFormatter {
 partial class WindDesignForm {
  readonly WindSiteMap siteMap=new WindSiteMap{Dock=DockStyle.Fill};
  void ConfigureSiteLayout(FlowLayoutPanel input){
-  var page=(TabPage)input.Parent;page.Controls.Remove(input);
+  var page=Detach(input);
   var layout=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,RowCount=1,Padding=new Padding(12)};
   layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,365));layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));layout.RowStyles.Add(new RowStyle(SizeType.Percent,100));
   input.Dock=DockStyle.Fill;input.FlowDirection=FlowDirection.TopDown;input.WrapContents=false;input.Padding=new Padding(8);input.Margin=new Padding(0,0,12,0);input.BackColor=Color.White;

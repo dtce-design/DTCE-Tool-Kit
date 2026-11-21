@@ -1,0 +1,9 @@
+DTCE Tool Kit v6.0.38 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Formatters; owner: "sa schedule formatter ayusin mo please hindi parehas, ang pangit ng buttons and etc"):
+- Beam and Slab Formatters share one style (FormatterChrome): the same title, one command row on a white band with the fields and
+  buttons aligned on one line (Load source DXF, Prefix, Floor title, Merge identical rows, Build preview, Export revised DXF), the
+  same button sizes and spacing, the same "Loaded DXF" and description lines, and the same dark table header.
+Checked on Linux/Mono only. Tests: SlabFormatterTests.
+
+Includes v6.0.37 and earlier builds.

@@ -1,0 +1,15 @@
+DTCE Tool Kit v6.0.37 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Formatters: Beam and Slab look and work the same):
+- Same rows in both: title, one command row (Load source DXF, Prefix, Floor title, Merge identical rows, Build preview, Export
+  revised DXF), one "Loaded DXF" line (with the row counts after loading / building), the description line, Schedule values and DXF
+  preview tabs, the notes box under the table and the status bar.
+- Beam: the empty source box and the "Your revised schedule" block are gone; Build preview is always available (green) and asks for
+  a DXF when none is loaded.
+- Slab: the table header is the Beam Formatter's dark header (capitals, centred), the same row colours and selection; the notes box
+  says "Select a row to review its original slab marks and output notes."; the status bar starts with "Ready. Load the original
+  slab schedule DXF."
+- Beam Formatter messages are in English (status bar and DXF read / format / export messages were in Tagalog).
+Checked on Linux/Mono only. Tests: SlabFormatterTests.
+
+Includes v6.0.36 and earlier builds.

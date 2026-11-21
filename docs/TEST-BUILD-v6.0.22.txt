@@ -1,0 +1,20 @@
+DTCE Tool Kit v6.0.22 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH:
+- Beam sections follow the schedule ("hindi niya accurately na dradrawing yung cross section"): in the BBS report sections and
+  in the model section, the bars are drawn layer by layer as scheduled - line 1 of a cell = 1st layer, line 2 = 2nd layer - from the
+  left, midspan or right cell by the position (quarter points; in a support, the cell at that end), with the spacer bar between
+  layers; the captions read e.g. 5-Ø16 / 3-Ø16 (1st / 2nd layer). Before, all the bars were packed by the clear spacing, so 5 + 3
+  could show as one row of 8.
+- Buttons ("ayusin lahat ng buttons, huwag redundant"): Beam and Slab Estimate - "Materials & calculation" is the first item of
+  Settings (no second Settings button); Construction Schedule - Print preview only (it prints); Beam Deflection - Import table
+  (Nodes / Beams), Paste table (Nodes / Beams), Import results (STAAD .ANL / CSV-Excel) instead of seven separate buttons.
+- Earthworks Start ("naiirita ako sa itsura nito"): settings in one white card on the left (soil factors, gravel allowance,
+  structural excavation material; the explanations are behind the info icon), the earthworks summary and the gravel quantities
+  on the right, each in a card sized to its rows.
+Checked on Linux/Mono only (sections from B_Schedule_-_Revised.dxf B-001 over three spans). Tests: BeamCuttingListTests,
+MemberBbsTests, BeamDeflectionTests, EstimatorRowIncludeTests, SlabEstimatorTests, StrapFootingTests, AppearanceUiTests;
+EarthworkFootingTests now checks that the gravel summary is inside Earthworks Start (it stops on Mono in the estimator code,
+also without these changes; Windows CI runs it).
+
+Includes v6.0.21 and earlier builds.

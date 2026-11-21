@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Drawing;using System.Linq;using System.Windows.Forms;using System.Xml;
+﻿using System;using System.Collections.Generic;using System.Drawing;using System.Linq;using System.Windows.Forms;using System.Xml;
 namespace BeamScheduleFormatter {
 /* Manual column and footing schedules (owner, 20 November 2026: "yung sa reinforced concrete maglagay na lang ng manual schedule
    sa column at footing. pero dapat yung ibang files bago itong update mababasa parin niya yung lumang format").
@@ -9,7 +9,7 @@ namespace BeamScheduleFormatter {
    schedules in <MemberSchedules>; files without them read as before. A DXF schedule loader can fill the same grids later. */
 partial class ProgramOfWorksForm {
  internal const string ScheduleMarkColumn="ScheduleMark";
- internal sealed class MemberSchedule {public string Kind;public DataGridView Schedule,Estimate;public int[] Targets;public int First=2;}
+ internal sealed class MemberSchedule {public string Kind;public DataGridView Schedule,Estimate;public int[] Targets;public int First=2;/* stored columns after the targets (column: from / to level) */public int Extra;}
  readonly List<MemberSchedule> memberSchedules=new List<MemberSchedule>();
  internal DataGridView ColumnSchedule{get{return memberSchedules.Count>0?memberSchedules[0].Schedule:null;}}
  internal DataGridView FootingSchedule{get{return memberSchedules.Count>1?memberSchedules[1].Schedule:null;}}
@@ -17,11 +17,14 @@ partial class ProgramOfWorksForm {
   var column=extraGrids["StructuralColumn"].Grid;
   /* schedule columns 2.. map to these Column Estimate inputs */
   int[] columnTargets={3,4,6,7,8,9,10,11,12,16,17};
-  var cs=Grid(new[]{"Mark","Description"}.Concat(columnTargets.Select(i=>column.Columns[i].HeaderText)).Concat(new[]{"Used by"}).ToArray(),2+columnTargets.Length);
+  /* owner (20 November 2026: "sa column dapat per elevation siya kasi baka magbago rebar per height"): a mark may have one row per level
+     range (From / To level); a Column Estimate row with that mark takes every range - its height is the full height and each range
+     has its own section, bars and ties (bars lap into the range above). Rows without levels work as before. */
+  var cs=Grid(new[]{"Mark","Description"}.Concat(columnTargets.Select(i=>column.Columns[i].HeaderText)).Concat(new[]{"From level (m)","To level (m)","Used by"}).ToArray(),2+columnTargets.Length+2);
   AddCombo(cs,9,cs.Columns[9].HeaderText,new[]{"Spacing (mm)","Number of ties","Spacing schedule"});cs.Columns[9].MinimumWidth=165;
   SetDefaults(cs,new Dictionary<int,string>{{2,"300"},{3,"300"},{4,"16"},{5,"8"},{8,"10"},{9,"Spacing (mm)"},{10,"150"}});
   ScheduleButton("Column Estimate","Manual column schedules",cs,"Enter each column type once (mark, section, main bars and ties). On Column Estimate choose the type in Schedule mark: the row then takes its width, depth, bars and ties from here, and a change here updates every row of that type. Height, quantity and end allowance stay on each row. Rows without a mark keep their own values.");
-  memberSchedules.Add(new MemberSchedule{Kind="Column",Schedule=cs,Estimate=column,Targets=columnTargets});
+  memberSchedules.Add(new MemberSchedule{Kind="Column",Schedule=cs,Estimate=column,Targets=columnTargets,Extra=2});
   /* footings: L, B, D, cover, the four bar groups (diameter, spacing, bars) and the extra ends */
   int[] footingTargets=new[]{2,3,4,7}.Concat(Enumerable.Range(8,13)).ToArray();
   var fs=Grid(new[]{"Mark","Description"}.Concat(footingTargets.Select(i=>footings.Columns[i].HeaderText)).Concat(new[]{"Used by"}).ToArray(),2+footingTargets.Length);
@@ -61,7 +64,7 @@ partial class ProgramOfWorksForm {
   RefreshScheduleMarks(s);Recalculate();}
  void RefreshScheduleView(MemberSchedule s){RefreshScheduleMarks(s);ApplyMemberSchedules();}
  /* entry form for one type; null row = new type */
- bool EditScheduleType(IWin32Window owner,MemberSchedule s,DataGridViewRow row){var g=s.Schedule;int count=s.First+s.Targets.Length;
+ bool EditScheduleType(IWin32Window owner,MemberSchedule s,DataGridViewRow row){var g=s.Schedule;int count=s.First+s.Targets.Length+s.Extra;
   using(var form=new Form{Text=(row==null?"Add ":"Edit ")+s.Kind.ToLowerInvariant()+" type",Width=760,Height=600,MinimumSize=new Size(560,400),StartPosition=FormStartPosition.CenterParent,Font=Font}){AppBrand.Apply(form);
    var flow=new TableLayoutPanel{Dock=DockStyle.Fill,AutoScroll=true,ColumnCount=2,Padding=new Padding(14)};flow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,55));flow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,45));
    var inputs=new Control[count];
@@ -73,7 +76,11 @@ partial class ProgramOfWorksForm {
    var bottom=new FlowLayoutPanel{Dock=DockStyle.Bottom,AutoSize=true,FlowDirection=FlowDirection.RightToLeft,Padding=new Padding(10)};var ok=new Button{Text="Save",AutoSize=true};var cancel=new Button{Text="Cancel",AutoSize=true,DialogResult=DialogResult.Cancel};bottom.Controls.Add(cancel);bottom.Controls.Add(ok);form.CancelButton=cancel;
    string oldMark=row!=null?MarkKey(row.Cells[0].Value):"";
    ok.Click+=(x,e)=>{string mark=inputs[0].Text.Trim();if(mark==""){MessageBox.Show(form,"Enter the mark (for example "+(s.Kind=="Column"?"C1":"F1")+").",form.Text);return;}
-    foreach(DataGridViewRow other in g.Rows)if(other!=row&&!other.IsNewRow&&string.Equals(MarkKey(other.Cells[0].Value),mark,StringComparison.OrdinalIgnoreCase)){MessageBox.Show(form,"Mark "+mark+" is already on the schedule.",form.Text);return;}
+    int fromAt=s.First+s.Targets.Length;Func<string,string> lvl=t=>t.Trim();
+    foreach(DataGridViewRow other in g.Rows)if(other!=row&&!other.IsNewRow&&string.Equals(MarkKey(other.Cells[0].Value),mark,StringComparison.OrdinalIgnoreCase)){
+     /* a column mark may repeat with another level range */bool ranged=s.Extra>0&&inputs[fromAt].Text.Trim()!=""&&Convert.ToString(other.Cells[fromAt].Value).Trim()!="";
+     if(!ranged){MessageBox.Show(form,"Mark "+mark+" is already on the schedule"+(s.Extra>0?" - give both rows their From / To levels to use one row per level range":"")+".",form.Text);return;}
+     if(lvl(inputs[fromAt].Text)==lvl(Convert.ToString(other.Cells[fromAt].Value))){MessageBox.Show(form,"Mark "+mark+" already has a range from level "+inputs[fromAt].Text.Trim()+" m.",form.Text);return;}}
     for(int c=2;c<count;c++){string t=inputs[c].Text.Trim();double v;if(inputs[c] is TextBox&&t!=""&&!t.StartsWith("=")&&!double.TryParse(t,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out v)){MessageBox.Show(form,g.Columns[c].HeaderText+": enter a number.",form.Text);return;}
      if(t.StartsWith("=")){string err;if(!GridFormulas.TryEvaluate(t.Substring(1),out v,out err)){MessageBox.Show(form,g.Columns[c].HeaderText+": "+err,form.Text);return;}}}
     bool before=filling;filling=true;try{var target=row;if(target==null){int n=g.Rows.Add();target=g.Rows[n];}
@@ -91,6 +98,25 @@ partial class ProgramOfWorksForm {
  /* the status column of a sheet stays the last one before the appended Schedule mark */
  internal static int StatusIndex(DataGridView g){int i=g.Columns.Count-1;if(i>0&&g.Columns[i].Name==ScheduleMarkColumn)i--;return i;}
  static string MarkKey(object v){return Convert.ToString(v).Trim();}
+ internal sealed class LevelRange {public DataGridViewRow Row;public double From,To;}
+ /* the level ranges of a column mark, lowest first; empty when its rows have no levels (then the mark works as one type) */
+ internal static List<LevelRange> LevelRanges(MemberSchedule s,string mark){var list=new List<LevelRange>();if(s==null||s.Extra<2||string.IsNullOrEmpty(mark))return list;int at=s.First+s.Targets.Length;
+  foreach(DataGridViewRow r in s.Schedule.Rows){if(r.IsNewRow||!string.Equals(MarkKey(r.Cells[0].Value),mark,StringComparison.OrdinalIgnoreCase))continue;double a,b;if(!double.TryParse(Convert.ToString(r.Cells[at].Value),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out a)||!double.TryParse(Convert.ToString(r.Cells[at+1].Value),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out b))return new List<LevelRange>();if(b<=a)throw new Exception("Column "+mark+": the To level must be above the From level ("+a+" to "+b+").");list.Add(new LevelRange{Row=r,From=a,To=b});}
+  return list.OrderBy(x=>x.From).ToList();}
+ internal List<LevelRange> ColumnRanges(string mark){var s=memberSchedules.FirstOrDefault(m=>m.Kind=="Column");return LevelRanges(s,mark);}
+ /* a Column Estimate row whose mark has level ranges: one take-off per range (its height, section, bars and ties; the bars lap
+    into the range above with the compression lap, NSCP 425.5.5.1), joined into one quantity for the row */
+ MiscStructureQuantity ColumnByLevels(ExtraWorkGrid item,DataGridViewRow row,List<LevelRange> ranges,LengthConfiguration cfg,ExtraMaterialControls settings){var inv=System.Globalization.CultureInfo.InvariantCulture;string id=Cell(row,0),desc=Cell(row,1);int qty=Count(row,5);double cover=(double)settings.Cover.Value,allowance=OptionalNumber(row,13);bool soffit=Cell(row,14)!=""&&bool.Parse(Cell(row,14));int ends=OptionalCount(row,15);
+  MiscStructureQuantity total=null;for(int k=0;k<ranges.Count;k++){var r=ranges[k];Func<int,string> sv=i=>Convert.ToString(r.Row.Cells[2+i].Value).Trim();Func<int,double> sn=i=>{double v;string t=sv(i);if(!double.TryParse(t,System.Globalization.NumberStyles.Float,inv,out v))throw new Exception("Column schedule "+MarkKey(r.Row.Cells[0].Value)+": check "+r.Row.DataGridView.Columns[2+i].HeaderText+".");return v;};Func<int,int> si=i=>sv(i)==""?0:(int)Math.Round(sn(i));
+   double h=r.To-r.From,w=sn(0),d=sn(1);int diaA=si(2),barsA=si(3),diaB=si(4),barsB=si(5),tieDia=si(6);string mode=sv(7);string tieText=sv(8);string level=r.From.ToString("0.00",inv)+" to "+r.To.ToString("0.00",inv)+" m";
+   double lap=0;if(k<ranges.Count-1){double fy=diaA<=12?cfg.FySmall:cfg.FyLarge;lap=Math.Ceiling(Math.Max(300,fy<=420?0.071*fy*diaA:(0.13*fy-24)*diaA)/10)*10;}
+   int scheduled=mode=="Spacing schedule"||ColumnTieSchedule.Looks(tieText)?ColumnTieSchedule.Count(tieText,h,w,d,tieDia,cover,cfg):0;
+   var q=MiscStructureTakeoff.Member(item.Kind,id,desc,h,w,d,qty,cover,diaA,barsA,barsB>0?diaB:0,barsB,tieDia,scheduled>0?"Number of ties":mode,scheduled>0?scheduled:sn(8),(double)settings.Offset.Value,allowance+lap,soffit,ends,cfg);
+   ColumnOpenTies.Add(q,w,d,cover,tieDia,si(9),si(10),columnOpenHooks.Text,cfg);
+   foreach(var l in q.Steel.Result.Lines){if((l.Part??"").StartsWith("Column longitudinal"))l.Part+=" ("+level+")";l.Formula="Level "+level+(lap>0&&(l.Part??"").StartsWith("Column longitudinal")?" (+ "+lap.ToString("0",inv)+" mm compression lap into the range above)":"")+": "+l.Formula;}
+   if(total==null){total=q;total.Steel.Length=(ranges[ranges.Count-1].To-ranges[0].From).ToString("R",inv);}else{total.Concrete+=q.Concrete;total.Forms+=q.Forms;total.Steel.Result.Lines.AddRange(q.Steel.Result.Lines);total.Steel.Result.Ties+=q.Steel.Result.Ties;}}
+  return total;}
+ internal int[] ColumnTargets{get{var s=memberSchedules.FirstOrDefault(m=>m.Kind=="Column");return s==null?new int[0]:s.Targets;}}
  void RefreshScheduleMarks(MemberSchedule s){var column=s.Estimate.Columns[ScheduleMarkColumn] as DataGridViewComboBoxColumn;if(column==null)return;
   var wanted=new List<string>{""};foreach(DataGridViewRow r in s.Schedule.Rows)if(!r.IsNewRow){string k=MarkKey(r.Cells[0].Value);if(k!=""&&!wanted.Contains(k,StringComparer.OrdinalIgnoreCase))wanted.Add(k);}
   /* a mark still used by a row stays selectable, so an older or edited project never loses it */
@@ -99,22 +125,25 @@ partial class ProgramOfWorksForm {
   foreach(var k in wanted)if(!column.Items.Cast<object>().Any(i=>MarkKey(i)==k))column.Items.Add(k);foreach(var i in column.Items.Cast<object>().ToList())if(!wanted.Contains(MarkKey(i)))column.Items.Remove(i);}
  /* copies the schedule values into every estimate row with a mark; called at the start of every recalculation */
  void ApplyMemberSchedules(){if(memberSchedules.Count==0)return;bool before=filling;filling=true;GridEditHistory.Quiet++;try{foreach(var s in memberSchedules){RefreshScheduleMarks(s);
-   var types=new Dictionary<string,DataGridViewRow>(StringComparer.OrdinalIgnoreCase);var dup=new HashSet<string>(StringComparer.OrdinalIgnoreCase);foreach(DataGridViewRow r in s.Schedule.Rows){if(r.IsNewRow)continue;string k=MarkKey(r.Cells[0].Value);r.Cells[0].ErrorText="";if(k=="")continue;if(types.ContainsKey(k)){dup.Add(k);r.Cells[0].ErrorText="Duplicate mark "+k;}else types[k]=r;}
+   var types=new Dictionary<string,DataGridViewRow>(StringComparer.OrdinalIgnoreCase);var dup=new HashSet<string>(StringComparer.OrdinalIgnoreCase);foreach(DataGridViewRow r in s.Schedule.Rows){if(r.IsNewRow)continue;string k=MarkKey(r.Cells[0].Value);r.Cells[0].ErrorText="";if(k=="")continue;if(types.ContainsKey(k)){if(s.Extra>0&&LevelRanges(s,k).Count>1)continue;dup.Add(k);r.Cells[0].ErrorText="Duplicate mark "+k;}else types[k]=r;}
+   /* a column mark with level ranges shows its lowest range on the row and the full height */
+   if(s.Extra>0)foreach(var k in types.Keys.ToList()){var ranges=LevelRanges(s,k);if(ranges.Count>0)types[k]=ranges[0].Row;}
    var used=new Dictionary<string,List<string>>(StringComparer.OrdinalIgnoreCase);int markIndex=s.Estimate.Columns[ScheduleMarkColumn].Index;
    foreach(DataGridViewRow row in s.Estimate.Rows){if(row.IsNewRow||IsExcludedRow(row))continue;var markCell=row.Cells[markIndex];string k=MarkKey(markCell.Value);markCell.ErrorText="";DataGridViewRow type=null;
     if(k!=""&&!types.TryGetValue(k,out type))markCell.ErrorText="Mark "+k+" is not on the "+s.Kind+" Schedule; the row keeps its own values.";
     for(int i=0;i<s.Targets.Length;i++){var cell=row.Cells[s.Targets[i]];if(type!=null){object v=type.Cells[s.First+i].Value;string text=v is bool?v.ToString():Convert.ToString(v);if(cell is DataGridViewCheckBoxCell)cell.Value=text!=""&&bool.Parse(text);else cell.Value=text;GridFormulas.Set(cell,null);cell.ReadOnly=true;cell.Style.BackColor=DesktopAppearance.Palette.Soft;cell.ToolTipText="From "+s.Kind+" Schedule "+k;}
      else if(cell.ReadOnly&&cell.ToolTipText.StartsWith("From ")){cell.ReadOnly=false;cell.Style.BackColor=Color.Empty;cell.ToolTipText="";}}
+    if(type!=null&&s.Extra>0){var ranges=LevelRanges(s,k);var h=row.Cells[2];if(ranges.Count>0){h.Value=(ranges[ranges.Count-1].To-ranges[0].From).ToString("0.###",System.Globalization.CultureInfo.InvariantCulture);h.ReadOnly=true;h.Style.BackColor=DesktopAppearance.Palette.Soft;h.ToolTipText="From "+s.Kind+" Schedule "+k+": "+ranges.Count+" level range"+(ranges.Count==1?"":"s")+" ("+ranges[0].From.ToString("0.00",System.Globalization.CultureInfo.InvariantCulture)+" to "+ranges[ranges.Count-1].To.ToString("0.00",System.Globalization.CultureInfo.InvariantCulture)+" m)";}else if(h.ReadOnly&&h.ToolTipText.StartsWith("From ")){h.ReadOnly=false;h.Style.BackColor=Color.Empty;h.ToolTipText="";}}
     if(type!=null){List<string> list;if(!used.TryGetValue(k,out list))used[k]=list=new List<string>();list.Add(Convert.ToString(row.Cells[0].Value));}}
    int last=s.Schedule.Columns.Count-1;foreach(DataGridViewRow r in s.Schedule.Rows){if(r.IsNewRow)continue;List<string> list;string k=MarkKey(r.Cells[0].Value);r.Cells[last].Value=k!=""&&used.TryGetValue(k,out list)?list.Count+" row"+(list.Count==1?"":"s")+": "+string.Join(", ",list.Where(x=>x!="")):"";}}}
   finally{GridEditHistory.Quiet--;filling=before;}}
  static string RowMark(DataGridViewRow row){if(row==null||row.DataGridView==null||!row.DataGridView.Columns.Contains(ScheduleMarkColumn))return null;int i=row.DataGridView.Columns[ScheduleMarkColumn].Index;var x=row.HeaderCell.Tag as RowExclusion;object v=x!=null&&i<x.Values.Length?x.Values[i]:row.Cells[i].Value;return MarkKey(v);}
  static void WriteRowMark(DataGridViewRow row,XmlElement entry){string k=RowMark(row);if(!string.IsNullOrEmpty(k))entry.SetAttribute("mark",k);}
  static void ReadRowMark(DataGridViewRow row,XmlElement entry){if(row.DataGridView==null||!row.DataGridView.Columns.Contains(ScheduleMarkColumn))return;var column=(DataGridViewComboBoxColumn)row.DataGridView.Columns[ScheduleMarkColumn];string k=entry.GetAttribute("mark").Trim();if(k!=""&&!column.Items.Contains(k))column.Items.Add(k);row.Cells[column.Index].Value=k;}
- void WriteMemberSchedules(XmlElement root){if(memberSchedules.Count==0)return;var doc=root.OwnerDocument;var section=doc.CreateElement("MemberSchedules");section.SetAttribute("version","1");foreach(var s in memberSchedules){var table=doc.CreateElement("Schedule");table.SetAttribute("kind",s.Kind);foreach(DataGridViewRow r in s.Schedule.Rows){if(r.IsNewRow||MarkKey(r.Cells[0].Value)==""&&MarkKey(r.Cells[1].Value)=="")continue;var e=doc.CreateElement("Type");for(int c=0;c<s.First+s.Targets.Length;c++){object v=r.Cells[c].Value;e.SetAttribute("c"+c,v==null?"":Convert.ToString(v));string fx=GridFormulas.Formula(r.Cells[c]);if(fx!=null)e.SetAttribute("f"+c,fx);}table.AppendChild(e);}section.AppendChild(table);}if(section.HasChildNodes)root.AppendChild(section);}
+ void WriteMemberSchedules(XmlElement root){if(memberSchedules.Count==0)return;var doc=root.OwnerDocument;var section=doc.CreateElement("MemberSchedules");section.SetAttribute("version","1");foreach(var s in memberSchedules){var table=doc.CreateElement("Schedule");table.SetAttribute("kind",s.Kind);foreach(DataGridViewRow r in s.Schedule.Rows){if(r.IsNewRow||MarkKey(r.Cells[0].Value)==""&&MarkKey(r.Cells[1].Value)=="")continue;var e=doc.CreateElement("Type");for(int c=0;c<s.First+s.Targets.Length+s.Extra;c++){object v=r.Cells[c].Value;e.SetAttribute("c"+c,v==null?"":Convert.ToString(v));string fx=GridFormulas.Formula(r.Cells[c]);if(fx!=null)e.SetAttribute("f"+c,fx);}table.AppendChild(e);}section.AppendChild(table);}if(section.HasChildNodes)root.AppendChild(section);}
  /* files saved before v1.50.12 have no <MemberSchedules>: the schedules start empty and every row keeps its own values */
  void ReadMemberSchedules(XmlElement root){bool before=filling;filling=true;try{foreach(var s in memberSchedules)s.Schedule.Rows.Clear();var section=root["MemberSchedules"];if(section==null)return;if(section.GetAttribute("version")!="1")throw new Exception("Unsupported column / footing schedule format.");
-  foreach(XmlElement table in section.SelectNodes("Schedule")){var s=memberSchedules.FirstOrDefault(m=>m.Kind==table.GetAttribute("kind"));if(s==null)continue;foreach(XmlElement e in table.SelectNodes("Type")){if(s.Schedule.Rows.Count>10000)throw new Exception("Too many schedule types.");int n=s.Schedule.Rows.Add();for(int c=0;c<s.First+s.Targets.Length;c++){var cell=s.Schedule.Rows[n].Cells[c];string v=e.GetAttribute("c"+c);if(cell is DataGridViewComboBoxCell&&v!=""&&!((DataGridViewComboBoxCell)cell).Items.Contains(v))continue;cell.Value=v;GridFormulas.Set(cell,e.HasAttribute("f"+c)?e.GetAttribute("f"+c):null);}}}
+  foreach(XmlElement table in section.SelectNodes("Schedule")){var s=memberSchedules.FirstOrDefault(m=>m.Kind==table.GetAttribute("kind"));if(s==null)continue;foreach(XmlElement e in table.SelectNodes("Type")){if(s.Schedule.Rows.Count>10000)throw new Exception("Too many schedule types.");int n=s.Schedule.Rows.Add();for(int c=0;c<s.First+s.Targets.Length+s.Extra;c++){var cell=s.Schedule.Rows[n].Cells[c];string v=e.GetAttribute("c"+c);if(cell is DataGridViewComboBoxCell&&v!=""&&!((DataGridViewComboBoxCell)cell).Items.Contains(v))continue;cell.Value=v;GridFormulas.Set(cell,e.HasAttribute("f"+c)?e.GetAttribute("f"+c):null);}}}
   foreach(var s in memberSchedules)RefreshScheduleMarks(s);}finally{filling=before;}}
 }
 }

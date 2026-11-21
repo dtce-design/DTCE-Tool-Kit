@@ -7,7 +7,8 @@ sealed class FinishGroupChart:Control {
  List<KeyValuePair<string,double>> data=new List<KeyValuePair<string,double>>();
  internal FinishGroupChart(){DoubleBuffered=true;ResizeRedraw=true;BackColor=Color.White;Font=new Font("Segoe UI",9f);}
  internal void SetData(IEnumerable<KeyValuePair<string,double>> values){data=values.OrderByDescending(v=>Math.Abs(v.Value)).ToList();Invalidate();}
- protected override void OnPaint(PaintEventArgs e){var g=e.Graphics;g.Clear(BackColor);g.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+ protected override void OnPaint(PaintEventArgs e){/* drawings stay paper-white with dark ink in dark mode (owner, 21 November 2026: "pangit ng dark mode") */if(DesktopAppearance.Palette.Dark)e.Graphics.Clear(Color.White);using(new ReportPaperScope())PaintPaper(e);}
+ void PaintPaper(PaintEventArgs e){var g=e.Graphics;g.Clear(BackColor);g.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
   using(var title=new Font(Font,FontStyle.Bold))TextRenderer.DrawText(g,"TOTAL m2 PER GROUP",title,new Rectangle(10,6,Width-20,22),PowTheme.Ink,TextFormatFlags.Left|TextFormatFlags.VerticalCenter);
   if(data.Count==0){TextRenderer.DrawText(g,"No finish areas yet.",Font,new Rectangle(10,32,Width-20,24),PowTheme.Muted,TextFormatFlags.Left);return;}
   int top=34,rowH=Math.Max(18,Math.Min(30,(Height-top-10)/Math.Max(1,data.Count))),labelW=Math.Min(320,Width/3),valueW=90;

@@ -1,0 +1,9 @@
+DTCE Tool Kit v6.0.5 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Bar Bending Schedule report): the length of every leg is written on the bar shape sketch ("ilagay yung letters para di na
+ilagay sa table"); the per-element schedule no longer has A - F columns: ELEMENT | BAR MARK | BAR NOS. | REBAR | BAR SHAPE (leg
+lengths in mm, outside dimensions) | CUTTING LENGTH | R. Long straight legs are drawn shortened while their true length is shown;
+rows are taller so hoops and hooks read clearly (7 pt minimum text).
+Checked on Linux/Mono only.
+
+Includes v6.0.4 and earlier builds.

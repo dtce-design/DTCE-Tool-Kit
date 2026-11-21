@@ -1,0 +1,15 @@
+DTCE Tool Kit v6.0.2 test build (20 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Program of Works (POW) workspace): BACKUP is linked to the Bill of Quantities workspace ("yung backup sa pow nakalink sa
+boq workspace").
+- "BACKUP linked to Bill of Quantities" (on by default): whenever the POW window comes to the front, or the POW opens, the quantity of
+  every pay item exactly as the Bill of Quantities shows it (computed take-off, typed Part A / B and manual quantities) is written to
+  BACKUP column BC of its row; the row is matched by the BACKUP row and item no. (an item whose row differs is found by its item no.).
+  Item rows with no quantity in the Bill of Quantities are cleared, so DETAILED, ABC, SUM, BOQ and SOQ show only the linked items
+  (rows without quantity are hidden as X). Formula quantity cells (e.g. A.1.4(1) months) are left alone.
+- "Update BACKUP from Bill of Quantities" applies the link on demand; the status bar lists items not found in BACKUP.
+- The linked quantities are saved with the POW project (.pow.xml) like any typed value.
+- The Bill of Quantities workspace must be open (with its .boq.xml) for the link to read it.
+Checked on Linux/Mono only. Test: PowWorkbookEngineTests (45 checks, incl. the link on the built-in V6.02 template).
+
+Includes v6.0.1 and earlier builds.

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Drawing.Drawing2D;
@@ -8,9 +8,9 @@ using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 // Shared desktop presentation only. No calculation, persistence or access decisions.
 static class ModernUi {
- internal static readonly Font Body = new Font("Segoe UI", 10f);
- internal static readonly Font Strong = new Font("Segoe UI", 10f, FontStyle.Bold);
- internal static readonly Font Heading = new Font("Segoe UI", 20f, FontStyle.Bold);
+ /* one step smaller everywhere (owner, 20 November 2026: "bawasan mo yung font sizes ... para sa lahat") */internal static readonly Font Body = new Font("Segoe UI", 9.25f);
+ internal static readonly Font Strong = new Font("Segoe UI", 9.25f, FontStyle.Bold);
+ internal static readonly Font Heading = new Font("Segoe UI", 18f, FontStyle.Bold);
  internal static Color Surface {get{return DesktopAppearance.Palette.Surface;}}
  internal static Color Input {get{return DesktopAppearance.Palette.Input;}}
  internal static Color Selection {get{return DesktopAppearance.Palette.Selected;}}
@@ -38,12 +38,12 @@ static class ModernUi {
   var nav=tabs as NavigationTabs;if(nav!=null&&nav.StripHidden)return;
   tabs.Alignment=TabAlignment.Top;tabs.Multiline=true;tabs.SizeMode=TabSizeMode.Normal;
   tabs.ItemSize=new Size(0,36);tabs.Padding=new Point(24,9);
-  tabs.AccessibleName="Program of Works sections";
+  tabs.AccessibleName="Bill of Quantities sections";
  }
  internal static bool Primary(string text) {
   return text=="Add entry" || text=="Apply" || text=="Apply deductions" || text=="Build preview" ||
    text=="Save project information" || text=="Save footing" || text=="Open / Link Excel" ||
-   text=="Save Program of Works" || text=="Calculate" ||
+   text=="Save Bill of Quantities" || text=="Calculate" ||
    // Main action of each dialog (owner, 18 November 2026: button formatting).
    text=="Open selected copy" || text=="Select" || text=="Apply mapping" || text=="Add schedule";
  }

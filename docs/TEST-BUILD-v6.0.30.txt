@@ -1,0 +1,13 @@
+DTCE Tool Kit v6.0.30 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH:
+- Reinforced Concrete Works: Column, Footing, Wall Footing, RC Wall and Miscellaneous estimates have the same command row as Beam and
+  Slab, above the Measurements / Rebar subtabs: the page's own actions (New footing, Edit footing), Schedules (manual column /
+  footing schedules) and Settings (Materials & calculation, Commercial lengths, Show excavation and cover details). Beam "Print
+  Preview" is now "Print preview" like the others.
+- Strap Foundation: separate STAAD tables - SERVICE REACTIONS for footing sizing (bearing, sliding, overturning) and FACTORED
+  REACTIONS for design (flexure, shear, punching, strap). Every case of the factored table is factored; a case name used in both
+  tables is kept apart as "(factored)". With the factored table blank, one table works as before (load-case lists or automatic).
+Checked on Linux/Mono only. Tests: StrapFootingTests (71), MemberSchedulesTests.
+
+Includes v6.0.29 and earlier builds.

@@ -1,0 +1,21 @@
+DTCE Tool Kit v6.0.32 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Masonry / Miscellaneous Structures; owner: "Sa calculation ng masonry wall kapag may nailagay ng openings agad na magdagdag ng
+lintel beam based dito" - Lintel Beam Design Calculation Report):
+- Every opening deducted from a CHB wall (linked door / window / opening schedules and manual openings) gets a lintel automatically,
+  per opening and wall, with the opening's units.
+- Mark from the report's schedule: CHB thickness (100 mm -> LB-4x, 150 mm and thicker -> LB-6x) and clear opening (0.60-2.00 A,
+  2.10-3.00 B, 3.10-4.00 C, 4.10-5.00 D, 5.10-6.00 E; between two ranges the larger mark; under 0.60 m -> A). Openings wider than
+  6.00 m are reported for a separate design.
+- Take-off: length = clear opening + 2 x bearing (200 / 300 / 400 mm); concrete b x h x L; forms two sides + soffit over the opening;
+  bottom / top bars with 90° hooks of 12 db (150 / 200 / 250 / 300 mm), mid bars 2-10 where scheduled, 10 mm ties (single-leg in
+  100 mm, closed in 150 mm) at the scheduled spacing, jamb bars 12 mm (1 each side at 200 mm bearing, 2 at 300 / 400 mm) from the
+  floor dowel to the hook in the lintel (window head taken at 2.10 m or the opening height). LB-4D / LB-4E note the lateral brace
+  (wall vertical bars 10 mm @ 800 hooked into the lintel and dowelled into the beam / slab above).
+- Quantities go to Miscellaneous Structures / Lintel Beam (concrete pay item 900(1)i, forms, rebar and commercial-length purchase)
+  and are listed in the new tab Miscellaneous Structures > Lintels over Openings, which can be turned off (saved with the project).
+  Do not also enter the same lintels in the Lintel Beam sheet.
+- Concrete, steel grades and cover follow the Lintel Beam settings (the report uses fc' 21 MPa, Grade 40, 20 mm cover to ties).
+Checked on Linux/Mono only. Tests: LintelScheduleTests (21), OpeningLintelTests, OpeningJambAutoTests, UnlinkedFinishTests.
+
+Includes v6.0.31 and earlier builds.
