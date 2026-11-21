@@ -1,0 +1,25 @@
+DTCE Tool Kit v6.0.29 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Bar Bending Schedule, design sheets):
+- BBS model and report: stirrups drawn where they are counted (end groups from each face, middle group evenly between them, none
+  doubled up); hoops over a lap drawn in orange at the closer spacing. Slab line removed from the elevation and the sections.
+- The bar selected in the elevation is also selected (highlighted, ringed) in Section A-A.
+- Report: bar details under each elevation - MAIN TOP STRAIGHT BARS, CUT TOP BARS, MAIN BOTTOM STRAIGHT BARS, CUT BOTTOM BARS - each
+  piece with its code (T1-3NOS-T16) and cut length, cranks and hooks, at the elevation's scale; the elevation keeps only the bars.
+- Report dimensions: chain of supports and clear spans, chain of 2h zones and the allowed splice zone, overall length, extension
+  lines and oblique ticks; section cut names below the beam; elevation height fits its content.
+- Report sections: taller boxes so the bar marks under each section are no longer cut off.
+- Bar sketches: the crank of K4 / K5 bars is drawn with a visible slope.
+- Wording: "stock length(s)" is now "commercial length(s)" everywhere.
+- Design sheets: input tabs no longer repeat the calculation report (it has its own tab); tabs without a drawing show their inputs
+  in compact columns.
+- Strap Foundation: Footings and straps fills the whole page (it was squeezed into the narrow input pane on Windows).
+- Wind Load: narrower input column on Building inputs; after Calculate the building shows the pressures - faces coloured, values in
+  kPa, rows of pressure arrows (into the face for +, out for -), wind arrow and a list of all surfaces; "Wind from" buttons switch
+  the direction (right-click also steps through them).
+- Splice, Development & Hooks: same look as the other design sheets (command row on top, white input pane with numbered sections,
+  Export menu with PDF and copy).
+Checked on Linux/Mono only. Tests: BeamCuttingListTests (242), MemberBbsTests, MemberSchedulesTests, CommercialBarsTests,
+StrapFootingTests, WindBuildingLoadsTests, WindAuditTests.
+
+Includes v6.0.28 and earlier builds.

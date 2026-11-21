@@ -1157,8 +1157,8 @@ namespace BeamScheduleFormatter
 			plumbingChambers.Columns[2].Width = 230;
 			plumbingChambers.Visible = false;
 			base.Controls.Add(plumbingChambers);
-			plumbingRebar = Grid(new string[10] { "Bar ID", "Structure ID", "Component / approved detail", "Diameter mm (Grade40)", "Developed cut length m", "Bars per structure", "Stock length m", "Net weight kg", "Allocated purchase kg", "Status" }, 7);
-			AddCombo(plumbingRebar, 6, "Stock length m", CommercialBars.Lengths.Select((double x) => x.ToString("0.##", CultureInfo.InvariantCulture)).ToArray());
+			plumbingRebar = Grid(new string[10] { "Bar ID", "Structure ID", "Component / approved detail", "Diameter mm (Grade40)", "Developed cut length m", "Bars per structure", "Commercial length m", "Net weight kg", "Allocated purchase kg", "Status" }, 7);
+			AddCombo(plumbingRebar, 6, "Commercial length m", CommercialBars.Lengths.Select((double x) => x.ToString("0.##", CultureInfo.InvariantCulture)).ToArray());
 			SetDefaults(plumbingRebar, new Dictionary<int, string> { { 6, "6" } });
 			AddGrid("Plumbing Rebar", plumbingRebar, "Enter the approved developed cut (including hooks/anchorage/laps already in the detail) and bars per structure. Structure count is applied automatically. Grade40 only; compatible offcuts are reused across these plumbing structures. Cuts must fit the chosen stock; segment longer bars only from an approved splice detail. Purchase kg, not stock piece counts, goes into each structure's Tool Kit material breakdown.");
 			AddPipeGroups();
@@ -1387,7 +1387,7 @@ namespace BeamScheduleFormatter
 						SteelWeight.Count(num4);
 						if (!CommercialBars.Lengths.Contains(num3) || num2 > num3)
 						{
-							throw new Exception("Cut must fit the selected supported stock length.");
+							throw new Exception("Cut must fit the selected supported commercial length.");
 						}
 						StockDemand stockDemand = new StockDemand
 						{
@@ -1551,7 +1551,7 @@ namespace BeamScheduleFormatter
 				}
 				foreach (StockAllocation item2 in chamberBarPlan.Where((StockAllocation a) => a.Entry.Beam == q.Id))
 				{
-					b.AppendLine(string.Format(CultureInfo.InvariantCulture, "  Grade40 {0}mm | {1}: developed cut {2}m x {3} bars (all structures), unit mass {7:0.########}kg/m; net {4:0.########}kg + allocated offcut {5:0.########}kg = purchase {6:0.########}kg; stock length {8}m", item2.Demand.Diameter, item2.Entry.Description, item2.Demand.Cut, item2.Demand.Pieces, item2.Net, item2.Waste, item2.Purchase, item2.UnitMass, item2.Choice.Length));
+					b.AppendLine(string.Format(CultureInfo.InvariantCulture, "  Grade40 {0}mm | {1}: developed cut {2}m x {3} bars (all structures), unit mass {7:0.########}kg/m; net {4:0.########}kg + allocated offcut {5:0.########}kg = purchase {6:0.########}kg; commercial length {8}m", item2.Demand.Diameter, item2.Entry.Description, item2.Demand.Cut, item2.Demand.Pieces, item2.Net, item2.Waste, item2.Purchase, item2.UnitMass, item2.Choice.Length));
 				}
 			}
 			b.AppendLine("Chamber component quantities appear under their parent septic/catch-basin pay item in Tool Kit reports. They are not added again to unrelated project BOQ totals. Additional RC/forms and cut schedules follow entered approved details; there is no structural or hydraulic sizing inference.");
@@ -2216,7 +2216,7 @@ namespace BeamScheduleFormatter
 			canopyFc = SettingChoice(canopySettings, "Canopy concrete MPa", new string[3] { "21", "28", "35" });
 			canopySmall = SettingChoice(canopySettings, "Rebar <=12 mm grade", new string[2] { "40", "60" });
 			canopyLarge = SettingChoice(canopySettings, "Rebar >=16 mm grade", new string[2] { "60", "40" });
-			Button(canopySettings, "Available stock lengths", delegate
+			Button(canopySettings, "Available commercial lengths", delegate
 			{
 				List<double> list = StockLengthPicker.Choose(this, canopyStock);
 				if (list != null)
@@ -2247,7 +2247,7 @@ namespace BeamScheduleFormatter
 			});
 			Button(actions, "Canopy / Ledge Settings", delegate
 			{
-				SettingsWorkspace.Show(this, "Canopy / Ledge", new string[1] { "Materials & stock lengths" }, new Control[1] { canopySettings });
+				SettingsWorkspace.Show(this, "Canopy / Ledge", new string[1] { "Materials & commercial lengths" }, new Control[1] { canopySettings });
 			});
 			canopies.DefaultValuesNeeded += delegate(object s, DataGridViewRowEventArgs e)
 			{
@@ -4207,7 +4207,7 @@ namespace BeamScheduleFormatter
 			bool flag3 = (dataGridViewColumn3.Visible = flag);
 			bool visible = (dataGridViewColumn2.Visible = flag3);
 			dataGridViewColumn.Visible = visible;
-			roofAccessories.Columns[9].HeaderText = "Stock length to buy m";
+			roofAccessories.Columns[9].HeaderText = "Commercial length to buy m";
 			roofAccessories.Columns[1].Width = 220;
 			roofAccessories.Columns[2].Width = 190;
 			Action<DataGridViewRow> accessoryDefaults = delegate(DataGridViewRow r)
@@ -4463,7 +4463,7 @@ namespace BeamScheduleFormatter
 				if (roofAccessoryQuantity != null)
 				{
 					b.AppendLine(Cell(item4, 0) + " | " + Cell(item4, 1) + " | " + Cell(item4, 2));
-					b.AppendLine(string.Format(CultureInfo.InvariantCulture, "  Net run: {0:0.00} m | Stock length to buy: {1:0.00} m", roofAccessoryQuantity.NetLength, roofAccessoryQuantity.BuyLength));
+					b.AppendLine(string.Format(CultureInfo.InvariantCulture, "  Net run: {0:0.00} m | Commercial length to buy: {1:0.00} m", roofAccessoryQuantity.NetLength, roofAccessoryQuantity.BuyLength));
 					b.AppendLine(string.Format(CultureInfo.InvariantCulture, "  Developed width: {0} mm | Sheet: {1:0.00} m2 | Lap: {2} mm", Cell(item4, 5), roofAccessoryQuantity.BuyArea, Cell(item4, 7)));
 				}
 			}
@@ -7343,7 +7343,7 @@ worksExcelTimer.Tick += async delegate
 					list.Add(array3);
 				}
 			}
-			b.AppendLine("Shared project stock: beam, slab, footing, canopy and RC wall cuts use compatible grade/diameter offcuts and checked stock lengths.");
+			b.AppendLine("Shared project stock: beam, slab, footing, canopy and RC wall cuts use compatible grade/diameter offcuts and checked commercial lengths.");
 			PurchaseReports.Summary(b, projectRebarPlan);
 			b.AppendLine();
 			b.AppendLine(string.Format("{0,-8}{1,-28}{2,7}{3,16}{4,16}", "WORK", "DESCRIPTION / MARK", "QTY", "CONCRETE m3", "FORMS m2"));
@@ -8846,7 +8846,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 			rcWallFc = SettingChoice(rcWallSettings, "RC wall concrete MPa", new string[3] { "21", "28", "35" });
 			rcWallSmall = SettingChoice(rcWallSettings, "Rebar <=12 mm grade", new string[2] { "40", "60" });
 			rcWallLarge = SettingChoice(rcWallSettings, "Rebar >=16 mm grade", new string[2] { "60", "40" });
-			Button(rcWallSettings, "Available stock lengths", delegate
+			Button(rcWallSettings, "Available commercial lengths", delegate
 			{
 				List<double> list = StockLengthPicker.Choose(this, rcWallStock);
 				if (list != null)
@@ -8877,7 +8877,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 			});
 			Button(actions, "RC Wall Settings", delegate
 			{
-				SettingsWorkspace.Show(this, "RC Walls", new string[1] { "Materials & stock lengths" }, new Control[1] { rcWallSettings });
+				SettingsWorkspace.Show(this, "RC Walls", new string[1] { "Materials & commercial lengths" }, new Control[1] { rcWallSettings });
 			});
 			rcWalls.DefaultValuesNeeded += delegate(object s, DataGridViewRowEventArgs e)
 			{
@@ -10632,7 +10632,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 				{
 					"Member ID", "Structure ID", "Member type", "Description", "Length m", "Width / height m", "Thickness mm", "Members / structure", "Cover mm", "Rebar layers",
 					"X / vertical dia mm", "X / vertical spacing mm", "X / vertical count / layer", "Y / horizontal dia mm", "Y / horizontal spacing mm", "Y / horizontal count / layer", "X / vertical extra ends mm", "Y / horizontal extra ends mm", "Formed main faces", "Formed edge length m (blank=full)",
-					"Gravel thickness mm", "Plaster faces", "Waterproof faces", "Stock length m", "Concrete m3", "Forms m2", "Net rebar kg", "Rebar TO BUY kg", "CHB m2", "Gravel m3",
+					"Gravel thickness mm", "Plaster faces", "Waterproof faces", "Commercial length m", "Concrete m3", "Forms m2", "Net rebar kg", "Rebar TO BUY kg", "CHB m2", "Gravel m3",
 					"Plaster m2", "Waterproof m2", "Status"
 				}, 24);
 				plumbingMembers.AllowUserToAddRows = false;
@@ -10646,7 +10646,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 				}
 				AddCombo(plumbingMembers, 2, "Member type", StructureMemberInput.Types);
 				AddCombo(plumbingMembers, 9, "Rebar layers", new string[2] { "1", "2" });
-				AddCombo(plumbingMembers, 23, "Stock length m", CommercialBars.Lengths.Select((double x) => x.ToString(CultureInfo.InvariantCulture)).ToArray());
+				AddCombo(plumbingMembers, 23, "Commercial length m", CommercialBars.Lengths.Select((double x) => x.ToString(CultureInfo.InvariantCulture)).ToArray());
 				plumbingMembers.Visible = false;
 				base.Controls.Add(plumbingMembers);
 			}

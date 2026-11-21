@@ -28,7 +28,7 @@ static class CommercialBars {
  }
  public static string Report(IEnumerable<EstimateInput> inputs,LengthConfiguration configuration=null,IEnumerable<double> available=null){
   var b=new StringBuilder();var plan=Allocate(inputs,configuration,available);
-  b.AppendLine("COMMERCIAL REBAR CUTTING / PURCHASE PLAN");b.AppendLine("Available stock lengths: "+FormatLengths(Available(available))+" m.");
+  b.AppendLine("COMMERCIAL REBAR CUTTING / PURCHASE PLAN");b.AppendLine("Available commercial lengths: "+FormatLengths(Available(available))+" m.");
   b.AppendLine("Compatible offcuts are checked across different cut lengths and entries; grades and diameters stay separate.");
   b.AppendLine("Longer segments are allocated first; available offcuts are fitted before a new bar is purchased.");
   b.AppendLine("New-bar length uses the per-cut minimum-unused-length comparison; this is a feasible heuristic, not a global optimum.");

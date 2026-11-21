@@ -15,7 +15,7 @@ static class CuttingPatterns {
  static List<Bin> Pack(List<KeyValuePair<string,double>> items,double stock,List<double> stocks,bool shrink){var bins=new List<Bin>();
   foreach(var it in items){Bin best=null;foreach(var b in bins)if(b.Stock-b.Used+1e-9>=it.Value&&(best==null||b.Stock-b.Used<best.Stock-best.Used))best=b;if(best==null){best=new Bin{Stock=stock};bins.Add(best);}best.Cuts.Add(it);best.Used+=it.Value;}
   if(shrink)foreach(var b in bins)b.Stock=stocks.Where(x=>x+1e-9>=b.Used).DefaultIfEmpty(b.Stock).Min();return bins;}
- /* pieces longer than every stock length are left out (the cutting list reports them) */
+ /* pieces longer than every commercial length are left out (the cutting list reports them) */
  public static List<CutPattern> Plan(IEnumerable<CutPiece> pieces,List<double> stocks,List<string> errors){var result=new List<CutPattern>();var sorted=stocks.Distinct().OrderBy(x=>x).ToList();if(sorted.Count==0)return result;double longest=sorted.Last();
   foreach(var grp in pieces.Where(p=>p.Pieces>0&&p.Length>0).GroupBy(p=>new{p.Grade,p.Diameter}).OrderBy(x=>x.Key.Grade).ThenBy(x=>x.Key.Diameter)){
    var items=new List<KeyValuePair<string,double>>();foreach(var p in grp){if(p.Length>longest+1e-9)continue;/* already reported as longer than the bar */if(p.Pieces>200000){errors.Add(p.BarMark+": too many pieces for a cutting pattern.");continue;}for(long k=0;k<p.Pieces;k++)items.Add(new KeyValuePair<string,double>(p.BarMark,Math.Round(p.Length,3)));}
