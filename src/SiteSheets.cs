@@ -59,7 +59,7 @@ static class SiteSheets {
   /* placing */
   if(!placing)rep.Heading("PLACING").Paragraph("Use the elevation and sections of section 3 (Beam details): they show where each bar mark goes, the laps and the hoops.",false,true);
   else{rep.Heading("PLACING  -  where each bar mark goes");
-  foreach(var geo0 in r.Geometry){var geo=geo0;foreach(var st0 in BeamDetailPaper.Strips(geo)){var st=st0;rep.Figure(300,(g,rect)=>BeamDetailPaper.DrawElevation(g,rect,r,geo,st[0],st[1]));}
+  foreach(var geo0 in r.Geometry){var geo=geo0;foreach(var st0 in BeamDetailPaper.Strips(geo)){var st=st0;rep.Figure(BeamDetailPaper.ElevationHeight(r,geo),(g,rect)=>BeamDetailPaper.DrawElevation(g,rect,r,geo,st[0],st[1]));rep.Figure(BeamDetailPaper.BarDetailsHeight(r,geo,st[0],st[1]),(g,rect)=>BeamDetailPaper.DrawBarDetails(g,rect,r,geo,st[0],st[1]));}
    int rowsS=BeamDetailPaper.SectionRows(r,geo,width);for(int first=0;first<rowsS;first+=2){int f0=first,n=Math.Min(2,rowsS-first);rep.Figure(BeamDetailPaper.SectionsHeight(n),(g,rect)=>BeamDetailPaper.DrawSections(g,rect,r,geo,f0,n));}}}
   int open=r.Errors.Count+r.Splices.Count(c=>!c.Ok)+r.Smf.Count(c=>!c.Ok);
   rep.Paragraph(open==0?"Issued from BBS "+info.Number+" rev. "+info.Revision+". Use only the latest revision approved by the engineer.":"WARNING: "+open+" open review item(s) in BBS "+info.Number+" - do not cut until the engineer resolves them.",open>0?false:true,open>0);

@@ -18,9 +18,10 @@ static class BarShapes {
   case "HOOP":{/* owner (20 November 2026, "iisa lang ang hook"): both ends of the hoop end in 135° hooks at the same corner */float w=(float)a,h=(float)b,t=(float)(c*.7071),gap=(float)Math.Max(Math.Min(w,h)*.07,1);
    return new[]{new[]{new PointF(t,h-gap-t),new PointF(0,h-gap),new PointF(0,0),new PointF(w,0),new PointF(w,h),new PointF(gap,h),new PointF(gap+t,h-t)}};}
   case "CROSSTIE":{float h=(float)a,t=(float)(b*.7071);return new[]{new[]{new PointF(t,h-t),new PointF(0,h),new PointF(0,0),new PointF((float)c,0)}};}
-  case "CRANK":{/* lap A at the offset, crank B, straight D; the offset is drawn larger so the bend reads */float run=(float)(6*Math.Max(c,1)),off=(float)Math.Max(c,0.14*(a+(p.DrawnStraight>0?p.DrawnStraight:p.DimD)+run)),d=(float)(p.DrawnStraight>0?p.DrawnStraight:p.DimD);
+  case "CRANK":{/* lap A at the offset, crank B, straight D; the crank is drawn larger but keeps a visible slope (owner, 21 November 2026:
+     "dapat pinapakita yung slope ng cranked bar") */float d=(float)(p.DrawnStraight>0?p.DrawnStraight:p.DimD),run=(float)Math.Max(6*Math.Max(c,1),0.12*(a+d)),off=(float)Math.Max(c,run*0.4);
    return new[]{new[]{new PointF(0,off),new PointF((float)a,off),new PointF((float)a+run,0),new PointF((float)a+run+Math.Max(d,1),0)}};}
-  case "CRANKHOOK":{/* as CRANK, with the 90° hook leg E at the far end */float run=(float)(6*Math.Max(c,1)),d=(float)(p.DrawnStraight>0?p.DrawnStraight:p.DimD),off=(float)Math.Max(c,0.14*(a+d+run)),x=(float)a+run+Math.Max(d,1);
+  case "CRANKHOOK":{/* as CRANK, with the 90° hook leg E at the far end */float d=(float)(p.DrawnStraight>0?p.DrawnStraight:p.DimD),run=(float)Math.Max(6*Math.Max(c,1),0.12*(a+d)),off=(float)Math.Max(c,run*0.4),x=(float)a+run+Math.Max(d,1);
    return new[]{new[]{new PointF(0,off),new PointF((float)a,off),new PointF((float)a+run,0),new PointF(x,0),new PointF(x,(float)Math.Max(p.DimE,1))}};}
   default:return new[]{new[]{new PointF(0,0),new PointF((float)Math.Max(a,1),0)}};}}
  /* draws the outline fitted in the box; scaled = the same mm-to-pixel scale both ways and dimension labels */
