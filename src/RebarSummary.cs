@@ -21,6 +21,14 @@ partial class ProgramOfWorksForm {
  static readonly string[] RebarSummaryPages={"Column Estimate","Footing Estimate","Wall Footing Estimate","RC Wall Estimate","Miscellaneous Structures"};
  // Wraps each RC sheet as "Measurements" + "Rebar by grade and diameter", like the beam estimate workspace.
  void AddRebarSummaryTabs(){foreach(string name in RebarSummaryPages){TabPage page;if(!sheetPages.TryGetValue(name,out page)||page==null||rebarSummaries.ContainsKey(name))continue;
+   /* Miscellaneous Structures already has its own sub tabs: the rebar summary is one more sub tab beside them (owner, 21 November
+      2026: "ipagsama na sana sa sub tab kagaya sa ibang RC Works") */
+   var inner=page.Controls.OfType<TabControl>().FirstOrDefault();
+   if(name=="Miscellaneous Structures"&&inner!=null){var tab=new TabPage(RebarSummary.Caption){Padding=new Padding(14,10,14,14)};var g2=new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill,BackgroundColor=Color.White,BorderStyle=BorderStyle.None};
+    foreach(string h in RebarSummary.Headers)g2.Columns.Add(h,h);foreach(DataGridViewColumn c in g2.Columns){c.SortMode=DataGridViewColumnSortMode.NotSortable;if(c.Index>=2)c.DefaultCellStyle.Alignment=DataGridViewContentAlignment.MiddleRight;}
+    var reuse2=new Label{Dock=DockStyle.Top,Height=30,Font=ModernUi.Strong,ForeColor=PowTheme.Teal,TextAlign=ContentAlignment.MiddleLeft};offcutLabels.Add(reuse2);tab.Controls.Add(g2);tab.Controls.Add(reuse2);
+    var existing=inner.TabPages.Cast<TabPage>().ToList();inner.TabPages.Clear();foreach(var tp in existing)inner.TabPages.Add(tp);inner.TabPages.Add(tab);rebarSummaries[name]=g2;
+    inner.SelectedIndexChanged+=(s,e)=>{if(inner.SelectedTab==tab)RefreshRebarSummaries();};continue;}
    var content=page.Controls.Cast<Control>().ToArray();page.SuspendLayout();page.Controls.Clear();var navigation=new NavigationTabs{Dock=DockStyle.Fill,AccessibleName=name+" workspace tabs"};
    var measurements=new TabPage("Measurements"){Name="Measurements",Padding=page.Padding};measurements.Controls.AddRange(content);var summaryPage=new TabPage(RebarSummary.Caption){Padding=new Padding(14,10,14,14)};
    var grid=new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill,BackgroundColor=Color.White,BorderStyle=BorderStyle.None};

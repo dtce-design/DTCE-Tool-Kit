@@ -1,0 +1,10 @@
+DTCE Tool Kit v6.0.45 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Reinforced Concrete Works > Miscellaneous Structures; owner: "yung rebar by grade and diameter ipagsama na sana sa sub tab
+kagaya sa ibang RC Works"):
+- "Rebar by grade and diameter" is one more sub tab beside Canopy / Ledge Estimate, Stiffener Column, Coping Beam, Lintel Beam,
+  Countertop and Parapet Wall (no separate Measurements / Rebar level above them), with the offcut reuse line like the other RC
+  sheets.
+Checked on Linux/Mono only.
+
+Includes v6.0.44 and earlier builds.
