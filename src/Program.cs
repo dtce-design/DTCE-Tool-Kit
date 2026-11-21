@@ -72,7 +72,7 @@ class TemplateLayout {
  public string LegText(string value){string raw=Leg.Get(1);return raw.StartsWith("{")&&raw.Contains(";")?raw.Substring(0,raw.LastIndexOf(';')+1)+value+"}":value;}
 }
 class Engine {
- public const string Version="6.0.37";
+ public const string Version="6.0.38";
  public static string Normal(string s){return Regex.Replace(s.ToUpperInvariant().Replace("%%C","Ø").Replace("\\U+2205","Ø").Replace("--","-"),@"\s+","");}
  public static string Format(string s){if(s=="-"||s=="--")return "--";s=s.Replace("#","%%C").Replace("\\U+2205","%%C").Replace("%%c","%%C");s=Regex.Replace(s,@"^(\d+)-","$1 - ");return Regex.Replace(s,@"(%%C\d+)(EF)$","$1 EF");}
  const string BeamToken=@"\d*[A-Z]+\d+";
@@ -292,7 +292,7 @@ partial class MainForm:Form {
   Controls.Add(content);Controls.Add(side);Controls.Add(status);Controls.Add(header);
   DragEnter+=(o,e)=>{if(e.Data.GetDataPresent(DataFormats.FileDrop))e.Effect=DragDropEffects.Copy;};DragDrop+=async(o,e)=>{var paths=(string[])e.Data.GetData(DataFormats.FileDrop);if(paths.Length>0&&!busy)await LoadFile(paths[0]);};
   prefixBox.TextChanged+=(o,e)=>InvalidatePreview();floorBox.TextChanged+=(o,e)=>InvalidatePreview();merge.CheckedChanged+=(o,e)=>InvalidatePreview();
-  UseSlabFormatterLayout();
+  UseSlabFormatterLayout();FormatterChrome.Apply(this);
  }
  void AddLabel(FlowLayoutPanel f,string t,bool strong=false,int height=0){var l=new Label{Text=t.TrimStart('\n'),Width=194,AutoSize=false,Height=height>0?height:strong?26:23,ForeColor=strong?Navy:Muted,Font=new Font("Segoe UI",strong?9.2f:9,strong?FontStyle.Bold:FontStyle.Regular),Margin=new Padding(0,strong?9:2,0,strong?4:2)};f.Controls.Add(l);}
  void PaintReinforcement(object sender,DataGridViewCellPaintingEventArgs e){

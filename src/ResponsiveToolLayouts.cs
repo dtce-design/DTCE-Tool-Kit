@@ -21,3 +21,23 @@ partial class CodeGeneratorForm {
 }
 #endif
 }
+namespace BeamScheduleFormatter {
+/* one look for the Beam and Slab Formatters (owner, 21 November 2026: "sa schedule formatter ayusin mo please hindi parehas, ang pangit
+   ng buttons and etc"): the same title, one command row with the fields and buttons on one line, one info card, the same table */
+static class FormatterChrome {
+ static System.Collections.Generic.IEnumerable<System.Windows.Forms.Control> All(System.Windows.Forms.Control root){foreach(System.Windows.Forms.Control c in root.Controls){yield return c;foreach(var d in All(c))yield return d;}}
+ internal static void Apply(System.Windows.Forms.Form form){
+  var all=All(form).ToList();
+  var title=all.OfType<System.Windows.Forms.Label>().FirstOrDefault(l=>l.Text.EndsWith("SCHEDULE FORMATTER"));if(title!=null){title.Height=52;title.Padding=new System.Windows.Forms.Padding(16,12,0,0);title.Font=new System.Drawing.Font("Segoe UI Semibold",16f);title.BackColor=ModernUi.Surface;}
+  var tools=all.OfType<System.Windows.Forms.FlowLayoutPanel>().FirstOrDefault(p=>p.Controls.OfType<System.Windows.Forms.Button>().Any(b=>b.Text=="Load source DXF"));
+  if(tools!=null){tools.AutoSize=true;tools.AutoSizeMode=System.Windows.Forms.AutoSizeMode.GrowAndShrink;tools.WrapContents=true;tools.Padding=new System.Windows.Forms.Padding(14,6,14,10);tools.BackColor=ModernUi.Surface;
+   foreach(System.Windows.Forms.Control c in tools.Controls){
+    if(c is System.Windows.Forms.Button){var b=(System.Windows.Forms.Button)c;b.AutoSize=true;b.Height=36;b.MinimumSize=new System.Drawing.Size(0,36);b.Margin=new System.Windows.Forms.Padding(0,0,8,0);if(b.Text=="Load source DXF")b.Margin=new System.Windows.Forms.Padding(0,0,18,0);if(b.Text=="Build preview")b.Margin=new System.Windows.Forms.Padding(14,0,8,0);}
+    else if(c is System.Windows.Forms.Label){var l=(System.Windows.Forms.Label)c;l.AutoSize=true;l.Font=ModernUi.Body;l.ForeColor=PowTheme.Muted;l.Padding=System.Windows.Forms.Padding.Empty;l.Margin=new System.Windows.Forms.Padding(6,10,6,0);}
+    else if(c is System.Windows.Forms.TextBox){var t=(System.Windows.Forms.TextBox)c;t.Font=ModernUi.Body;t.Margin=new System.Windows.Forms.Padding(0,6,10,0);t.Width=t.Text.Length>4||t.Width>150?220:70;}
+    else if(c is System.Windows.Forms.CheckBox){var k=(System.Windows.Forms.CheckBox)c;k.AutoSize=true;k.Font=ModernUi.Body;k.Margin=new System.Windows.Forms.Padding(6,9,6,0);}}}
+  foreach(var l in all.OfType<System.Windows.Forms.Label>()){
+   if(l.Text.StartsWith("Loaded DXF")){l.Height=34;l.Padding=new System.Windows.Forms.Padding(16,10,8,0);l.Font=ModernUi.Strong;l.ForeColor=PowTheme.Ink;l.BackColor=ModernUi.Surface;l.AutoEllipsis=true;}
+   else if(l.Text.StartsWith("Matching ")){l.Height=38;l.Padding=new System.Windows.Forms.Padding(16,2,8,10);l.Font=ModernUi.Body;l.ForeColor=PowTheme.Muted;l.BackColor=ModernUi.Surface;l.AutoEllipsis=true;}}}
+}
+}
