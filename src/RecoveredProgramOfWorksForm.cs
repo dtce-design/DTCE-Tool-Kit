@@ -4593,7 +4593,7 @@ worksExcelTimer.Tick += async delegate
 			};
 			OrganizeSections();
             ConfigureRcWorkspaces();
-            AddRebarSummaryTabs();
+            AddRebarSummaryTabs();ArrangeRcCommandBars();
             ConfigureAngleQuantityView();
             InstallRecovery();
             /* closing the Program of Works ends its project: the next one starts with blank project information */

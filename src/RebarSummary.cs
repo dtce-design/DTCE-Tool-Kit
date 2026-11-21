@@ -27,6 +27,24 @@ partial class ProgramOfWorksForm {
    foreach(string h in RebarSummary.Headers)grid.Columns.Add(h,h);foreach(DataGridViewColumn c in grid.Columns){c.SortMode=DataGridViewColumnSortMode.NotSortable;if(c.Index>=2)c.DefaultCellStyle.Alignment=DataGridViewContentAlignment.MiddleRight;}
    summaryPage.Controls.Add(grid);navigation.TabPages.Add(measurements);navigation.TabPages.Add(summaryPage);page.Padding=Padding.Empty;page.Controls.Add(navigation);page.ResumeLayout(true);rebarSummaries[name]=grid;
    navigation.SelectedIndexChanged+=(s,e)=>{if(navigation.SelectedTab==summaryPage)RefreshRebarSummaries();};}}
+ /* one command row above the subtabs on every RC estimate, as on Beam and Slab (owner, 21 November 2026: "di mo naman pinagpareprehas"):
+    the page's own actions, then Schedules and Settings menus */
+ void ArrangeRcCommandBars(){var click=typeof(Control).GetMethod("OnClick",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+  foreach(string name in RebarSummaryPages){TabPage page;if(!sheetPages.TryGetValue(name,out page)||page==null)continue;var nav=page.Controls.OfType<TabControl>().FirstOrDefault();if(nav==null)continue;var meas=nav.TabPages.Cast<TabPage>().FirstOrDefault(t=>t.Name=="Measurements");if(meas==null)continue;
+   var bar=meas.Controls.OfType<FlowLayoutPanel>().FirstOrDefault(f=>f.Controls.OfType<Button>().Any()||f.Controls.OfType<CheckBox>().Any());if(bar==null)continue;
+   var buttons=bar.Controls.OfType<Button>().ToList();var checks=bar.Controls.OfType<CheckBox>().ToList();meas.Controls.Remove(bar);
+   var top=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,Padding=new Padding(8,6,8,4),WrapContents=true};
+   Func<string,Button> add=t=>{var b=new Button{Text=t,AutoSize=true,Height=38};top.Controls.Add(b);return b;};
+   Action<Button> forward=b0=>{var b=add(b0.Text);b.Click+=(s,e)=>click.Invoke(b0,new object[]{EventArgs.Empty});};
+   var schedules=buttons.Where(b=>b.Text.StartsWith("Manual ")).ToList();var settings=buttons.Where(b=>b.Text=="Settings"||b.Text=="Commercial lengths").ToList();
+   foreach(var b0 in buttons.Except(schedules).Except(settings))forward(b0);
+   Action<string,List<ToolStripItem>> menu=(t,items)=>{if(items.Count==0)return;var m=new ContextMenuStrip();m.Items.AddRange(items.ToArray());var b=add(t+"  ▾");b.Click+=(s,e)=>m.Show(b,new Point(0,b.Height));};
+   menu("Schedules",schedules.Select(b0=>{var it=new ToolStripMenuItem(b0.Text);it.Click+=(s,e)=>click.Invoke(b0,new object[]{EventArgs.Empty});return (ToolStripItem)it;}).ToList());
+   var setItems=settings.OrderBy(b=>b.Text=="Settings"?0:1).Select(b0=>{var it=new ToolStripMenuItem(b0.Text=="Settings"?"Materials & calculation":b0.Text);it.Click+=(s,e)=>click.Invoke(b0,new object[]{EventArgs.Empty});return (ToolStripItem)it;}).ToList();
+   foreach(var c0 in checks){var cb=c0;var it=new ToolStripMenuItem(cb.Text){CheckOnClick=true,Checked=cb.Checked};it.CheckedChanged+=(s,e)=>cb.Checked=it.Checked;cb.CheckedChanged+=(s,e)=>it.Checked=cb.Checked;setItems.Add(it);}
+   if(!settings.Any(b=>b.Text=="Settings")){var it=new ToolStripMenuItem("Materials & calculation");it.Click+=(s,e)=>ShowWorksSettings();setItems.Insert(0,it);}
+   menu("Settings",setItems);
+   page.Controls.Add(top);page.Controls.SetChildIndex(top,page.Controls.Count-1);}}
  IEnumerable<StockAllocation> RebarPlanFor(string name){switch(name){
   case "Footing Estimate":return footingPlan;case "Wall Footing Estimate":return wallFootingPlan;case "Canopy / Ledge Estimate":return canopyPlan;case "RC Wall Estimate":return rcWallPlan;
   default:{TabPage page;if(!sheetPages.TryGetValue(name,out page))return Enumerable.Empty<StockAllocation>();var steel=new HashSet<EstimateInput>(GridsIn(page).SelectMany(g=>g.Rows.Cast<DataGridViewRow>()).Select(r=>r.Tag as MiscStructureQuantity).Where(q=>q!=null&&q.Steel!=null).Select(q=>q.Steel));var misc=miscPlan.Where(a=>steel.Contains(a.Entry));return name=="Miscellaneous Structures"?misc.Concat(canopyPlan):misc;}}}
