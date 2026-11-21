@@ -1,0 +1,8 @@
+DTCE Tool Kit v6.0.48 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (all tables; owner: "input cells lang ang may color"):
+- Only the input cells are coloured (pale yellow; darker in dark mode); computed cells are plain again. Subtitle: "Yellow cells:
+  enter values · Other cells: computed automatically".
+Checked on Linux/Mono only.
+
+Includes v6.0.47 and earlier builds.
