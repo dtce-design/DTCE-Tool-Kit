@@ -69,6 +69,7 @@ partial class ProgramOfWorksForm {
     }else RecalculateSiteRow(item,row);
    }catch(Exception ex){row.Cells[StatusIndex(item.Grid)].Value=ex.Message;errors.Add(item.Kind+" "+Cell(row,0)+": "+ex.Message);}}
   }
+  RecalculateOpeningLintels();
   RecalculateRailings();RecalculateSagRods();RecalculateCarpentry();ApplyExtraFoundationEarthworks();
  }
  void UpdateExtraPurchases(){if(!extraReady)return;UpdateWallFootingPurchase();foreach(var item in extraGrids.Values)foreach(DataGridViewRow row in item.Grid.Rows){var q=row.Tag as MiscStructureQuantity;if(q==null)continue;var plan=(item.Group=="Slope Protection Works"?slopePlan:miscPlan).Where(a=>a.Entry==q.Steel).ToList();row.Cells[item.Inputs+3].Value=plan.Sum(a=>a.Purchase);if(plan.Any(a=>a.Choice==null)){row.Cells[StatusIndex(item.Grid)].Value="Unresolved commercial rebar cut";errors.Add(item.Kind+" "+q.Id+": unresolved stock cut.");}}if(projectRebarPlan.Any(a=>!slopePlan.Contains(a)&&a.Demand.Grade==60&&a.Demand.Diameter>42))errors.Add("Grade 60 bars above 42mm require an approved separate pay item.");}

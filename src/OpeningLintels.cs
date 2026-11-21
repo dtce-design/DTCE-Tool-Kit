@@ -1,0 +1,22 @@
+using System;using System.Collections.Generic;using System.Drawing;using System.Globalization;using System.Linq;using System.Windows.Forms;
+namespace BeamScheduleFormatter {
+/* every opening of a CHB wall gets its lintel from the lintel schedule as soon as it is placed (owner, 21 November 2026); the lintels
+   are Miscellaneous Structures / Lintel Beam quantities (concrete, forms, rebar) and are listed in their own tab */
+partial class ProgramOfWorksForm {
+ CheckBox autoLintels;DataGridView lintelGrid;Label lintelNote;
+ static readonly string[] LintelHeaders={"Lintel","Opening","Wall","CHB","Clear opening m","Units","b x h mm","Bottom","Top","Mid","Ties 10 mm","Bearing each end mm","Length m","Jamb bars each side","Lateral brace","Concrete m3","Forms m2","Rebar kg","Status"};
+ void AddOpeningLintelsTab(){TabPage misc;if(sheetPages==null||!sheetPages.TryGetValue("Miscellaneous Structures",out misc))return;var host=AllControls(misc).OfType<TabControl>().FirstOrDefault();if(host==null)return;
+  var page=new TabPage("Lintels over Openings"){Padding=new Padding(14,10,14,14)};var top=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,WrapContents=true,Padding=new Padding(0,0,0,6)};
+  autoLintels=new CheckBox{Text="Add a lintel over every opening of a CHB wall automatically",Checked=true,AutoSize=true,Margin=new Padding(3,8,12,3)};autoLintels.CheckedChanged+=(s,e)=>{if(extraReady&&!filling)Recalculate();};top.Controls.Add(autoLintels);
+  lintelNote=new Label{Dock=DockStyle.Top,AutoSize=false,Height=58,ForeColor=PowTheme.Muted,Padding=new Padding(2,4,2,4),Text="Marks LB-4A to LB-6E from the Lintel Beam Design Calculation Report: chosen from the CHB thickness and the clear opening (between two ranges the larger mark). Valid for gravity load with at most 2.5 m of CHB wall above and no other load; openings over 6.00 m need their own design. Do not also enter these lintels in the Lintel Beam sheet. Concrete, rebar grades and cover follow the Lintel Beam settings."};
+  lintelGrid=new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.AllCells,BackgroundColor=Color.White,BorderStyle=BorderStyle.None};foreach(var h in LintelHeaders)lintelGrid.Columns.Add(h,h);foreach(DataGridViewColumn c in lintelGrid.Columns)c.SortMode=DataGridViewColumnSortMode.NotSortable;
+  page.Controls.Add(lintelGrid);page.Controls.Add(lintelNote);page.Controls.Add(top);var tabs0=host.TabPages.Cast<TabPage>().ToList();int at=tabs0.FindIndex(t=>t.Text.Contains("Lintel"));host.TabPages.Clear();for(int i=0;i<tabs0.Count;i++){host.TabPages.Add(tabs0[i]);if(i==at)host.TabPages.Add(page);}if(at<0)host.TabPages.Add(page);}
+ static IEnumerable<Control> AllControls(Control root){foreach(Control c in root.Controls){yield return c;foreach(var d in AllControls(c))yield return d;}}
+ void RecalculateOpeningLintels(){if(lintelGrid!=null)lintelGrid.Rows.Clear();if(autoLintels!=null&&!autoLintels.Checked)return;LengthConfiguration cfg;try{cfg=ExtraConfiguration("Lintel Beam");}catch(Exception){return;}
+  var walls=wallItems.Where(w=>w.Material=="CHB").ToDictionary(w=>w.Id.Trim(),StringComparer.OrdinalIgnoreCase);
+  foreach(var o in wallOpenings){WallItem wall;if(o==null||o.Wall==null||!walls.TryGetValue(o.Wall.Trim(),out wall))continue;
+   try{LintelMark mark;var q=LintelSchedule.Takeoff(o,wall,cfg,out mark);miscQuantities.Add(q);miscPlan.AddRange(CommercialBars.Allocate(new[]{q.Steel},cfg,miscStock));
+    if(lintelGrid!=null)lintelGrid.Rows.Add(mark.Mark,o.Id,wall.Id,mark.Chb+"\"",o.Width.ToString("0.00",CultureInfo.InvariantCulture),q.Quantity,mark.Width+" x "+mark.Depth,mark.Bottom,mark.Top,mark.Mid,mark.Ties,mark.Bearing,(o.Width+2*mark.Bearing/1000.0).ToString("0.00",CultureInfo.InvariantCulture),mark.JambBarsPerSide+"-12",mark.Brace==""?"-":"Wall bars 10 mm @ 800",q.Concrete.ToString("0.000",CultureInfo.InvariantCulture),q.Forms.ToString("0.00",CultureInfo.InvariantCulture),q.Steel.Result.Total.ToString("0.00",CultureInfo.InvariantCulture),wall.ThicknessMm>150?"6\" marks used for a "+wall.ThicknessMm.ToString("0",CultureInfo.InvariantCulture)+" mm wall - check":"Estimated");}
+   catch(Exception ex){errors.Add("Lintel over "+o.Id+" in wall "+wall.Id+": "+ex.Message);if(lintelGrid!=null)lintelGrid.Rows.Add("-",o.Id,wall.Id,"","","","","","","","","","","","","","","",ex.Message);}}}
+}
+}
