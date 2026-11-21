@@ -102,5 +102,16 @@ class BeamCuttingListTests {
   {var shr=BeamCutting.Build(line(new[]{true,true,true}),find,new CutSettings{Config=cfg});var shrRow=find("B-1");double h2=2*double.Parse(shrRow.Cell(1),System.Globalization.CultureInfo.InvariantCulture)/1000;
    Check(Math.Abs(BeamCutting.EndZoneLength(shrRow,6,new CutSettings{Config=cfg})-Math.Min(h2,3))<1e-9&&Math.Abs(BeamCutting.EndZoneLength(shrRow,6,new CutSettings{Config=cfg,SpecialMomentFrame=false})-2)<1e-9,"end zones: ductile 2h, non-ductile L/3");
    Check(!shr.Errors.Any(e=>e.Contains("end stirrup zone")),"2h end zones need no end-zone warning");}
-  Console.WriteLine("PASS: "+checks+" beam cutting list checks");}
+    /* top 3-16 in spans 1 and 2, 4-20 in span 3 (owner, 21 November 2026: "bat walang continuous main bar sa top?"): each run of spans
+     gets its own continuous bars, past the support where the diameter changes; layer spacer bars are Grade 40 */
+  {Func<string,string,BeamRow> mk=(mark,top)=>{var br=new BeamRow{Mark=mark};br.Cells[0].Add("400");br.Cells[1].Add("800");for(int c=2;c<5;c++)br.Cells[c].Add("3-#12");for(int c=5;c<8;c++)br.Cells[c].Add(top);br.Cells[8].Add("1-2L-#10@100 C/C");br.Cells[9].Add("1-2L-#10@150 C/C");br.Cells[10].Add("1-2L-#10@100 C/C");br.Cells[11].Add("--");br.Cells[12].Add("--");br.Cells[13].Add("--");return br;};
+   var r16=mk("B-16","3-#16");var r20=mk("B-20","4-#20");Func<string,BeamRow> f2=m=>m=="B-16"?r16:m=="B-20"?r20:null;
+   var mixed=new List<CutSpan>{new CutSpan{Line="M1",Mark="B-16",Ln=6,LeftSupport=.4,RightSupport=.4,Include=true},new CutSpan{Line="M1",Mark="B-16",Ln=6,LeftSupport=.4,RightSupport=.4,Include=true},new CutSpan{Line="M1",Mark="B-20",Ln=6,LeftSupport=.4,RightSupport=.4,Include=true}};
+   var rm=BeamCutting.Build(mixed,f2,new CutSettings{Config=cfg});var g16=rm.Pieces.Where(p=>p.Top&&p.Diameter==16&&p.Location.Contains("continuous")).ToList();var g20=rm.Pieces.Where(p=>p.Top&&p.Diameter==20&&p.Location.Contains("continuous")).ToList();
+   Check(g16.Count>0&&g16.All(p=>p.PerLine==3)&&g20.Count>0&&g20.All(p=>p.PerLine==4),"continuous top bars for each run of the same diameter: "+string.Join(" | ",rm.Pieces.Where(p=>p.Top).Select(p=>p.Location+" "+p.PerLine+"-"+p.Diameter)));
+   var mg=rm.Geometry[0];Check(g16.Min(p=>p.Start)<mg.SupportStart[0]+mg.SupportWidth[0]&&g16.Max(p=>p.End)>mg.FaceLeft[2]+6*.25-1e-6,"the 16 mm run is hooked at the left end and continues past support 3 into span 3 by L/4 + Ld");
+   Check(g20.Min(p=>p.Start)<mg.FaceRight[1]-6*.25+1e-6&&g20.Max(p=>p.End)>mg.FaceRight[2],"the 20 mm run starts in span 2 (L/4 + Ld past support 3) and is hooked at the right end");
+   Check(!rm.Pieces.Any(p=>p.Top&&p.Location.StartsWith("Top extra")&&p.Diameter==16&&p.Location.Contains("support 3")&&p.PerLine>=3),"no duplicate extras for the run bars");
+   var sp=new CutSettings{Config=cfg};var rs=BeamCutting.Build(mixed,f2,sp);Check(rs.Pieces.Where(p=>p.Location.StartsWith("Layer spacer")).All(p=>p.Grade==40),"layer spacer bars are Grade 40");}
+Console.WriteLine("PASS: "+checks+" beam cutting list checks");}
 }

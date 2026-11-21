@@ -1,0 +1,14 @@
+DTCE Tool Kit v6.0.36 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Bar Bending Schedule):
+- Continuous main bars per run of spans: where the top (or bottom) diameter changes along the line (e.g. 3-16 in spans 1 and 2,
+  4-20 in span 3) each run gets its own continuous bars - hooked at the beam ends and continued past the support where the diameter
+  changes by the curtailment (top L/4 + Ld, bottom Ld). Before, a change of diameter left no continuous bar at all.
+- Layer spacer bars are Grade 40 whatever their size (Ø25 spacer = Grade 40), as an exemption from the Grade 60 for 16 mm and up.
+- Bar codes use the diameter symbol: T1-8NOS-Ø16, S13-25NOS-Ø10-@100 (2L).
+- Shape key and sketches: bends drawn round; R marked at its bend with a short leader; stirrup hooks drawn as two 135° tails into the
+  core at one corner, long enough to read.
+- Report: the beam elevation and bar details are printed once (section 3); section 4 refers to them instead of repeating them.
+Checked on Linux/Mono only. Tests: BeamCuttingListTests (247), MemberBbsTests.
+
+Includes v6.0.35 and earlier builds.
