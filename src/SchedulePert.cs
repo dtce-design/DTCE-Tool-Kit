@@ -180,7 +180,8 @@ sealed class PertAoa {
 }
 sealed class PertView:Control {internal PertAoa Diagram;internal PertResult Pert;internal PertView(){DoubleBuffered=true;BackColor=Color.White;Font=new Font("Segoe UI",8f);}
  internal void Fit(){if(Diagram==null)return;var size=Diagram.Layout(Math.Max(500,(Parent==null?700:Parent.ClientSize.Height)-60-PertAoa.KeyH));Width=Math.Max(900,(int)size.Width+20);Height=(int)(size.Height+34+PertAoa.KeyH);Invalidate();}
- protected override void OnPaint(PaintEventArgs e){e.Graphics.Clear(BackColor);if(Diagram==null||Diagram.Events.Count==0){TextRenderer.DrawText(e.Graphics,"No activities yet.",Font,new Point(10,10),PowTheme.Muted);return;}
+ protected override void OnPaint(PaintEventArgs e){/* drawings stay paper-white with dark ink in dark mode (owner, 21 November 2026: "pangit ng dark mode") */if(DesktopAppearance.Palette.Dark)e.Graphics.Clear(Color.White);using(new ReportPaperScope())PaintPaper(e);}
+ void PaintPaper(PaintEventArgs e){e.Graphics.Clear(BackColor);if(Diagram==null||Diagram.Events.Count==0){TextRenderer.DrawText(e.Graphics,"No activities yet.",Font,new Point(10,10),PowTheme.Muted);return;}
   using(var bold=new Font(Font,FontStyle.Bold)){TextRenderer.DrawText(e.Graphics,"PERT: Te = "+Pert.Te.ToString("0.0",CultureInfo.InvariantCulture)+" working days, s = "+Pert.Sigma.ToString("0.00",CultureInfo.InvariantCulture)+"; 90%: "+Pert.P90+" days; 95%: "+Pert.P95+" days.   "+PertAoa.LegendText,Font,new Point(8,4),PowTheme.Ink);
    PertAoa.DrawKey(e.Graphics,8,24,Font,bold);Diagram.Draw(e.Graphics,0,28+PertAoa.KeyH,Font,bold);}}}
 }

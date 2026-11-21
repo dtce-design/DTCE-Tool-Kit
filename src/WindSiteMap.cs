@@ -53,7 +53,8 @@ partial class WindSiteMap:Control {
   if(tiles.Count>140){foreach(var old in new List<string>(tiles.Keys)){if(old==key)continue;tiles[old].Dispose();tiles.Remove(old);if(tiles.Count<=90)break;}}
   Invalidate();
  }
- protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);DrawMap(e.Graphics,new Rectangle(0,0,Width,Height),true);}
+ protected override void OnPaint(PaintEventArgs e){/* drawings stay paper-white with dark ink in dark mode (owner, 21 November 2026: "pangit ng dark mode") */if(DesktopAppearance.Palette.Dark)e.Graphics.Clear(Color.White);using(new ReportPaperScope())PaintPaper(e);}
+ void PaintPaper(PaintEventArgs e){base.OnPaint(e);DrawMap(e.Graphics,new Rectangle(0,0,Width,Height),true);}
  void DrawMap(Graphics g,Rectangle bounds,bool controls,bool requireComplete=false){bool complete=!requireComplete||CompleteVisibleTiles();g.SmoothingMode=SmoothingMode.AntiAlias;double left=X(longitude,zoom)-Width/2.0,top=Y(latitude,zoom)-Height/2.0;int max=1<<zoom,drawn=0;
   for(int row=(int)Math.Floor(top/256);row<=Math.Floor((top+Height)/256);row++)for(int col=(int)Math.Floor(left/256);col<=Math.Floor((left+Width)/256);col++){Bitmap tile;int x=((col%max)+max)%max;if(complete&&tiles.TryGetValue(Key(zoom,x,row),out tile)){g.DrawImage(tile,(float)(col*256-left),(float)(row*256-top),256,256);drawn++;}}
   DrawWindOverlay(g);

@@ -95,7 +95,8 @@ static class StrapVisuals {
 class StrapPlanView:Control {internal StrapInput Input;internal StrapCase Case;internal readonly HashSet<string> Failing=new HashSet<string>();internal bool ThreeD;internal string Selected;internal readonly View3D View=new View3D();bool rotating;Point rotStart;double yaw0,pitch0;
  internal event Action<string,double,double> FootingMoved;internal event Action<string> FootingSelected;PlanMap map;string dragging;PointF dragStart;double ex0,ez0;
  public StrapPlanView(){DoubleBuffered=true;ResizeRedraw=true;BackColor=Color.White;Width=1000;Height=460;Tag="FullWidth";}
- protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);if(Input==null){TextRenderer.DrawText(e.Graphics,"Enter the footings and straps to see the plan.",ModernUi.Body,new Point(12,12),PowTheme.Muted);return;}
+ protected override void OnPaint(PaintEventArgs e){/* drawings stay paper-white with dark ink in dark mode (owner, 21 November 2026: "pangit ng dark mode") */if(DesktopAppearance.Palette.Dark)e.Graphics.Clear(Color.White);using(new ReportPaperScope())PaintPaper(e);}
+ void PaintPaper(PaintEventArgs e){base.OnPaint(e);if(Input==null){TextRenderer.DrawText(e.Graphics,"Enter the footings and straps to see the plan.",ModernUi.Body,new Point(12,12),PowTheme.Muted);return;}
   try{var r=new RectangleF(0,0,Width,Height-26);if(ThreeD){map=null;StrapVisuals.Iso(e.Graphics,r,Input,Failing,8.5f,Case,View);}else map=StrapDrawing.Plan(e.Graphics,r,Input,Case,8.5f,Failing,Selected);
    TextRenderer.DrawText(e.Graphics,ThreeD?"3D view - drag to turn, wheel to zoom, double-click for the plan":"Plan - drag a footing to change its eccentricity (25 mm steps), click to select its row, double-click for 3D",ModernUi.Body,new Point(10,Height-24),PowTheme.Muted);}
   catch(Exception ex){TextRenderer.DrawText(e.Graphics,ex.Message,ModernUi.Body,new Point(12,12),Color.Firebrick);}}
@@ -109,6 +110,7 @@ class StrapPlanView:Control {internal StrapInput Input;internal StrapCase Case;i
 }
 class StrapSectionView:Control {internal StrapInput Input;internal int Index;
  public StrapSectionView(){DoubleBuffered=true;ResizeRedraw=true;BackColor=Color.White;}
- protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);if(Input==null||Input.Straps.Count==0){TextRenderer.DrawText(e.Graphics,"Select a strap to see its section and bar layers.",ModernUi.Body,new Point(10,10),PowTheme.Muted);return;}try{StrapVisuals.StrapSection(e.Graphics,new RectangleF(0,0,Width,Height),Input,Input.Straps[Math.Max(0,Math.Min(Input.Straps.Count-1,Index))],8.5f);}catch(Exception ex){TextRenderer.DrawText(e.Graphics,ex.Message,ModernUi.Body,new Point(10,10),Color.Firebrick);}}
+ protected override void OnPaint(PaintEventArgs e){/* drawings stay paper-white with dark ink in dark mode (owner, 21 November 2026: "pangit ng dark mode") */if(DesktopAppearance.Palette.Dark)e.Graphics.Clear(Color.White);using(new ReportPaperScope())PaintPaper(e);}
+ void PaintPaper(PaintEventArgs e){base.OnPaint(e);if(Input==null||Input.Straps.Count==0){TextRenderer.DrawText(e.Graphics,"Select a strap to see its section and bar layers.",ModernUi.Body,new Point(10,10),PowTheme.Muted);return;}try{StrapVisuals.StrapSection(e.Graphics,new RectangleF(0,0,Width,Height),Input,Input.Straps[Math.Max(0,Math.Min(Input.Straps.Count-1,Index))],8.5f);}catch(Exception ex){TextRenderer.DrawText(e.Graphics,ex.Message,ModernUi.Body,new Point(10,10),Color.Firebrick);}}
 }
 }

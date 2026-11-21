@@ -74,7 +74,8 @@ static class ScheduleManpower {
 }
 sealed class ManpowerView:Control {internal List<ScheduleRow> Rows=new List<ScheduleRow>();internal ManpowerView(){DoubleBuffered=true;BackColor=Color.White;Font=new Font("Segoe UI",8f);}
  internal void Fit(){Width=Math.Max(1000,(int)ScheduleManpower.ItemWidths.Sum()+40);Height=(int)(30+280+20+(ScheduleManpower.Trades(Rows).Count+2)*16+30+ScheduleManpower.ItemHead+(Rows.Count+1)*ScheduleManpower.ItemRow+40);Invalidate();}
- protected override void OnPaint(PaintEventArgs e){var g=e.Graphics;g.Clear(BackColor);using(var bold=new Font(Font,FontStyle.Bold)){
+ protected override void OnPaint(PaintEventArgs e){/* drawings stay paper-white with dark ink in dark mode (owner, 21 November 2026: "pangit ng dark mode") */if(DesktopAppearance.Palette.Dark)e.Graphics.Clear(Color.White);using(new ReportPaperScope())PaintPaper(e);}
+ void PaintPaper(PaintEventArgs e){var g=e.Graphics;g.Clear(BackColor);using(var bold=new Font(Font,FontStyle.Bold)){
   TextRenderer.DrawText(g,ScheduleManpower.Summary(Rows),bold,new Point(8,6),PowTheme.Ink);TextRenderer.DrawText(g,ScheduleManpower.Basis,Font,new Point(8,24),PowTheme.Muted);
   ScheduleManpower.DrawHistogram(g,new RectangleF(8,46,Width-30,260),Rows,Font,bold);float y=320;y+=ScheduleManpower.DrawTrades(g,8,y,Rows,Font,bold)+20;
   ScheduleManpower.DrawItems(g,8,y,Rows,0,Rows.Count,Font,bold,true);}}}

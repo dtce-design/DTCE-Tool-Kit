@@ -1,0 +1,12 @@
+DTCE Tool Kit v6.0.31 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Dark mode; owner: "pangit ng dark mode"):
+- New dark palette: neutral charcoal surfaces, clear dividers and the same green accent as the light theme (primary buttons such as
+  Calculate and Save are green again instead of grey-blue); darker navy header; folder-tab tints toned to the dark surfaces.
+- Drawings stay paper-white with dark ink in dark mode (strap plan and section, BBS model and bar sketches, wind building model and
+  map, truss support / weld drawings, steel section preview, RSA curve, schedule charts, wall DXF viewer): their labels were light
+  grey on white before.
+Checked on Linux/Mono only. Tests: AppearancePreferencesTests (44, palette contrast), AppearanceUiTests, BeamCuttingListTests,
+StrapFootingTests.
+
+Includes v6.0.30 and earlier builds.

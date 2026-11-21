@@ -24,7 +24,8 @@ namespace BeamScheduleFormatter {
   double Read(string key){double value;return double.TryParse(inputs[key].Text,NumberStyles.Float,CultureInfo.InvariantCulture,out value)&&!double.IsNaN(value)&&!double.IsInfinity(value)&&value>=0?value:double.NaN;}
   string Value(string key){double value=Read(key);return double.IsNaN(value)?"enter valid mm":value.ToString("0.###",CultureInfo.InvariantCulture)+" mm";}
   Color Ink {get{return ForeColor.GetBrightness()>.65f?Color.Gainsboro:Color.FromArgb(40,52,66);}}
-  protected override void OnPaint(PaintEventArgs e){
+  protected override void OnPaint(PaintEventArgs e){/* drawings stay paper-white with dark ink in dark mode (owner, 21 November 2026: "pangit ng dark mode") */if(DesktopAppearance.Palette.Dark)e.Graphics.Clear(Color.White);using(new ReportPaperScope())PaintPaper(e);}
+ void PaintPaper(PaintEventArgs e){
    base.OnPaint(e);var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;targets.Clear();
    using(var font=new Font("Segoe UI",9))using(var title=new Font("Segoe UI",10,FontStyle.Bold)){
     DrawText(g,"WELD LENGTH REFERENCE  |  "+inputs["Family"].Text,title,Ink,12,8);

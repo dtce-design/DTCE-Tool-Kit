@@ -46,7 +46,8 @@ class BarShapeView:Control {
  static readonly CultureInfo Inv=CultureInfo.InvariantCulture;CutPiece piece;
  public BarShapeView(){DoubleBuffered=true;ResizeRedraw=true;BackColor=Color.White;Dock=DockStyle.Right;Width=330;}
  public void Show(CutPiece p){piece=p;Invalidate();}
- protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);var g=e.Graphics;var font=new Font("Segoe UI",8.5f);using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted)){
+ protected override void OnPaint(PaintEventArgs e){/* drawings stay paper-white with dark ink in dark mode (owner, 21 November 2026: "pangit ng dark mode") */if(DesktopAppearance.Palette.Dark)e.Graphics.Clear(Color.White);using(new ReportPaperScope())PaintPaper(e);}
+ void PaintPaper(PaintEventArgs e){base.OnPaint(e);var g=e.Graphics;var font=new Font("Segoe UI",8.5f);using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted)){
   using(var line=new Pen(PowTheme.Line))g.DrawLine(line,0,0,0,Height);if(piece==null){g.DrawString("Select a bar to see its shape.",font,muted,12,12);return;}var p=piece;
   g.DrawString(p.BarMark,ModernUi.Strong,ink,12,10);g.DrawString(BeamCutting.ShapeName(p.ShapeCode)+"\r\nG"+p.Grade+" "+p.Diameter+" mm, cut length "+(p.Length*1000).ToString("0",Inv)+" mm\r\n"+p.Pieces+" pcs ("+p.PerLine+" each x "+p.Lines+")  "+p.Kg.ToString("0.00",Inv)+" kg\r\n"+p.Location,font,muted,new RectangleF(12,32,Width-24,80));
   BarShapes.Draw(g,new RectangleF(10,120,Width-20,Height-170),BarShapes.Sketch(p),true,Color.FromArgb(25,90,160),font);

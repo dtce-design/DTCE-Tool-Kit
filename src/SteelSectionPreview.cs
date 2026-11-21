@@ -19,7 +19,8 @@ sealed class SteelSectionPreview:Control {
  void ResetView(){zoom=1;pan=PointF.Empty;Invalidate();}
  protected override void Dispose(bool disposing){if(disposing){foreach(var control in watched){control.TextChanged-=ProfileChanged;var combo=control as ComboBox;if(combo!=null){combo.SelectedIndexChanged-=ProfileChanged;combo.SelectionChangeCommitted-=ProfileChanged;}}hint.Dispose();}base.Dispose(disposing);}
  static string N(double v){return v.ToString("0.###",CultureInfo.InvariantCulture);}
- protected override void OnPaint(PaintEventArgs e){
+ protected override void OnPaint(PaintEventArgs e){/* drawings stay paper-white with dark ink in dark mode (owner, 21 November 2026: "pangit ng dark mode") */if(DesktopAppearance.Palette.Dark)e.Graphics.Clear(Color.White);using(new ReportPaperScope())PaintPaper(e);}
+ void PaintPaper(PaintEventArgs e){
   base.OnPaint(e);var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;var palette=DesktopAppearance.Palette;
   g.Clear(palette.Surface);using(var font=new Font("Segoe UI",9))using(var bold=new Font("Segoe UI",10,FontStyle.Bold)){
    SteelProfile p=selected();if(p==null){DrawLabel(g,"Select a catalog profile to display its section.",font,palette.Ink,12,12);return;}

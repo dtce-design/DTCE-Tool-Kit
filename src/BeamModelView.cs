@@ -28,7 +28,8 @@ class BeamModelView:Control {
  float LaneOffset(int k,int dia){if(!trueScale){float pitch=Math.Min(10,(BeamBottom-BeamTop)/Math.Max(6,topLanes+bottomLanes+4));return 12+k*pitch;}float m=PxPerM;return (float)((geo.Cover+.010+dia/2000.0)*m+k*Math.Max(2.5,(dia/1000.0+.025)*m));}
  float LaneY(CutPiece p){int k;lane.TryGetValue(p,out k);float off=LaneOffset(k,p.Diameter);return p.Top?BeamTop+off:BeamBottom-off;}
  static Color BarColor(CutPiece p,bool selected){if(selected)return Color.FromArgb(220,90,20);if(p.Shape=="REVIEW")return Color.Firebrick;if(p.Location.Contains("continuous"))return p.Top?Color.FromArgb(25,90,160):Color.FromArgb(20,120,90);return p.Top?Color.FromArgb(110,150,210):Color.FromArgb(90,170,130);}
- protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;var font=ModernUi.Body;var small=new Font("Segoe UI",7.5f);
+ protected override void OnPaint(PaintEventArgs e){/* drawings stay paper-white with dark ink in dark mode (owner, 21 November 2026: "pangit ng dark mode") */if(DesktopAppearance.Palette.Dark)e.Graphics.Clear(Color.White);using(new ReportPaperScope())PaintPaper(e);}
+ void PaintPaper(PaintEventArgs e){base.OnPaint(e);var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;var font=ModernUi.Body;var small=new Font("Segoe UI",7.5f);
   using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted)){
    if(geo==null){g.DrawString("Load a schedule and enter the beam lines to see the model.",font,muted,20,20);return;}
    g.DrawString("ELEVATION - "+geo.Line+"   (scroll: zoom  •  drag: pan  •  double-click: fit  •  click a bar to select it, click the beam for its section)",font,ink,12,10);
