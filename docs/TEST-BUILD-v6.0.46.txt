@@ -1,0 +1,9 @@
+DTCE Tool Kit v6.0.46 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (tabs; owner: "alisin na din yung maraming lines sa baba at right side"):
+- Tab pages no longer show the Windows 3-D frame at the left, right and bottom; nested tabs (e.g. Reinforced Concrete Works >
+  Miscellaneous Structures > Canopy / Ledge Estimate) used to stack several frame lines along the bottom and right edges. Only the
+  coloured line under each row of tabs remains.
+Checked on Linux/Mono only (the native frame is drawn by Windows - please check on Windows).
+
+Includes v6.0.45 and earlier builds.
