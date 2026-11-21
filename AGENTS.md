@@ -183,6 +183,9 @@ Done 21 November 2026: v6.0.48 merged to main (PR #13; GitHub release OK, run 44
 re-run once after the flaky EarthworkFootingTests exit code; all 124 checks had passed): new User (1152921505702467105) and Admin
 (1152921505702467242) submissions were created and committed; Partner Center reported "accepted for processing" (PreProcessing).
 Certification is not guaranteed. v6.0.49 and later need a new explicit request.
+Owner (21 November 2026, "Iupload sa apple store app"): upload the native iPhone app (DTCE Access Admin, ios/) to App Store
+Connect: run the workflow on main with publish_ios=true (publish_microsoft_store stays false). This authorizes this upload only;
+App Store review submission/release in App Store Connect and later iPhone uploads need a new explicit request. Pages stays off.
 
 ## Program of Works name (20 November 2026)
 
