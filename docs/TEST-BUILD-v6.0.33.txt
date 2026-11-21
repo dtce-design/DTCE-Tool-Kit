@@ -1,0 +1,10 @@
+DTCE Tool Kit v6.0.33 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (automatic lintels; owner: "Including 12mm bar except lateral brace. Compute mo na agad yung concrete rsb formworks"):
+- Lintels over Openings: concrete, formworks and RSB by diameter (10, 12, 16, 20, 25 mm) and total for every lintel, with a TOTAL row.
+- The 12 mm jamb bars are included in the RSB; the lateral brace of LB-4D / LB-4E (the wall's own 10 mm vertical bars) is not added.
+- CHB Estimate shows the lintel totals at once at the top of the page: number of lintels, concrete m3, formworks m2, RSB kg by
+  diameter. They are recomputed whenever an opening, its wall or the wall thickness changes.
+Checked on Linux/Mono only. Tests: OpeningLintelTests (6), LintelScheduleTests (21).
+
+Includes v6.0.32 and earlier builds.

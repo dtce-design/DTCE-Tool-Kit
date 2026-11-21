@@ -11,7 +11,10 @@ class OpeningLintelTests {
   t.GetMethod("Recalculate",F,null,Type.EmptyTypes,null).Invoke(pow,null);
   var misc=(System.Collections.Generic.List<MiscStructureQuantity>)t.GetField("miscQuantities",F).GetValue(pow);var lintels=misc.Where(q=>q.Kind=="Lintel Beam").ToList();
   Check(lintels.Count==1&&lintels[0].Id.StartsWith("LB-6A")&&lintels[0].Quantity==2,"the door in the 150 mm wall gets LB-6A x 2 ("+string.Join(", ",misc.Select(q=>q.Kind+" "+q.Id))+")");
-  var grid=(DataGridView)t.GetField("lintelGrid",F).GetValue(pow);Check(grid!=null&&grid.Rows.Count==1&&Convert.ToString(grid.Rows[0].Cells[0].Value)=="LB-6A","listed under Lintels over Openings");
+  var grid=(DataGridView)t.GetField("lintelGrid",F).GetValue(pow);Check(grid!=null&&grid.Rows.Count==2&&Convert.ToString(grid.Rows[0].Cells[0].Value)=="LB-6A","listed under Lintels over Openings");
+  Check(Convert.ToString(grid.Rows[1].Cells[0].Value)=="TOTAL"&&Convert.ToString(grid.Rows[1].Cells[15].Value)==lintels[0].Concrete.ToString("0.000",System.Globalization.CultureInfo.InvariantCulture),"total row with concrete");
+  Check(lintels[0].Steel.Result.Lines.Any(l=>l.Part=="Jamb bars"&&l.Diameter==12&&l.Kg>0)&&!lintels[0].Steel.Result.Lines.Any(l=>l.Part.Contains("brace")),"12 mm jamb bars included, lateral brace not");
+  var sum=(Label)t.GetField("chbLintelSummary",F).GetValue(pow);Check(sum!=null&&sum.Text.Contains("Concrete")&&sum.Text.Contains("Formworks")&&sum.Text.Contains("RSB")&&sum.Text.Contains("12 mm"),"CHB Estimate shows the lintel concrete, formworks and RSB at once: "+(sum==null?"":sum.Text));
   var auto=(CheckBox)t.GetField("autoLintels",F).GetValue(pow);auto.Checked=false;t.GetMethod("Recalculate",F,null,Type.EmptyTypes,null).Invoke(pow,null);
   Check(!((System.Collections.Generic.List<MiscStructureQuantity>)t.GetField("miscQuantities",F).GetValue(pow)).Any(q=>q.Kind=="Lintel Beam"),"turned off: no automatic lintels");
   Console.WriteLine("PASS: "+checks+" automatic lintel checks");pow.Dispose();}
