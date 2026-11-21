@@ -1,0 +1,11 @@
+DTCE Tool Kit v6.0.39 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Slab Formatter; owner: "yung schedule table iparehas sa header ng revised file"):
+- The Schedule values table has the header of the revised slab schedule: SLAB MARKED | SLAB THICKNESS | BOTTOM REINFORCEMENT (ALONG
+  SHORT SPAN / ALONG LONG SPAN: FULL LENGTH, CURTAILED) | TOP REINFORCEMENT (OVER LONG SUPPORT / OVER SHORT SUPPORT: CONTINUOUS
+  SUPPORT, END SUPPORT) | DISTRIBUTION, in three header rows; columns narrowed so the whole schedule fits the window.
+- The Beam Formatter table already follows the revised beam schedule header (BEAM MARK, SIZE B / D, BOTTOM and TOP REINFORCEMENT
+  LEFT / MIDSPAN / RIGHT, SHEAR REINFORCEMENTS LEG / Ø / SPACING, SFR).
+Checked on Linux/Mono only. Tests: SlabFormatterTests.
+
+Includes v6.0.38 and earlier builds.
