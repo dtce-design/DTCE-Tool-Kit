@@ -1,0 +1,17 @@
+DTCE Tool Kit v6.0.44 test build (21 November 2026) - not uploaded to the Microsoft Store (v5.1.9 is the last requested upload).
+
+PATCH (Plumbing Works; owner: "sa plumbing works include plumbing fixture ..."):
+- New sheet Plumbing Works > Plumbing Fixtures with the owner's list of fixtures and materials (water closets, flushing sensors and
+  panels, urinals and urinal valves, hose bibbs / bib taps, faucets, bidet spray, wash basins and vanity, traps / pop-up / angle
+  valves, bathroom accessories, grab bars, kitchen sinks, vanity mirrors, hand dryers and soap dispensers, water heaters, grease
+  trap). One row per item: ID, location / toilet, category, item (the list follows the category), qty.
+- Automatic accessories (ticked by default): water closet - one-way angle valve (concealed cistern: also the front panel push
+  button); urinal - exposed 2.80 LPF urinal flush valve; bidet spray - two-way angle valve, which replaces the one-way angle valve of
+  a water closet at the same location; wash basin - single-line basin faucet (elongated for vessel basins), brass P-trap, push button
+  pop-up with overflow, one-way angle valve; kitchen sink - single-line kitchen sink faucet with angle valve and flexible hose, brass
+  P-trap. Untick to enter the fittings yourself. Each row shows the accessories it added.
+- Bill of Quantities: one Plumbing Fixture (1002(4), ls) line listing every fixture and fitting with its number. Saved with the
+  project; older projects open with the sheet empty.
+Checked on Linux/Mono only. Tests: PlumbingFixtureTests (8), UpdateAndQuantityTests, OpeningLintelTests, BoqSavedRoutesTests.
+
+Includes v6.0.43 and earlier builds.

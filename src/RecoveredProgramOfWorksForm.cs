@@ -4690,10 +4690,11 @@ worksExcelTimer.Tick += async delegate
 				pages["Moulding"],
 				pages["Railing Estimate"]
 			});
-			AddSection("Plumbing Works", new TabPage[6]
+			AddSection("Plumbing Works", new TabPage[7]
 			{
 				pages["Plumbing Summary"],
 				pages["Pipe Takeoff"],
+				pages["Plumbing Fixtures"],
 				pages["Septic Vault - Concrete"],
 				pages["Septic Vault - CHB"],
 				pages["Catch Basin - CHB"],
