@@ -1,6 +1,6 @@
-using System;using System.Linq;using System.Text.RegularExpressions;using System.Collections.Generic;
+﻿using System;using System.Linq;using System.Text.RegularExpressions;using System.Collections.Generic;
 namespace BeamScheduleFormatter {
-class SlabBar {public int Diameter,ExplicitCount;public double SpacingMm;public string Raw;public static SlabBar Parse(string text){string value=text.Trim();if(Regex.IsMatch(value,@"^-+$"))return null;var m=Regex.Match(value,@"^(?:#|%%[Cc]|Ø)\s*(\d+)\s*@\s*(\d+(?:\.\d+)?)\s*C/C$",RegexOptions.IgnoreCase);if(!m.Success)throw new Exception("Unsupported slab reinforcement: "+text);return new SlabBar{Diameter=int.Parse(m.Groups[1].Value),SpacingMm=double.Parse(m.Groups[2].Value,System.Globalization.CultureInfo.InvariantCulture),Raw=text};}}
+class SlabBar {public int Diameter,ExplicitCount;public double SpacingMm;public string Raw;public static SlabBar Parse(string text){string value=text.Trim();if(Regex.IsMatch(value,@"^-+$"))return null;var m=Regex.Match(value,@"^(?:#|%%[Cc]|Ø)\s*(\d+)\s*@\s*(\d+(?:\.\d+)?)\s*(?:C/C|O\.\s*C\.?)$",RegexOptions.IgnoreCase);if(!m.Success)throw new Exception("Unsupported slab reinforcement: "+text);return new SlabBar{Diameter=int.Parse(m.Groups[1].Value),SpacingMm=double.Parse(m.Groups[2].Value,System.Globalization.CultureInfo.InvariantCulture),Raw=text};}}
 class SlabScheduleRow {public string Mark;public double Thickness;public SlabBar[] Bars;public bool Manual;}
 static class SlabScheduleReader {
  public static readonly string[] Columns={"Bottom short full","Bottom short curtailed","Bottom long full","Bottom long curtailed","Top over long support continuous","Top over long support end","Top over short support continuous","Top over short support end","Distribution"};

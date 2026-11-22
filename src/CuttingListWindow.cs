@@ -193,7 +193,7 @@ class CuttingListForm:Form {
  /* columns from the column schedule DXF - the revised one from the Column Formatter, or the RCDC original (owner, 22 November 2026:
     "yung output dxf file will be used naman sa bbs column"); they replace the columns loaded before */
  void LoadColumnSchedule(){using(var d=new OpenFileDialog{Filter="Column schedule DXF|*.dxf"}){if(d.ShowDialog(this)!=DialogResult.OK)return;var raw=File.ReadAllText(d.FileName);var s=ColumnScheduleReader.Read(raw);
-   if(s.Originals.Count==0){var groups=ColumnFormatter.Group(s,"C",true);var merged=new ColumnSchedule{Levels=s.Levels};foreach(var g in groups){merged.Marks.Add(g.Mark);merged.Originals[g.Mark]=g.Originals;for(int l=0;l<s.Levels.Count;l++){var c=s.Cell(g.Source[0],l);if(c!=null)merged.Cells[ColumnSchedule.Key(g.Mark,l)]=c;}}s=merged;}
+   if(s.Originals.Count==0)s=ColumnFormatter.Merged(s,"C");
    var notes=new List<string>();var pieces=ColumnFormatter.BbsPieces(s,Settings(),notes);if(pieces.Count==0)throw new Exception("No column bars could be taken from this DXF.");memberPieces.RemoveAll(p=>p.Group=="Column");memberPieces.AddRange(pieces);Calculate();
    status.ForeColor=PowTheme.Teal;status.Text="Loaded "+Path.GetFileName(d.FileName)+": "+s.Marks.Count+" column marks, "+pieces.Count+" bar marks. "+string.Join(" ",notes);}}
  void Open(){using(var d=new OpenFileDialog{Filter="Beam cutting list|*.beam-cutting.xml"})if(d.ShowDialog(this)==DialogResult.OK)OpenProjectXml(File.ReadAllText(d.FileName));}

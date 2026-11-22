@@ -15,8 +15,9 @@ class ColumnCell {
  public string MainText{get{return string.Join(" + ",Counts.Select(k=>k.Value+"-%%C"+k.Key));}}
  public string TieText{get{return TieDia<=0?"--":"%%C"+TieDia+" @ "+S1Main.ToString("0",Inv)+(Math.Abs(S1Other-S1Main)>.5&&S1Other>0?" / "+S1Other.ToString("0",Inv):"")+" (Lo = "+Lo.ToString("0",Inv)+")";}}
  public string RestText{get{return TieDia<=0?"":"%%C"+TieDia+" @ "+S2.ToString("0",Inv)+" REST";}}
- public string Signature(){var b=new StringBuilder();b.Append(B.ToString("0",Inv)).Append("x").Append(H.ToString("0",Inv)).Append("|");foreach(var bar in Bars.OrderBy(q=>Math.Round(q.Y)).ThenBy(q=>Math.Round(q.X)))b.Append(Math.Round(bar.X/5)*5).Append(",").Append(Math.Round(bar.Y/5)*5).Append(":").Append(bar.Dia).Append(";");b.Append("|");foreach(var l in Links.OrderBy(q=>Math.Round(q.X0)).ThenBy(q=>Math.Round(q.Y0)).ThenBy(q=>q.W))b.Append(Math.Round(l.X0/5)*5).Append(",").Append(Math.Round(l.Y0/5)*5).Append(",").Append(Math.Round(l.W/5)*5).Append(",").Append(Math.Round(l.H/5)*5).Append(";");
-  return b.Append("|").Append(TieDia).Append("@").Append(S1Main).Append("/").Append(S1Other).Append("/").Append(S2).Append("|").Append(Lo).Append("|").Append(Cover).Append("|").Append(Concrete).Append("|").Append(Fy).ToString();}}
+ public string Signature(){return Signature(true);}
+ public string Signature(bool withLo){var b=new StringBuilder();b.Append(B.ToString("0",Inv)).Append("x").Append(H.ToString("0",Inv)).Append("|");foreach(var bar in Bars.OrderBy(q=>Math.Round(q.Y)).ThenBy(q=>Math.Round(q.X)))b.Append(Math.Round(bar.X/5)*5).Append(",").Append(Math.Round(bar.Y/5)*5).Append(":").Append(bar.Dia).Append(";");b.Append("|");foreach(var l in Links.OrderBy(q=>Math.Round(q.X0)).ThenBy(q=>Math.Round(q.Y0)).ThenBy(q=>q.W))b.Append(Math.Round(l.X0/5)*5).Append(",").Append(Math.Round(l.Y0/5)*5).Append(",").Append(Math.Round(l.W/5)*5).Append(",").Append(Math.Round(l.H/5)*5).Append(";");
+  return b.Append("|").Append(TieDia).Append("@").Append(S1Main).Append("/").Append(S1Other).Append("/").Append(S2).Append("|").Append(withLo?Lo:0).Append("|").Append(Cover).Append("|").Append(Concrete).Append("|").Append(Fy).ToString();}}
 class ColumnSchedule {public List<ColumnLevel> Levels=new List<ColumnLevel>();public List<string> Marks=new List<string>();public Dictionary<string,ColumnCell> Cells=new Dictionary<string,ColumnCell>(StringComparer.OrdinalIgnoreCase);
  public static string Key(string mark,int level){return mark+"|"+level;}
  public ColumnCell Cell(string mark,int level){ColumnCell c;return Cells.TryGetValue(Key(mark,level),out c)?c:null;}
@@ -96,8 +97,13 @@ static class ColumnFormatter {
  static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
  /* identical columns (every level the same) share one new mark */
  public static List<ColumnGroup> Group(ColumnSchedule s,string prefix,bool merge){prefix=(prefix??"").Trim().ToUpperInvariant();if(!Regex.IsMatch(prefix,@"^[A-Z0-9]{1,8}$"))throw new Exception("Enter the column prefix, e.g. C or 2C.");
-  var groups=new List<ColumnGroup>();var lookup=new Dictionary<string,ColumnGroup>();foreach(var m in s.Marks){string key=string.Join("#",Enumerable.Range(0,s.Levels.Count).Select(l=>{var c=s.Cell(m,l);return c==null?"-":c.Signature();}));if(key.Replace("#","").Replace("-","")=="")continue;ColumnGroup g;if(!merge||!lookup.TryGetValue(key,out g)){g=new ColumnGroup();groups.Add(g);lookup[key]=g;}g.Source.Add(m);}
+  var groups=new List<ColumnGroup>();var lookup=new Dictionary<string,ColumnGroup>();foreach(var m in s.Marks){string key=string.Join("#",Enumerable.Range(0,s.Levels.Count).Select(l=>{var c=s.Cell(m,l);return c==null?"-":c.Signature(false);}));if(key.Replace("#","").Replace("-","")=="")continue;ColumnGroup g;if(!merge||!lookup.TryGetValue(key,out g)){g=new ColumnGroup();groups.Add(g);lookup[key]=g;}g.Source.Add(m);}
+  /* a different confining zone Lo alone does not make another mark (owner, 22 November 2026: "minerge yung identical column pero di
+     naman nag assign ng single column mark"): the group takes the largest Lo of its columns at each level */
+  foreach(var g in groups)for(int l=0;l<s.Levels.Count;l++){var cells=g.Source.Select(m=>s.Cell(m,l)).Where(c=>c!=null).ToList();if(cells.Count<2)continue;double lo=cells.Max(c=>c.Lo);foreach(var c in cells)c.Lo=lo;}
   for(int n=0;n<groups.Count;n++)groups[n].Mark=prefix+"-"+(n+1).ToString("000",Inv);return groups;}
+ /* an RCDC schedule as the grouped marks (the Bill of Quantities and the Bar Bending Schedule take it this way) */
+ internal static ColumnSchedule Merged(ColumnSchedule s,string prefix){var groups=Group(s,prefix,true);var merged=new ColumnSchedule{Levels=s.Levels};foreach(var g in groups){merged.Marks.Add(g.Mark);merged.Originals[g.Mark]=g.Originals;for(int l=0;l<s.Levels.Count;l++){var c=s.Cell(g.Source[0],l);if(c!=null)merged.Cells[ColumnSchedule.Key(g.Mark,l)]=c;}}return merged;}
  const double Scale=20;/* sections at 1:20 on paper (mm) */
  public static ColumnSheet Layout(ColumnSchedule s,List<ColumnGroup> groups,string title){var sh=new ColumnSheet();
   double maxB=s.Cells.Values.Max(c=>c.B),maxH=s.Cells.Values.Max(c=>c.H);double cellW=Math.Max(46,maxB/Scale+26),secH=maxH/Scale+10,rowH=secH+22,labelW=34,headH=10,top=0;
@@ -120,7 +126,7 @@ static class ColumnFormatter {
   y-=origH;
   sh.Text("NOTES: Sections at 1:20. Lo = confining zone at each end of the clear height; hoops at the first spacing within Lo, the REST spacing elsewhere. All hoops and links with 135° hooks. Bar sizes: red Ø20 and larger, blue Ø16, green Ø12 and smaller.",0,y-4,1.8,7,false,"TEXT",width);
   sh.Left=0;sh.Right=width;sh.Top=top+16;sh.Bottom=y-8;return sh;}
- public static ColumnFormatResult Build(string raw,string prefix,string title,bool merge){var s=ColumnScheduleReader.Read(raw);var groups=Group(s,prefix,merge);if(groups.Count==0)throw new Exception("No columns to format.");var sheet=Layout(s,groups,title);return new ColumnFormatResult{Schedule=s,Groups=groups,Sheet=sheet,Drawing=ToDxf(sheet,s,groups),SourceCount=s.Marks.Count};}
+ public static ColumnFormatResult Build(string raw,string prefix,string title,bool merge,bool aci=false){var s=ColumnScheduleReader.Read(raw);var groups=Group(s,prefix,merge);if(groups.Count==0)throw new Exception("No columns to format.");var sheet=Layout(s,groups,title);if(aci)AciDetailing.Apply(sheet);return new ColumnFormatResult{Schedule=s,Groups=groups,Sheet=sheet,Drawing=ToDxf(sheet,s,groups),SourceCount=s.Marks.Count};}
  /* the DXF: header, tables and styles of the slab template; entities drawn new */
  internal static Dxf ToDxf(ColumnSheet sh,ColumnSchedule s,List<ColumnGroup> groups){Dxf drawing;using(var stream=typeof(ColumnFormatter).Assembly.GetManifestResourceStream("SlabTemplate.dxf")){if(stream==null)throw new Exception("Template resource missing.");using(var reader=new StreamReader(stream,Encoding.UTF8,true))drawing=Dxf.Parse(reader.ReadToEnd());}
   var original=drawing.ModelEntities();var linePrototype=original.First(e=>e.Type=="LINE");var textPrototype=original.First(e=>e.Type=="MTEXT");string owner=linePrototype.Get(330);
@@ -152,8 +158,8 @@ static class ColumnFormatter {
     foreach(var e in all.Where(e=>e.Type=="LINE"&&e.Get(8)=="CROSSTIES")){double ax=e.Num(10),ay=e.Num(20),bx=e.Num(11),by=e.Num(21);if(Math.Min(ax,bx)<x0-.01||Math.Max(ax,bx)>x1+.01||Math.Min(ay,by)<y0-.01||Math.Max(ay,by)>y1+.01)continue;c.Links.Add(new ColumnLink{X0=Math.Round((Math.Min(ax,bx)-x0)*Scale),Y0=Math.Round((Math.Min(ay,by)-y0)*Scale),X1=Math.Round((Math.Max(ax,bx)-x0)*Scale),Y1=Math.Round((Math.Max(ay,by)-y0)*Scale)});}
     c.Links=c.Links.OrderByDescending(l=>l.W*l.H).ThenByDescending(l=>l.W+l.H).ToList();
     var cellTexts=texts.Where(t=>Math.Abs(t.X-marks[mi].X)<.01&&t.Y<y0&&t.Y>rowBottom).OrderByDescending(t=>t.Y).ToList();
-    foreach(var t in cellTexts){var m=Regex.Match(t.T,@"^(?:%%[cC]|Ø)(\d+)\s*@\s*(\d+)(?:\s*/\s*(\d+))?\s*\(Lo\s*=\s*(\d+)\)");if(m.Success){c.TieDia=int.Parse(m.Groups[1].Value,Inv);c.S1Main=double.Parse(m.Groups[2].Value,Inv);c.S1Other=m.Groups[3].Success?double.Parse(m.Groups[3].Value,Inv):c.S1Main;c.Lo=double.Parse(m.Groups[4].Value,Inv);}
-     m=Regex.Match(t.T,@"^(?:%%[cC]|Ø)\d+\s*@\s*(\d+)\s*REST");if(m.Success)c.S2=double.Parse(m.Groups[1].Value,Inv);
+    foreach(var t in cellTexts){var m=Regex.Match(t.T,@"^(?:%%[cC]|Ø|#)(\d+)\s*@\s*(\d+)(?:\s*/\s*(\d+))?(?:\s*O\.C\.)?\s*\(Lo\s*=\s*(\d+)\)");if(m.Success){c.TieDia=int.Parse(m.Groups[1].Value,Inv);c.S1Main=double.Parse(m.Groups[2].Value,Inv);c.S1Other=m.Groups[3].Success?double.Parse(m.Groups[3].Value,Inv):c.S1Main;c.Lo=double.Parse(m.Groups[4].Value,Inv);}
+     m=Regex.Match(t.T,@"^(?:%%[cC]|Ø|#)\d+\s*@\s*(\d+)(?:\s*O\.C\.)?\s*REST");if(m.Success)c.S2=double.Parse(m.Groups[1].Value,Inv);
      m=Regex.Match(t.T,@"^(\S*)\s*(?:fy\s+(\d+))?\s*cover\s+(\d+)");if(m.Success){c.Concrete=m.Groups[1].Value=="-"?"":m.Groups[1].Value;c.Fy=m.Groups[2].Success?double.Parse(m.Groups[2].Value,Inv):0;c.Cover=double.Parse(m.Groups[3].Value,Inv);}}
     s.Cells[ColumnSchedule.Key(s.Marks[mi],li)]=c;}}
   for(int mi=0;mi<marks.Count;mi++){var o=texts.FirstOrDefault(t=>t.L=="ORIGINALS"&&Math.Abs(t.X-marks[mi].X)<.01);if(o!=null)s.Originals[s.Marks[mi]]=o.T;}

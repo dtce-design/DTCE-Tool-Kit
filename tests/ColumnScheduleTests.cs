@@ -1,4 +1,4 @@
-using System;using System.IO;using System.Linq;using System.Collections.Generic;using BeamScheduleFormatter;
+﻿using System;using System.IO;using System.Linq;using System.Collections.Generic;using BeamScheduleFormatter;
 /* Column Schedule Formatter: the new template is written, read back unchanged, and gives the bars of the Bar Bending Schedule */
 class ColumnScheduleTests {
  static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}
@@ -18,5 +18,10 @@ class ColumnScheduleTests {
    Check(pieces.Any(p=>p.Line=="Column C-001"&&p.Location.StartsWith("Column crossties")),"crossties");var top=pieces.Where(p=>p.Line=="Column C-001"&&p.Location.Contains("8.6 m (top")).ToList();Check(top.Count==2&&top.All(p=>p.Shape=="90° hook one end"),"top level bars are hooked");
    var lower=pieces.First(p=>p.Line=="Column C-001"&&p.Diameter==16&&p.Location.Contains("0.6 to 4.6"));Check(Math.Abs(lower.Length-(4+BeamCutting.SpliceLap(set,16,false)))<1e-9,"lower level bars lap into the level above");}
   finally{File.Delete(path);}
+  /* ACI detailing option: # bars, ACI spacing wording, the readers still take the file */
+  string beam="1 - 50mm, 15 - 75mm, AND REST AT 125mm C/C";string aci=AciDetailing.Notation(beam,"Beam");Check(aci=="1 @ 50, 15 @ 75, REST @ 125","ACI stirrup wording: "+aci);Check(AciDetailing.ToStandard(aci)==beam,"ACI stirrup wording reads back: "+AciDetailing.ToStandard(aci));
+  Check(AciDetailing.Notation("%%C10 @ 175mm C/C","Slab")=="#10 @ 175 O.C.","ACI slab bar wording");Check(SlabBar.Parse("#10 @ 175 O.C.").SpacingMm==175,"slab reader takes O.C.");
+  var sheet2=ColumnFormatter.Layout(s,groups,"TEST");AciDetailing.Apply(sheet2);Check(sheet2.Items.Any(i=>i.Kind=="TEXT"&&i.Text.StartsWith("#10 @ 75 O.C. (Lo")),"ACI column ties");Check(sheet2.Items.Any(i=>i.Kind=="TEXT"&&i.Text.Contains("18.7.5.1")),"ACI column notes");
+  string path2=Path.Combine(Path.GetTempPath(),"ColumnScheduleAci-"+Guid.NewGuid().ToString("N")+".dxf");ColumnFormatter.ToDxf(sheet2,s,groups).Write(path2);try{var back2=ColumnScheduleReader.Read(File.ReadAllText(path2));Check(back2.Cell("C-001",0).Signature()==s.Cell("C1",0).Signature(),"ACI column schedule reads back unchanged");}finally{File.Delete(path2);}
   Console.WriteLine("PASS: "+checks+" column schedule formatter checks");}
 }

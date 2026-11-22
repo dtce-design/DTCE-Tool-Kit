@@ -24,7 +24,7 @@ partial class ProgramOfWorksForm {
   AddCombo(cs,9,cs.Columns[9].HeaderText,new[]{"Spacing (mm)","Number of ties","Spacing schedule"});cs.Columns[9].MinimumWidth=165;
   SetDefaults(cs,new Dictionary<int,string>{{2,"300"},{3,"300"},{4,"16"},{5,"8"},{8,"10"},{9,"Spacing (mm)"},{10,"150"}});
   ScheduleButton("Column Estimate","Manual column schedules",cs,"Enter each column type once (mark, section, main bars and ties). On Column Estimate choose the type in Schedule mark: the row then takes its width, depth, bars and ties from here, and a change here updates every row of that type. Height, quantity and end allowance stay on each row. Rows without a mark keep their own values.");
-  memberSchedules.Add(new MemberSchedule{Kind="Column",Schedule=cs,Estimate=column,Targets=columnTargets,Extra=2});
+  memberSchedules.Add(new MemberSchedule{Kind="Column",Schedule=cs,Estimate=column,Targets=columnTargets,Extra=2});ColumnDxfButton();
   /* footings: L, B, D, cover, the four bar groups (diameter, spacing, bars) and the extra ends */
   int[] footingTargets=new[]{2,3,4,7}.Concat(Enumerable.Range(8,13)).ToArray();
   var fs=Grid(new[]{"Mark","Description"}.Concat(footingTargets.Select(i=>footings.Columns[i].HeaderText)).Concat(new[]{"Used by"}).ToArray(),2+footingTargets.Length);
