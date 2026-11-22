@@ -143,18 +143,23 @@ static class ColumnFormatter {
    case 1:sh.PLine(V(x,y-r,0,x,y+r,0),false,0,markLayer);break;case 2:sh.Disk(x,y,r*.44,markLayer,256);break;
    case 3:sh.PLine(V(x-r,y,0,x+r,y,0),false,0,markLayer);break;case 4:sh.Circle(x,y,r*.5,markLayer);break;default:sh.Disk(x,y,r*.75,markLayer,256);break;}}
  /* the 135° hook at a corner bar (x, y): a half circle on the outside and two parallel tails into the core */
- static void HookAt(ColumnSheet sh,double x,double y,double r,string layer){double k=r*S45,d=HookLen*S45;sh.PLine(V(x+k,y+k,1,x-k,y-k,0),false,0,layer);sh.Line(x+k,y+k,x+k+d,y+k-d,layer);sh.Line(x-k,y-k,x-k+d,y-k-d,layer);}
+ static void HookAt(ColumnSheet sh,double x,double y,double r,string layer,double corner=135){double c=corner*Math.PI/180,a0=c-Math.PI/2,a1=c+Math.PI/2,dx=-Math.Cos(c)*HookLen,dy=-Math.Sin(c)*HookLen;
+  double x0=x+r*Math.Cos(a0),y0=y+r*Math.Sin(a0),x1=x+r*Math.Cos(a1),y1=y+r*Math.Sin(a1);sh.PLine(V(x0,y0,1,x1,y1,0),false,0,layer);sh.Line(x0,y0,x0+dx,y0+dy,layer);sh.Line(x1,y1,x1+dx,y1+dy,layer);}
  /* a closed tie around the bar centres (ax, ay) - (bx, by), corners as arcs on the corner bars */
- static void ClosedTie(ColumnSheet sh,double ax,double ay,double bx,double by,double r,string layer){sh.RoundRect(ax-r,ay-r,bx+r,by+r,r,layer);HookAt(sh,ax,by,r,layer);}
+ static void ClosedTie(ColumnSheet sh,double ax,double ay,double bx,double by,double r,string layer,int corner=135){sh.RoundRect(ax-r,ay-r,bx+r,by+r,r,layer);HookAt(sh,corner==45||corner==315?bx:ax,corner==135||corner==45?by:ay,r,layer,corner);}
  /* an open link as the sample: two C-shaped ties along the long sides, each from a 135° hook round its two corner bars to a straight tail
     lapping the other one */
  static void OpenLink(ColumnSheet sh,double ax,double ay,double bx,double by,string layer){double r=Around,t=HookLen,k=r*S45,d=HookLen*S45;
   if(by-ay>=bx-ax){sh.PLine(V(ax+k+d,by+k-d,0,ax+k,by+k,B135,ax-r,by,0,ax-r,ay,B90,ax,ay-r,0,ax+t,ay-r,0),false,0,layer);sh.PLine(V(bx-k-d,ay-k+d,0,bx-k,ay-k,B135,bx+r,ay,0,bx+r,by,B90,bx,by+r,0,bx-t,by+r,0),false,0,layer);}
   else{sh.PLine(V(bx+r,by-t,0,bx+r,by,B90,bx,by+r,0,ax,by+r,B135,ax-k,by-k,0,ax-k+d,by-k-d,0),false,0,layer);sh.PLine(V(ax-r,ay+t,0,ax-r,ay,B90,ax,ay-r,0,bx,ay-r,B135,bx+k,ay+k,0,bx+k-d,ay+k+d,0),false,0,layer);}}
- /* a crosstie along its bars: 135° hook at one end, 90° at the other */
- static void OpenTie(ColumnSheet sh,double ax,double ay,double bx,double by,double tail){bool vertical=Math.Abs(bx-ax)<Math.Abs(by-ay);
-  if(vertical){double x=ax+Around;sh.Line(x,ay,x,by,"CROSSTIES");sh.Line(x,by,x-tail*S45,by-tail*S45,"CROSSTIES");sh.Line(x,ay,x-tail,ay,"CROSSTIES");}
-  else{double y=ay-Around;sh.Line(ax,y,bx,y,"CROSSTIES");sh.Line(ax,y,ax+tail*S45,y+tail*S45,"CROSSTIES");sh.Line(bx,y,bx,y+tail,"CROSSTIES");}}
+ /* a crosstie as the sample draws its ties: round the bars of its line 1.5 off their centres, a 135° hook round the first end bar
+    and a 90° hook (straight tail) round the other */
+ static void OpenTie(ColumnSheet sh,double ax,double ay,double bx,double by,double tail,bool hookFirst=true){double r=Around,t=HookLen,k=r*S45,d=HookLen*S45;
+  /* hookFirst: the 135° hook at the top of a vertical tie / the left of a horizontal one, else at the bottom / right */
+  if(by-ay>=bx-ax){double x=(ax+bx)/2;if(hookFirst)sh.PLine(V(x+k+d,by+k-d,0,x+k,by+k,B135,x-r,by,0,x-r,ay,B90,x,ay-r,0,x+t,ay-r,0),false,0,"CROSSTIES");else sh.PLine(V(x-k-d,ay-k+d,0,x-k,ay-k,B135,x+r,ay,0,x+r,by,B90,x,by+r,0,x-t,by+r,0),false,0,"CROSSTIES");}
+  else{double y=(ay+by)/2;if(hookFirst)sh.PLine(V(bx+r,y-t,0,bx+r,y,B90,bx,y+r,0,ax,y+r,B135,ax-k,y-k,0,ax-k+d,y-k-d,0),false,0,"CROSSTIES");else sh.PLine(V(ax-r,y+t,0,ax-r,y,B90,ax,y-r,0,bx,y-r,B135,bx+k,y+k,0,bx+k-d,y+k+d,0),false,0,"CROSSTIES");}}
+ /* where RCDC put the hook of a tie: the start of its polyline (none read: top left / top / left) */
+ static RawShape RawOf(ColumnCell c,ColumnLink l){RawShape best=null;double bd=double.MaxValue;foreach(var r in c.Raw.Where(r=>r.Role=="LINK"&&r.P.Count>1)){double d=Math.Abs((r.P.Min(v=>v[0])+r.P.Max(v=>v[0]))/2-(l.X0+l.X1)/2)+Math.Abs((r.P.Min(v=>v[1])+r.P.Max(v=>v[1]))/2-(l.Y0+l.Y1)/2)+Math.Abs((r.P.Max(v=>v[0])-r.P.Min(v=>v[0]))-(l.X1-l.X0))+Math.Abs((r.P.Max(v=>v[1])-r.P.Min(v=>v[1]))-(l.Y1-l.Y0));if(d<bd){bd=d;best=r;}}return bd<150?best:null;}
  static void Sketch(ColumnSheet sh,ColumnCell c,double x0,double y0,string p,bool dims=true){double w=c.B/Scale,h=c.H/Scale;sh.Rect(x0,y0,x0+w,y0+h,p+"CONCRETE");
   for(int i=0;i<c.Links.Count;i++){var l=c.Links[i];bool tie=l.W<1||l.H<1;sh.Point(x0+l.X0/Scale,y0+l.Y0/Scale,2*i,p+(tie?"TIEPT":"LINKPT"));sh.Point(x0+l.X1/Scale,y0+l.Y1/Scale,2*i+1,p+(tie?"TIEPT":"LINKPT"));}
   foreach(var b in c.Bars)BarSymbol(sh,x0+b.X/Scale,y0+b.Y/Scale,Ring,Symbol(b.Dia),p+"BARS-"+b.Dia,p+"BARMARK");
@@ -162,8 +167,10 @@ static class ColumnFormatter {
    var held=c.Bars.Where(b=>tie?(l.W<1?Math.Abs(b.X-l.X0)<60&&b.Y>=l.Y0-30&&b.Y<=l.Y1+30:Math.Abs(b.Y-l.Y0)<60&&b.X>=l.X0-30&&b.X<=l.X1+30):b.X>=l.X0-1&&b.X<=l.X1+1&&b.Y>=l.Y0-1&&b.Y<=l.Y1+1).ToList();
    if(held.Count==0){if(tie)sh.Line(x0+l.X0/Scale,y0+l.Y0/Scale,x0+l.X1/Scale,y0+l.Y1/Scale,p+"CROSSTIES");else sh.RoundRect(x0+l.X0/Scale,y0+l.Y0/Scale,x0+l.X1/Scale,y0+l.Y1/Scale,Around,p+"LINKS");continue;}
    double ax=x0+held.Min(b=>b.X)/Scale,bx=x0+held.Max(b=>b.X)/Scale,ay=y0+held.Min(b=>b.Y)/Scale,by=y0+held.Max(b=>b.Y)/Scale;
-   if(tie||bx-ax<.1||by-ay<.1){OpenTie(sh,ax,ay,bx,by,HookLen);continue;}
-   if(i==0)ClosedTie(sh,ax,ay,bx,by,HoopOff,p+"MAINLINK");else if(openExtra)OpenLink(sh,ax,ay,bx,by,p+"OPENTIES");else ClosedTie(sh,ax,ay,bx,by,Around,p+"LINKS");}
+   var raw=RawOf(c,l);double mx=(l.X0+l.X1)/2,my=(l.Y0+l.Y1)/2;
+   if(tie||bx-ax<.1||by-ay<.1){bool first=raw==null||(by-ay>=bx-ax?raw.P[0][1]>=my:raw.P[0][0]<=mx);OpenTie(sh,ax,ay,bx,by,HookLen,first);continue;}
+   int corner=raw==null?135:raw.P[0][0]<=mx?(raw.P[0][1]>=my?135:225):(raw.P[0][1]>=my?45:315);
+   if(i==0)ClosedTie(sh,ax,ay,bx,by,HoopOff,p+"MAINLINK",corner);else if(openExtra)OpenLink(sh,ax,ay,bx,by,p+"OPENTIES");else ClosedTie(sh,ax,ay,bx,by,Around,p+"LINKS",corner);}
   if(dims){sh.Text(c.B.ToString("0",Inv),x0+w/2,y0-1,2,2);sh.Text(c.H.ToString("0",Inv),x0-1.5,y0+h/2,2,6);}}
  /* the dimensions of the sample: 7 off the section, circle ticks, extension lines past the dimension line */
  static void Dims(ColumnSheet sh,ColumnCell c,double sx,double sy,double w,double h){const double o=7,e=2,t=.45;double yd=sy+h+o,xd=sx-o;
