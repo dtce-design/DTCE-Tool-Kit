@@ -1,0 +1,19 @@
+DTCE Tool Kit v6.2.5 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Column Formatter; owner: "pangit, sundan mismo yung paglayout ng sample file ko lalo na sa open ties"):
+- The schedule follows the owner's Drawing1.dxf: SCHEDULE OF COLUMNS with the NOTES (fy with its grade, concrete and cover) above,
+  four marks per block (COLUMN MARKED, 68 wide level columns from the lowest, 79 high rows: the section with its dimensions above an
+  18 high text cell), blocks side by side, merged cells for the same section at neighbouring levels, crossed-out empty levels, the
+  continuation triangle between neighbouring sections and the bar legend under REMARKS at the top right and the bottom left.
+- Column marks are C1, C2, C3 ... (prefix + number) as in the sample.
+- Sections drawn as the sample: bar circles with the mark of their size (largest X, next a vertical line, next a filled dot), the
+  hoop around the bars with its 135° hook at the top left (a half circle and two parallel tails), dimensions with circle ticks.
+- Open ties as the sample: each inner link is two lapped C-shaped ties, each with a 135° hook at one end and a straight tail at the
+  other. Closed ties: each inner link one closed tie with a 135° hook. The cell text keeps "(3 TIES/SET)" as the sample.
+- The cell text is the sample's four lines (no Lo line). Lo, the Z1 spacing of the other links, the original marks and the tie option
+  are kept as hidden data (layer DTCE-DATA, off and not plotted), so the revised DXF still reads back unchanged in the Bar Bending
+  Schedule and the Bill of Quantities.
+- Line weights as the sample: concrete 0.30, bar marks 0.15, ties, bars and dimensions 0.09.
+Checked on Linux/Mono only with the owner's schedule.dxf; not opened in AutoCAD here.
+
+Includes v6.2.4 and earlier builds.

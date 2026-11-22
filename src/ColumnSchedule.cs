@@ -113,7 +113,7 @@ static class ColumnFormatter {
   /* a different confining zone Lo alone does not make another mark (owner, 22 November 2026: "minerge yung identical column pero di
      naman nag assign ng single column mark"): the group takes the largest Lo of its columns at each level */
   foreach(var g in groups)for(int l=0;l<s.Levels.Count;l++){var cells=g.Source.Select(m=>s.Cell(m,l)).Where(c=>c!=null).ToList();if(cells.Count<2)continue;double lo=cells.Max(c=>c.Lo);foreach(var c in cells)c.Lo=lo;}
-  for(int n=0;n<groups.Count;n++)groups[n].Mark=prefix+"-"+(n+1).ToString("000",Inv);return groups;}
+  for(int n=0;n<groups.Count;n++)groups[n].Mark=prefix+(n+1).ToString(Inv);return groups;}
  /* an RCDC schedule as the grouped marks (the Bill of Quantities and the Bar Bending Schedule take it this way) */
  internal static ColumnSchedule Merged(ColumnSchedule s,string prefix){var groups=Group(s,prefix,true);var merged=new ColumnSchedule{Levels=s.Levels};foreach(var g in groups){merged.Marks.Add(g.Mark);merged.Originals[g.Mark]=g.Originals;for(int l=0;l<s.Levels.Count;l++){var c=s.Cell(g.Source[0],l);if(c!=null)merged.Cells[ColumnSchedule.Key(g.Mark,l)]=c;}}return merged;}
  const double Scale=20;/* sections at 1:20 on paper (mm) */
@@ -126,42 +126,49 @@ static class ColumnFormatter {
     hook). The exact tie and bar data stay in the file: bar size in the layer (BARS-20), each tie as two points (LINKPT / TIEPT). */
  [ThreadStatic] static Dictionary<int,int> symbolOf;[ThreadStatic] internal static bool openExtra;
  [ThreadStatic] static Dictionary<int,List<RawShape>> rawMarks;[ThreadStatic] static double rawRing;
- /* the bar legend: the RCDC mark of the size when there is one, else the symbol */
- static void Legend(ColumnSheet sh,double x,double y,int dia){List<RawShape> m;if(rawMarks!=null&&rawMarks.TryGetValue(dia,out m)){DrawMarks(sh,x,y,m,rawRing>0?rawRing:20,"LEGEND");}else BarSymbol(sh,x,y,Ring,Symbol(dia),"LEGEND","LEGEND");sh.Text("%%C"+dia+"mm",x+2.2,y,2,4,false,"LEGEND");}
- static void DrawMarks(ColumnSheet sh,double x,double y,List<RawShape> marks,double ringMm,string layer){sh.Circle(x,y,ringMm/Scale,layer);foreach(var m in marks)sh.PLine(m.P.Select(v=>new[]{x+v[0]/Scale,y+v[1]/Scale,v[2]}).ToList(),m.Closed,m.W/Scale,layer=="LEGEND"?"LEGEND":"BARMARK");}
+ /* drawn exactly as the owner's Drawing1.dxf (owner, 22 November 2026: "pangit, sundan mismo yung paglayout ng sample file ko lalo na
+    sa open ties"): every bar a 0.9 circle with the mark of its size (largest X, next a vertical line, next a filled dot); the hoop
+    around the bars 1.2 off their centres with the 135° hook at the top left corner (a half circle and two parallel tails); the inner
+    links 1.5 off the bars - closed, or open as in the sample: each link two C-shaped ties lapped, a 135° hook at one end and a straight
+    tail at the other. Hidden data (layer DTCE-DATA, off and not plotted) keeps Lo, the Z1 spacing of the other links, the original
+    marks and the tie option; bars keep their size in the layer (BARS-20) and each tie its two corners (LINKPT / TIEPT). */
+ const double Ring=.9,HoopOff=1.2,Around=1.5,HookLen=3.75,S45=.70710678;const string Data="DTCE-DATA";
+ static readonly double B135=Math.Tan(135*Math.PI/720),B90=Math.Tan(Math.PI/8);
+ static List<double[]> V(params double[] v){var l=new List<double[]>();for(int i=0;i+2<v.Length;i+=3)l.Add(new[]{v[i],v[i+1],v[i+2]});return l;}
+ static void Legend(ColumnSheet sh,double x,double y,int dia){BarSymbol(sh,x,y,Ring*1.2,Symbol(dia),"LEGEND","LEGEND");sh.Text("%%C"+dia+"mm",x+5.08,y,2,4,false,"LEGEND");}
  static int Symbol(int dia){int k;if(symbolOf!=null&&symbolOf.TryGetValue(dia,out k))return k;return 0;}
  static void SetSymbols(IEnumerable<int> sizes){symbolOf=new Dictionary<int,int>();int i=0;foreach(var d in sizes.Distinct().OrderByDescending(x=>x))symbolOf[d]=i++;}
- const double Ring=.9,Around=1.5;
- static void BarSymbol(ColumnSheet sh,double x,double y,double r,int style,string layer,string markLayer){sh.Circle(x,y,r,layer);switch(style%6){
-   case 0:sh.Line(x,y-r,x,y+r,markLayer);break;case 1:sh.Disk(x,y,r*.45,markLayer,256);break;case 2:sh.Line(x-r,y,x+r,y,markLayer);break;
-   case 3:sh.Line(x-r*.7,y-r*.7,x+r*.7,y+r*.7,markLayer);sh.Line(x-r*.7,y+r*.7,x+r*.7,y-r*.7,markLayer);break;case 4:sh.Disk(x,y,r*.8,markLayer,256);break;default:sh.Circle(x,y,r*.55,markLayer);break;}}
- /* a tie around the bars from (ax,ay) to (bx,by) (bar centres), drawn Around off them, corners as arcs on the corner bars */
- static void TieAround(ColumnSheet sh,double ax,double ay,double bx,double by,string layer,double tail,bool hooks){sh.RoundRect(ax-Around,ay-Around,bx+Around,by+Around,Around,layer);
-  if(hooks){double k=Around*.7071;sh.Line(ax-k,by+k,ax-k+tail*.7071,by+k-tail*.7071,"HOOKS");sh.Line(ax-Around*.25,by+Around*.97,ax-Around*.25+tail*.7071,by+Around*.97-tail*.7071,"HOOKS");}}
- /* an open tie (crosstie) along x = cx from y0 to y1 (bar centres): 135° hook at the top, 90° at the bottom */
+ static void BarSymbol(ColumnSheet sh,double x,double y,double r,int style,string layer,string markLayer){sh.Circle(x,y,r,layer);double k=r*.71;switch(style%6){
+   case 0:sh.PLine(V(x+k,y-k,0,x-k,y+k,0),false,0,markLayer);sh.PLine(V(x-k,y-k,0,x+k,y+k,0),false,0,markLayer);break;
+   case 1:sh.PLine(V(x,y-r,0,x,y+r,0),false,0,markLayer);break;case 2:sh.Disk(x,y,r*.44,markLayer,256);break;
+   case 3:sh.PLine(V(x-r,y,0,x+r,y,0),false,0,markLayer);break;case 4:sh.Circle(x,y,r*.5,markLayer);break;default:sh.Disk(x,y,r*.75,markLayer,256);break;}}
+ /* the 135° hook at a corner bar (x, y): a half circle on the outside and two parallel tails into the core */
+ static void HookAt(ColumnSheet sh,double x,double y,double r,string layer){double k=r*S45,d=HookLen*S45;sh.PLine(V(x+k,y+k,1,x-k,y-k,0),false,0,layer);sh.Line(x+k,y+k,x+k+d,y+k-d,layer);sh.Line(x-k,y-k,x-k+d,y-k-d,layer);}
+ /* a closed tie around the bar centres (ax, ay) - (bx, by), corners as arcs on the corner bars */
+ static void ClosedTie(ColumnSheet sh,double ax,double ay,double bx,double by,double r,string layer){sh.RoundRect(ax-r,ay-r,bx+r,by+r,r,layer);HookAt(sh,ax,by,r,layer);}
+ /* an open link as the sample: two C-shaped ties along the long sides, each from a 135° hook round its two corner bars to a straight tail
+    lapping the other one */
+ static void OpenLink(ColumnSheet sh,double ax,double ay,double bx,double by,string layer){double r=Around,t=HookLen,k=r*S45,d=HookLen*S45;
+  if(by-ay>=bx-ax){sh.PLine(V(ax+k+d,by+k-d,0,ax+k,by+k,B135,ax-r,by,0,ax-r,ay,B90,ax,ay-r,0,ax+t,ay-r,0),false,0,layer);sh.PLine(V(bx-k-d,ay-k+d,0,bx-k,ay-k,B135,bx+r,ay,0,bx+r,by,B90,bx,by+r,0,bx-t,by+r,0),false,0,layer);}
+  else{sh.PLine(V(bx+r,by-t,0,bx+r,by,B90,bx,by+r,0,ax,by+r,B135,ax-k,by-k,0,ax-k+d,by-k-d,0),false,0,layer);sh.PLine(V(ax-r,ay+t,0,ax-r,ay,B90,ax,ay-r,0,bx,ay-r,B135,bx+k,ay+k,0,bx+k-d,ay+k+d,0),false,0,layer);}}
+ /* a crosstie along its bars: 135° hook at one end, 90° at the other */
  static void OpenTie(ColumnSheet sh,double ax,double ay,double bx,double by,double tail){bool vertical=Math.Abs(bx-ax)<Math.Abs(by-ay);
-  if(vertical){double x=ax+Around;sh.Line(x,ay,x,by,"CROSSTIES");sh.Line(x,by,x-tail*.7071,by-tail*.7071,"HOOKS");sh.Line(x,ay,x-tail*.8,ay,"HOOKS");}
-  else{double y=ay-Around;sh.Line(ax,y,bx,y,"CROSSTIES");sh.Line(ax,y,ax+tail*.7071,y+tail*.7071,"HOOKS");sh.Line(bx,y,bx,y+tail*.8,"HOOKS");}}
+  if(vertical){double x=ax+Around;sh.Line(x,ay,x,by,"CROSSTIES");sh.Line(x,by,x-tail*S45,by-tail*S45,"CROSSTIES");sh.Line(x,ay,x-tail,ay,"CROSSTIES");}
+  else{double y=ay-Around;sh.Line(ax,y,bx,y,"CROSSTIES");sh.Line(ax,y,ax+tail*S45,y+tail*S45,"CROSSTIES");sh.Line(bx,y,bx,y+tail,"CROSSTIES");}}
  static void Sketch(ColumnSheet sh,ColumnCell c,double x0,double y0,string p,bool dims=true){double w=c.B/Scale,h=c.H/Scale;sh.Rect(x0,y0,x0+w,y0+h,p+"CONCRETE");
-  double tail=Math.Max(1.6,Math.Max(6*(c.TieDia>0?c.TieDia:10),75)/Scale);
-  /* the data: bars and ties exactly as read */
   for(int i=0;i<c.Links.Count;i++){var l=c.Links[i];bool tie=l.W<1||l.H<1;sh.Point(x0+l.X0/Scale,y0+l.Y0/Scale,2*i,p+(tie?"TIEPT":"LINKPT"));sh.Point(x0+l.X1/Scale,y0+l.Y1/Scale,2*i+1,p+(tie?"TIEPT":"LINKPT"));}
-  /* the RCDC drawing of the section when the schedule came from RCDC (owner: "no, use rcdc version") */
-  if(c.Raw.Any(r=>r.Role=="LINK")){var links=c.Raw.Where(r=>r.Role=="LINK").ToList();Func<RawShape,double> area=r=>(r.P.Max(v=>v[0])-r.P.Min(v=>v[0]))*(r.P.Max(v=>v[1])-r.P.Min(v=>v[1]));var main=links.OrderByDescending(area).First();
-   foreach(var r in links){bool cross=Math.Min(r.P.Max(v=>v[0])-r.P.Min(v=>v[0]),r.P.Max(v=>v[1])-r.P.Min(v=>v[1]))<100;if(openExtra&&r!=main&&!cross)continue;sh.PLine(r.P.Select(v=>new[]{x0+v[0]/Scale,y0+v[1]/Scale,v[2]}).ToList(),r.Closed,0,p+(r==main?"MAINLINK":cross?"CROSSTIES":"LINKS"));}
-   if(openExtra)for(int i=1;i<c.Links.Count;i++){var l=c.Links[i];if(l.W<1||l.H<1)continue;var held=c.Bars.Where(b=>b.X>=l.X0-1&&b.X<=l.X1+1&&b.Y>=l.Y0-1&&b.Y<=l.Y1+1).ToList();if(held.Count==0)continue;double ax=x0+held.Min(b=>b.X)/Scale,bx=x0+held.Max(b=>b.X)/Scale,ay=y0+held.Min(b=>b.Y)/Scale,by=y0+held.Max(b=>b.Y)/Scale;if(by-ay>=bx-ax){OpenTie(sh,ax,ay,ax,by,tail);OpenTie(sh,bx,ay,bx,by,tail);}else{OpenTie(sh,ax,ay,bx,ay,tail);OpenTie(sh,ax,by,bx,by,tail);}}
-   foreach(var b in c.Bars){List<RawShape> m;if(c.MarkerOf.TryGetValue(b.Dia,out m)||(rawMarks!=null&&rawMarks.TryGetValue(b.Dia,out m))){var it=sh.Items;int before=it.Count;DrawMarks(sh,x0+b.X/Scale,y0+b.Y/Scale,m,c.RingMm>0?c.RingMm:20,"BARMARK");/* the ring keeps the bar size in its layer */it[before].Layer=p+"BARS-"+b.Dia;}}
-   if(dims){sh.Text(c.B.ToString("0",Inv),x0+w/2,y0-1,2,2);sh.Text(c.H.ToString("0",Inv),x0-1.5,y0+h/2,2,6);}return;}
-  /* the drawing: each tie around the bars it holds */
-  foreach(var b in c.Bars){double bx=x0+b.X/Scale,by=y0+b.Y/Scale;BarSymbol(sh,bx,by,Ring,Symbol(b.Dia),p+"BARS-"+b.Dia,p+"BARMARK");}
+  foreach(var b in c.Bars)BarSymbol(sh,x0+b.X/Scale,y0+b.Y/Scale,Ring,Symbol(b.Dia),p+"BARS-"+b.Dia,p+"BARMARK");
   for(int i=0;i<c.Links.Count;i++){var l=c.Links[i];bool tie=l.W<1||l.H<1;
    var held=c.Bars.Where(b=>tie?(l.W<1?Math.Abs(b.X-l.X0)<60&&b.Y>=l.Y0-30&&b.Y<=l.Y1+30:Math.Abs(b.Y-l.Y0)<60&&b.X>=l.X0-30&&b.X<=l.X1+30):b.X>=l.X0-1&&b.X<=l.X1+1&&b.Y>=l.Y0-1&&b.Y<=l.Y1+1).ToList();
    if(held.Count==0){if(tie)sh.Line(x0+l.X0/Scale,y0+l.Y0/Scale,x0+l.X1/Scale,y0+l.Y1/Scale,p+"CROSSTIES");else sh.RoundRect(x0+l.X0/Scale,y0+l.Y0/Scale,x0+l.X1/Scale,y0+l.Y1/Scale,Around,p+"LINKS");continue;}
    double ax=x0+held.Min(b=>b.X)/Scale,bx=x0+held.Max(b=>b.X)/Scale,ay=y0+held.Min(b=>b.Y)/Scale,by=y0+held.Max(b=>b.Y)/Scale;
-   if(tie){OpenTie(sh,ax,ay,bx,by,tail);continue;}
-   if(i>0&&openExtra){/* open extra ties: the two long legs of the link as crossties */if(by-ay>=bx-ax){OpenTie(sh,ax,ay,ax,by,tail);OpenTie(sh,bx,ay,bx,by,tail);}else{OpenTie(sh,ax,ay,bx,ay,tail);OpenTie(sh,ax,by,bx,by,tail);}continue;}
-   TieAround(sh,ax,ay,bx,by,i==0?p+"MAINLINK":p+"LINKS",tail,true);}
+   if(tie||bx-ax<.1||by-ay<.1){OpenTie(sh,ax,ay,bx,by,HookLen);continue;}
+   if(i==0)ClosedTie(sh,ax,ay,bx,by,HoopOff,p+"MAINLINK");else if(openExtra)OpenLink(sh,ax,ay,bx,by,p+"OPENTIES");else ClosedTie(sh,ax,ay,bx,by,Around,p+"LINKS");}
   if(dims){sh.Text(c.B.ToString("0",Inv),x0+w/2,y0-1,2,2);sh.Text(c.H.ToString("0",Inv),x0-1.5,y0+h/2,2,6);}}
+ /* the dimensions of the sample: 7 off the section, circle ticks, extension lines past the dimension line */
+ static void Dims(ColumnSheet sh,ColumnCell c,double sx,double sy,double w,double h){const double o=7,e=2,t=.45;double yd=sy+h+o,xd=sx-o;
+  sh.Line(sx-e,yd,sx+w+e,yd,"DIM");sh.Line(sx,sy+h+1,sx,yd+e,"DIM");sh.Line(sx+w,sy+h+1,sx+w,yd+e,"DIM");sh.Circle(sx,yd,t,"DIM");sh.Circle(sx+w,yd,t,"DIM");sh.Text(c.B.ToString("0",Inv),sx+w/2,yd+.9,2,8,false,"DIM");
+  sh.Line(xd,sy-e,xd,sy+h+e,"DIM");sh.Line(sx-1,sy,xd-e,sy,"DIM");sh.Line(sx-1,sy+h,xd-e,sy+h,"DIM");sh.Circle(xd,sy,t,"DIM");sh.Circle(xd,sy+h,t,"DIM");sh.Text(c.H.ToString("0",Inv),xd-.9,sy+h/2,2,8,false,"DIM",0,90);}
  /* the tie zones in a small table (owner, 22 November 2026: "clearly makita if ano yung main link, z1 main, z1 others etc") */
  static double TieTable(ColumnSheet sh,ColumnCell c,double x,double w,double yTop,bool aci){double cw=(w-4)/3,x0=x+2,rh=5;string[] heads={"Z1 MAIN LINK","Z1 OTHERS","Z2 LINKS"};string bar=(aci?"#":"%%C")+c.TieDia+" @ ",oc=aci?" O.C.":"";
   string[] vals={bar+c.S1Main.ToString("0",Inv)+oc,bar+c.S1Other.ToString("0",Inv)+oc,bar+c.S2.ToString("0",Inv)+oc};string[] layers={"Z1MAIN","Z1OTHERS","Z2"};
@@ -174,54 +181,67 @@ static class ColumnFormatter {
     above a text box "4 - Ø20mm + 8 - Ø16mm MAIN BARS / WITH Ø10mm LATERAL TIES SPACED AT / 1 - 50mm, 9 - 75mm, AND REST AT 200mm C/C /
     (3 TIES/SET)"; the same section at neighbouring levels is one wide cell, a level without the column is crossed out; four marks per
     block, the blocks side by side; the bar legend under REMARKS */
- internal static string CellText(ColumnCell c){var parts=c.Counts.Select(k=>k.Value+" - %%C"+k.Key+"mm");string t=string.Join(" + ",parts)+" MAIN BARS\nWITH %%C"+c.TieDia+"mm LATERAL TIES SPACED AT\n"+ProgramOfWorksForm.ColumnTieText(c)+"\n("+(openExtra?c.Links.Select((l,i)=>i==0||l.W<1||l.H<1?1:2).Sum():c.Links.Count)+" TIES/SET)\nLo = "+c.Lo.ToString("0",Inv)+"mm"+(Math.Abs(c.S1Other-c.S1Main)>.5?", Z1 OTHERS @ "+c.S1Other.ToString("0",Inv)+"mm":"");return t;}
+ static string TieWords(ColumnCell c){return Math.Abs(c.S1Main-c.S2)<.5?"1 - 50mm, AND REST AT "+c.S2.ToString("0",Inv)+"mm C/C":ProgramOfWorksForm.ColumnTieText(c);}
+ internal static string CellText(ColumnCell c){var parts=c.Counts.Select(k=>k.Value+" - %%C"+k.Key+"mm");return string.Join(" + ",parts)+" MAIN BARS\nWITH %%C"+c.TieDia+"mm LATERAL TIES SPACED AT\n"+TieWords(c)+"\n("+c.Links.Count+" TIES/SET)";}
  static bool Uniform(ColumnSchedule s,Func<ColumnCell,string> f){return s.Cells.Values.Select(f).Distinct().Count()<=1;}
+ static string Grade(double fy){int g=fy>=515?75:fy>=410?60:fy>=340?50:fy>=270?40:fy>=225?33:0;return g>0?" (GRADE "+g+")":"";}
+ /* the continuation mark of the sample between neighbouring sections of a row */
+ static void Marker(ColumnSheet sh,double x,double yTop){sh.PLine(V(x-1.66,yTop-12.13,0,x-1.66,yTop-18.07,0,x+3.4,yTop-15.1,0),true,0,"MARKER");}
+ /* the owner's template, Drawing1.dxf: SCHEDULE OF COLUMNS and the NOTES above, four marks per block (COLUMN MARKED, one column of
+    68 per level range from the lowest, rows of 79: the section with its dimensions above an 18 high text cell), the blocks side by
+    side 10 apart, the same section at neighbouring levels one wide cell, a level without the column crossed out, the bar legend under
+    REMARKS at the top right and the bottom left */
  static ColumnSheet LayoutRows(ColumnSchedule s,List<ColumnGroup> groups,string title){var sh=new ColumnSheet();const int PerBlock=4;
-  double maxB=s.Cells.Values.Max(c=>c.B),maxH=s.Cells.Values.Max(c=>c.H);double cellW=Math.Max(66,maxB/Scale+40),sketchH=maxH/Scale+16,boxH=22,rowH=sketchH+boxH,labelW=40,headH=12,gap=18,top=0;
+  double maxB=s.Cells.Values.Max(c=>c.B)/Scale,maxH=s.Cells.Values.Max(c=>c.H)/Scale;double cellW=Math.Max(68,maxB+43),secH=Math.Max(61,maxH+36),textH=18,rowH=secH+textH,labelW=39,headH=23,gap=10,top=0;
   bool sameMat=Uniform(s,c=>c.Concrete+"|"+c.Fy+"|"+c.Cover);var any=s.Cells.Values.First();
-  sh.Text("SCHEDULE OF COLUMNS",0,top+20,6,7,true,"TITLE");if(!string.IsNullOrWhiteSpace(title))sh.Text(title.Trim().ToUpperInvariant(),0,top+13.5,3,7,true,"TITLE");
-  var notes=new List<string>();if(sameMat){if(any.Fy>0)notes.Add("fy = "+any.Fy.ToString("0",Inv)+" MPa, MAIN BARS");notes.Add("CONCRETE "+(any.Concrete==""?"AS SPECIFIED":any.Concrete)+", CLEAR COVER "+any.Cover.ToString("0",Inv)+"mm");}
-  notes.Add("Lo = CONFINING ZONE AT EACH END OF THE CLEAR HEIGHT: TIES AT THE FIRST SPACINGS WITHIN Lo, THE REST SPACING ELSEWHERE; ALL TIES 135° HOOKS");notes.Add(s.OpenExtra?"EXTRA TIES: OPEN TIES (CROSSTIES, 135° / 90° HOOKS)":"EXTRA TIES: CLOSED TIES");
-  sh.Text("NOTES:  "+string.Join("\n            ",notes),0,top+10,2.2,1,false,"NOTES");
-  double x0=0,bottom=top;var sizes=s.Cells.Values.SelectMany(c=>c.Bars).Select(b=>b.Dia).Distinct().OrderByDescending(d=>d).ToList();
+  sh.Text("SCHEDULE OF COLUMNS",0,top+11.76,7,7,true,"TITLE");if(!string.IsNullOrWhiteSpace(title))sh.Text(title.Trim().ToUpperInvariant(),100,top+11.76,3.5,7,true,"TITLE");
+  var notes=new List<string>();if(sameMat){if(any.Fy>0)notes.Add("fy = "+any.Fy.ToString("0",Inv)+" MPa"+Grade(any.Fy));notes.Add("CONCRETE "+(any.Concrete==""?"AS SPECIFIED":any.Concrete)+", CLEAR COVER "+any.Cover.ToString("0",Inv)+"mm");}
+  if(notes.Count>0)sh.Text("NOTES:    "+string.Join("\n              ",notes),0,top+9.76,2.5,1,false,"NOTES");
+  sh.Text(s.OpenExtra?"EXTRA TIES: OPEN":"EXTRA TIES: CLOSED",0,top+1,1,1,false,Data);
+  double x0=0,bottom=top-headH;var sizes=s.Cells.Values.SelectMany(c=>c.Bars).Select(b=>b.Dia).Distinct().OrderByDescending(d=>d).ToList();
   for(int b0=0;b0<groups.Count;b0+=PerBlock){var block=groups.Skip(b0).Take(PerBlock).ToList();
    var levels=Enumerable.Range(0,s.Levels.Count).Where(l=>block.Any(g=>s.Cell(g.Source[0],l)!=null)).OrderBy(l=>Math.Min(s.Levels[l].FromM,s.Levels[l].ToM)).ToList();
    double width=labelW+cellW*levels.Count,y=top;
    sh.Rect(x0,y-headH,x0+width,y,"SCHEDULE");sh.Text("COLUMN MARKED",x0+labelW/2,y-headH/2,2.5,5,true,"HEAD");
    for(int k=0;k<levels.Count;k++){var lv=s.Levels[levels[k]];double cx=x0+labelW+k*cellW;sh.Line(cx,y,cx,y-headH,"SCHEDULE");sh.Text(Math.Min(lv.FromM,lv.ToM).ToString("0.00",Inv)+" TO "+Math.Max(lv.FromM,lv.ToM).ToString("0.00",Inv),cx+cellW/2,y-headH/2,2.5,5,false,"LEVEL");}
    y-=headH;
-   foreach(var g in block){sh.Rect(x0,y-rowH,x0+width,y,"SCHEDULE");sh.Line(x0+labelW,y,x0+labelW,y-rowH,"SCHEDULE");sh.Text(g.Mark,x0+labelW/2,y-rowH/2+3,4,5,true,"MARK");
-    sh.Text("("+g.Originals+")",x0+labelW/2,y-rowH/2-2,1.8,2,false,"ORIGINALS",labelW-4);
-    int k=0;while(k<levels.Count){var c=s.Cell(g.Source[0],levels[k]);int span=1;if(c!=null)while(k+span<levels.Count){var n=s.Cell(g.Source[0],levels[k+span]);if(n==null||n.Signature()!=c.Signature())break;span++;}
+   foreach(var g in block){sh.Rect(x0,y-rowH,x0+width,y,"SCHEDULE");sh.Line(x0+labelW,y,x0+labelW,y-rowH,"SCHEDULE");sh.Text(g.Mark,x0+labelW/2,y-rowH/2,2.5,5,true,"MARK");
+    sh.Text("ORIGINALS: "+g.Originals,x0+labelW/2,y-rowH/2-4,1,5,false,Data,labelW-4);
+    int k=0;bool before=false;while(k<levels.Count){var c=s.Cell(g.Source[0],levels[k]);int span=1;if(c!=null)while(k+span<levels.Count){var n=s.Cell(g.Source[0],levels[k+span]);if(n==null||n.Signature()!=c.Signature())break;span++;}
      double cx0=x0+labelW+k*cellW,cx1=cx0+span*cellW;if(k>0)sh.Line(cx0,y,cx0,y-rowH,"SCHEDULE");
-     if(c==null){sh.Line(cx0,y,cx1,y-rowH,"SCHEDULE");sh.Line(cx0,y-rowH,cx1,y,"SCHEDULE");k++;continue;}
-     /* section with its dimensions */double w=c.B/Scale,h=c.H/Scale,sx=(cx0+cx1)/2-w/2+3,sy=y-sketchH+(sketchH-h)/2-2;Sketch(sh,c,sx,sy,"",false);
-     sh.Line(sx,sy+h+4,sx+w,sy+h+4,"DIM");sh.Line(sx,sy+h+1,sx,sy+h+6,"DIM");sh.Line(sx+w,sy+h+1,sx+w,sy+h+6,"DIM");sh.Text(c.B.ToString("0",Inv),sx+w/2,sy+h+4.6,2,8,false,"DIM");
-     sh.Line(sx-4,sy,sx-4,sy+h,"DIM");sh.Line(sx-6,sy,sx-1,sy,"DIM");sh.Line(sx-6,sy+h,sx-1,sy+h,"DIM");sh.Text(c.H.ToString("0",Inv),sx-4.6,sy+h/2,2,8,false,"DIM",0,90);
-     sh.Rect(cx0,y-rowH,cx1,y-rowH+boxH,"CELLBOX");sh.Text(CellText(c),(cx0+cx1)/2,y-rowH+boxH/2,1.9,5,false,"CELLTEXT");
-     if(!sameMat)sh.Text((c.Concrete==""?"-":c.Concrete)+"  fy "+c.Fy.ToString("0",Inv)+"  cover "+c.Cover.ToString("0",Inv),(cx0+cx1)/2,y-sketchH+1,1.6,5,false,"MATERIAL");
+     if(c==null){sh.Line(cx0,y,cx1,y-rowH,"SCHEDULE");sh.Line(cx0,y-rowH,cx1,y,"SCHEDULE");before=false;k++;continue;}
+     if(before)Marker(sh,cx0,y);before=true;
+     double w=c.B/Scale,h=c.H/Scale,sx=(cx0+cx1)/2-w/2,sy=y-secH/2-h/2;Sketch(sh,c,sx,sy,"",false);Dims(sh,c,sx,sy,w,h);
+     sh.Rect(cx0,y-rowH,cx1,y-rowH+textH,"CELLBOX");sh.Text(CellText(c),(cx0+cx1)/2,y-rowH+textH/2,2,5,false,"CELLTEXT",cx1-cx0-1.7);
+     sh.Text("Lo="+c.Lo.ToString("0",Inv)+";Z1O="+c.S1Other.ToString("0",Inv),(cx0+cx1)/2,y-rowH+textH/2,1,5,false,Data);
+     if(!sameMat)sh.Text((c.Concrete==""?"-":c.Concrete)+"  fy "+c.Fy.ToString("0",Inv)+"  cover "+c.Cover.ToString("0",Inv),(cx0+cx1)/2,y-secH+1.5,1.8,5,false,"MATERIAL");
      k+=span;}
     y-=rowH;}
    bottom=Math.Min(bottom,y);x0+=width+gap;}
-  /* REMARKS: the bar legend */double rx=0,ry=bottom-6;sh.Text("REMARKS:",rx,ry,2.2,7,true,"REMARKS");for(int k=0;k<sizes.Count;k++){Legend(sh,rx+2,ry-3.5-k*3.4,sizes[k]);sh.Text("%%C"+sizes[k]+"mm",rx+4,ry-3.5-k*3.4,2,4,false,"LEGEND");}
-  sh.Left=0;sh.Right=Math.Max(x0-gap,60);sh.Top=top+26;sh.Bottom=ry-3.5-sizes.Count*3.4-6;return sh;}
+  double right=x0-gap,sheetTop=top+18.8;
+  /* REMARKS: the bar legend, top right (when it fits above the header) and bottom left as in the sample */
+  if(sizes.Count<=4){double rx=right-29,ry=top+19.52;sh.Text("REMARKS:",rx,ry,2.5,4,true,"REMARKS");for(int k=0;k<sizes.Count;k++)Legend(sh,rx+4.54,ry-4.93-4*k,sizes[k]);sheetTop=ry+3;}
+  {double ry=bottom-4.29;sh.Text("REMARKS:",0,ry,2.5,4,true,"REMARKS");for(int k=0;k<sizes.Count;k++)Legend(sh,4.54,ry-4.93-4*k,sizes[k]);bottom=ry-4.93-4*Math.Max(0,sizes.Count-1)-3;}
+  sh.Left=0;sh.Right=Math.Max(right,60);sh.Top=sheetTop;sh.Bottom=bottom;return sh;}
  /* reading the owner's template back */
  internal static ColumnSchedule ReadRows(List<Entity> all){var s=new ColumnSchedule();var texts=all.Where(e=>e.Type=="MTEXT"||e.Type=="TEXT").Select(e=>new{T=SlabFormatter.Plain(e),X=e.Num(10),Y=e.Num(20),L=e.Get(8)}).ToList();
   var polys=all.Where(e=>e.Type=="LWPOLYLINE").Select(e=>new{L=e.Get(8),P=ColumnScheduleReader.Points(e)}).ToList();
-  var note=string.Join(" ",texts.Where(t=>t.L=="NOTES").Select(t=>t.T));s.OpenExtra=note.Contains("EXTRA TIES: OPEN");var fy=Regex.Match(note,@"fy\s*=\s*(\d+)");var conc=Regex.Match(note,@"CONCRETE\s+(\S+),\s*CLEAR COVER\s+(\d+)");
+  var note=string.Join(" ",texts.Where(t=>t.L=="NOTES").Select(t=>t.T));s.OpenExtra=note.Contains("EXTRA TIES: OPEN")||texts.Any(t=>t.L==Data&&t.T.Contains("EXTRA TIES: OPEN"));var fy=Regex.Match(note,@"fy\s*=\s*(\d+)");var conc=Regex.Match(note,@"CONCRETE\s+(\S+),\s*CLEAR COVER\s+(\d+)");
   var levelIndex=new Dictionary<string,int>();Func<string,int> level=t=>{int i;if(levelIndex.TryGetValue(t,out i))return i;var m=Regex.Match(t,@"^(-?\d+(?:\.\d+)?)\s+TO\s+(-?\d+(?:\.\d+)?)$");double a=double.Parse(m.Groups[1].Value,Inv),b=double.Parse(m.Groups[2].Value,Inv);s.Levels.Add(new ColumnLevel{From=a.ToString("0.00",Inv)+" M",To=b.ToString("0.00",Inv)+" M",FromM=a,ToM=b});i=s.Levels.Count-1;levelIndex[t]=i;return i;};
   var levelTexts=texts.Where(t=>t.L=="LEVEL").ToList();foreach(var lt in levelTexts.OrderBy(t=>double.Parse(Regex.Match(t.T,@"^-?\d+(?:\.\d+)?").Value,Inv)))level(lt.T);
   var boxes=polys.Where(p=>p.L=="CELLBOX"&&p.P.Count==4).Select(p=>new{X0=p.P.Min(v=>v[0]),X1=p.P.Max(v=>v[0]),Y0=p.P.Min(v=>v[1]),Y1=p.P.Max(v=>v[1])}).ToList();
-  foreach(var mk in texts.Where(t=>t.L=="MARK").OrderBy(t=>t.X).ThenByDescending(t=>t.Y)){string mark=mk.T;if(!s.Marks.Contains(mark))s.Marks.Add(mark);var orig=texts.FirstOrDefault(t=>t.L=="ORIGINALS"&&Math.Abs(t.X-mk.X)<.01&&t.Y<mk.Y&&t.Y>mk.Y-15);if(orig!=null)s.Originals[mark]=orig.T.Trim().TrimStart('(').TrimEnd(')');
+  foreach(var mk in texts.Where(t=>t.L=="MARK").OrderBy(t=>t.X).ThenByDescending(t=>t.Y)){string mark=mk.T;if(!s.Marks.Contains(mark))s.Marks.Add(mark);var orig=texts.FirstOrDefault(t=>(t.L=="ORIGINALS"||t.L==Data&&t.T.StartsWith("ORIGINALS:"))&&Math.Abs(t.X-mk.X)<.01&&t.Y<mk.Y&&t.Y>mk.Y-15);if(orig!=null)s.Originals[mark]=Regex.Replace(orig.T,@"^ORIGINALS:\s*","").Trim().TrimStart('(').TrimEnd(')');
    /* the block of this mark: up to the next COLUMN MARKED header to the right */double right=texts.Where(t=>t.L=="HEAD"&&t.X>mk.X+1).Select(t=>t.X).DefaultIfEmpty(double.MaxValue).Min();
    var heads=levelTexts.Where(t=>t.X>mk.X&&t.X<right&&t.Y>mk.Y).ToList();double headY=heads.Count==0?0:heads.Where(t=>t.Y>mk.Y).Min(t=>t.Y);var mine=heads.Where(t=>Math.Abs(t.Y-headY)<.01).OrderBy(t=>t.X).ToList();
-   foreach(var box in boxes.Where(b=>b.Y1<mk.Y+40&&b.Y0>mk.Y-40&&b.X0>mk.X&&b.X1<right)){/* the row of this mark: the box just under it */if(!(box.Y0<mk.Y&&box.Y0>mk.Y-60))continue;var cover=mine.Where(t=>t.X>box.X0&&t.X<box.X1).ToList();if(cover.Count==0)continue;
-    var concRect=polys.FirstOrDefault(p=>p.L=="CONCRETE"&&p.P.Count==4&&p.P.All(v=>v[0]>box.X0&&v[0]<box.X1&&v[1]>box.Y1&&v[1]<box.Y1+80));if(concRect==null)continue;
+   /* the row of this mark: the text cells just under it */var below=boxes.Where(b=>b.X0>mk.X&&b.X1<right&&b.Y0<mk.Y).ToList();double rowY=below.Count==0?double.NaN:below.Max(b=>b.Y0);double reach=mk.Y+(mk.Y-rowY);
+   foreach(var box in below.Where(b=>Math.Abs(b.Y0-rowY)<.01)){var cover=mine.Where(t=>t.X>box.X0&&t.X<box.X1).ToList();if(cover.Count==0)continue;
+    var concRect=polys.FirstOrDefault(p=>p.L=="CONCRETE"&&p.P.Count==4&&p.P.All(v=>v[0]>box.X0&&v[0]<box.X1&&v[1]>box.Y1&&v[1]<reach));if(concRect==null)continue;
     var c=SketchBack(all,polys.Select(p=>new KeyValuePair<string,List<double[]>>(p.L,p.P)).ToList(),concRect.P.Min(v=>v[0]),concRect.P.Min(v=>v[1]),concRect.P.Max(v=>v[0]),concRect.P.Max(v=>v[1]));
     var ct=texts.FirstOrDefault(t=>t.L=="CELLTEXT"&&t.X>box.X0&&t.X<box.X1&&t.Y>box.Y0&&t.Y<box.Y1);if(ct!=null){var m=Regex.Match(ct.T,@"WITH\s*(?:%%[cC]|Ø|#)(\d+)\s*mm");if(m.Success)c.TieDia=int.Parse(m.Groups[1].Value,Inv);
      m=Regex.Match(ct.T,@"1\s*-\s*50mm,\s*(?:(\d+)\s*-\s*(\d+)mm,\s*)?AND REST AT\s*(\d+)mm");if(m.Success){c.S2=double.Parse(m.Groups[3].Value,Inv);c.S1Main=m.Groups[2].Success?double.Parse(m.Groups[2].Value,Inv):c.S2;}
      m=Regex.Match(ct.T,@"Lo\s*=\s*(\d+)");if(m.Success)c.Lo=double.Parse(m.Groups[1].Value,Inv);m=Regex.Match(ct.T,@"Z1 OTHERS @\s*(\d+)");c.S1Other=m.Success?double.Parse(m.Groups[1].Value,Inv):c.S1Main;}
-    var mat=texts.FirstOrDefault(t=>t.L=="MATERIAL"&&t.X>box.X0&&t.X<box.X1&&t.Y>box.Y1&&t.Y<box.Y1+80);var mm=mat==null?null:Regex.Match(mat.T,@"^(\S*)\s*fy\s+(\d+)\s*cover\s+(\d+)");
+    var dt=texts.FirstOrDefault(t=>t.L==Data&&t.X>box.X0&&t.X<box.X1&&t.Y>box.Y0&&t.Y<box.Y1);if(dt!=null){var m=Regex.Match(dt.T,@"Lo=(\d+(?:\.\d+)?);Z1O=(\d+(?:\.\d+)?)");if(m.Success){c.Lo=double.Parse(m.Groups[1].Value,Inv);c.S1Other=double.Parse(m.Groups[2].Value,Inv);}}
+    var mat=texts.FirstOrDefault(t=>t.L=="MATERIAL"&&t.X>box.X0&&t.X<box.X1&&t.Y>box.Y1&&t.Y<reach);var mm=mat==null?null:Regex.Match(mat.T,@"^(\S*)\s*fy\s+(\d+)\s*cover\s+(\d+)");
     if(mm!=null&&mm.Success){c.Concrete=mm.Groups[1].Value=="-"?"":mm.Groups[1].Value;c.Fy=double.Parse(mm.Groups[2].Value,Inv);c.Cover=double.Parse(mm.Groups[3].Value,Inv);}else{if(fy.Success)c.Fy=double.Parse(fy.Groups[1].Value,Inv);if(conc.Success){c.Concrete=conc.Groups[1].Value=="AS"?"":conc.Groups[1].Value;c.Cover=double.Parse(conc.Groups[2].Value,Inv);}}
     foreach(var lt in cover)s.Cells[ColumnSchedule.Key(mark,level(lt.T))]=c;}}
   if(s.Cells.Count==0)throw new Exception("No column sections in the schedule.");return s;}
@@ -269,14 +289,19 @@ static class ColumnFormatter {
   Func<string,string,int,Entity> head=(type,layer,color)=>{var e=new Entity();e.P.Add(new Pair(0,type));if(owner!="")e.P.Add(new Pair(330,owner));e.P.Add(new Pair(100,"AcDbEntity"));e.P.Add(new Pair(8,layer));if(color!=256)e.P.Add(new Pair(62,color.ToString(Inv)));return e;};
   Func<double,string> f=v=>v.ToString("0.####",Inv);
   foreach(var it in sh.Items){if(it.Kind=="LINE"){var e=linePrototype.Copy(true);e.Set(8,it.Layer);e.Set(10,it.P[0]);e.Set(20,it.P[1]);e.Set(11,it.P[2]);e.Set(21,it.P[3]);if(it.Color!=256)e.Set(62,it.Color.ToString(Inv));add(e);}
-   else if(it.Kind=="RECT"){var e=head("LWPOLYLINE",it.Layer,it.Color);e.P.Add(new Pair(100,"AcDbPolyline"));e.P.Add(new Pair(90,"4"));e.P.Add(new Pair(70,"1"));if(it.Layer.EndsWith("MAINLINK"))e.P.Add(new Pair(43,"0.3"));foreach(var v in new[]{new[]{it.P[0],it.P[1]},new[]{it.P[2],it.P[1]},new[]{it.P[2],it.P[3]},new[]{it.P[0],it.P[3]}}){e.P.Add(new Pair(10,f(v[0])));e.P.Add(new Pair(20,f(v[1])));}add(e);}
-   else if(it.Kind=="PLINE"){var e=head("LWPOLYLINE",it.Layer,it.Color);e.P.Add(new Pair(100,"AcDbPolyline"));e.P.Add(new Pair(90,it.V.Count.ToString(Inv)));e.P.Add(new Pair(70,it.Closed?"1":"0"));e.P.Add(new Pair(43,f(it.W>0?it.W:it.Layer.EndsWith("MAINLINK")?.3:0)));foreach(var v in it.V){e.P.Add(new Pair(10,f(v[0])));e.P.Add(new Pair(20,f(v[1])));if(v[2]!=0)e.P.Add(new Pair(42,f(v[2])));}add(e);}
+   else if(it.Kind=="RECT"){var e=head("LWPOLYLINE",it.Layer,it.Color);e.P.Add(new Pair(100,"AcDbPolyline"));e.P.Add(new Pair(90,"4"));e.P.Add(new Pair(70,"1"));foreach(var v in new[]{new[]{it.P[0],it.P[1]},new[]{it.P[2],it.P[1]},new[]{it.P[2],it.P[3]},new[]{it.P[0],it.P[3]}}){e.P.Add(new Pair(10,f(v[0])));e.P.Add(new Pair(20,f(v[1])));}add(e);}
+   else if(it.Kind=="PLINE"){var e=head("LWPOLYLINE",it.Layer,it.Color);e.P.Add(new Pair(100,"AcDbPolyline"));e.P.Add(new Pair(90,it.V.Count.ToString(Inv)));e.P.Add(new Pair(70,it.Closed?"1":"0"));e.P.Add(new Pair(43,f(it.W>0?it.W:0)));foreach(var v in it.V){e.P.Add(new Pair(10,f(v[0])));e.P.Add(new Pair(20,f(v[1])));if(v[2]!=0)e.P.Add(new Pair(42,f(v[2])));}add(e);}
    else if(it.Kind=="POINT"){var e=head("POINT",it.Layer,it.Color);e.P.Add(new Pair(100,"AcDbPoint"));e.P.Add(new Pair(10,f(it.P[0])));e.P.Add(new Pair(20,f(it.P[1])));e.P.Add(new Pair(30,f(it.P[2])));add(e);}
    else if(it.Kind=="CIRCLE"){var e=head("CIRCLE",it.Layer,it.Color);e.P.Add(new Pair(100,"AcDbCircle"));e.P.Add(new Pair(10,f(it.P[0])));e.P.Add(new Pair(20,f(it.P[1])));e.P.Add(new Pair(30,"0"));e.P.Add(new Pair(40,f(it.P[2])));add(e);}
-   else if(it.Kind=="RRECT"){double rx0=it.P[0],ry0=it.P[1],rx1=it.P[2],ry1=it.P[3],r=it.P[4];const string bulge="0.41421356";var e=head("LWPOLYLINE",it.Layer,it.Color);e.P.Add(new Pair(100,"AcDbPolyline"));e.P.Add(new Pair(90,"8"));e.P.Add(new Pair(70,"1"));if(it.Layer.EndsWith("MAINLINK"))e.P.Add(new Pair(43,"0.3"));
+   else if(it.Kind=="RRECT"){double rx0=it.P[0],ry0=it.P[1],rx1=it.P[2],ry1=it.P[3],r=it.P[4];const string bulge="0.41421356";var e=head("LWPOLYLINE",it.Layer,it.Color);e.P.Add(new Pair(100,"AcDbPolyline"));e.P.Add(new Pair(90,"8"));e.P.Add(new Pair(70,"1"));
     foreach(var v in new[]{new[]{rx0+r,ry0,0},new[]{rx1-r,ry0,1},new[]{rx1,ry0+r,0},new[]{rx1,ry1-r,1},new[]{rx1-r,ry1,0},new[]{rx0+r,ry1,1},new[]{rx0,ry1-r,0},new[]{rx0,ry0+r,1}}){e.P.Add(new Pair(10,f(v[0])));e.P.Add(new Pair(20,f(v[1])));if(v[2]>0)e.P.Add(new Pair(42,bulge));}add(e);}
    else if(it.Kind=="DISK"){/* a filled bar: a closed two-arc polyline with its width = the radius (AutoCAD DONUT) */double r=it.P[2];var e=head("LWPOLYLINE",it.Layer,it.Color);e.P.Add(new Pair(100,"AcDbPolyline"));e.P.Add(new Pair(90,"2"));e.P.Add(new Pair(70,"1"));e.P.Add(new Pair(43,f(r)));e.P.Add(new Pair(10,f(it.P[0]-r/2)));e.P.Add(new Pair(20,f(it.P[1])));e.P.Add(new Pair(42,"1"));e.P.Add(new Pair(10,f(it.P[0]+r/2)));e.P.Add(new Pair(20,f(it.P[1])));e.P.Add(new Pair(42,"1"));add(e);}
    else if(it.Kind=="TEXT"){if(string.IsNullOrEmpty(it.Text))continue;var e=textPrototype.Copy(true);e.P.RemoveAll(p=>p.Code==1||p.Code==3||p.Code==62);e.Set(8,it.Layer);e.Set(1,it.Text.Replace("\\","").Replace("{","").Replace("}","").Replace("\n","\\P"));if(it.Rot!=0)e.Set(50,it.Rot*Math.PI/180);e.Set(10,it.P[0]);e.Set(20,it.P[1]);e.Set(40,it.H);e.Set(41,it.W>0?it.W:it.Anchor==7||it.Anchor==1||it.Anchor==4?0:60);e.Set(71,it.Anchor.ToString(Inv));e.Set(7,it.Bold?"A 2.50B":"A 2.0");add(e);}}
+  /* line weights of the sample: concrete 0.30, bar marks 0.15, ties, bars and dimensions 0.09, the table 0.25 */
+  foreach(var e in output){string l=e.Get(8);int lw=l.EndsWith("CONCRETE")||l=="MARKER"?30:l.EndsWith("BARMARK")?15:l=="SCHEDULE"||l=="CELLBOX"?25:l=="TITLE"||l=="HEAD"||l=="MARK"||l=="LEVEL"||l=="NOTES"||l=="CELLTEXT"||l=="REMARKS"||l==Data||l=="TEXT"?-1:9;if(lw<0)continue;int at=e.P.FindIndex(q=>q.Code==8);e.P.Insert(at+1,new Pair(370,lw.ToString(Inv)));}
+  /* the hidden data layer: off and not plotted */
+  {var layers=drawing.Records.Where(e=>e.Type=="LAYER").ToList();if(layers.Count>0&&!layers.Any(e=>e.Get(2)==Data)){var rec=new Entity();rec.P.Add(new Pair(0,"LAYER"));rec.P.Add(new Pair(5,(next++).ToString("X")));rec.P.Add(new Pair(330,layers[0].Get(330)));rec.P.Add(new Pair(100,"AcDbSymbolTableRecord"));rec.P.Add(new Pair(100,"AcDbLayerTableRecord"));rec.P.Add(new Pair(2,Data));rec.P.Add(new Pair(70,"0"));rec.P.Add(new Pair(62,"-8"));rec.P.Add(new Pair(6,"Continuous"));rec.P.Add(new Pair(290,"0"));rec.P.Add(new Pair(370,"-3"));string ps=layers[0].Get(390);if(ps!="")rec.P.Add(new Pair(390,ps));
+    drawing.Records.Insert(drawing.Records.IndexOf(layers[layers.Count-1])+1,rec);var table=drawing.Records.FirstOrDefault(e=>e.Type=="TABLE"&&e.Get(2)=="LAYER");if(table!=null){int n;if(int.TryParse(table.Get(70).Trim(),out n))table.Set(70,(n+1).ToString(Inv));}}}
   int start=drawing.Records.FindIndex(e=>e.Type=="SECTION"&&e.Get(2)=="ENTITIES"),end=start+1;while(drawing.Records[end].Type!="ENDSEC")end++;drawing.Records.RemoveRange(start+1,end-start-1);drawing.Records.InsertRange(start+1,output);
   foreach(var e in drawing.Records)for(int n=0;n<e.P.Count-1;n++)if(e.P[n].Code==9&&e.P[n].Value=="$HANDSEED")e.P[n+1].Value=next.ToString("X");return drawing;}
  public static void Export(ColumnFormatResult r,string path){string temp=path+"."+Guid.NewGuid().ToString("N")+".tmp";try{r.Drawing.Write(temp);var back=ColumnScheduleReader.Read(File.ReadAllText(temp));if(back.Marks.Count!=r.Groups.Count)throw new Exception("Export verification failed: "+back.Marks.Count+" columns read back, "+r.Groups.Count+" written.");
@@ -321,14 +346,14 @@ static class ColumnFormatter {
   using(var g=Graphics.FromImage(bmp)){g.Clear(Color.White);g.SmoothingMode=SmoothingMode.AntiAlias;g.TextRenderingHint=System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;Func<double,double,PointF> xy=(x,y)=>new PointF((float)((x-sh.Left+8)*pxPerMm),(float)((sh.Top-y+4)*pxPerMm));
    Func<int,Color> col=c=>c==1?Color.FromArgb(200,40,40):c==5?Color.FromArgb(30,90,200):c==3?Color.FromArgb(20,140,70):c==4?Color.FromArgb(0,140,160):c==8?Color.FromArgb(120,120,120):c==6?Color.FromArgb(190,40,170):Color.FromArgb(30,30,30);
    foreach(var it in sh.Items){if(it.Kind=="LINE")using(var p=new Pen(col(it.Color),1f))g.DrawLine(p,xy(it.P[0],it.P[1]),xy(it.P[2],it.P[3]));
-    else if(it.Kind=="RECT"){var a=xy(it.P[0],it.P[3]);var b=xy(it.P[2],it.P[1]);using(var p=new Pen(col(it.Color),it.Layer.EndsWith("MAINLINK")?2.2f:it.Layer.EndsWith("CONCRETE")?1.5f:.9f))g.DrawRectangle(p,a.X,a.Y,b.X-a.X,b.Y-a.Y);}
+    else if(it.Kind=="RECT"){var a=xy(it.P[0],it.P[3]);var b=xy(it.P[2],it.P[1]);using(var p=new Pen(col(it.Color),it.Layer.EndsWith("CONCRETE")?1.5f:.9f))g.DrawRectangle(p,a.X,a.Y,b.X-a.X,b.Y-a.Y);}
     else if(it.Kind=="PLINE"){var pts=new List<PointF>();for(int i=0;i<it.V.Count;i++){var a=it.V[i];if(!it.Closed&&i==it.V.Count-1){pts.Add(xy(a[0],a[1]));break;}var b=it.V[(i+1)%it.V.Count];foreach(var q in Bulge(a[0],a[1],b[0],b[1],a[2]))pts.Add(xy(q[0],q[1]));}if(it.Closed&&pts.Count>0)pts.Add(pts[0]);
      if(it.W>0){/* a donut (filled dot) */var cx=(it.V[0][0]+it.V[1][0])/2;var cy=(it.V[0][1]+it.V[1][1])/2;double rr=Math.Sqrt(Math.Pow(it.V[1][0]-it.V[0][0],2)+Math.Pow(it.V[1][1]-it.V[0][1],2))/2+it.W/2;var c=xy(cx,cy);float r=(float)(rr*pxPerMm);g.FillEllipse(Brushes.Black,c.X-r,c.Y-r,2*r,2*r);}
-     else if(pts.Count>1)using(var pen=new Pen(Color.FromArgb(30,30,30),it.Layer.EndsWith("MAINLINK")?2.2f:.9f))g.DrawLines(pen,pts.ToArray());}
+     else if(pts.Count>1)using(var pen=new Pen(Color.FromArgb(30,30,30),.9f))g.DrawLines(pen,pts.ToArray());}
     else if(it.Kind=="CIRCLE"){var c=xy(it.P[0],it.P[1]);float r=(float)(it.P[2]*pxPerMm);using(var p=new Pen(Color.FromArgb(30,30,30),1f))g.DrawEllipse(p,c.X-r,c.Y-r,2*r,2*r);}
-    else if(it.Kind=="RRECT"){var a=xy(it.P[0],it.P[3]);var b=xy(it.P[2],it.P[1]);float r=(float)(it.P[4]*pxPerMm),d=2*r;using(var path=new GraphicsPath()){path.AddArc(a.X,a.Y,d,d,180,90);path.AddArc(b.X-d,a.Y,d,d,270,90);path.AddArc(b.X-d,b.Y-d,d,d,0,90);path.AddArc(a.X,b.Y-d,d,d,90,90);path.CloseFigure();using(var p=new Pen(Color.FromArgb(30,30,30),it.Layer.EndsWith("MAINLINK")?2.2f:.9f))g.DrawPath(p,path);}}
+    else if(it.Kind=="RRECT"){var a=xy(it.P[0],it.P[3]);var b=xy(it.P[2],it.P[1]);float r=(float)(it.P[4]*pxPerMm),d=2*r;using(var path=new GraphicsPath()){path.AddArc(a.X,a.Y,d,d,180,90);path.AddArc(b.X-d,a.Y,d,d,270,90);path.AddArc(b.X-d,b.Y-d,d,d,0,90);path.AddArc(a.X,b.Y-d,d,d,90,90);path.CloseFigure();using(var p=new Pen(Color.FromArgb(30,30,30),.9f))g.DrawPath(p,path);}}
     else if(it.Kind=="DISK"){var c=xy(it.P[0],it.P[1]);float r=(float)(it.P[2]*pxPerMm);using(var b=new SolidBrush(col(it.Color)))g.FillEllipse(b,c.X-r,c.Y-r,2*r,2*r);}
-    else if(it.Kind=="TEXT"&&!string.IsNullOrEmpty(it.Text)){string t=it.Text.Replace("%%C","Ø").Replace("%%c","Ø");using(var f=new Font("Arial",(float)(it.H*pxPerMm*.95),it.Bold?FontStyle.Bold:FontStyle.Regular,GraphicsUnit.Pixel)){float wrapPx=(float)(it.W*pxPerMm);var sz=wrapPx>0?g.MeasureString(t,f,(int)wrapPx):g.MeasureString(t,f);var p=xy(it.P[0],it.P[1]);int a=it.Anchor;float tw=wrapPx>0?wrapPx:sz.Width;
+    else if(it.Kind=="TEXT"&&!string.IsNullOrEmpty(it.Text)&&it.Layer!=Data){string t=it.Text.Replace("%%C","Ø").Replace("%%c","Ø");using(var f=new Font("Arial",(float)(it.H*pxPerMm*.95),it.Bold?FontStyle.Bold:FontStyle.Regular,GraphicsUnit.Pixel)){float wrapPx=(float)(it.W*pxPerMm);var sz=wrapPx>0?g.MeasureString(t,f,(int)wrapPx):g.MeasureString(t,f);var p=xy(it.P[0],it.P[1]);int a=it.Anchor;float tw=wrapPx>0?wrapPx:sz.Width;
      float dx=a==2||a==5||a==8?-tw/2:a==3||a==6||a==9?-tw:0,dy=a>=4&&a<=6?-sz.Height/2:a>=7?-sz.Height:0;var st=g.Save();g.TranslateTransform(p.X,p.Y);if(it.Rot!=0)g.RotateTransform(-(float)it.Rot);
      using(var fmt=new StringFormat{Alignment=a==2||a==5||a==8?StringAlignment.Center:a==3||a==6||a==9?StringAlignment.Far:StringAlignment.Near})g.DrawString(t,f,Brushes.Black,new RectangleF(dx,dy,tw+2,sz.Height+4),fmt);g.Restore(st);}}}}
   return bmp;}
