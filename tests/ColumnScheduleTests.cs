@@ -1,0 +1,22 @@
+using System;using System.IO;using System.Linq;using System.Collections.Generic;using BeamScheduleFormatter;
+/* Column Schedule Formatter: the new template is written, read back unchanged, and gives the bars of the Bar Bending Schedule */
+class ColumnScheduleTests {
+ static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}
+ static ColumnCell Cell(int corner,int side){var c=new ColumnCell{B=500,H=500,TieDia=10,S1Main=75,S1Other=75,S2=200,Lo=585,Cover=40,Concrete="C35",Fy=414};
+  foreach(var p in new[]{new[]{60.0,60},new[]{440.0,60},new[]{60.0,440},new[]{440.0,440}})c.Bars.Add(new ColumnBar{X=p[0],Y=p[1],Dia=corner});foreach(var p in new[]{new[]{187.0,60},new[]{313.0,60},new[]{187.0,440},new[]{313.0,440},new[]{60.0,187},new[]{60.0,313},new[]{440.0,187},new[]{440.0,313}})c.Bars.Add(new ColumnBar{X=p[0],Y=p[1],Dia=side});
+  c.Links.Add(new ColumnLink{X0=40,Y0=40,X1=460,Y1=460});c.Links.Add(new ColumnLink{X0=167,Y0=40,X1=333,Y1=460});c.Links.Add(new ColumnLink{X0=250,Y0=60,X1=250,Y1=440});return c;}
+ static void Main(){var s=new ColumnSchedule();s.Levels.Add(new ColumnLevel{FromM=0.6,ToM=4.6});s.Levels.Add(new ColumnLevel{FromM=4.6,ToM=8.6});foreach(var m in new[]{"C1","C2","C3"})s.Marks.Add(m);
+  for(int l=0;l<2;l++){s.Cells[ColumnSchedule.Key("C1",l)]=Cell(20,16);s.Cells[ColumnSchedule.Key("C2",l)]=Cell(20,16);s.Cells[ColumnSchedule.Key("C3",l)]=Cell(25,20);}
+  var groups=ColumnFormatter.Group(s,"C",true);Check(groups.Count==2&&groups[0].Originals=="C1, C2"&&groups[0].Mark=="C-001","identical columns are grouped under new marks");
+  var sheet=ColumnFormatter.Layout(s,groups,"TEST");Check(sheet.Items.Any(i=>i.Kind=="TEXT"&&i.Text=="SCHEDULE OF COLUMNS"),"new template title");
+  string path=Path.Combine(Path.GetTempPath(),"ColumnScheduleTest-"+Guid.NewGuid().ToString("N")+".dxf");ColumnFormatter.ToDxf(sheet,s,groups).Write(path);
+  try{var back=ColumnScheduleReader.Read(File.ReadAllText(path));Check(back.Marks.SequenceEqual(new[]{"C-001","C-002"}),"marks read back");Check(back.Levels.Count==2,"levels read back");
+   for(int l=0;l<2;l++){int lb=back.Levels.FindIndex(q=>Math.Abs(q.FromM-s.Levels[l].FromM)<1e-9);Check(lb>=0,"level found");Check(back.Cell("C-001",lb).Signature()==s.Cell("C1",l).Signature(),"section, bars, links and ties read back unchanged");Check(back.Cell("C-002",lb).MainText==s.Cell("C3",l).MainText,"main bars read back");}
+   Check(back.Originals["C-001"]=="C1, C2","original marks read back");
+   var cfg=CalculationStore.All().First(c=>c.Name.Contains("FC28")&&c.Name.Contains("G40/G60"));var set=new CutSettings{Config=cfg};var pieces=ColumnFormatter.BbsPieces(back,set,new List<string>());
+   var hoops=pieces.Where(p=>p.Line=="Column C-001"&&p.Location.StartsWith("Column hoops")).ToList();Check(hoops.Count==2&&hoops.All(p=>p.PerLine==30&&p.Lines==2),"hoops: 2 x (585 / 75 + 1) in Lo + 14 at 200 in a 4 m level, 2 identical columns");
+   Check(pieces.Any(p=>p.Line=="Column C-001"&&p.Location.StartsWith("Column crossties")),"crossties");var top=pieces.Where(p=>p.Line=="Column C-001"&&p.Location.Contains("8.6 m (top")).ToList();Check(top.Count==2&&top.All(p=>p.Shape=="90° hook one end"),"top level bars are hooked");
+   var lower=pieces.First(p=>p.Line=="Column C-001"&&p.Diameter==16&&p.Location.Contains("0.6 to 4.6"));Check(Math.Abs(lower.Length-(4+BeamCutting.SpliceLap(set,16,false)))<1e-9,"lower level bars lap into the level above");}
+  finally{File.Delete(path);}
+  Console.WriteLine("PASS: "+checks+" column schedule formatter checks");}
+}

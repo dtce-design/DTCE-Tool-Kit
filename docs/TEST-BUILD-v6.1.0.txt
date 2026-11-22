@@ -1,0 +1,20 @@
+DTCE Tool Kit v6.1.0 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+MINOR (new tool in the Formatters workspace; owner: "create a column schedule formatter based on these dxf file from autocad, gawin
+mong presentable. tapos yung output dxf file will be used naman sa bbs column", "gawan mo ng panibagong template"):
+- Formatters > Column Formatter: loads the column and wall schedule DXF exported from STAAD RCDC / AutoCAD (column marks, level
+  ranges, section with bars and links, Z1 main link / Z1 others / Z2 spacing, concrete, fy, cover, confining zone). Bar sizes are
+  read from the legend beside each section; the bars drawn must match the main bar text.
+- Identical columns (the same section, bars, links and ties at every level) are grouped under new marks prefix-001 (Merge identical
+  columns can be switched off).
+- New template "SCHEDULE OF COLUMNS": one column per mark, one row per level (highest first); each cell has the section at 1:20 with
+  the bars (red Ø20 and larger, blue Ø16, green Ø12 and smaller), hoops and crossties, the sizes, main bars, Z1 ties with Lo, the
+  rest spacing and concrete / fy / cover; the original marks under each column. Export verifies the file by reading it back.
+- Bar Bending Schedule > Column > Load column schedule DXF: the revised DXF (or the RCDC original) gives the column bars: main bars
+  per level with a lap into the level above and a 90° hook at the top, the outer hoop at the Z1 main spacing and inner links /
+  crossties at the Z1 other spacing within Lo at each end, the rest spacing between; identical columns counted. Clear height is
+  taken as the level height; footing dowels and joint hoops are not included.
+- Slab Formatter: header "SLAB MARK" as in the slab template (was SLAB MARKED).
+Checked on Linux/Mono only with the owner's COLUMN_SCHED.dxf (34 columns, 4 levels > 11 marks).
+
+Includes v6.0.57 and earlier builds.
