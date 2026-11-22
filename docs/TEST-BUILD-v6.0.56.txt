@@ -1,0 +1,11 @@
+DTCE Tool Kit v6.0.56 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Bar Bending Schedule; owner: "if hindi isinama sa estimate dapat yung cut ng main is hanggang mag lap"):
+- A span left out of the estimate splits the main (continuous) bars: each included part of the line is laid out on its own and
+  ends one Class B lap inside the left-out span as dowels (abang). The main bars run in one length and are spliced only where
+  their length needs it (before, the laps planned for the whole line stayed, e.g. a needless lap and its extra hoops in the
+  next span). Pieces that end as dowels say "dowel (abang) into span n".
+- Side face bars of a left-out span are no longer listed.
+Checked on Linux/Mono only.
+
+Includes v6.0.55 and earlier builds.

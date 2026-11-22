@@ -145,7 +145,13 @@ static class BeamCutting {
     var contAt=new int[n];for(int j=0;j<n;j++){int c=int.MaxValue;for(int z=0;z<3;z++)c=Math.Min(c,Count(counts[j,z],dia));contAt[j]=c;}
     int j0=0;while(j0<n){if(contAt[j0]<=0){j0++;continue;}int j1=j0;while(j1+1<n&&contAt[j1+1]>0)j1++;int c=Enumerable.Range(j0,j1-j0+1).Min(j=>contAt[j]);for(int j=j0;j<=j1;j++)contAt[j]=c;
      double ld=Ld(s,dia,top);double xs=j0==0?cover:g.SupportStart[j0]-(top?s.TopExtension*spans[j0-1].Ln:0)-ld,xe=j1==n-1?g.Total-cover:g.SupportStart[j1+1]+g.SupportWidth[j1+1]+(top?s.TopExtension*spans[j1+1].Ln:0)+ld;
-     Continuous(g,s,result,add,nextMark(),name,top,dia,c,cover,extraHoops,xs,xe,j0==0,j1==n-1);j0=j1+1;}
+     /* a span left out of the estimate splits the run (owner, 22 November 2026: "if hindi isinama sa estimate dapat yung cut ng main is
+        hanggang mag lap"): each included part is laid out on its own, ending one lap inside the left-out span as dowels, so the main
+        bars run in one length and are spliced only where their length needs it */
+     double dowel=SpliceLap(s,dia,top);int a0=j0;while(a0<=j1){while(a0<=j1&&!spans[a0].Include)a0++;if(a0>j1)break;int b0=a0;while(b0+1<=j1&&spans[b0+1].Include)b0++;
+      double ps=a0==j0?xs:g.FaceRight[a0-1]-dowel,pe=b0==j1?xe:g.FaceLeft[b0+1]+dowel;
+      Continuous(g,s,result,add,nextMark(),name,top,dia,c,cover,extraHoops,ps,pe,a0==0,b0==n-1);a0=b0+1;}
+     j0=j1+1;}
     Func<int,int> contOf=j=>j>=0&&j<n?contAt[j]:0;
     if(top){/* top bars in the middle only (more at midspan than at the supports): the central L/2, as the beam estimate's curtailment
        (owner, 20 November 2026: "yung cut bars diba may curtailment setting"), with the same cut-end allowance */
@@ -168,7 +174,7 @@ static class BeamCutting {
    /* inside the beam (owner, 22 November 2026: "yung SFR nagpapakita bang tama?"): at an end support Ld past the face may not fit,
       then the bar stops at the cover with a 90° hook */
    double start=g.FaceLeft[j]-ld,end=g.FaceRight[j]+ld,hk=Hook(s,bar.Key);bool hookStart=start<cover,hookEnd=end>g.Total-cover;if(hookStart)start=cover;if(hookEnd)end=g.Total-cover;
-   add(new CutPiece{BarMark=nextMark(),Location="Side-face bars, span "+(j+1),Diameter=bar.Key,PerLine=bar.Value,Length=end-start+(hookStart?hk:0)+(hookEnd?hk:0),Start=start,End=end,Shape=hookStart&&hookEnd?"90° hooks both ends":hookStart||hookEnd?"90° hook one end":"Straight"});}
+   add(new CutPiece{BarMark=nextMark(),Location="Side-face bars, span "+(j+1),Span=j+1,Diameter=bar.Key,PerLine=bar.Value,Length=end-start+(hookStart?hk:0)+(hookEnd?hk:0),Start=start,End=end,Shape=hookStart&&hookEnd?"90° hooks both ends":hookStart||hookEnd?"90° hook one end":"Straight"});}
   /* stirrups */
   var o=new EstimateOptions{LengthConfig=s.Config,Cover=s.Cover,Hook=s.HookFactor,Fc=s.Config.Input.Fc,GradeSmall=s.Config.GradeSmall,Grade=s.Config.GradeLarge};
   for(int j=0;j<n;j++){var row=g.Rows[j];double ln=spans[j].Ln;List<TieZone> zones;try{zones=TieZones(row,ln,s);}catch(Exception ex){throw new Exception("Span "+(j+1)+": "+ex.Message);}
@@ -220,7 +226,7 @@ static class BeamCutting {
     /* bars of the unticked span itself (stirrups, its extra bars, side-face bars, spacers) go; bars that cross into it become dowels */
     if(p.Span>0&&!spans[p.Span-1].Include){result.Pieces.Remove(p);result.Excluded.Add(p);continue;}if(spanOnly(p)||p.Edited)continue;/* a bar edited on the cutting list keeps the length typed */
     double lap=SpliceLap(s,p.Diameter,p.Top),h=Hook(s,p.Diameter);var parts=kept(lap).Select(iv=>new[]{Math.Max(iv[0],p.Start),Math.Min(iv[1],p.End)}).Where(iv=>iv[1]-iv[0]>1e-6&&inEstimate(iv)).ToList();
-    if(parts.Count==1&&Math.Abs(parts[0][0]-p.Start)<1e-9&&Math.Abs(parts[0][1]-p.End)<1e-9)continue;
+    if(parts.Count==1&&Math.Abs(parts[0][0]-p.Start)<1e-9&&Math.Abs(parts[0][1]-p.End)<1e-9){/* laid out to end as a dowel already: say so */var into=new List<string>();foreach(double xEnd in new[]{p.Start,p.End}){int j=spanAt(xEnd);if(j>=0&&!spans[j].Include&&xEnd>g.FaceLeft[j]+1e-6&&xEnd<g.FaceRight[j]-1e-6)into.Add((j+1).ToString(Inv));}if(into.Count>0&&!p.Location.Contains("dowel"))p.Location+=" - dowel (abang) into span "+string.Join(" and ",into.Distinct());continue;}
     int at=result.Pieces.IndexOf(p);result.Pieces.Remove(p);if(parts.Count==0){result.Excluded.Add(p);continue;}
     string code=p.ShapeCode;bool hookStart=code=="HOOK2"||(code=="HOOK1"&&p.Start<=cover+1e-6),hookEnd=code=="HOOK2"||code=="CRANKHOOK"||(code=="HOOK1"&&p.Start>cover+1e-6),crank=code.StartsWith("CRANK");
     double extra=Math.Max(0,p.Length-(p.End-p.Start)-((hookStart?1:0)+(hookEnd?1:0))*h);
