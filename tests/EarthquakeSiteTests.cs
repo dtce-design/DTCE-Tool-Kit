@@ -28,6 +28,9 @@ class EarthquakeSiteTests {
    var tiles=new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<System.Drawing.RectangleF,System.Drawing.Image>>{new System.Collections.Generic.KeyValuePair<System.Drawing.RectangleF,System.Drawing.Image>(System.Drawing.RectangleF.FromLTRB(120f,16f,121f,15f),bmp)};
    var lines=KmzFaultTracer.Trace(tiles);var names=lines.Select(t=>t.Name).Distinct().ToList();double expect=FaultTraces.Km(16-0.1005,120.1005,16-0.7005,120.9005),got=lines.Sum(t=>t.LengthKm);
    Check(names.Count==1&&Math.Abs(got-expect)<0.05*expect,"the dashed red line is traced as one fault of the right length ("+got.ToString("0.0")+" of "+expect.ToString("0.0")+" km), legend sample and symbol left out");}
+  /* PHIVOLCS Region II map lines: built into the Admin edition only */
+  if(PhivolcsMapData.Lines==""){Check(FaultTraces.MapLines.Count==0,"the User edition has no built-in PHIVOLCS map lines");}
+  else{var dm=FaultTraces.ForSite(FaultTraces.MapLines,18.02,121.95,"KMZ");Check(FaultTraces.MapLines.Count>1000&&dm!=null&&dm.DistanceKm<5&&Math.Abs(dm.LengthKm-50.5)<2&&dm.Basis.Contains("Region II"),"Admin: the southern Dummon River strand on the built-in Region II map is about 50.5 km");}
   string note;Check(FaultTraces.SourceType(7.2,double.NaN,out note)=="A"&&note.Contains("unknown"),"no slip rate, Mmax >= 7: Type A");Check(FaultTraces.SourceType(6.6,double.NaN,out note)=="B","no slip rate, Mmax < 7: Type B");Check(FaultTraces.SourceType(6.0,1,out note)=="C"&&FaultTraces.SourceType(7.1,6,out note)=="A"&&FaultTraces.SourceType(7.1,3,out note)=="B","Table 208-3 with a slip rate");
   Console.WriteLine("PASS: "+checks+" earthquake site, fault source type and history checks");}
 }

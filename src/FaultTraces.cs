@@ -11,6 +11,9 @@ class FaultEstimate {public string Name="",SlipType="",Catalog="",Basis="";publi
 static class FaultTraces {
  static readonly CultureInfo Inv=CultureInfo.InvariantCulture;static List<FaultTrace> all;static List<List<double[]>> coast;
  internal static List<FaultTrace> All{get{if(all==null)all=Parse();return all;}}
+ static List<FaultTrace> mapLines;
+ /* the PHIVOLCS map lines built into the Admin edition (empty in the User edition) */
+ internal static List<FaultTrace> MapLines{get{if(mapLines==null){mapLines=new List<FaultTrace>();foreach(var line in PhivolcsMapData.Lines.Split('\n')){var p=line.Trim().Split('|');if(p.Length<2)continue;var t=new FaultTrace{Name="PHIVOLCS map line "+p[0],Catalog="KMZ",SlipType="",Points=Pts(p[1])};if(t.Points.Count>1)mapLines.Add(t);}}return mapLines;}}
  internal static List<List<double[]>> Coast{get{if(coast==null)coast=PhCoastData.Lines.Split('\n').Select(l=>Pts(l.Trim())).Where(p=>p.Count>1).ToList();return coast;}}
  static List<double[]> Pts(string s){var list=new List<double[]>();foreach(var q in s.Split(';')){var c=q.Split(',');double a,b;if(c.Length==2&&double.TryParse(c[0],NumberStyles.Float,Inv,out a)&&double.TryParse(c[1],NumberStyles.Float,Inv,out b))list.Add(new[]{a,b});}return list;}
  static List<FaultTrace> Parse(){var list=new List<FaultTrace>();foreach(var line in PhFaultData.Traces.Split('\n')){var p=line.Trim().Split('|');if(p.Length<5)continue;var t=new FaultTrace{Name=p[0],SlipType=p[1],Catalog=p[3],Points=Pts(p[4])};double sr;if(double.TryParse(p[2],NumberStyles.Float,Inv,out sr))t.SlipRate=sr;if(t.Points.Count>1)list.Add(t);}return list;}
@@ -36,7 +39,7 @@ static class FaultTraces {
   foreach(var name in hazardHunterNames??new string[0]){string key=Key(name);if(key.Length>=4)asked=true;if(pick!=null||key.Length<4)continue;var match=traces.Where(t=>{string k=Key(t.Name);return k.Length>=4&&(k==key||k.StartsWith(key)||key.StartsWith(k));}).ToList();if(match.Count>0){double a,b;pick=match.OrderBy(t=>Distance(t,lat,lon,out a,out b)).First();}}
   if(pick==null){if(asked)return null;double a,b;pick=traces.OrderBy(t=>Distance(t,lat,lon,out a,out b)).First();}
   var group=Unnamed(pick.Name)?new List<FaultTrace>{pick}:traces.Where(t=>t.Name==pick.Name).ToList();
-  string how=source=="KMZ"?"the red active fault line nearest the site on the PHIVOLCS map (KMZ), traced from the map image":asked?"the fault HazardHunterPH names, in the GEM fault traces":"the nearest mapped trace (no HazardHunterPH fault name)";
+  string how=source=="KMZ"?(pick.Name.StartsWith("PHIVOLCS map line ")?"the active fault line nearest the site on the built-in "+PhivolcsMapData.Source+", traced from the map image":"the red active fault line nearest the site on the PHIVOLCS map (KMZ), traced from the map image"):asked?"the fault HazardHunterPH names, in the GEM fault traces":"the nearest mapped trace (no HazardHunterPH fault name)";
   var e=Measure(group,lat,lon,how);e.FromHazardHunter=asked;return e;}
  /* the length of the given traces (one fault, or pieces the user joined) and Mmax from it */
  internal static FaultEstimate Measure(List<FaultTrace> group,double lat,double lon,string how){var first=group[0];var names=group.Select(t=>t.Name).Distinct().ToList();
