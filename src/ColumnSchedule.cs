@@ -229,6 +229,7 @@ static class ColumnFormatter {
   /* REMARKS: the bar legend, top right (when it fits above the header) and bottom left as in the sample */
   if(sizes.Count<=4){double rx=right-29,ry=top+19.52;sh.Text("REMARKS:",rx,ry,2.5,4,true,"REMARKS");for(int k=0;k<sizes.Count;k++)Legend(sh,rx+4.54,ry-4.93-4*k,sizes[k]);sheetTop=ry+3;}
   {double ry=bottom-4.29;sh.Text("REMARKS:",0,ry,2.5,4,true,"REMARKS");for(int k=0;k<sizes.Count;k++)Legend(sh,4.54,ry-4.93-4*k,sizes[k]);bottom=ry-4.93-4*Math.Max(0,sizes.Count-1)-3;}
+  if(!noElevations)bottom=Elevations(sh,s,groups,bottom-6,false,Math.Max(right,250))-4;
   sh.Left=0;sh.Right=Math.Max(right,60);sh.Top=sheetTop;sh.Bottom=bottom;return sh;}
  /* reading the owner's template back */
  internal static ColumnSchedule ReadRows(List<Entity> all){var s=new ColumnSchedule();var texts=all.Where(e=>e.Type=="MTEXT"||e.Type=="TEXT").Select(e=>new{T=SlabFormatter.Plain(e),X=e.Num(10),Y=e.Num(20),L=e.Get(8)}).ToList();
@@ -261,6 +262,47 @@ static class ColumnFormatter {
  /* the ties written as point pairs (index = z / 2) replace what the drawing shows */
  static void LinksFromPoints(List<Entity> all,ColumnCell c,double x0,double y0,double x1,double y1,string p){var pts=all.Where(e=>e.Type=="POINT"&&(e.Get(8)==p+"LINKPT"||e.Get(8)==p+"TIEPT")&&e.Num(10)>=x0-.01&&e.Num(10)<=x1+.01&&e.Num(20)>=y0-.01&&e.Num(20)<=y1+.01).ToList();if(pts.Count<2)return;
   var links=new List<ColumnLink>();foreach(var g in pts.GroupBy(e=>(int)Math.Floor(e.Num(30)/2+1e-9)).OrderBy(g=>g.Key)){var a=g.FirstOrDefault(e=>((int)Math.Round(e.Num(30)))%2==0);var b=g.FirstOrDefault(e=>((int)Math.Round(e.Num(30)))%2==1);if(a==null||b==null)continue;links.Add(new ColumnLink{X0=Math.Round((a.Num(10)-x0)*Scale),Y0=Math.Round((a.Num(20)-y0)*Scale),X1=Math.Round((b.Num(10)-x0)*Scale),Y1=Math.Round((b.Num(20)-y0)*Scale)});}c.Links=links;}
+ /* a reference elevation per column as RCDC's DETAIL OF COLUMN (owner, 22 November 2026: "pwede ka ba gumawa din ng reference elevation
+    per column.. gaya doon sa rcdc"): at 1:50, the floors with their elevations (TOC), the column outline per level, the ties at their
+    spacing (Lo zones at each end, the rest between) with the zone dimensions and tie labels, the main bars lapped above each floor with
+    their label (laps at the slab top or at mid height, as RCDC's lapping position; owner: COLUMNS_WALLS.dxf "based din dito"), 90° hooks at the top, and SECTION 1-1 beside it with the bar legend. Beam depths at the joints are not in the column
+    schedule, so the joints are not drawn. */
+ const double ES=50;
+ static double Elevations(ColumnSheet sh,ColumnSchedule s,List<ColumnGroup> groups,double yTop,bool aci,double maxRight){
+  double x=0,y0=yTop,rowBottom=yTop;Func<int,string> bar=d=>aci?"#"+d:"%%C"+d;Func<double,string> el=v=>"EL. "+(v>0?"+":"")+v.ToString("0.000",Inv);
+  foreach(var g in groups){var labels=new List<double[]>();var lv=Enumerable.Range(0,s.Levels.Count).Where(l=>s.Cell(g.Source[0],l)!=null).OrderBy(l=>Math.Min(s.Levels[l].FromM,s.Levels[l].ToM)).ToList();if(lv.Count==0)continue;
+   double bot=Math.Min(s.Levels[lv[0]].FromM,s.Levels[lv[0]].ToM),top=lv.Max(l=>Math.Max(s.Levels[l].FromM,s.Levels[l].ToM)),H=(top-bot)*1000/ES;
+   var c0=s.Cell(g.Source[0],lv[0]);double wMax=lv.Max(l=>s.Cell(g.Source[0],l).B)/ES,secW=c0.B/Scale,secH=c0.H/Scale,pitch=Math.Max(40,secW+14)+30+wMax+48;
+   if(x>0&&x+pitch>maxRight){x=0;y0=rowBottom-10;}
+   double baseY=y0-H-14,ex=x+Math.Max(40,secW+14)+30;
+   /* SECTION 1-1 of the lowest level with its bars */
+   double sx=x+4,sy=baseY+H/2-secH/2;Sketch(sh,c0,sx,sy,"E-",false);sh.Text(c0.B.ToString("0",Inv),sx+secW/2,sy-1,2,2,false,"E-TEXT");sh.Text(c0.H.ToString("0",Inv),sx-1.5,sy+secH/2,2,6,false,"E-TEXT");
+   int n=1;double ly=sy-6;foreach(var k in c0.Counts){BarSymbol(sh,sx+1,ly,Ring,Symbol(k.Key),"E-LEGEND","E-LEGEND");sh.Text("("+n+") "+k.Value+"-"+bar(k.Key),sx+3,ly,2,4,false,"E-TEXT");ly-=3.6;n++;}
+   sh.Text("SECTION 1-1 ("+g.Mark+")",sx+secW/2,ly-2,2.5,5,true,"E-TITLE");
+   for(int k=0;k<lv.Count;k++){var c=s.Cell(g.Source[0],lv[k]);var L=s.Levels[lv[k]];double lo=Math.Min(L.FromM,L.ToM),hi=Math.Max(L.FromM,L.ToM),yb=baseY+(lo-bot)*1000/ES,yt=baseY+(hi-bot)*1000/ES,wl=c.B/ES;bool last=k==lv.Count-1;
+    /* the column and the floors */sh.Line(ex,yb,ex,yt,"E-OUTLINE");sh.Line(ex+wl,yb,ex+wl,yt,"E-OUTLINE");sh.Line(ex-7,yt,ex,yt,"E-OUTLINE");sh.Line(ex+wl,yt,ex+wl+7,yt,"E-OUTLINE");if(k==0){sh.Line(ex-7,yb,ex+wl+7,yb,"E-OUTLINE");}
+    /* ties: first 50 from each face, Z1 spacing over Lo at each end, the rest between */
+    double hmm=(hi-lo)*1000,lom=Math.Min(c.Lo,hmm/2),s1=Math.Max(25,c.S1Main),s2=Math.Max(25,c.S2);var ties=new List<double>();for(double t=50;t<=lom+1e-6;t+=s1)ties.Add(t);for(double t=hmm-50;t>=hmm-lom-1e-6;t-=s1)ties.Add(t);double a=ties.Where(t=>t<=lom+1e-6).DefaultIfEmpty(0).Max(),b=ties.Where(t=>t>=hmm-lom-1e-6).DefaultIfEmpty(hmm).Min();for(double t=a+s2;t<b-s2*.5;t+=s2)ties.Add(t);
+    foreach(var t in ties)sh.Line(ex+.3,yb+t/ES,ex+wl-.3,yb+t/ES,"E-TIES");
+    /* zone dimensions and labels */double xd=ex-4;var zones=new List<double[]>{new[]{0,lom,s1},new[]{lom,hmm-lom,s2},new[]{hmm-lom,hmm,s1}}.Where(z=>z[1]-z[0]>1).ToList();
+    foreach(var z in zones){double za=yb+z[0]/ES,zb=yb+z[1]/ES;sh.Line(xd,za,xd,zb,"E-DIM");sh.Line(xd-1,za,xd+1,za,"E-DIM");sh.Line(xd-1,zb,xd+1,zb,"E-DIM");sh.Text((z[1]-z[0]).ToString("0",Inv),xd-.8,(za+zb)/2,1.8,8,false,"E-DIM",0,90);
+     labels.Add(new[]{za,zb,z[2],c.TieDia,xd});}
+    /* main bars: each level's bars from its splice to the next splice plus the lap (RCDC lapping position: slab top, just above the
+       floor, or mid height of the level above), 90° hooks at the top, dowel hooks at the bottom */
+    Func<int,double> splice=q=>{var Lq=s.Levels[lv[q]];double ybq=baseY+(Math.Min(Lq.FromM,Lq.ToM)-bot)*1000/ES,ytq=baseY+(Math.Max(Lq.FromM,Lq.ToM)-bot)*1000/ES;return lapMid?(ybq+ytq)/2-(ytq-ybq)/8:ybq;};
+    double lapH=Math.Min(12,(hi-lo)*1000/ES/4),off=k%2==0?.8:1.2,y0b=k==0?yb-1.5:splice(k),y1=last?yt-.6:splice(k+1)+lapH;
+    sh.Line(ex+off,y0b,ex+off,y1,"E-BARS");sh.Line(ex+wl-off,y0b,ex+wl-off,y1,"E-BARS");if(last){sh.Line(ex+off,y1,ex+off+2,y1,"E-BARS");sh.Line(ex+wl-off,y1,ex+wl-off-2,y1,"E-BARS");}if(k==0){sh.Line(ex+off,y0b,ex+off-2,y0b,"E-BARS");sh.Line(ex+wl-off,y0b,ex+wl-off+2,y0b,"E-BARS");}
+    if(!last)sh.Text("LAP",ex+wl+1,splice(k+1)+lapH/2,1.6,4,false,"E-TEXT");
+    /* bar label with its leader */int m=1;string lbl=string.Join(" +\n",c.Counts.Select(q=>"("+(m++)+") "+q.Value+"-"+bar(q.Key)));double my=yb+(yt-yb)*.72;sh.Line(ex+wl/2,my,ex+wl+9,my,"E-TEXT");sh.Text(lbl,ex+wl+10,my,2,4,false,"E-TEXT");
+    /* elevation marks */Action<double,double,string> mark=(yy,v,tag)=>{double mx=ex+wl+8;sh.PLine(V(mx-1.2,yy+2,0,mx+1.2,yy+2,0,mx,yy,0),true,0,"E-TEXT");sh.Line(mx,yy,mx+14,yy,"E-TEXT");sh.Text(el(v),mx+2,yy+.8,2,7,false,"E-TEXT");sh.Text(tag,mx+2,yy-.8,1.8,1,false,"E-TEXT");};
+    mark(yt,hi,"TOC");if(k==0)mark(yb,lo,"BOTTOM OF COLUMN");}
+   /* one tie label per run of zones with the same ties (the Lo zones either side of a floor share one) */
+   for(int q=0;q<labels.Count;){int r=q;while(r+1<labels.Count&&Math.Abs(labels[r+1][0]-labels[r][1])<1e-6&&labels[r+1][2]==labels[q][2]&&labels[r+1][3]==labels[q][3])r++;
+    sh.Text(bar((int)labels[q][3])+(aci?"":"mm")+"\n@ "+labels[q][2].ToString("0",Inv)+(aci?" O.C.":" C/C"),labels[q][4]-3.2,(labels[q][0]+labels[r][1])/2,1.7,8,false,"E-TEXT",0,90);q=r+1;}
+   sh.Text("DETAIL OF COLUMN "+g.Mark,ex+wMax/2,baseY-6,3,5,true,"E-TITLE");sh.Line(ex+wMax/2-20,baseY-8,ex+wMax/2+20,baseY-8,"E-TITLE");sh.Text("(SCALE 1:50)",ex+wMax/2,baseY-10.5,2,5,false,"E-TITLE");
+   rowBottom=Math.Min(rowBottom,Math.Min(baseY-14,ly-6));x+=pitch;}
+  return rowBottom;}
+ [ThreadStatic] internal static bool noElevations,lapMid;
  public static ColumnSheet Layout(ColumnSchedule s,List<ColumnGroup> groups,string title,bool aci=false){SetSymbols(s.Cells.Values.SelectMany(c=>c.Bars).Select(b=>b.Dia));openExtra=s.OpenExtra;rawMarks=new Dictionary<int,List<RawShape>>();rawRing=0;return aci?LayoutAci(s,groups,title):LayoutRows(s,groups,title);}
  static string TypeName(int i){return i<26?((char)('A'+i)).ToString():TypeName(i/26-1)+(char)('A'+i%26);}
  internal static string AciBars(ColumnCell c){return string.Join(" + ",c.Counts.Select(k=>k.Value+"-#"+k.Key));}
@@ -303,7 +345,7 @@ static class ColumnFormatter {
     foreach(int sgn in new[]{-1,1}){double bx=xs+sgn*off;sh.Line(bx,y0,bx,y1,"ELEVATION");if(last||!next)sh.Line(bx,y1,bx+sgn*2,y1,"ELEVATION");if(first)sh.Line(bx,y0,bx+sgn*2,y0,"ELEVATION");}
     if(next){double ly=bandTop[l],dx=xs+elevW/2-2.5;sh.Line(dx,ly,dx,ly+lapDraw,"DIM");sh.Line(dx-1,ly,dx+1,ly,"DIM");sh.Line(dx-1,ly+lapDraw,dx+1,ly+lapDraw,"DIM");sh.Text("LAP",dx-.8,ly+lapDraw/2,1.6,8,false,"DIM",0,90);}}}
   y=bottom-9;sh.Text("COLUMN SCHEDULE",width/2,y,5,5,true,"TITLE");sh.Line(width/2-27,y-3.4,width/2+27,y-3.4,"TITLE");
-  y-=10;
+  y-=10;if(!noElevations)y=Elevations(sh,s,groups,y,true,Math.Max(width,250))-6;
   var sz=s.Cells.Values.SelectMany(c=>c.Bars).Select(b=>b.Dia).Distinct().OrderByDescending(d=>d).ToList();sh.Text("REMARKS:",0,y,2.5,4,true,"REMARKS");for(int k=0;k<sz.Count;k++){BarSymbol(sh,4.54,y-4.93-4*k,Ring*1.2,Symbol(sz[k]),"LEGEND","LEGEND");sh.Text("#"+sz[k]+" ("+sz[k]+" mm BAR)",9.6,y-4.93-4*k,2,4,false,"LEGEND");}y-=4.93+4*sz.Count+4;
   sh.Text("NOTES: TIES / HOOPS \"#10 @ 75 (Lo = 585) / 200\" = HOOPS AT 75 WITHIN Lo FROM EACH JOINT FACE (FIRST HOOP 50 FROM THE FACE) AND AT 200 ELSEWHERE; TIE ARRANGEMENT: AS DRAWN IN EACH LEVEL. LAP SPLICES ABOVE THE FLOORS: CLASS B TENSION LAP (ACI 318 25.5.2), LENGTHS PER THE BAR BENDING SCHEDULE. DIMENSIONS IN mm, ELEVATIONS IN m.",0,y,1.9,7,false,"TEXT",width);
   sh.Left=0;sh.Right=width;sh.Top=top+(string.IsNullOrWhiteSpace(title)?2:7);sh.Bottom=y-8;return sh;}
@@ -320,7 +362,7 @@ static class ColumnFormatter {
   foreach(var t in data.Where(t=>t.T.StartsWith("ACI ORIG|"))){var p=t.T.Split(new[]{'|'},3);if(p.Length==3)s.Originals[p[1]]=p[2];}
   /* levels from the lowest, marks in the drawn order */
   if(s.Cells.Count==0)throw new Exception("No column sections in the ACI column schedule.");return s;}
- public static ColumnFormatResult Build(string raw,string prefix,string title,bool merge,bool aci=false,bool openTies=false){var s=ColumnScheduleReader.Read(raw);s.OpenExtra=openTies;var groups=Group(s,prefix,merge);if(groups.Count==0)throw new Exception("No columns to format.");var sheet=Layout(s,groups,title,aci);if(aci)AciDetailing.Apply(sheet);return new ColumnFormatResult{Schedule=s,Groups=groups,Sheet=sheet,Drawing=ToDxf(sheet,s,groups),SourceCount=s.Marks.Count};}
+ public static ColumnFormatResult Build(string raw,string prefix,string title,bool merge,bool aci=false,bool openTies=false,bool elevations=true,bool lapAtMid=false){noElevations=!elevations;lapMid=lapAtMid;var s=ColumnScheduleReader.Read(raw);s.OpenExtra=openTies;var groups=Group(s,prefix,merge);if(groups.Count==0)throw new Exception("No columns to format.");var sheet=Layout(s,groups,title,aci);if(aci)AciDetailing.Apply(sheet);return new ColumnFormatResult{Schedule=s,Groups=groups,Sheet=sheet,Drawing=ToDxf(sheet,s,groups),SourceCount=s.Marks.Count};}
  /* the DXF: header, tables and styles of the slab template; entities drawn new */
  internal static Dxf ToDxf(ColumnSheet sh,ColumnSchedule s,List<ColumnGroup> groups){Dxf drawing;using(var stream=typeof(ColumnFormatter).Assembly.GetManifestResourceStream("SlabTemplate.dxf")){if(stream==null)throw new Exception("Template resource missing.");using(var reader=new StreamReader(stream,Encoding.UTF8,true))drawing=Dxf.Parse(reader.ReadToEnd());}
   var original=drawing.ModelEntities();var linePrototype=original.First(e=>e.Type=="LINE");var textPrototype=original.First(e=>e.Type=="MTEXT");string owner=linePrototype.Get(330);
