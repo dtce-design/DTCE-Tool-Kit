@@ -1,0 +1,16 @@
+DTCE Tool Kit v6.2.1 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Column Formatter):
+- Tie zones clearly labelled ("clearly makita if ano yung main link, z1 main, z1 others etc"): each cell has a small table
+  Z1 MAIN LINK | Z1 OTHERS | Z2 LINKS with the bar and spacing, and "Lo = 585 (Z1 at each end)". In the section the main link
+  (outer hoop) is magenta, the other links and crossties cyan; the notes say which is which.
+- ACI option follows an ACI schedule ("then option na susundan ang aci schedule"): titled COLUMN SCHEDULE, each level gives the size,
+  vertical bars and the tie table in text, and one TIE PATTERN row shows the section of each mark (a level whose layout differs keeps
+  its own sketch); # bars, O.C. spacing and the ACI 318M notes as in v6.2.0.
+- The owner's RCDC samples: schedule.dxf reads like COLUMN_SCHED.dxf (34 columns, 4 levels, 107 sections > 9 marks). Both layouts
+  export and read back unchanged (Bar Bending Schedule and Bill of Quantities); files from v6.1.0 / v6.2.0 still read.
+- Not yet used: elev.dxf (RCDC column elevations - hoop zones per level, joint hoops, footing start); the take-off still assumes the
+  level height with Lo at both ends.
+Checked on Linux/Mono only.
+
+Includes v6.2.0 and earlier builds.
