@@ -21,6 +21,10 @@ static class BeamDetailPaper {
  internal sealed class SectionGroup {public string Name;public double X;public List<string> Same=new List<string>();}
  /* "1A, 2A, 3A, 5A" -> "1A to 3A, 5A" */
  internal static string Compact(List<string> names){var parts=new List<string>();foreach(var byLetter in names.GroupBy(n=>n.Substring(n.Length-1))){var nums=byLetter.Select(n=>int.Parse(n.Substring(0,n.Length-1),Inv)).OrderBy(v=>v).ToList();int i=0;while(i<nums.Count){int k=i;while(k+1<nums.Count&&nums[k+1]==nums[k]+1)k++;parts.Add(k-i>=2?nums[i]+byLetter.Key+" to "+nums[k]+byLetter.Key:string.Join(", ",nums.Skip(i).Take(k-i+1).Select(v=>v+byLetter.Key)));i=k+1;}}return string.Join(", ",parts);}
+ /* sections named by the beam mark and position, not "1A / 1B" (owner, 22 November 2026: "hindi ba dapat section ng beam mark ang
+    ilagay, kasi nakakalito sa schedule din ng bar mark"): 1B-001 L / M / R; a mark used in more than one span of the line adds the span */
+ internal static string CutLabel(CutLineGeometry geo,string key,bool words=false){int j;if(geo==null||key.Length<2||!int.TryParse(key.Substring(0,key.Length-1),NumberStyles.Integer,Inv,out j)||j<1||j>geo.Marks.Length)return key;j--;
+  string pos=key.EndsWith("A")?(words?"LEFT":"L"):key.EndsWith("B")?(words?"MIDSPAN":"M"):(words?"RIGHT":"R");string mark=geo.Marks[j];bool repeated=geo.Marks.Count(m=>m==mark)>1;return words?mark+"  "+pos:mark+(repeated?" (span "+(j+1)+")":"")+" "+pos;}
  internal static List<SectionGroup> Groups(CutResult r,CutLineGeometry geo){var pieces=r.Pieces.Where(p=>p.Line==geo.Line).ToList();var list=new List<SectionGroup>();var index=new Dictionary<string,SectionGroup>();
   foreach(var c in Cuts(geo)){int j=0;for(int q=0;q<geo.Ln.Length;q++)if(c.Value>=geo.SupportStart[q])j=q;var here=pieces.Where(p=>(Longitudinal(p)||p.Location.StartsWith("Side-face"))&&p.Start<=c.Value+1e-9&&p.End>=c.Value-1e-9).ToList();
    var zone=j<geo.Ties.Count?geo.Ties[j].FirstOrDefault(z=>c.Value-geo.FaceLeft[j]>=z.From-1e-9&&c.Value-geo.FaceLeft[j]<=z.To+1e-9):null;
@@ -94,7 +98,7 @@ static class BeamDetailPaper {
    using(var lapPen=new Pen(Color.FromArgb(220,130,20),.9f))foreach(var c in r.Splices.Where(c=>c.Line==geo.Line&&c.To>w0&&c.From<w1)){var piece=pieces.FirstOrDefault(p=>p.Id.StartsWith(c.Bar+".")&&Math.Abs(p.End-c.To)<1e-6);bool top=piece!=null&&piece.Top;int n=Math.Max(1,top?lanes[0]:lanes[1]);float y=top?beamTop+10+n*6:beamBottom-10-n*6;float a=X(c.From),b=X(c.To);
     var col=c.Ok?Color.FromArgb(220,130,20):Color.Firebrick;lapPen.Color=col;g.DrawLine(lapPen,a,y,b,y);g.DrawLine(lapPen,a,y-3,a,y+3);g.DrawLine(lapPen,b,y-3,b,y+3);string lt="LAP "+F0(c.Lap*1000)+(c.Ok?"":" NG");var lsz=g.MeasureString(lt,small);float ly=top?y+1:y-lsz.Height;using(var bg=new SolidBrush(Color.FromArgb(235,255,255,255)))g.FillRectangle(bg,(a+b)/2-lsz.Width/2,ly,lsz.Width,lsz.Height-2);using(var tb=new SolidBrush(col))g.DrawString(lt,small,tb,(a+b)/2-lsz.Width/2,ly-1);}
    /* section cuts */
-   using(var cut=new Pen(Color.FromArgb(200,40,40),.9f){DashStyle=DashStyle.DashDot})foreach(var c in Cuts(geo).Where(q=>q.Value>w0&&q.Value<w1)){float px=X(c.Value);g.DrawLine(cut,px,beamTop-8,px,beamBottom+9);/* the cut name at mid-depth, clear of the bar labels */var csz=g.MeasureString(c.Key,small);float cyc=beamBottom+9;using(var bg=new SolidBrush(Color.White))g.FillRectangle(bg,px-csz.Width/2,cyc,csz.Width,csz.Height-2);using(var b=new SolidBrush(Color.FromArgb(200,40,40)))g.DrawString(c.Key,small,b,px-csz.Width/2,cyc-1);}
+   using(var cut=new Pen(Color.FromArgb(200,40,40),.9f){DashStyle=DashStyle.DashDot})foreach(var c in Cuts(geo).Where(q=>q.Value>w0&&q.Value<w1)){float px=X(c.Value);g.DrawLine(cut,px,beamTop-8,px,beamBottom+9);/* the cut name at mid-depth, clear of the bar labels */var cutName=CutLabel(geo,c.Key);var csz=g.MeasureString(cutName,small);float cyc=beamBottom+9;using(var bg=new SolidBrush(Color.White))g.FillRectangle(bg,px-csz.Width/2,cyc,csz.Width,csz.Height-2);using(var b=new SolidBrush(Color.FromArgb(200,40,40)))g.DrawString(cutName,small,b,px-csz.Width/2,cyc-1);}
    /* dimensions (owner, 21 November 2026: "masmaayos at masmaganda na dimensions"): one chain of supports and clear spans, one chain
       of the 2h zones and the allowed splice zone of each span, then the overall length; extension lines from the beam faces */
    float dy=hoopLine+18;
@@ -155,7 +159,7 @@ static class BeamDetailPaper {
   int j=0;for(int q=0;q<geo.Ln.Length;q++)if(x>=geo.SupportStart[q])j=q;double b=geo.Width[j]*1000,h=geo.Depth[j]*1000,cover=geo.Cover*1000;
   var zone=j<geo.Ties.Count?geo.Ties[j].FirstOrDefault(z=>x-geo.FaceLeft[j]>=z.From-1e-9&&x-geo.FaceLeft[j]<=z.To+1e-9):null;int tieDia=zone!=null?zone.Dia:10;int legs=zone!=null?zone.Legs:2;
   using(var small=Small())using(var bold=Bold())using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted))using(var dim=new Pen(PowTheme.Muted,.6f)){
-   string where=name.EndsWith("B")?"midspan":name.EndsWith("A")?"near left face":"near right face";Center(g,"SECTION "+name+(typ?" (TYP.)":""),bold,ink,box.Left+box.Width/2,box.Top+2);Center(g,(typ?"":"span "+(j+1)+" ")+where+" - 1:"+scale,small,muted,box.Left+box.Width/2,box.Top+13);
+   string where=name.EndsWith("B")?"midspan":name.EndsWith("A")?"near left face":"near right face";Center(g,CutLabel(geo,name,true)+(typ?" (TYP.)":""),bold,ink,box.Left+box.Width/2,box.Top+2);Center(g,(typ?"":"span "+(j+1)+" ")+where+" - 1:"+scale,small,muted,box.Left+box.Width/2,box.Top+13);
    var here=pieces.Where(p=>Longitudinal(p)&&p.Start<=x+1e-9&&p.End>=x-1e-9).ToList();var topBars=here.Where(p=>p.Top).ToList();var botBars=here.Where(p=>!p.Top).ToList();
    Func<List<CutPiece>,string> label=list=>string.Join(" + ",list.GroupBy(p=>p.Diameter).OrderByDescending(q=>q.Key).Select(q=>q.Sum(p=>p.PerLine)+"-Ø"+q.Key));
    float w=(float)(b*k),hh=(float)(h*k),x0=box.Left+(box.Width-w)/2+4,y0=box.Top+40;
@@ -182,7 +186,7 @@ static class BeamDetailPaper {
    DimH(g,dim,small,muted,x0,x0+w,y0+hh+22,F0(b));{float vx=x0-8;g.DrawLine(dim,vx,y0,vx,y0+hh);g.DrawLine(dim,vx-3,y0,vx+3,y0);g.DrawLine(dim,vx-3,y0+hh,vx+3,y0+hh);var st=g.Save();g.TranslateTransform(vx-2,y0+hh/2);g.RotateTransform(-90);var sz=g.MeasureString(F0(h),small);g.DrawString(F0(h),small,muted,-sz.Width/2,-sz.Height);g.Restore(st);}
    string tieText=zone!=null?legs+"L-Ø"+tieDia+" @ "+F0(zone.Spacing*1000)+(legs>2?" (crossties)":""):"in support";Center(g,tieText,small,ink,x0+w/2-4,y0+hh+30);
    Center(g,"cover "+F0(cover)+", hoops 135°",small,muted,x0+w/2-4,y0+hh+40);
-   var marks=typ?"Typ. at "+Compact(grp.Same)+" (bar marks per the elevation)":string.Join(", ",here.Select(p=>p.Short));var rect=new RectangleF(box.Left+4,y0+hh+51,box.Width-8,box.Bottom-(y0+hh+51));g.DrawString(marks,small,muted,rect);
+   var marks=typ?"Typ. at "+string.Join(", ",grp.Same.Select(q=>CutLabel(geo,q)))+" (bar marks per the elevation)":string.Join(", ",here.Select(p=>p.Short));var rect=new RectangleF(box.Left+4,y0+hh+51,box.Width-8,box.Bottom-(y0+hh+51));g.DrawString(marks,small,muted,rect);
    using(var frame=new Pen(PowTheme.Line,.5f))g.DrawRectangle(frame,box.Left+1,box.Top,box.Width-2,box.Height-4);}}
 }
 }
