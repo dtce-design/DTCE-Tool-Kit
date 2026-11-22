@@ -1,0 +1,26 @@
+DTCE Tool Kit v7.0.1 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH - Response Spectrum (RSA) design sheet, Earthquake tab (owner: "siguro with map tapos may circles, diameter is based sa
+magnitude"; "if no recorded seismic sa fault na yun?"; "use this [M = 5.08 + 1.16 log10 L] automatically measure the fault length").
+- Fault length and Mmax: after Look up site, the site's fault is found in built-in fault traces - the HazardHunterPH segment (e.g.
+  West Valley Fault), then the fault system name, else the nearest mapped trace - and measured along all of its traces. Mmax =
+  5.08 + 1.16 log10(L km) (Wells and Coppersmith 1994, surface rupture length, all slip types). The slip rate is filled from the
+  trace data where it has one, else from the suggested PHIVOLCS value. Values the user typed are kept; auto values follow a new look-up.
+  Unnamed regional / plate-boundary segments are measured on their own. Notes are added for L beyond about 400 km and for subduction
+  interfaces (check Mmax with PHIVOLCS).
+- Seismic source type (NSCP 2015 Table 208-3) now works with no slip rate: Mmax >= 7.0 gives Type A (conservative), otherwise Type B
+  (Type C needs a slip rate <= 2 mm/yr). With a slip rate: A when Mmax >= 7.0 and SR >= 5; C when Mmax < 6.5 and SR <= 2; B otherwise.
+  At 15 km or more the summary notes that Na = Nv = 1.0 for any source type (Tables 208-4, 208-5).
+- If HazardHunterPH cannot be reached, the distance to the trace is used.
+- Earthquake map: coastline, all fault traces (site fault in red with "L = .. km, Mmax .."), the search radius, the site (star), and
+  the historical earthquakes as circles sized by magnitude and coloured by depth (< 70, 70-300, > 300 km), with a legend; hover for
+  details, wheel to zoom, drag to pan. "Load PHIVOLCS fault map (KMZ)" draws the image tiles of a PHIVOLCS / Google Earth KMZ (e.g. the
+  Active Fault map tiles) under the map; "Clear fault map" removes it.
+- The report's site section lists the fault trace, its measured length and the Mmax relation.
+
+Data: fault traces from the GEM Global Active Faults Database (Styron and Pagani 2020, CC BY-SA 4.0; Philippine catalogue compiled
+from PHIVOLCS maps, plus Bird 2003 trench segments); coastline from Natural Earth (public domain). The traces are for estimating;
+the official PHIVOLCS fault map and HazardHunterPH distance govern.
+
+Tests: EarthquakeSiteTests 19 checks (Mmax relation, trace and coastline data, nearest trace, HazardHunterPH segment match, source type
+with and without slip rate), RsaCurveTests 21 checks.
