@@ -4,7 +4,7 @@ namespace BeamScheduleFormatter {
    kong kmz file?"). The KMZ holds only georeferenced images, so the red active fault lines (solid, dashed, dotted offshore
    projections) are traced from the most detailed tiles: red pixels are marked on a grid of about 150 m, the small gaps are closed
    (dotted lines), the lines are thinned to their centre and followed into polylines, and each dash is linked to the next one in line
-   with it (up to about 1.5 km) so a dashed fault is one line.
+   with it (up to about 2 km) so a dashed fault is one line.
    Each connected line is one fault trace; its length is measured along the polyline. The legend samples (short horizontal lines)
    and filled red symbols (the logo) are left out. Black "potentially active" faults are not traced: black is also the label text. */
 static class KmzFaultTracer {
@@ -32,7 +32,7 @@ static class KmzFaultTracer {
    var paths=comp.Count==1?new List<List<int>>{comp}:Paths(new HashSet<int>(comp),gw,gh);if(paths.Count>0)pieces.Add(paths);}
   /* the ends of the pieces with their direction (outwards); a short dash or dot has none */
   var ends=new List<double[]>();/* x, y, dirX, dirY (NaN = none), piece */
-  double reach0=1.5/cellKm;
+  double reach0=2.0/cellKm;var dashSeg=new Dictionary<int,double[]>();/* a dash measured end to end */
   for(int k=0;k<pieces.Count;k++){var pc=pieces[k];var cells=new HashSet<int>(pc.SelectMany(q=>q));
    int extent=Math.Max(cells.Max(q=>q%gw)-cells.Min(q=>q%gw),cells.Max(q=>q/gw)-cells.Min(q=>q/gw));
    if(cells.Count<6||extent<reach0){/* a dash: its direction is the long axis of its red pixels, an end each way */int x0=cells.Min(q=>q%gw)-1,x1=cells.Max(q=>q%gw)+1,y0=cells.Min(q=>q/gw)-1,y1=cells.Max(q=>q/gw)+1;double sx=0,sy=0,sxx=0,syy=0,sxy=0;int m=0;
@@ -41,14 +41,14 @@ static class KmzFaultTracer {
     if(m>=3){double wsum=0;for(int y=Math.Max(0,y0);y<=Math.Min(gh-1,y1);y++)for(int x=Math.Max(0,x0);x<=Math.Min(gw-1,x1);x++)wsum+=count[y*gw+x];double mx=sx/wsum,my=sy/wsum,vxx=sxx/wsum-mx*mx,vyy=syy/wsum-my*my,vxy=sxy/wsum-mx*my;
      /* only an elongated dash has a direction */double tr=vxx+vyy,det=vxx*vyy-vxy*vxy,l1=tr/2+Math.Sqrt(Math.Max(0,tr*tr/4-det)),l2=tr/2-Math.Sqrt(Math.Max(0,tr*tr/4-det));if(l1>2.5*Math.Max(l2,0.05)){double th=0.5*Math.Atan2(2*vxy,vxx-vyy);ax=Math.Cos(th);ay=Math.Sin(th);}}
     if(double.IsNaN(ax)){ends.Add(new double[]{cxp,cyp,double.NaN,double.NaN,k});continue;}
-    double pmin=cells.Min(q=>(q%gw-cxp)*ax+(q/gw-cyp)*ay),pmax=cells.Max(q=>(q%gw-cxp)*ax+(q/gw-cyp)*ay);
-    ends.Add(new double[]{cxp+pmin*ax,cyp+pmin*ay,-ax,-ay,k});ends.Add(new double[]{cxp+pmax*ax,cyp+pmax*ay,ax,ay,k});continue;}
+    /* the ends at the outermost red pixels of the dash (thinning shortens it), within its own width */double pmin=0,pmax=0;for(int y=Math.Max(0,y0);y<=Math.Min(gh-1,y1);y++)for(int x=Math.Max(0,x0);x<=Math.Min(gw-1,x1);x++){if(count[y*gw+x]==0)continue;double along=(x-cxp)*ax+(y-cyp)*ay,across=Math.Abs(-(x-cxp)*ay+(y-cyp)*ax);if(across>2)continue;pmin=Math.Min(pmin,along);pmax=Math.Max(pmax,along);}
+    dashSeg[k]=new[]{cxp+pmin*ax,cyp+pmin*ay,cxp+pmax*ax,cyp+pmax*ay};ends.Add(new double[]{cxp+pmin*ax,cyp+pmin*ay,-ax,-ay,k});ends.Add(new double[]{cxp+pmax*ax,cyp+pmax*ay,ax,ay,k});continue;}
    foreach(var path in pc){for(int e=0;e<2;e++){if(e==1&&path.Count<2)continue;int end=e==0?path[0]:path[path.Count-1];int nb=0;int ex=end%gw,ey=end/gw;for(int yy=-1;yy<=1;yy++)for(int xx=-1;xx<=1;xx++)if((xx!=0||yy!=0)&&cells.Contains((ey+yy)*gw+ex+xx))nb++;if(nb>1)continue;
      double ddx=double.NaN,ddy=double.NaN;if(path.Count>=4){int back=Math.Min(6,path.Count-1);int b=e==0?path[back]:path[path.Count-1-back];double vx=ex-b%gw,vy=ey-b/gw,L=Math.Sqrt(vx*vx+vy*vy);if(L>0){ddx=vx/L;ddy=vy/L;}}
      ends.Add(new double[]{ex,ey,ddx,ddy,k});}}}
   /* link each end to the next piece in line with it (the gaps of the dashed lines, up to about 1.5 km) */
   var parent=Enumerable.Range(0,pieces.Count).ToArray();Func<int,int> root=null;root=q=>{while(parent[q]!=q){parent[q]=parent[parent[q]];q=parent[q];}return q;};
-  double reach=1.5/cellKm;var cand=new List<double[]>();var hash=new Dictionary<long,List<int>>();int hs=Math.Max(1,(int)Math.Ceiling(reach));
+  double reach=2.0/cellKm;var cand=new List<double[]>();var hash=new Dictionary<long,List<int>>();int hs=Math.Max(1,(int)Math.Ceiling(reach));
   for(int e=0;e<ends.Count;e++){long key=((long)((int)ends[e][0]/hs)<<32)|(uint)((int)ends[e][1]/hs);List<int> l;if(!hash.TryGetValue(key,out l))hash[key]=l=new List<int>();l.Add(e);}
   Func<double,double,double,double,double> angle=(ax,ay,bx,by)=>double.IsNaN(ax)?25:Math.Acos(Math.Max(-1,Math.Min(1,ax*bx+ay*by)))*180/Math.PI;
   for(int e=0;e<ends.Count;e++){int cx=(int)ends[e][0]/hs,cy=(int)ends[e][1]/hs;for(int yy=-1;yy<=1;yy++)for(int xx=-1;xx<=1;xx++){List<int> l;if(!hash.TryGetValue(((long)(cx+xx)<<32)|(uint)(cy+yy),out l))continue;
@@ -59,7 +59,7 @@ static class KmzFaultTracer {
   /* the fault lines: linked pieces with their links */
   Func<double,double,double[]> geo=(x,y)=>new[]{W+(x*f+f/2.0)*dx,N-(y*f+f/2.0)*dy};
   var byRoot=new Dictionary<int,List<FaultTrace>>();Func<int,List<FaultTrace>> of=q=>{List<FaultTrace> l;int rt=root(q);if(!byRoot.TryGetValue(rt,out l))byRoot[rt]=l=new List<FaultTrace>();return l;};
-  for(int k=0;k<pieces.Count;k++)foreach(var path in pieces[k]){if(path.Count<2)continue;var simple=Simplify(path.Select(p=>new double[]{p%gw,p/gw}).ToList(),1.0);var tr=new FaultTrace{Catalog="KMZ",SlipType=""};foreach(var c in simple)tr.Points.Add(geo(c[0],c[1]));of(k).Add(tr);}
+  for(int k=0;k<pieces.Count;k++){double[] ds;if(dashSeg.TryGetValue(k,out ds)){var tr=new FaultTrace{Catalog="KMZ",SlipType=""};tr.Points.Add(geo(ds[0],ds[1]));tr.Points.Add(geo(ds[2],ds[3]));if(tr.LengthKm>0)of(k).Add(tr);continue;}foreach(var path in pieces[k]){if(path.Count<2)continue;var simple=Simplify(path.Select(p=>new double[]{p%gw,p/gw}).ToList(),1.0);var tr=new FaultTrace{Catalog="KMZ",SlipType=""};foreach(var c in simple)tr.Points.Add(geo(c[0],c[1]));of(k).Add(tr);}}
   foreach(var l in links){var tr=new FaultTrace{Catalog="KMZ",SlipType=""};tr.Points.Add(geo(l[0],l[1]));tr.Points.Add(geo(l[2],l[3]));of((int)l[4]).Add(tr);}
   var groups=new List<List<FaultTrace>>();int n=0;
   foreach(var traces in byRoot.Values){double len=traces.Sum(t=>t.LengthKm);if(len<1.0)continue;

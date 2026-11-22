@@ -48,7 +48,7 @@ static class FaultTraces {
    "; Mmax = 5.08 + 1.16 log10(L) = "+e.Mmax.ToString("0.00",Inv)+" +/- "+WcSigma.ToString("0.00",Inv)+" (surface rupture length, all slip types, 77 earthquakes, SRL 1.3 to 432 km); slip rate "+(double.IsNaN(e.SlipRate)?"not in the data":e.SlipRate.ToString("0.0#",Inv)+" mm/yr")+"."+
    (e.LengthKm>WcMaxKm?" L exceeds the 432 km of the data: Mmax is extrapolated; take the segment that would rupture, or the PHIVOLCS magnitude.":e.LengthKm<WcMinKm?" L is below the 1.3 km of the data.":"")+
    (Subduction(e.SlipType)?" Subduction interface: the relation is for shallow crustal faults (subduction events are not in its data); use the PHIVOLCS trench magnitude.":"")+
-   (kmz?" Traced from the PHIVOLCS active fault map: red lines only, dashes up to about 1.5 km apart joined; a fault interrupted on the map may need its parts joined (Ctrl+click).":" Traces: GEM Global Active Faults Database (CC BY-SA 4.0), Philippine catalogue from PHIVOLCS maps.");
+   (kmz?" Traced from the PHIVOLCS active fault map: red lines only, dashes up to about 2 km apart joined; a fault interrupted on the map may need its parts joined (Ctrl+click).":" Traces: GEM Global Active Faults Database (CC BY-SA 4.0), Philippine catalogue from PHIVOLCS maps.");
   return e;}
  /* the Table 208-3 type at Mmax - s and Mmax + s: shows when the type depends on the scatter of the relation */
  internal static string Sensitivity(double mmax,double slip){if(double.IsNaN(mmax))return "";string n;string lo=SourceType(mmax-WcSigma,slip,out n),mid=SourceType(mmax,slip,out n),hi=SourceType(mmax+WcSigma,slip,out n);
