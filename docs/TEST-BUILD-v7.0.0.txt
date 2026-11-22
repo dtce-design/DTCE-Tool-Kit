@@ -1,0 +1,22 @@
+DTCE Tool Kit v7.0.0 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+MAJOR - new design sheet: Staircase Design (owner: "staircase design, lahat ng possible stairs design option. gawin interactive my
+diagrams models etc"). Design Sheets > Staircase Design, with its own access ("Staircase Design", program 8192; the desktop, web and
+iPhone access code generators list it - the iPhone app is not re-uploaded).
+- Stair types: straight flight (waist slab); dog-legged (two flights, half landing - the landing spans with the flights or sits on
+  its own beams / walls); open-well (three flights, two landings); spanning across (each step between walls / beams); stringer beams
+  (the waist spans between two stringers, the stringers along the flight); cantilever steps (from a wall / spine beam); slabless /
+  folded plate (sawtooth); spiral (cantilever treads from a central column).
+- NSCP 2015 (ACI 318-14): loads per Table 205-1 (stairs and exitways 4.8 kPa, tread 1.33 kN), self weight of the waist on the slope,
+  the steps and landings (23.6 kN/m3), finishes; U = 1.2D + 1.6L. Flexure (422.2) with the steel and spacing of the bars, minimum steel
+  and spacing (407.6.1, 407.7.2.3), one-way shear (422.5.5.1), minimum thickness for deflection (Table 407.3.1.1, 409.3.1.1 for the
+  stringers), stringer stirrups (422.5), spiral column axial (422.4.2), distribution bars; geometry checks (riser, tread, 2R + T,
+  width, headroom) against limits the user sets.
+- Interactive Model page: section with the reinforcement (or the step cross-section), plan with the flights / landings / UP arrows,
+  shaded 3D model (drag to rotate, wheel to zoom), factored load / shear / moment diagrams of the chosen member; everything redraws
+  as the inputs change. Results page with pass / fail and the bars to provide; calculation report with the plan, 3D model, diagrams,
+  sections, checks and bars; Save / Open sheet XML and the usual exports.
+Checked on Linux/Mono only: StaircaseTests (29 checks, hand calculations of the loads, moments, steel and checks), every stair type
+designs and passes with the defaults; not run on Windows here.
+
+Includes v6.2.15 and earlier builds.
