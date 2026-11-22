@@ -31,7 +31,7 @@ static class ColumnScheduleReader {
  internal static List<double[]> Points(Entity e){var list=new List<double[]>();double x=0;bool hasX=false;foreach(var p in e.P){double v;if(!double.TryParse(p.Value,NumberStyles.Float,Inv,out v))continue;if(p.Code==10){x=v;hasX=true;}else if(p.Code==20&&hasX){list.Add(new[]{x,v});hasX=false;}}return list;}
  internal static int Dia(string s){var m=Regex.Match(s??"",@"(?:#|%%[cC]|Ø|DIA\.?\s*)(\d+)");return m.Success?int.Parse(m.Groups[1].Value,Inv):0;}
  static double Num(string s){var m=Regex.Match(s??"",@"-?\d+(\.\d+)?");return m.Success?double.Parse(m.Value,Inv):double.NaN;}
- public static ColumnSchedule Read(string raw){var d=Dxf.Parse(raw);var all=d.ModelEntities();if(all.Any(e=>(e.Type=="TEXT"||e.Type=="MTEXT")&&(Text(e)=="SCHEDULE OF COLUMNS"||Text(e)=="COLUMN SCHEDULE")))return ColumnFormatter.ReadRevised(all);return ReadRcdc(d,all);}
+ public static ColumnSchedule Read(string raw){var d=Dxf.Parse(raw);var all=d.ModelEntities();if(all.Any(e=>(e.Type=="TEXT"||e.Type=="MTEXT")&&e.Get(8)=="MARK")&&all.Any(e=>(e.Type=="TEXT"||e.Type=="MTEXT")&&Text(e)=="COLUMN MARKED"))return ColumnFormatter.ReadRows(all);if(all.Any(e=>(e.Type=="TEXT"||e.Type=="MTEXT")&&(Text(e)=="SCHEDULE OF COLUMNS"||Text(e)=="COLUMN SCHEDULE")))return ColumnFormatter.ReadRevised(all);return ReadRcdc(d,all);}
  /* POLYLINE (old style) vertices follow the POLYLINE record as VERTEX records */
  static List<KeyValuePair<Entity,List<double[]>>> OldPolylines(Dxf d){var list=new List<KeyValuePair<Entity,List<double[]>>>();bool inside=false;Entity current=null;List<double[]> pts=null;
   foreach(var e in d.Records){if(e.Type=="SECTION"&&e.Get(2)=="ENTITIES"){inside=true;continue;}if(!inside)continue;if(e.Type=="ENDSEC")break;
@@ -86,14 +86,14 @@ static class ColumnScheduleReader {
 }
 
 /* the drawing primitives of the new template, used for the DXF and for the preview in the app */
-class SheetItem {public string Kind,Text,Layer="0";public double[] P;public double H,W;public int Anchor=5;public bool Bold;public int Color=256;}
+class SheetItem {public string Kind,Text,Layer="0";public double[] P;public double H,W,Rot;public int Anchor=5;public bool Bold;public int Color=256;}
 class ColumnSheet {public List<SheetItem> Items=new List<SheetItem>();public double Left,Top,Right,Bottom;
  public void Line(double x0,double y0,double x1,double y1,string layer="SCHEDULE",int color=256){Items.Add(new SheetItem{Kind="LINE",P=new[]{x0,y0,x1,y1},Layer=layer,Color=color});}
  public void Rect(double x0,double y0,double x1,double y1,string layer,int color=256){Items.Add(new SheetItem{Kind="RECT",P=new[]{x0,y0,x1,y1},Layer=layer,Color=color});}
  public void Disk(double x,double y,double r,string layer,int color){Items.Add(new SheetItem{Kind="DISK",P=new[]{x,y,r},Layer=layer,Color=color});}
  public void Circle(double x,double y,double r,string layer){Items.Add(new SheetItem{Kind="CIRCLE",P=new[]{x,y,r},Layer=layer});}
  public void RoundRect(double x0,double y0,double x1,double y1,double r,string layer){Items.Add(new SheetItem{Kind="RRECT",P=new[]{x0,y0,x1,y1,r},Layer=layer});}
- public void Text(string t,double x,double y,double h,int anchor=5,bool bold=false,string layer="TEXT",double wrap=0){Items.Add(new SheetItem{Kind="TEXT",Text=t,P=new[]{x,y},H=h,Anchor=anchor,Bold=bold,Layer=layer,W=wrap});}}
+ public void Text(string t,double x,double y,double h,int anchor=5,bool bold=false,string layer="TEXT",double wrap=0,double rot=0){Items.Add(new SheetItem{Kind="TEXT",Text=t,P=new[]{x,y},H=h,Anchor=anchor,Bold=bold,Layer=layer,W=wrap,Rot=rot});}}
 
 static class ColumnFormatter {
  static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
@@ -114,7 +114,7 @@ static class ColumnFormatter {
     90° hook; the bars as circles marked by size (as RCDC: a line, a dot, ...) with the bar legend beside the section. The bar size
     is kept in the layer (BARS-20), the links on MAINLINK / LINKS / CROSSTIES; prefix "P-" for the tie pattern row of the ACI schedule. */
  static void BarSymbol(ColumnSheet sh,double x,double y,double r,int rank,string layer,string markLayer){sh.Circle(x,y,r,layer);switch(rank%4){case 0:sh.Line(x,y-r,x,y+r,markLayer);break;case 1:sh.Disk(x,y,r*.4,markLayer,256);break;case 2:sh.Line(x-r,y,x+r,y,markLayer);break;default:sh.Line(x-r*.7,y-r*.7,x+r*.7,y+r*.7,markLayer);sh.Line(x-r*.7,y+r*.7,x+r*.7,y-r*.7,markLayer);break;}}
- static void Sketch(ColumnSheet sh,ColumnCell c,double x0,double y0,string p){double w=c.B/Scale,h=c.H/Scale;sh.Rect(x0,y0,x0+w,y0+h,p+"CONCRETE");
+ static void Sketch(ColumnSheet sh,ColumnCell c,double x0,double y0,string p,bool dims=true){double w=c.B/Scale,h=c.H/Scale;sh.Rect(x0,y0,x0+w,y0+h,p+"CONCRETE");
   double tie=c.TieDia>0?c.TieDia:10,rb=Math.Max(.5,(2*tie+tie/2)/Scale),tail=Math.Max(1.1,Math.Max(6*tie,75)/Scale);
   for(int i=0;i<c.Links.Count;i++){var l=c.Links[i];double ax=x0+l.X0/Scale,ay=y0+l.Y0/Scale,bx=x0+l.X1/Scale,by=y0+l.Y1/Scale;
    if(l.W<1||l.H<1){sh.Line(ax,ay,bx,by,p+"CROSSTIES");if(l.W<1){sh.Line(ax,by,ax+tail*.7,by-tail*.7,p+"HOOKS");sh.Line(ax,ay,ax+tail*.6,ay,p+"HOOKS");}else{sh.Line(ax,ay,ax+tail*.7,ay+tail*.7,p+"HOOKS");sh.Line(bx,ay,bx,ay+tail*.6,p+"HOOKS");}continue;}
@@ -123,7 +123,7 @@ static class ColumnFormatter {
   var sizes=c.Bars.Select(q=>q.Dia).Distinct().OrderByDescending(d=>d).ToList();
   foreach(var b in c.Bars){int rank=sizes.IndexOf(b.Dia);double r=Math.Max(.75,b.Dia/2.0/Scale);BarSymbol(sh,x0+b.X/Scale,y0+b.Y/Scale,r,rank,p+"BARS-"+b.Dia,p+"BARMARK");}
   /* the bar legend beside the section */for(int k=0;k<sizes.Count;k++){double lx=x0+w+3.2,ly=y0+h*.3+k*3.2;BarSymbol(sh,lx,ly,.9,k,p+"LEGEND",p+"LEGEND");sh.Text("%%C"+sizes[k],lx+1.6,ly,1.9,4,false,p+"LEGEND");}
-  sh.Text(c.B.ToString("0",Inv),x0+w/2,y0-1,2,2);sh.Text(c.H.ToString("0",Inv),x0-1.5,y0+h/2,2,6);}
+  if(dims){sh.Text(c.B.ToString("0",Inv),x0+w/2,y0-1,2,2);sh.Text(c.H.ToString("0",Inv),x0-1.5,y0+h/2,2,6);}}
  /* the tie zones in a small table (owner, 22 November 2026: "clearly makita if ano yung main link, z1 main, z1 others etc") */
  static double TieTable(ColumnSheet sh,ColumnCell c,double x,double w,double yTop,bool aci){double cw=(w-4)/3,x0=x+2,rh=5;string[] heads={"Z1 MAIN LINK","Z1 OTHERS","Z2 LINKS"};string bar=(aci?"#":"%%C")+c.TieDia+" @ ",oc=aci?" O.C.":"";
   string[] vals={bar+c.S1Main.ToString("0",Inv)+oc,bar+c.S1Other.ToString("0",Inv)+oc,bar+c.S2.ToString("0",Inv)+oc};string[] layers={"Z1MAIN","Z1OTHERS","Z2"};
@@ -131,7 +131,69 @@ static class ColumnFormatter {
   for(int k=0;k<3;k++){sh.Text(heads[k],x0+k*cw+cw/2,yTop-rh/2,1.6,5,true);sh.Text(vals[k],x0+k*cw+cw/2,yTop-rh*1.5,1.9,5,false,layers[k]);}
   sh.Text("Lo = "+c.Lo.ToString("0",Inv)+" (Z1 AT EACH END)",x+w/2,yTop-2*rh-2.4,1.8,5,false,"LO");return 2*rh+4.8;}
  static string LayoutKey(ColumnCell c){return c.B+"x"+c.H+"|"+string.Join(";",c.Bars.Select(b=>Math.Round(b.X)+","+Math.Round(b.Y)+":"+b.Dia))+"|"+string.Join(";",c.Links.Select(l=>l.X0+","+l.Y0+","+l.X1+","+l.Y1));}
- public static ColumnSheet Layout(ColumnSchedule s,List<ColumnGroup> groups,string title,bool aci=false){var sh=new ColumnSheet();
+ /* the owner's column schedule template (owner, 22 November 2026, Drawing1.dxf "sample only"): SCHEDULE OF COLUMNS with the notes,
+    one row per column mark (COLUMN MARKED), one column per level range from the lowest, each cell with the section and its dimensions
+    above a text box "4 - Ø20mm + 8 - Ø16mm MAIN BARS / WITH Ø10mm LATERAL TIES SPACED AT / 1 - 50mm, 9 - 75mm, AND REST AT 200mm C/C /
+    (3 TIES/SET)"; the same section at neighbouring levels is one wide cell, a level without the column is crossed out; four marks per
+    block, the blocks side by side; the bar legend under REMARKS */
+ internal static string CellText(ColumnCell c){var parts=c.Counts.Select(k=>k.Value+" - %%C"+k.Key+"mm");string t=string.Join(" + ",parts)+" MAIN BARS\nWITH %%C"+c.TieDia+"mm LATERAL TIES SPACED AT\n"+ProgramOfWorksForm.ColumnTieText(c)+"\n("+c.Links.Count+" TIES/SET)\nLo = "+c.Lo.ToString("0",Inv)+"mm"+(Math.Abs(c.S1Other-c.S1Main)>.5?", Z1 OTHERS @ "+c.S1Other.ToString("0",Inv)+"mm":"");return t;}
+ static bool Uniform(ColumnSchedule s,Func<ColumnCell,string> f){return s.Cells.Values.Select(f).Distinct().Count()<=1;}
+ static ColumnSheet LayoutRows(ColumnSchedule s,List<ColumnGroup> groups,string title){var sh=new ColumnSheet();const int PerBlock=4;
+  double maxB=s.Cells.Values.Max(c=>c.B),maxH=s.Cells.Values.Max(c=>c.H);double cellW=Math.Max(66,maxB/Scale+40),sketchH=maxH/Scale+16,boxH=22,rowH=sketchH+boxH,labelW=40,headH=12,gap=18,top=0;
+  bool sameMat=Uniform(s,c=>c.Concrete+"|"+c.Fy+"|"+c.Cover);var any=s.Cells.Values.First();
+  sh.Text("SCHEDULE OF COLUMNS",0,top+20,6,7,true,"TITLE");if(!string.IsNullOrWhiteSpace(title))sh.Text(title.Trim().ToUpperInvariant(),0,top+13.5,3,7,true,"TITLE");
+  var notes=new List<string>();if(sameMat){if(any.Fy>0)notes.Add("fy = "+any.Fy.ToString("0",Inv)+" MPa, MAIN BARS");notes.Add("CONCRETE "+(any.Concrete==""?"AS SPECIFIED":any.Concrete)+", CLEAR COVER "+any.Cover.ToString("0",Inv)+"mm");}
+  notes.Add("Lo = CONFINING ZONE AT EACH END OF THE CLEAR HEIGHT: TIES AT THE FIRST SPACINGS WITHIN Lo, THE REST SPACING ELSEWHERE; ALL TIES 135° HOOKS");
+  sh.Text("NOTES:  "+string.Join("\n            ",notes),0,top+10,2.2,1,false,"NOTES");
+  double x0=0,bottom=top;var sizes=s.Cells.Values.SelectMany(c=>c.Bars).Select(b=>b.Dia).Distinct().OrderByDescending(d=>d).ToList();
+  for(int b0=0;b0<groups.Count;b0+=PerBlock){var block=groups.Skip(b0).Take(PerBlock).ToList();
+   var levels=Enumerable.Range(0,s.Levels.Count).Where(l=>block.Any(g=>s.Cell(g.Source[0],l)!=null)).OrderBy(l=>Math.Min(s.Levels[l].FromM,s.Levels[l].ToM)).ToList();
+   double width=labelW+cellW*levels.Count,y=top;
+   sh.Rect(x0,y-headH,x0+width,y,"SCHEDULE");sh.Text("COLUMN MARKED",x0+labelW/2,y-headH/2,2.5,5,true,"HEAD");
+   for(int k=0;k<levels.Count;k++){var lv=s.Levels[levels[k]];double cx=x0+labelW+k*cellW;sh.Line(cx,y,cx,y-headH,"SCHEDULE");sh.Text(Math.Min(lv.FromM,lv.ToM).ToString("0.00",Inv)+" TO "+Math.Max(lv.FromM,lv.ToM).ToString("0.00",Inv),cx+cellW/2,y-headH/2,2.5,5,false,"LEVEL");}
+   y-=headH;
+   foreach(var g in block){sh.Rect(x0,y-rowH,x0+width,y,"SCHEDULE");sh.Line(x0+labelW,y,x0+labelW,y-rowH,"SCHEDULE");sh.Text(g.Mark,x0+labelW/2,y-rowH/2+3,4,5,true,"MARK");
+    sh.Text("("+g.Originals+")",x0+labelW/2,y-rowH/2-2,1.8,2,false,"ORIGINALS",labelW-4);
+    int k=0;while(k<levels.Count){var c=s.Cell(g.Source[0],levels[k]);int span=1;if(c!=null)while(k+span<levels.Count){var n=s.Cell(g.Source[0],levels[k+span]);if(n==null||n.Signature()!=c.Signature())break;span++;}
+     double cx0=x0+labelW+k*cellW,cx1=cx0+span*cellW;if(k>0)sh.Line(cx0,y,cx0,y-rowH,"SCHEDULE");
+     if(c==null){sh.Line(cx0,y,cx1,y-rowH,"SCHEDULE");sh.Line(cx0,y-rowH,cx1,y,"SCHEDULE");k++;continue;}
+     /* section with its dimensions */double w=c.B/Scale,h=c.H/Scale,sx=(cx0+cx1)/2-w/2+3,sy=y-sketchH+(sketchH-h)/2-2;Sketch(sh,c,sx,sy,"",false);
+     sh.Line(sx,sy+h+4,sx+w,sy+h+4,"DIM");sh.Line(sx,sy+h+1,sx,sy+h+6,"DIM");sh.Line(sx+w,sy+h+1,sx+w,sy+h+6,"DIM");sh.Text(c.B.ToString("0",Inv),sx+w/2,sy+h+4.6,2,8,false,"DIM");
+     sh.Line(sx-4,sy,sx-4,sy+h,"DIM");sh.Line(sx-6,sy,sx-1,sy,"DIM");sh.Line(sx-6,sy+h,sx-1,sy+h,"DIM");sh.Text(c.H.ToString("0",Inv),sx-4.6,sy+h/2,2,8,false,"DIM",0,90);
+     sh.Rect(cx0,y-rowH,cx1,y-rowH+boxH,"CELLBOX");sh.Text(CellText(c),(cx0+cx1)/2,y-rowH+boxH/2,1.9,5,false,"CELLTEXT");
+     if(!sameMat)sh.Text((c.Concrete==""?"-":c.Concrete)+"  fy "+c.Fy.ToString("0",Inv)+"  cover "+c.Cover.ToString("0",Inv),(cx0+cx1)/2,y-sketchH+1,1.6,5,false,"MATERIAL");
+     k+=span;}
+    y-=rowH;}
+   bottom=Math.Min(bottom,y);x0+=width+gap;}
+  /* REMARKS: the bar legend */double rx=0,ry=bottom-6;sh.Text("REMARKS:",rx,ry,2.2,7,true,"REMARKS");for(int k=0;k<sizes.Count;k++){BarSymbol(sh,rx+2,ry-3.5-k*3.4,.9,k,"LEGEND","LEGEND");sh.Text("%%C"+sizes[k]+"mm",rx+4,ry-3.5-k*3.4,2,4,false,"LEGEND");}
+  sh.Left=0;sh.Right=Math.Max(x0-gap,60);sh.Top=top+26;sh.Bottom=ry-3.5-sizes.Count*3.4-6;return sh;}
+ /* reading the owner's template back */
+ internal static ColumnSchedule ReadRows(List<Entity> all){var s=new ColumnSchedule();var texts=all.Where(e=>e.Type=="MTEXT"||e.Type=="TEXT").Select(e=>new{T=SlabFormatter.Plain(e),X=e.Num(10),Y=e.Num(20),L=e.Get(8)}).ToList();
+  var polys=all.Where(e=>e.Type=="LWPOLYLINE").Select(e=>new{L=e.Get(8),P=ColumnScheduleReader.Points(e)}).ToList();
+  var note=string.Join(" ",texts.Where(t=>t.L=="NOTES").Select(t=>t.T));var fy=Regex.Match(note,@"fy\s*=\s*(\d+)");var conc=Regex.Match(note,@"CONCRETE\s+(\S+),\s*CLEAR COVER\s+(\d+)");
+  var levelIndex=new Dictionary<string,int>();Func<string,int> level=t=>{int i;if(levelIndex.TryGetValue(t,out i))return i;var m=Regex.Match(t,@"^(-?\d+(?:\.\d+)?)\s+TO\s+(-?\d+(?:\.\d+)?)$");double a=double.Parse(m.Groups[1].Value,Inv),b=double.Parse(m.Groups[2].Value,Inv);s.Levels.Add(new ColumnLevel{From=a.ToString("0.00",Inv)+" M",To=b.ToString("0.00",Inv)+" M",FromM=a,ToM=b});i=s.Levels.Count-1;levelIndex[t]=i;return i;};
+  var levelTexts=texts.Where(t=>t.L=="LEVEL").ToList();foreach(var lt in levelTexts.OrderBy(t=>double.Parse(Regex.Match(t.T,@"^-?\d+(?:\.\d+)?").Value,Inv)))level(lt.T);
+  var boxes=polys.Where(p=>p.L=="CELLBOX"&&p.P.Count==4).Select(p=>new{X0=p.P.Min(v=>v[0]),X1=p.P.Max(v=>v[0]),Y0=p.P.Min(v=>v[1]),Y1=p.P.Max(v=>v[1])}).ToList();
+  foreach(var mk in texts.Where(t=>t.L=="MARK").OrderBy(t=>t.X).ThenByDescending(t=>t.Y)){string mark=mk.T;if(!s.Marks.Contains(mark))s.Marks.Add(mark);var orig=texts.FirstOrDefault(t=>t.L=="ORIGINALS"&&Math.Abs(t.X-mk.X)<.01&&t.Y<mk.Y&&t.Y>mk.Y-15);if(orig!=null)s.Originals[mark]=orig.T.Trim().TrimStart('(').TrimEnd(')');
+   /* the block of this mark: up to the next COLUMN MARKED header to the right */double right=texts.Where(t=>t.L=="HEAD"&&t.X>mk.X+1).Select(t=>t.X).DefaultIfEmpty(double.MaxValue).Min();
+   var heads=levelTexts.Where(t=>t.X>mk.X&&t.X<right&&t.Y>mk.Y).ToList();double headY=heads.Count==0?0:heads.Where(t=>t.Y>mk.Y).Min(t=>t.Y);var mine=heads.Where(t=>Math.Abs(t.Y-headY)<.01).OrderBy(t=>t.X).ToList();
+   foreach(var box in boxes.Where(b=>b.Y1<mk.Y+40&&b.Y0>mk.Y-40&&b.X0>mk.X&&b.X1<right)){/* the row of this mark: the box just under it */if(!(box.Y0<mk.Y&&box.Y0>mk.Y-60))continue;var cover=mine.Where(t=>t.X>box.X0&&t.X<box.X1).ToList();if(cover.Count==0)continue;
+    var concRect=polys.FirstOrDefault(p=>p.L=="CONCRETE"&&p.P.Count==4&&p.P.All(v=>v[0]>box.X0&&v[0]<box.X1&&v[1]>box.Y1&&v[1]<box.Y1+80));if(concRect==null)continue;
+    var c=SketchBack(all,polys.Select(p=>new KeyValuePair<string,List<double[]>>(p.L,p.P)).ToList(),concRect.P.Min(v=>v[0]),concRect.P.Min(v=>v[1]),concRect.P.Max(v=>v[0]),concRect.P.Max(v=>v[1]));
+    var ct=texts.FirstOrDefault(t=>t.L=="CELLTEXT"&&t.X>box.X0&&t.X<box.X1&&t.Y>box.Y0&&t.Y<box.Y1);if(ct!=null){var m=Regex.Match(ct.T,@"WITH\s*(?:%%[cC]|Ø|#)(\d+)\s*mm");if(m.Success)c.TieDia=int.Parse(m.Groups[1].Value,Inv);
+     m=Regex.Match(ct.T,@"1\s*-\s*50mm,\s*(?:(\d+)\s*-\s*(\d+)mm,\s*)?AND REST AT\s*(\d+)mm");if(m.Success){c.S2=double.Parse(m.Groups[3].Value,Inv);c.S1Main=m.Groups[2].Success?double.Parse(m.Groups[2].Value,Inv):c.S2;}
+     m=Regex.Match(ct.T,@"Lo\s*=\s*(\d+)");if(m.Success)c.Lo=double.Parse(m.Groups[1].Value,Inv);m=Regex.Match(ct.T,@"Z1 OTHERS @\s*(\d+)");c.S1Other=m.Success?double.Parse(m.Groups[1].Value,Inv):c.S1Main;}
+    var mat=texts.FirstOrDefault(t=>t.L=="MATERIAL"&&t.X>box.X0&&t.X<box.X1&&t.Y>box.Y1&&t.Y<box.Y1+80);var mm=mat==null?null:Regex.Match(mat.T,@"^(\S*)\s*fy\s+(\d+)\s*cover\s+(\d+)");
+    if(mm!=null&&mm.Success){c.Concrete=mm.Groups[1].Value=="-"?"":mm.Groups[1].Value;c.Fy=double.Parse(mm.Groups[2].Value,Inv);c.Cover=double.Parse(mm.Groups[3].Value,Inv);}else{if(fy.Success)c.Fy=double.Parse(fy.Groups[1].Value,Inv);if(conc.Success){c.Concrete=conc.Groups[1].Value=="AS"?"":conc.Groups[1].Value;c.Cover=double.Parse(conc.Groups[2].Value,Inv);}}
+    foreach(var lt in cover)s.Cells[ColumnSchedule.Key(mark,level(lt.T))]=c;}}
+  if(s.Cells.Count==0)throw new Exception("No column sections in the schedule.");return s;}
+ /* a section drawn by Sketch, read back from its box */
+ static ColumnCell SketchBack(List<Entity> all,List<KeyValuePair<string,List<double[]>>> polys,double x0,double y0,double x1,double y1){var c=new ColumnCell{B=Math.Round((x1-x0)*Scale),H=Math.Round((y1-y0)*Scale)};Func<double[],bool> inBox=v=>v[0]>=x0-.01&&v[0]<=x1+.01&&v[1]>=y0-.01&&v[1]<=y1+.01;
+  foreach(var e in all.Where(e=>e.Type=="CIRCLE"&&e.Get(8).StartsWith("BARS-"))){double cx=e.Num(10),cy=e.Num(20);if(!inBox(new[]{cx,cy}))continue;int dia;if(!int.TryParse(e.Get(8).Substring(5),out dia))continue;c.Bars.Add(new ColumnBar{X=Math.Round((cx-x0)*Scale,1),Y=Math.Round((cy-y0)*Scale,1),Dia=dia});}
+  foreach(var q in polys.Where(q=>(q.Key=="MAINLINK"||q.Key=="LINKS")&&q.Value.Count>=4&&q.Value.All(inBox)).OrderByDescending(q=>q.Key=="MAINLINK"))c.Links.Add(new ColumnLink{X0=Math.Round((q.Value.Min(v=>v[0])-x0)*Scale),Y0=Math.Round((q.Value.Min(v=>v[1])-y0)*Scale),X1=Math.Round((q.Value.Max(v=>v[0])-x0)*Scale),Y1=Math.Round((q.Value.Max(v=>v[1])-y0)*Scale)});
+  foreach(var e in all.Where(e=>e.Type=="LINE"&&e.Get(8)=="CROSSTIES")){double ax=e.Num(10),ay=e.Num(20),bx=e.Num(11),by=e.Num(21);if(!inBox(new[]{ax,ay})||!inBox(new[]{bx,by}))continue;c.Links.Add(new ColumnLink{X0=Math.Round((Math.Min(ax,bx)-x0)*Scale),Y0=Math.Round((Math.Min(ay,by)-y0)*Scale),X1=Math.Round((Math.Max(ax,bx)-x0)*Scale),Y1=Math.Round((Math.Max(ay,by)-y0)*Scale)});}
+  var main=c.Links.Take(1).ToList();c.Links=main.Concat(c.Links.Skip(1).OrderByDescending(l=>l.W*l.H).ThenByDescending(l=>l.W+l.H)).ToList();return c;}
+ public static ColumnSheet Layout(ColumnSchedule s,List<ColumnGroup> groups,string title,bool aci=false){if(!aci)return LayoutRows(s,groups,title);var sh=new ColumnSheet();
   double maxB=s.Cells.Values.Max(c=>c.B),maxH=s.Cells.Values.Max(c=>c.H);double cellW=Math.Max(62,maxB/Scale+30),secH=maxH/Scale+9,labelW=30,headH=9,top=0;
   var order=Enumerable.Range(0,s.Levels.Count).OrderByDescending(i=>Math.Max(s.Levels[i].FromM,s.Levels[i].ToM)).ToList();
   /* ACI: the tie pattern of each mark is drawn once (its lowest level); a level with another layout keeps its own sketch */
@@ -170,7 +232,7 @@ static class ColumnFormatter {
    else if(it.Kind=="RRECT"){double rx0=it.P[0],ry0=it.P[1],rx1=it.P[2],ry1=it.P[3],r=it.P[4];const string bulge="0.41421356";var e=head("LWPOLYLINE",it.Layer,it.Color);e.P.Add(new Pair(100,"AcDbPolyline"));e.P.Add(new Pair(90,"8"));e.P.Add(new Pair(70,"1"));if(it.Layer.EndsWith("MAINLINK"))e.P.Add(new Pair(43,"0.3"));
     foreach(var v in new[]{new[]{rx0+r,ry0,0},new[]{rx1-r,ry0,1},new[]{rx1,ry0+r,0},new[]{rx1,ry1-r,1},new[]{rx1-r,ry1,0},new[]{rx0+r,ry1,1},new[]{rx0,ry1-r,0},new[]{rx0,ry0+r,1}}){e.P.Add(new Pair(10,f(v[0])));e.P.Add(new Pair(20,f(v[1])));if(v[2]>0)e.P.Add(new Pair(42,bulge));}add(e);}
    else if(it.Kind=="DISK"){/* a filled bar: a closed two-arc polyline with its width = the radius (AutoCAD DONUT) */double r=it.P[2];var e=head("LWPOLYLINE",it.Layer,it.Color);e.P.Add(new Pair(100,"AcDbPolyline"));e.P.Add(new Pair(90,"2"));e.P.Add(new Pair(70,"1"));e.P.Add(new Pair(43,f(r)));e.P.Add(new Pair(10,f(it.P[0]-r/2)));e.P.Add(new Pair(20,f(it.P[1])));e.P.Add(new Pair(42,"1"));e.P.Add(new Pair(10,f(it.P[0]+r/2)));e.P.Add(new Pair(20,f(it.P[1])));e.P.Add(new Pair(42,"1"));add(e);}
-   else if(it.Kind=="TEXT"){if(string.IsNullOrEmpty(it.Text))continue;var e=textPrototype.Copy(true);e.P.RemoveAll(p=>p.Code==1||p.Code==3||p.Code==62);e.Set(8,it.Layer);e.Set(1,it.Text.Replace("\\","").Replace("{","").Replace("}",""));e.Set(10,it.P[0]);e.Set(20,it.P[1]);e.Set(40,it.H);e.Set(41,it.W>0?it.W:it.Anchor==7||it.Anchor==1||it.Anchor==4?0:60);e.Set(71,it.Anchor.ToString(Inv));e.Set(7,it.Bold?"A 2.50B":"A 2.0");add(e);}}
+   else if(it.Kind=="TEXT"){if(string.IsNullOrEmpty(it.Text))continue;var e=textPrototype.Copy(true);e.P.RemoveAll(p=>p.Code==1||p.Code==3||p.Code==62);e.Set(8,it.Layer);e.Set(1,it.Text.Replace("\\","").Replace("{","").Replace("}","").Replace("\n","\\P"));if(it.Rot!=0)e.Set(50,it.Rot*Math.PI/180);e.Set(10,it.P[0]);e.Set(20,it.P[1]);e.Set(40,it.H);e.Set(41,it.W>0?it.W:it.Anchor==7||it.Anchor==1||it.Anchor==4?0:60);e.Set(71,it.Anchor.ToString(Inv));e.Set(7,it.Bold?"A 2.50B":"A 2.0");add(e);}}
   int start=drawing.Records.FindIndex(e=>e.Type=="SECTION"&&e.Get(2)=="ENTITIES"),end=start+1;while(drawing.Records[end].Type!="ENDSEC")end++;drawing.Records.RemoveRange(start+1,end-start-1);drawing.Records.InsertRange(start+1,output);
   foreach(var e in drawing.Records)for(int n=0;n<e.P.Count-1;n++)if(e.P[n].Code==9&&e.P[n].Value=="$HANDSEED")e.P[n+1].Value=next.ToString("X");return drawing;}
  public static void Export(ColumnFormatResult r,string path){string temp=path+"."+Guid.NewGuid().ToString("N")+".tmp";try{r.Drawing.Write(temp);var back=ColumnScheduleReader.Read(File.ReadAllText(temp));if(back.Marks.Count!=r.Groups.Count)throw new Exception("Export verification failed: "+back.Marks.Count+" columns read back, "+r.Groups.Count+" written.");
@@ -217,7 +279,9 @@ static class ColumnFormatter {
     else if(it.Kind=="CIRCLE"){var c=xy(it.P[0],it.P[1]);float r=(float)(it.P[2]*pxPerMm);using(var p=new Pen(Color.FromArgb(30,30,30),1f))g.DrawEllipse(p,c.X-r,c.Y-r,2*r,2*r);}
     else if(it.Kind=="RRECT"){var a=xy(it.P[0],it.P[3]);var b=xy(it.P[2],it.P[1]);float r=(float)(it.P[4]*pxPerMm),d=2*r;using(var path=new GraphicsPath()){path.AddArc(a.X,a.Y,d,d,180,90);path.AddArc(b.X-d,a.Y,d,d,270,90);path.AddArc(b.X-d,b.Y-d,d,d,0,90);path.AddArc(a.X,b.Y-d,d,d,90,90);path.CloseFigure();using(var p=new Pen(Color.FromArgb(30,30,30),it.Layer.EndsWith("MAINLINK")?2.2f:.9f))g.DrawPath(p,path);}}
     else if(it.Kind=="DISK"){var c=xy(it.P[0],it.P[1]);float r=(float)(it.P[2]*pxPerMm);using(var b=new SolidBrush(col(it.Color)))g.FillEllipse(b,c.X-r,c.Y-r,2*r,2*r);}
-    else if(it.Kind=="TEXT"&&!string.IsNullOrEmpty(it.Text)){string t=it.Text.Replace("%%C","Ø").Replace("%%c","Ø");using(var f=new Font("Arial",(float)(it.H*pxPerMm*.95),it.Bold?FontStyle.Bold:FontStyle.Regular,GraphicsUnit.Pixel)){float wrapPx=(float)(it.W*pxPerMm);var sz=wrapPx>0?g.MeasureString(t,f,(int)wrapPx):g.MeasureString(t,f);var p=xy(it.P[0],it.P[1]);float x=p.X,y=p.Y;int a=it.Anchor;if(a==2||a==5||a==8)x-=sz.Width/2;else if(a==3||a==6||a==9)x-=sz.Width;if(a>=4&&a<=6)y-=sz.Height/2;else if(a>=7)y-=sz.Height;if(wrapPx>0)using(var fmt=new StringFormat{Alignment=a==2||a==5||a==8?StringAlignment.Center:a==3||a==6||a==9?StringAlignment.Far:StringAlignment.Near})g.DrawString(t,f,Brushes.Black,new RectangleF(p.X-(a==2||a==5||a==8?wrapPx/2:a==3||a==6||a==9?wrapPx:0),y,wrapPx,sz.Height+4),fmt);else g.DrawString(t,f,Brushes.Black,x,y);}}}}
+    else if(it.Kind=="TEXT"&&!string.IsNullOrEmpty(it.Text)){string t=it.Text.Replace("%%C","Ø").Replace("%%c","Ø");using(var f=new Font("Arial",(float)(it.H*pxPerMm*.95),it.Bold?FontStyle.Bold:FontStyle.Regular,GraphicsUnit.Pixel)){float wrapPx=(float)(it.W*pxPerMm);var sz=wrapPx>0?g.MeasureString(t,f,(int)wrapPx):g.MeasureString(t,f);var p=xy(it.P[0],it.P[1]);int a=it.Anchor;float tw=wrapPx>0?wrapPx:sz.Width;
+     float dx=a==2||a==5||a==8?-tw/2:a==3||a==6||a==9?-tw:0,dy=a>=4&&a<=6?-sz.Height/2:a>=7?-sz.Height:0;var st=g.Save();g.TranslateTransform(p.X,p.Y);if(it.Rot!=0)g.RotateTransform(-(float)it.Rot);
+     using(var fmt=new StringFormat{Alignment=a==2||a==5||a==8?StringAlignment.Center:a==3||a==6||a==9?StringAlignment.Far:StringAlignment.Near})g.DrawString(t,f,Brushes.Black,new RectangleF(dx,dy,tw+2,sz.Height+4),fmt);g.Restore(st);}}}}
   return bmp;}
  /* bars of the Bar Bending Schedule (Column) from a column schedule DXF: main bars per level with a lap into the level above (90° hook
     at the top of the column), the outer hoop at the Z1 main spacing and the inner links at the Z1 other spacing within Lo at each end,

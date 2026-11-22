@@ -1,0 +1,15 @@
+DTCE Tool Kit v6.2.3 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Column Formatter; owner sample Drawing1.dxf, "sample only"):
+- The standard schedule follows the owner's template: SCHEDULE OF COLUMNS with NOTES (fy, concrete and clear cover when the same
+  for all, Lo), one row per column mark (COLUMN MARKED, the original marks under the new mark) and one column per level range from
+  the lowest; each cell has the section with its width and depth dimension lines above a text box:
+  "4 - Ø20mm + 8 - Ø16mm MAIN BARS / WITH Ø10mm LATERAL TIES SPACED AT / 1 - 50mm, 9 - 75mm, AND REST AT 200mm C/C / (3 TIES/SET)"
+  and "Lo = 670mm" (with "Z1 OTHERS @ ..." only when that spacing differs).
+- The same section at neighbouring levels is one wide cell; a level without the column is crossed out; four marks per block, the
+  blocks side by side; the bar legend under REMARKS. Monochrome, RCDC bar symbols, links with rounded corners and 135° hooks.
+- The ACI option keeps the ACI column schedule (levels as rows, TIE PATTERN row). The new layout and the older ones read back in the
+  Bar Bending Schedule and the Bill of Quantities.
+Checked on Linux/Mono only with the owner's schedule.dxf.
+
+Includes v6.2.2 and earlier builds.
