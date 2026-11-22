@@ -1,0 +1,15 @@
+DTCE Tool Kit v6.2.2 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Column Formatter; owner: "ang pangit din ng schedule", "dapat monochrome lang", "gawin yung original bar legend",
+"ayusin yung stirrups"):
+- Monochrome schedule: black lines and text only; the main link (outer hoop) is a heavy line instead of a colour.
+- Bars as in RCDC: circles marked by size (largest a line, next a dot, then a horizontal line, then a cross) with the bar legend
+  beside each section (e.g. a circle with a line Ø20, a circle with a dot Ø16). The bar size is kept in the layer (BARS-20), so the
+  file still reads back exactly.
+- Stirrups: every link drawn with rounded corners and its own 135° hooks into the core; crossties with a 135° and a 90° hook.
+- Tidier layout: larger, consistent text (tie table, Lo, concrete line), less empty space; a level where no column exists is a
+  short row.
+- Identical columns (including those that differ only in Lo, since v6.2.0) share one mark, e.g. C-001 for C1, C2, C4 ... C34.
+Checked on Linux/Mono only.
+
+Includes v6.2.1 and earlier builds.
