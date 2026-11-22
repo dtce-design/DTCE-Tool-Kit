@@ -1,0 +1,22 @@
+DTCE Tool Kit v6.0.50 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Bar Bending Schedule, beam):
+- Model view: a distinct separator - the elevation stops before the section panel, which has its own shaded background and a
+  solid divider.
+- Sections (model view and BBS report): show the bars that really cross the cut, the same bars as the elevation (extra bars
+  that run past the zone were missing). Two pieces of one bar lapping at the cut count once. Layer 1 as scheduled, the rest in
+  the next layers. When the schedule count of the zone differs, the model view says so.
+- Curtailment: extra bars past an interior support now follow the curtailment too - L/4 of the neighbouring span, not less
+  than Ld from the face where the bar is needed (they ran a full Ld past the far face of the support before).
+- Model view: curtailment dimensions for every extra bar (L/4, L/3, L/6 from the face, and any cut-end allowance past it).
+- Extra hoops over laps: laps that overlap in one span share one evenly spaced set of hoops (overlapping laps doubled the
+  hoops and drew them unevenly).
+- Layer spacer bars (Ø25, Grade 40) are drawn end-on between the layers in the model view and in the report elevation.
+- Report elevation: the depth is at the same scale as the length, enlarged only when the bar layers would not fit (the caption
+  says by how much).
+- Shape key: the hoop has longer, separated 135° hooks, C (hook length) labelled on the hook and 135° shown; each shape in its own
+  framed cell with its name; schedule information in two item/value pairs per row (easier to read printed on A3).
+- Bar codes spaced: "T1 - 4 NOS. Ø16,  L = 11750", stirrups "S17 - 10 NOS. Ø10 @ 100 (2L)".
+Checked on Linux/Mono only.
+
+Includes v6.0.49 and earlier builds.
