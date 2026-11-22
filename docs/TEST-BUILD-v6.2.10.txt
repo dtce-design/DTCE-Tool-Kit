@@ -1,0 +1,8 @@
+DTCE Tool Kit v6.2.10 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Column Formatter, ACI option; owner: "bat may column tie type pa?"):
+- The COLUMN TIE TYPE row is removed from the ACI column schedule: the tie arrangement is drawn in each level cell (TIE
+  ARRANGEMENT), so the letter is no longer needed. Each level shows DIMENSION / SIZE / TIES / HOOPS / CONCRETE / fy and the drawing.
+Checked on Linux/Mono only with schedule.dxf and test_rcdcd.dxf; not opened in AutoCAD here.
+
+Includes v6.2.9 and earlier builds.

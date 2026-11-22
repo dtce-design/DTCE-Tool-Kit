@@ -267,16 +267,16 @@ static class ColumnFormatter {
  internal static string AciTies(ColumnCell c){string t="#"+c.TieDia+" @ "+c.S1Main.ToString("0",Inv);if(Math.Abs(c.S1Main-c.S2)>.5)t+=" (Lo = "+c.Lo.ToString("0",Inv)+") / "+c.S2.ToString("0",Inv);if(Math.Abs(c.S1Other-c.S1Main)>.5)t+=", INNER @ "+c.S1Other.ToString("0",Inv);return t;}
  /* the ACI option as the ACI Detailing Manual MNL-66(20) (owner, 22 November 2026: "based doon sa dxf file na binigay ko, sa formatter
     maglagay ng option using ACI"; the manual's Fig. COL-1 COLUMN SCHEDULE and Fig. COL-20 tie types; the tie arrangement drawn in each level cell as Fig. 4.10.3): MARK across the
-    top, the levels from the top down, each level a band of DIMENSION / SIZE / TIES / COLUMN TIE TYPE / CONCRETE with its floor
+    top, the levels from the top down, each level a band of DIMENSION / SIZE / TIES / TIE ARRANGEMENT TYPE / CONCRETE with its floor
     elevation, the bars of each column drawn in elevation beside its values with the lap splices above the floors, TOP OF FOOTING with
-    the dowels at the bottom; the tie arrangements once each, lettered, in the COLUMN TIE TYPE SCHEDULE. The values that make the
+    the dowels at the bottom; the tie arrangement drawn in each level cell (no tie type letters; was the COLUMN TIE TYPE SCHEDULE. The values that make the
     schedule exact (Lo, spacings, original marks) are kept as hidden data so the file reads back in the BBS and the Bill of Quantities. */
  static ColumnSheet LayoutAci(ColumnSchedule s,List<ColumnGroup> groups,string title){var sh=new ColumnSheet();
   const double labelW=48,headH=10,rowH=5,th=2.2,lapDraw=7;double maxSB=s.Cells.Values.Max(c=>c.B)/Scale,maxSH=s.Cells.Values.Max(c=>c.H)/Scale,textW=Math.Max(52,maxSB+14),elevW=20,sketchH=maxSH+10;double cellW=textW+elevW,width=labelW+cellW*groups.Count,top=0;
   var order=Enumerable.Range(0,s.Levels.Count).OrderByDescending(i=>Math.Max(s.Levels[i].FromM,s.Levels[i].ToM)).ToList();
   var typeOf=new Dictionary<string,string>();var types=new List<KeyValuePair<string,ColumnCell>>();
   foreach(var g in groups)foreach(int l in Enumerable.Reverse(order)){var c=s.Cell(g.Source[0],l);if(c==null)continue;string k=LayoutKey(c);if(!typeOf.ContainsKey(k)){typeOf[k]=TypeName(types.Count);types.Add(new KeyValuePair<string,ColumnCell>(typeOf[k],c));}}
-  Func<double,string> el=v=>"EL. "+(v>0?"+":"")+v.ToString("0.00#",Inv);string[] rows={"DIMENSION (mm)","SIZE","TIES / HOOPS","COLUMN TIE TYPE","CONCRETE / fy"};
+  Func<double,string> el=v=>"EL. "+(v>0?"+":"")+v.ToString("0.00#",Inv);string[] rows={"DIMENSION (mm)","SIZE","TIES / HOOPS","CONCRETE / fy"};
   if(!string.IsNullOrWhiteSpace(title))sh.Text(title.Trim().ToUpperInvariant(),0,top+3,3,7,true,"TITLE");
   sh.Text(s.OpenExtra?"EXTRA TIES: OPEN":"EXTRA TIES: CLOSED",0,top+1,1,1,false,Data);
   double y=top;sh.Text("MARK",3,y-headH/2,th+.3,4,true,"HEAD");for(int g=0;g<groups.Count;g++){sh.Text(groups[g].Mark,labelW+g*cellW+cellW/2,y-headH/2,3,5,true,"MARK");sh.Text("ACI ORIG|"+groups[g].Mark+"|"+groups[g].Originals,labelW+g*cellW+cellW/2,y-headH+1,1,5,false,Data);}
@@ -287,8 +287,8 @@ static class ColumnFormatter {
    double bandH=rowH*(rows.Length+1)+sketchH,levelY=y-bandH+rowH/2;
    for(int r=0;r<rows.Length;r++)sh.Text(rows[r],3,y-rowH*(r+.5),th,4,false,"ROWHEAD");sh.Text("TIE ARRANGEMENT",3,y-rowH*rows.Length-sketchH/2,th,4,false,"ROWHEAD");sh.Text(el(lo),3,levelY,th,4,true,"LEVEL");
    for(int g=0;g<groups.Count;g++){var c=s.Cell(groups[g].Source[0],l);double x=labelW+g*cellW+3;if(c==null){sh.Text("-",x+textW/2-3,y-rowH*3,th,5);continue;}
-    string[] vals={c.B.ToString("0",Inv)+" x "+c.H.ToString("0",Inv),AciBars(c),AciTies(c),typeOf[LayoutKey(c)],(c.Concrete==""?"-":c.Concrete)+" / "+c.Fy.ToString("0",Inv)};string[] layers={"SIZE","MAIN","TIES","TIETYPE","MATERIAL"};
-    for(int r=0;r<vals.Length;r++)sh.Text(vals[r],x,y-rowH*(r+.5),th,4,r==3,layers[r]);
+    /* no tie type letter: the arrangement is drawn in the cell (owner: "bat may column tie type pa?") */string[] vals={c.B.ToString("0",Inv)+" x "+c.H.ToString("0",Inv),AciBars(c),AciTies(c),(c.Concrete==""?"-":c.Concrete)+" / "+c.Fy.ToString("0",Inv)};string[] layers={"SIZE","MAIN","TIES","MATERIAL"};
+    for(int r=0;r<vals.Length;r++)sh.Text(vals[r],x,y-rowH*(r+.5),th,4,false,layers[r]);
     {double w=c.B/Scale,h=c.H/Scale,sx=x-3+textW/2-w/2,sy=y-rowH*rows.Length-sketchH/2-h/2;Sketch(sh,c,sx,sy,"P-",false);sh.Text("ACI TYPE="+typeOf[LayoutKey(c)],sx+w/2,sy+h/2,1,5,false,Data);}
     sh.Text("ACI CELL|MARK="+groups[g].Mark+"|FROM="+lo.ToString("0.###",Inv)+"|TO="+hi.ToString("0.###",Inv)+"|TYPE="+typeOf[LayoutKey(c)]+"|TIE="+c.TieDia+"|S1="+c.S1Main.ToString("0.###",Inv)+"|S1O="+c.S1Other.ToString("0.###",Inv)+"|S2="+c.S2.ToString("0.###",Inv)+"|LO="+c.Lo.ToString("0.###",Inv)+"|CONC="+c.Concrete+"|FY="+c.Fy.ToString("0.###",Inv)+"|COVER="+c.Cover.ToString("0.###",Inv),x+textW/2,levelY,1,5,false,Data);}
    y-=bandH;bandBot[l]=y;sh.Line(0,y,width,y,"SCHEDULE");}
@@ -305,7 +305,7 @@ static class ColumnFormatter {
   y=bottom-9;sh.Text("COLUMN SCHEDULE",width/2,y,5,5,true,"TITLE");sh.Line(width/2-27,y-3.4,width/2+27,y-3.4,"TITLE");
   y-=10;
   var sz=s.Cells.Values.SelectMany(c=>c.Bars).Select(b=>b.Dia).Distinct().OrderByDescending(d=>d).ToList();sh.Text("REMARKS:",0,y,2.5,4,true,"REMARKS");for(int k=0;k<sz.Count;k++){BarSymbol(sh,4.54,y-4.93-4*k,Ring*1.2,Symbol(sz[k]),"LEGEND","LEGEND");sh.Text("#"+sz[k]+" ("+sz[k]+" mm BAR)",9.6,y-4.93-4*k,2,4,false,"LEGEND");}y-=4.93+4*sz.Count+4;
-  sh.Text("NOTES: TIES / HOOPS \"#10 @ 75 (Lo = 585) / 200\" = HOOPS AT 75 WITHIN Lo FROM EACH JOINT FACE (FIRST HOOP 50 FROM THE FACE) AND AT 200 ELSEWHERE; COLUMN TIE TYPE: THE TIE ARRANGEMENT DRAWN IN EACH LEVEL (THE SAME LETTER, THE SAME ARRANGEMENT). LAP SPLICES ABOVE THE FLOORS: CLASS B TENSION LAP (ACI 318 25.5.2), LENGTHS PER THE BAR BENDING SCHEDULE. DIMENSIONS IN mm, ELEVATIONS IN m.",0,y,1.9,7,false,"TEXT",width);
+  sh.Text("NOTES: TIES / HOOPS \"#10 @ 75 (Lo = 585) / 200\" = HOOPS AT 75 WITHIN Lo FROM EACH JOINT FACE (FIRST HOOP 50 FROM THE FACE) AND AT 200 ELSEWHERE; TIE ARRANGEMENT: AS DRAWN IN EACH LEVEL. LAP SPLICES ABOVE THE FLOORS: CLASS B TENSION LAP (ACI 318 25.5.2), LENGTHS PER THE BAR BENDING SCHEDULE. DIMENSIONS IN mm, ELEVATIONS IN m.",0,y,1.9,7,false,"TEXT",width);
   sh.Left=0;sh.Right=width;sh.Top=top+(string.IsNullOrWhiteSpace(title)?2:7);sh.Bottom=y-8;return sh;}
  /* reading the ACI schedule back: the hidden cell data and the lettered tie arrangements */
  internal static ColumnSchedule ReadAci(List<Entity> all){var s=new ColumnSchedule();var data=all.Where(e=>(e.Type=="MTEXT"||e.Type=="TEXT")&&e.Get(8)==Data).Select(e=>new{T=SlabFormatter.Plain(e),X=e.Num(10),Y=e.Num(20)}).ToList();s.OpenExtra=data.Any(t=>t.T.Contains("EXTRA TIES: OPEN"));
