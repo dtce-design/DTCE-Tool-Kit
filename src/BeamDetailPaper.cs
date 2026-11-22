@@ -6,7 +6,7 @@ namespace BeamScheduleFormatter {
    and span dimensions; then the sections at the left face, midspan and right face of every span at a standard scale. */
 static class BeamDetailPaper {
  static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
- const float SectionBoxW=118,SectionBoxH=232,ElevationH=300;
+ const float SectionBoxW=150,SectionBoxH=232,ElevationH=300;
  static bool Longitudinal(CutPiece p){return BeamCutting.Longitudinal(p);}
  static Color BarColor(CutPiece p){if(p.Shape=="REVIEW")return Color.Firebrick;if(p.Location.Contains("continuous"))return p.Top?Color.FromArgb(25,90,160):Color.FromArgb(20,120,90);return p.Top?Color.FromArgb(95,135,200):Color.FromArgb(70,160,115);}
  static string F0(double v){return v.ToString("0",Inv);}
@@ -34,6 +34,11 @@ static class BeamDetailPaper {
  internal static float Height(CutLineGeometry geo,float width){int perRow=Math.Max(1,(int)(width/SectionBoxW));int rows=(Cuts(geo).Count+perRow-1)/perRow;return ElevationH+rows*SectionBoxH+10;}
  internal static int SectionRows(CutResult r,CutLineGeometry geo,float width){int perRow=Math.Max(1,(int)(width/SectionBoxW));return (Groups(r,geo).Count+perRow-1)/perRow;}
  internal static float SectionsHeight(int rows){return rows*SectionBoxH+10;}
+ /* bar marks in an outlined tag, so they read apart from beam marks (owner, 22 November 2026: "mas distinctive bar mark, na separate
+    sa beam mark") */
+ internal static RectangleF MarkTag(Graphics g,string text,Font f,Color c,float x,float y){var sz=g.MeasureString(text,f);var r=new RectangleF(x,y,sz.Width+1,sz.Height-1);
+  using(var path=new GraphicsPath()){float rr=Math.Min(3,r.Height/2);path.AddArc(r.Left,r.Top,2*rr,2*rr,180,90);path.AddArc(r.Right-2*rr,r.Top,2*rr,2*rr,270,90);path.AddArc(r.Right-2*rr,r.Bottom-2*rr,2*rr,2*rr,0,90);path.AddArc(r.Left,r.Bottom-2*rr,2*rr,2*rr,90,90);path.CloseFigure();
+   using(var bg=new SolidBrush(Color.White))g.FillPath(bg,path);using(var pen=new Pen(c,.8f))g.DrawPath(pen,path);}using(var b=new SolidBrush(c))g.DrawString(text,f,b,x+.5f,y-.5f);return r;}
  static Font Small(){return new Font("Segoe UI",7f,FontStyle.Regular,GraphicsUnit.Point);}
  static Font Bold(){return new Font("Segoe UI",7.5f,FontStyle.Bold,GraphicsUnit.Point);}
  static void Center(Graphics g,string t,Font f,Brush b,float cx,float y){var sz=g.MeasureString(t,f);g.DrawString(t,f,b,cx-sz.Width/2,y);}
@@ -147,7 +152,7 @@ static class BeamDetailPaper {
      using(var pen=new Pen(col,1.6f)){BarLine(g,pen,p,a,b,ly,X);if(p.ShapeCode=="HOOK1"||p.ShapeCode=="HOOK2"||p.ShapeCode=="CRANKHOOK"){float hook=p.Top?7:-7;if(p.Start<=geo.Cover+1e-6)g.DrawLine(pen,a,ly,a,ly+hook);if(p.End>=geo.Total-geo.Cover-1e-6)g.DrawLine(pen,b,ly,b,ly+hook);}}
      string t=p.Short+" - "+p.PerLine+" NOS. Ø"+p.Diameter+",  L = "+F0(p.Length*1000);/* owner (22 November 2026, "pwede mo bang ayusin yung code"): spaced bar code */var sz=g.MeasureString(t,small);float va=Math.Max(a,X(w0)),vb=Math.Min(b,X(w1));float lx=Math.Max(area.Left+2,Math.Min(area.Right-sz.Width-2,(va+vb)/2-sz.Width/2));
      List<float[]> list;if(!used.TryGetValue(k,out list)){list=new List<float[]>();used[k]=list;}bool above=list.All(q=>lx>q[1]+6||lx+sz.Width<q[0]-6);if(above)list.Add(new[]{lx,lx+sz.Width});float ty=above?ly-sz.Height+1:ly+2;
-     using(var bg=new SolidBrush(Color.FromArgb(230,255,255,255)))g.FillRectangle(bg,lx,ty+1,sz.Width,sz.Height-3);using(var tb=new SolidBrush(col))g.DrawString(t,small,tb,lx,ty);}
+     using(var bg=new SolidBrush(Color.FromArgb(230,255,255,255)))g.FillRectangle(bg,lx,ty+1,sz.Width,sz.Height-3);using(var tb=new SolidBrush(col))g.DrawString(t,small,tb,lx,ty);{var mw=g.MeasureString(p.Short,small).Width;using(var tp=new Pen(col,.7f))g.DrawRectangle(tp,lx+1,ty+1.5f,mw-3,sz.Height-4);}}
     y+=Math.Max(1,n)*DetailLane+8;}}}
  /* ---------------- sections ---------------- */
  static readonly int[] Scales={5,10,15,20,25,30,40,50};
@@ -162,7 +167,7 @@ static class BeamDetailPaper {
    string where=name.EndsWith("B")?"midspan":name.EndsWith("A")?"near left face":"near right face";Center(g,CutLabel(geo,name,true)+(typ?" (TYP.)":""),bold,ink,box.Left+box.Width/2,box.Top+2);Center(g,(typ?"":"span "+(j+1)+" ")+where+" - 1:"+scale,small,muted,box.Left+box.Width/2,box.Top+13);
    var here=pieces.Where(p=>Longitudinal(p)&&p.Start<=x+1e-9&&p.End>=x-1e-9).ToList();var topBars=here.Where(p=>p.Top).ToList();var botBars=here.Where(p=>!p.Top).ToList();
    Func<List<CutPiece>,string> label=list=>string.Join(" + ",list.GroupBy(p=>p.Diameter).OrderByDescending(q=>q.Key).Select(q=>q.Sum(p=>p.PerLine)+"-Ø"+q.Key));
-   float w=(float)(b*k),hh=(float)(h*k),x0=box.Left+(box.Width-w)/2+4,y0=box.Top+40;
+   float w=(float)(b*k),hh=(float)(h*k),x0=box.Left+(box.Width-w)/2-12,y0=box.Top+40;
    /* the bars that cross the cut, as drawn in the elevation (owner, 22 November 2026: "wala nang extra bars sa section pero meron sa elevation") */var topCross=BeamCutting.CrossingLayers(geo,pieces,x,true);var botCross=BeamCutting.CrossingLayers(geo,pieces,x,false);var topLayers=topCross.Select(l=>l.Select(p=>p.Diameter).ToList()).ToList();var botLayers=botCross.Select(l=>l.Select(p=>p.Diameter).ToList()).ToList();
    Center(g,topLayers.Count>0?BeamCutting.LayersText(topLayers):label(topBars),small,new SolidBrush(Color.FromArgb(25,90,160)),x0+w/2,y0-12);
    using(var concrete=new SolidBrush(Color.FromArgb(236,236,232)))g.FillRectangle(concrete,x0,y0,w,hh);using(var edge=new Pen(PowTheme.Ink,.9f))g.DrawRectangle(edge,x0,y0,w,hh);
@@ -170,9 +175,13 @@ static class BeamDetailPaper {
     float hk=(float)Math.Max(4,75*k);g.DrawLine(tie,L+rad,T+rad*.3f,L+rad+hk*.7f,T+rad*.3f+hk*.7f);g.DrawLine(tie,L+rad*.3f,T+rad,L+rad*.3f+hk*.7f,T+rad+hk*.7f);
     for(int q=1;q<legs-1;q++){float lx=L+(R-L)*q/(legs-1);g.DrawLine(tie,lx,T,lx,B);}}
    foreach(bool top in new[]{true,false}){var layers=top?topLayers:botLayers;if(layers.Count>0){/* layer by layer, continuous bars first */int cont=(top?topCross:botCross).SelectMany(l=>l).Count(p=>p.Location.Contains("continuous"));int drawn=0;double offMm=cover+tieDia;
-     for(int r=0;r<layers.Count;r++){var layer=layers[r];int ldmax=layer.Max();double linner=b-2*cover-2*tieDia;for(int q=0;q<layer.Count;q++){double cxMm=layer.Count==1?b/2:cover+tieDia+ldmax/2.0+(linner-ldmax)*q/(layer.Count-1);double cyMm=offMm+ldmax/2.0;float cx=x0+(float)(cxMm*k),cy=top?y0+(float)(cyMm*k):y0+hh-(float)(cyMm*k);float d=(float)Math.Max(2.4,layer[q]*k);bool isCont=drawn<cont;drawn++;
+     var layerY=new List<float>();var spacerY=new List<float>();for(int r=0;r<layers.Count;r++){var layer=layers[r];int ldmax=layer.Max();layerY.Add(top?y0+(float)((offMm+ldmax/2.0)*k):y0+hh-(float)((offMm+ldmax/2.0)*k));double linner=b-2*cover-2*tieDia;for(int q=0;q<layer.Count;q++){int slots=layers[0].Count,slotDia=layers[0].Max();/* upper layers directly over / under the 1st layer bars, side by side */double cxMm=r>0&&layer.Count<=slots&&slots>1?cover+tieDia+slotDia/2.0+(linner-slotDia)*q/(slots-1):layer.Count==1?b/2:cover+tieDia+ldmax/2.0+(linner-ldmax)*q/(layer.Count-1);double cyMm=offMm+ldmax/2.0;float cx=x0+(float)(cxMm*k),cy=top?y0+(float)(cyMm*k):y0+hh-(float)(cyMm*k);float d=(float)Math.Max(2.4,layer[q]*k);bool isCont=drawn<cont;drawn++;
        using(var bar=new SolidBrush(top?(isCont?Color.FromArgb(25,90,160):Color.FromArgb(110,150,210)):(isCont?Color.FromArgb(20,120,90):Color.FromArgb(90,170,130))))g.FillEllipse(bar,cx-d/2,cy-d/2,d,d);}
-      offMm+=ldmax;if(r<layers.Count-1){var spacerPiece=pieces.FirstOrDefault(p=>p.Location.StartsWith("Layer spacer")&&p.Top==top&&p.Start<=x+1e-9&&p.End>=x-1e-9);int lgap=spacerPiece!=null?spacerPiece.Diameter:25;double cyGap=offMm+lgap/2.0;float gy=top?y0+(float)(cyGap*k):y0+hh-(float)(cyGap*k);float sw=(float)Math.Max(1.2,lgap*k);using(var sp=new Pen(Color.FromArgb(150,110,60),sw))g.DrawLine(sp,x0+(float)((cover+tieDia)*k),gy,x0+w-(float)((cover+tieDia)*k),gy);using(var sb=new SolidBrush(Color.FromArgb(150,110,60)))g.DrawString("spacer Ø"+lgap,small,sb,x0+w+2,gy-6);offMm+=lgap;}}
+      offMm+=ldmax;if(r<layers.Count-1){var spacerPiece=pieces.FirstOrDefault(p=>p.Location.StartsWith("Layer spacer")&&p.Top==top&&p.Start<=x+1e-9&&p.End>=x-1e-9);int lgap=spacerPiece!=null?spacerPiece.Diameter:25;double cyGap=offMm+lgap/2.0;float gy=top?y0+(float)(cyGap*k):y0+hh-(float)(cyGap*k);float sw=1.2f;using(var sp=new Pen(Color.FromArgb(160,120,70),sw){DashStyle=DashStyle.Dash})g.DrawLine(sp,x0+(float)((cover+tieDia)*k),gy,x0+w-(float)((cover+tieDia)*k),gy);spacerY.Add(gy);offMm+=lgap;}}
+     /* which bars are which (owner, 22 November 2026: "sa section dapat nakalagay din if ano doon yung mga bar mark"): a tag per bar
+        mark of each layer, stacked beside the section with a leader to the layer */
+     /* one tag per layer with its bar marks (counts are given above / below the section); typical sections carry no tags (their marks differ by span) */
+     if(!typ){var cross=top?topCross:botCross;float last=float.NaN;for(int r=0;r<cross.Count&&r<layerY.Count;r++){string marksText=string.Join(", ",cross[r].Select(p=>p.Short).Distinct());var col=top?Color.FromArgb(25,90,160):Color.FromArgb(20,120,90);var tsz=g.MeasureString(marksText,small);float ty=layerY[r]-tsz.Height/2;if(!float.IsNaN(last))ty=top?Math.Max(ty,last+tsz.Height):Math.Min(ty,last-tsz.Height);last=ty;var tr=MarkTag(g,marksText,small,col,x0+w+6,ty);using(var lead=new Pen(col,.5f))g.DrawLine(lead,x0+w-(float)((cover+tieDia)*k),layerY[r],tr.Left,tr.Top+tr.Height/2);}}
      continue;}
     var bars=top?topBars:botBars;var spots=new List<CutPiece>();foreach(var p in bars.OrderByDescending(p=>p.Location.Contains("continuous")))for(int q=0;q<p.PerLine;q++)spots.Add(p);if(spots.Count==0)continue;
     int dmax=spots.Max(p=>p.Diameter);double inner=b-2*cover-2*tieDia;var spacer=pieces.FirstOrDefault(p=>p.Location.StartsWith("Layer spacer")&&p.Top==top&&p.Start<=x+1e-9&&p.End>=x-1e-9);int gapMm=spacer!=null?spacer.Diameter:25;int perRow=Math.Min(spots.Count,BeamCutting.PerLayer(inner,dmax,20));

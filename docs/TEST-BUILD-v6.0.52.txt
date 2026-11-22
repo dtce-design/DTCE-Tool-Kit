@@ -1,0 +1,15 @@
+DTCE Tool Kit v6.0.52 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Bar Bending Schedule, beam):
+- Sections show which bars are which ("sa section dapat nakalagay din if ano doon yung mga bar mark"): one outlined tag per
+  layer with its bar marks (e.g. T1 / T3, B9 / B11) beside the section, in the report and the model view; typical sections
+  carry no tags because their marks differ by span. Bar marks in the bar details band are boxed too, so they read apart from
+  beam marks.
+- 2nd-layer bars sit directly over / under the 1st-layer bars, side by side ("bat hiniwalay pa yung pangatlong bar"; NSCP
+  425.2.2), instead of being spread across the width.
+- Model view: 90° hooks drawn with their inside bend radius, labelled R (e.g. R48) when zoomed in ("di pinapakita yung R").
+- Model view: curtailment dimensions only for the selected extra bar (the elevation was too busy); the spacer bar in the report
+  sections is a thin dashed line behind the bars.
+Checked on Linux/Mono only.
+
+Includes v6.0.51 and earlier builds.
