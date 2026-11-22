@@ -1,0 +1,15 @@
+DTCE Tool Kit v6.2.4 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Column Formatter; owner: "yung drawing ng columns gayahin kagaya ng mismong dxf", "no, use rcdc version", "option if closed
+ties or open ties ang gagamitin doon sa extra", "create a legend per bar size"):
+- The sections are drawn as the RCDC schedule draws them: its tie polylines (rounded corners, 135° hook tails), its bar rings and the
+  mark of each bar size (e.g. a line for Ø20, a filled dot for Ø16), taken from the source DXF and drawn to scale in each cell.
+- Bar legend: one mark per bar size for the whole schedule, under REMARKS (the RCDC mark of the size; a symbol for sizes RCDC did
+  not draw).
+- Extra ties option: Closed ties (as RCDC) or Open ties (crossties) - each inner closed tie becomes two crossties with a 135° and a
+  90° hook, in the drawing, in the ties per set and in the Bar Bending Schedule; the choice is written in the NOTES and read back.
+- The ties and bars stay exact in the file (bar size in the ring layer, each tie as two points), so the revised DXF reads back
+  unchanged in the Bar Bending Schedule and the Bill of Quantities.
+Checked on Linux/Mono only with the owner's schedule.dxf.
+
+Includes v6.2.3 and earlier builds.
