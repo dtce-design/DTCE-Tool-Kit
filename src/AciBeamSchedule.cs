@@ -38,10 +38,34 @@ static class AciBeamSchedule {
   /* hoop and stirrup details (Fig. BM-1_1) */
   y-=10;double dx=0;sh.Text("HOOP DETAILS",0,y,2.8,7,true,"TITLE",60);sh.Text("STIRRUP DETAILS",width/2,y,2.8,7,true,"TITLE",60);y-=6;double hx=0,sx=width/2;
   foreach(var t in new[]{"H1","H3","H4","S1","S2"}.Where(used.Contains)){bool hoopT=t.StartsWith("H");double bx=hoopT?hx:sx;Detail(sh,t,bx+4,y-26);sh.Text(t,bx+12,y-30,2.4,5,true,"TITLE",12);sh.Line(bx+9,y-31.6,bx+15,y-31.6,"TITLE");if(hoopT)hx+=30;else sx+=30;}
-  y-=40;var notes=new List<string>{"NOTES:","1. MINIMUM INSIDE BEND DIAMETER AND STANDARD HOOK GEOMETRY PER ACI 318 25.3; HOOPS WITH 135° SEISMIC HOOKS.","2. A = CONTINUOUS TOP BARS, B / C = ADDED TOP BARS AT THE LEFT / RIGHT SUPPORT, E = CONTINUOUS BOTTOM BARS, F = ADDED BOTTOM BARS AT MIDSPAN; TR = TIES IN THE END ZONES, REST = TIES ELSEWHERE.","3. * L4 / L5: CUT-OFF LENGTHS OF THE ADDED TOP BARS FROM THE SUPPORT FACE, PER THE DESIGN (NOT GIVEN IN THE SOURCE SCHEDULE).","4. TYPE 1: TYPICAL BEAM SECTION; TYPE 2: BEAM WITH SIDE (SKIN) BARS EACH FACE. DIMENSIONS IN mm; BAR NOTATION #16 = 16 mm BAR."};
+  y-=40;y=PlacingDiagram(sh,0,y,width)-6;var notes=new List<string>{"NOTES:","1. MINIMUM INSIDE BEND DIAMETER AND STANDARD HOOK GEOMETRY PER ACI 318 25.3; HOOPS WITH 135° SEISMIC HOOKS.","2. A = CONTINUOUS TOP BARS, B / C = ADDED TOP BARS AT THE LEFT / RIGHT SUPPORT, E = CONTINUOUS BOTTOM BARS, F = ADDED BOTTOM BARS AT MIDSPAN; TR = TIES IN THE END ZONES, REST = TIES ELSEWHERE.","3. * L4 / L5: CUT-OFF LENGTHS OF THE ADDED TOP BARS FROM THE SUPPORT FACE, PER THE DESIGN (NOT GIVEN IN THE SOURCE SCHEDULE).","4. TYPE 1: TYPICAL BEAM SECTION; TYPE 2: BEAM WITH SIDE (SKIN) BARS EACH FACE. DIMENSIONS IN mm; BAR NOTATION #16 = 16 mm BAR."};
   foreach(var n in notes){sh.Text(n,0,y,2,7,n=="NOTES:","NOTES",width);y-=4;}
   y-=6;sh.Text("REINFORCED CONCRETE BEAM SCHEDULE",width/2,y,5,5,true,"TITLE",width);sh.Line(width/2-48,y-4.4,width/2+48,y-4.4,"TITLE");
   sh.Left=0;sh.Right=width;sh.Top=top+(string.IsNullOrWhiteSpace(floor)?2:16);sh.Bottom=y-8;return ColumnFormatter.ToDxf(sh,null,null);}
+ /* the typical elevation of the schedule (owner, 22 November 2026: "sa formatter ilagay mo na din sana yung elevation"; MNL-66 Fig.
+    BM-1_2 BEAM BARS PLACING DIAGRAM - TYPE 1): an end span and an interior span between columns with A (continuous top, standard hook
+    at the discontinuous end), B / C (added top bars over L4 / L5 from the support faces), E (continuous bottom, hooked at the end), F
+    (added bottom bars, ending L/8 from the supports), the ties in the TR zones at each support and the REST between, side bars; not
+    to scale - the lengths are in the schedule and the design */
+ static double PlacingDiagram(ColumnSheet sh,double x0,double yTop,double width){const string L="ELEVATION",T="DIAGRAM";double depth=16,colW=10,top=yTop-14,bot=top-depth;
+  double s0=x0+20,span=(width-60)/2.2,s1=s0+colW+span,s2=s1+colW+span,end=Math.Min(x0+width-4,s2+colW+span*.2);
+  Action<double> column=cx=>{sh.Line(cx,top+12,cx,bot-12,L);sh.Line(cx+colW,top+12,cx+colW,bot-12,L);};column(s0);column(s1);column(s2);
+  sh.Line(s0,top,end,top,L);sh.Line(s0,bot,end,bot,L);sh.Line(s0,bot,s0,top,L);sh.Line(end,top+2,end-1.5,top-depth/2,L);sh.Line(end-1.5,top-depth/2,end,bot-2,L);
+  double c=1.6;/* A and E with standard hooks at the discontinuous end */sh.Line(s0+c,top-c,end,top-c,T);sh.Line(s0+c,top-c,s0+c,bot+5,T);sh.Line(s0+c+.8,bot+c,end,bot+c,T);sh.Line(s0+c+.8,bot+c,s0+c+.8,top-5,T);
+  double l4=span*.3,l5=span*.3;/* B at the end support, C over the interior supports */sh.Line(s0+c+.6,top-c-1,s0+colW+l4,top-c-1,T);sh.Line(s0+c+.6,top-c-1,s0+c+.6,bot+7,T);
+  foreach(var sx in new[]{s1,s2}){double a=sx-l5,b=Math.Min(end-2,sx+colW+l5);sh.Line(a,top-c-1,b,top-c-1,T);}
+  /* F: added bottom bars ending L/8 from the supports */foreach(var sx in new[]{s0,s1}){double a=sx+colW+span/8,b=sx+colW+span-span/8;sh.Line(a,bot+c+1,b,bot+c+1,T);}
+  /* ties: TR zones at each support face, REST between */double tr=span*.25;foreach(var sx in new[]{s0,s1}){double a=sx+colW,b=a+span;for(double t=a+1;t<=a+tr;t+=1.6)sh.Line(t,top-.6,t,bot+.6,"TIES");for(double t=b-1;t>=b-tr;t-=1.6)sh.Line(t,top-.6,t,bot+.6,"TIES");for(double t=a+tr+3.2;t<b-tr-1;t+=3.2)sh.Line(t,top-.6,t,bot+.6,"TIES");}
+  /* side bars */for(double t=s0+colW;t<end-4;t+=4)sh.Line(t,top-depth/2,t+2,top-depth/2,T);
+  /* labels and dimensions */Action<string,double,double,double,double> tag=(t,x,y,tx,ty)=>{sh.Line(x,y,tx,ty,"DIM");sh.Text(t,tx,ty+(ty>y?1.2:-1.2),2,ty>y?8:2,false,"DIM",14);};
+  tag("A",s0+colW+span*.55,top-c,s0+colW+span*.55,top+7);tag("B",s0+colW+l4*.6,top-c-1,s0+colW+l4*.6-6,top+7);tag("C",s1-l5*.5,top-c-1,s1-l5*.5,top+7);tag("E",s0+colW+span*.3,bot+c,s0+colW+span*.3,bot-7);tag("F",s0+colW+span*.6,bot+c+1,s0+colW+span*.6+6,bot-7);tag("SIDE BARS",s1+colW+span*.5,top-depth/2,s1+colW+span*.5+8,bot-7);
+  Action<double,double,double,string> dim=(a,b,y,t)=>{sh.Line(a,y,b,y,"DIM");sh.Line(a,y-1,a,y+1,"DIM");sh.Line(b,y-1,b,y+1,"DIM");sh.Text(t,(a+b)/2,y+.8,1.9,8,false,"DIM",Math.Max(8,b-a));};
+  dim(s0+colW,s0+colW+l4,top+15,"L4");dim(s1-l5,s1,top+15,"L5");dim(s1+colW,s1+colW+l5,top+15,"L5");dim(s2-l5,s2,top+15,"L5");
+  dim(s0+colW,s0+colW+span/8,bot-14,"L1/8");dim(s1-span/8,s1,bot-14,"L1/8");dim(s1+colW,s1+colW+span/8,bot-14,"L2/8");
+  dim(s0+colW,s0+colW+tr,bot-19,"TR");dim(s0+colW+tr,s1-tr,bot-19,"REST");dim(s1-tr,s1,bot-19,"TR");dim(s1+colW,s1+colW+tr,bot-19,"TR");
+  dim(s0+colW,s1,bot-25,"END SPAN L1");dim(s1+colW,s2,bot-25,"INTERIOR SPAN L2");
+  sh.Line(s0+c,top-c,s0-6,top+5,"DIM");sh.Text("STANDARD HOOK (TYP.) AT THE DISCONTINUOUS END",x0,top+6,1.8,7,false,"DIM",40);sh.Text("CLASS B LAP SPLICE OF A AT MIDSPAN, OF E OVER THE SUPPORTS (ACI 318 25.5)",s1+colW,bot-31,1.8,7,false,"DIM",width/2);
+  double titleY=bot-38;sh.Text("BEAM BARS PLACING DIAGRAM - TYPE 1 (NOT TO SCALE)",x0+width/2,titleY,4,5,true,"TITLE",width);sh.Line(x0+width/2-62,titleY-3.6,x0+width/2+62,titleY-3.6,"TITLE");return titleY-6;}
  /* the hoop and stirrup shapes, about 16 x 22 */
  static void Detail(ColumnSheet sh,string t,double x,double y){double w=16,h=22,r=1.2,k=.707;const string L="DETAIL";
   Action<double,double,double,double> hoop=(a,b,c,d)=>{sh.RoundRect(a,b,c,d,r,L);sh.Line(a+r*(1-k),d-r*(1-k),a+r*(1-k)+2.6,d-r*(1-k)-2.6,L);sh.Line(a+r*(1-k)+1,d-r*(1-k)+.2,a+r*(1-k)+3.6,d-r*(1-k)-2.4,L);};
