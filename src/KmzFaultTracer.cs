@@ -16,7 +16,7 @@ static class KmzFaultTracer {
   double W=use.Min(t=>(double)t.Key.Left),E=use.Max(t=>(double)t.Key.Right),N=use.Max(t=>(double)Math.Max(t.Key.Top,t.Key.Bottom)),S=use.Min(t=>(double)Math.Min(t.Key.Top,t.Key.Bottom));
   var t0=use[0];double dx=Math.Abs((double)t0.Key.Width)/t0.Value.Width,dy=Math.Abs((double)t0.Key.Height)/t0.Value.Height;
   double midLat=(N+S)/2,pxKm=dx*111.32*Math.Cos(midLat*Math.PI/180);int f=Math.Max(1,(int)Math.Round(0.15/Math.Max(pxKm,1e-6)));if(f>8)f=8;
-  int pw=(int)Math.Round((E-W)/dx),ph=(int)Math.Round((N-S)/dy);int gw=(pw+f-1)/f,gh=(ph+f-1)/f;if(gw<3||gh<3||(long)gw*gh>60000000L)return result;
+  int pw=(int)Math.Round((E-W)/dx),ph=(int)Math.Round((N-S)/dy);/* a large map (e.g. the whole country) on a coarser grid */while((long)((pw+f-1)/f)*((ph+f-1)/f)>40000000L)f++;int gw=(pw+f-1)/f,gh=(ph+f-1)/f;if(gw<3||gh<3)return result;
   double cellKm=pxKm*f;var count=new byte[gw*gh];
   foreach(var t in use){int ox=(int)Math.Round((t.Key.Left-W)/dx),oy=(int)Math.Round((N-Math.Max(t.Key.Top,t.Key.Bottom))/dy);
    using(var bmp=new Bitmap(t.Value)){var data=bmp.LockBits(new Rectangle(0,0,bmp.Width,bmp.Height),ImageLockMode.ReadOnly,PixelFormat.Format32bppArgb);try{var row=new byte[data.Stride];
@@ -48,12 +48,15 @@ static class KmzFaultTracer {
      ends.Add(new double[]{ex,ey,ddx,ddy,k});}}}
   /* link each end to the next piece in line with it (the gaps of the dashed lines, up to about 1.5 km) */
   var parent=Enumerable.Range(0,pieces.Count).ToArray();Func<int,int> root=null;root=q=>{while(parent[q]!=q){parent[q]=parent[parent[q]];q=parent[q];}return q;};
-  double reach=2.0/cellKm;var cand=new List<double[]>();var hash=new Dictionary<long,List<int>>();int hs=Math.Max(1,(int)Math.Ceiling(reach));
+  double reach=2.0/cellKm,reachLong=5.0/cellKm;var cand=new List<double[]>();var hash=new Dictionary<long,List<int>>();int hs=Math.Max(1,(int)Math.Ceiling(reachLong));
+  /* the length of each piece (cells): a longer jump (up to 5 km, e.g. across a map label on the line) is taken only between pieces of
+     at least 1 km lying in line with each other (within 15 degrees) */
+  var pieceLen=new double[pieces.Count];for(int k=0;k<pieces.Count;k++){var cs=pieces[k].SelectMany(q=>q).ToList();pieceLen[k]=Math.Max(cs.Max(q=>q%gw)-cs.Min(q=>q%gw),cs.Max(q=>q/gw)-cs.Min(q=>q/gw));}
   for(int e=0;e<ends.Count;e++){long key=((long)((int)ends[e][0]/hs)<<32)|(uint)((int)ends[e][1]/hs);List<int> l;if(!hash.TryGetValue(key,out l))hash[key]=l=new List<int>();l.Add(e);}
   Func<double,double,double,double,double> angle=(ax,ay,bx,by)=>double.IsNaN(ax)?25:Math.Acos(Math.Max(-1,Math.Min(1,ax*bx+ay*by)))*180/Math.PI;
   for(int e=0;e<ends.Count;e++){int cx=(int)ends[e][0]/hs,cy=(int)ends[e][1]/hs;for(int yy=-1;yy<=1;yy++)for(int xx=-1;xx<=1;xx++){List<int> l;if(!hash.TryGetValue(((long)(cx+xx)<<32)|(uint)(cy+yy),out l))continue;
-    foreach(var g in l){if(g<=e||ends[g][4]==ends[e][4])continue;double vx=ends[g][0]-ends[e][0],vy=ends[g][1]-ends[e][1],d=Math.Sqrt(vx*vx+vy*vy);if(d>reach||d<1e-9)continue;vx/=d;vy/=d;
-     double ae=angle(ends[e][2],ends[e][3],vx,vy),ag=angle(ends[g][2],ends[g][3],-vx,-vy);if(ae>35||ag>35||(double.IsNaN(ends[e][2])&&double.IsNaN(ends[g][2])&&d>reach/2))continue;cand.Add(new double[]{d*(1+(ae+ag)/30),e,g});}}}
+    foreach(var g in l){if(g<=e||ends[g][4]==ends[e][4])continue;double vx=ends[g][0]-ends[e][0],vy=ends[g][1]-ends[e][1],d=Math.Sqrt(vx*vx+vy*vy);if(d>reachLong||d<1e-9)continue;bool far=d>reach;vx/=d;vy/=d;
+     double ae=angle(ends[e][2],ends[e][3],vx,vy),ag=angle(ends[g][2],ends[g][3],-vx,-vy);if(far&&(double.IsNaN(ends[e][2])||double.IsNaN(ends[g][2])||ae>15||ag>15||pieceLen[(int)ends[e][4]]*cellKm<1||pieceLen[(int)ends[g][4]]*cellKm<1))continue;if(ae>35||ag>35||(double.IsNaN(ends[e][2])&&double.IsNaN(ends[g][2])&&d>reach/2))continue;cand.Add(new double[]{d*(1+(ae+ag)/30),e,g});}}}
   var linked=new bool[ends.Count];var links=new List<double[]>();
   foreach(var c in cand.OrderBy(c=>c[0])){int e=(int)c[1],g=(int)c[2];if(linked[e]||linked[g])continue;linked[e]=linked[g]=true;parent[root((int)ends[e][4])]=root((int)ends[g][4]);links.Add(new[]{ends[e][0],ends[e][1],ends[g][0],ends[g][1],ends[e][4]});}
   /* the fault lines: linked pieces with their links */
