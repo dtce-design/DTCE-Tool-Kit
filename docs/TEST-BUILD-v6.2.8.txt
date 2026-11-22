@@ -1,0 +1,15 @@
+DTCE Tool Kit v6.2.8 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Column Formatter, ACI option; owner: "based doon sa dxf file na binigay ko, sa formatter maglagay ng option using ACI", with the
+ACI Detailing Manual MNL-66(20) pages):
+- Detailing / schedule "ACI 318M / SP-66 (# bars)" now follows the manual's Fig. COL-1 COLUMN SCHEDULE: MARK across the top, the
+  levels from the top down (TOP EL., then each level band with DIMENSION / SIZE / TIES / HOOPS / COLUMN TIE TYPE / CONCRETE / fy and
+  the floor elevation), the bars of each column drawn in elevation beside the values with the lap splices above each floor, 90°
+  hooks at the top and dowels into the footing, TOP OF FOOTING with the dowels (DWLS) at the bottom.
+- The tie arrangements are drawn once each, lettered A, B, C ..., in a COLUMN TIE TYPE SCHEDULE (Fig. COL-20), in the clean style of
+  the owner's sample, with closed or open extra ties as chosen.
+- Ties as "#10 @ 75 O.C. (Lo = 585) / 200"; REMARKS bar legend; NOTES with the ACI 318M-14 clauses.
+- The revised ACI DXF reads back unchanged in the Bar Bending Schedule and the Bill of Quantities (hidden data layer).
+Checked on Linux/Mono only with the owner's schedule.dxf; not opened in AutoCAD here.
+
+Includes v6.2.7 and earlier builds.

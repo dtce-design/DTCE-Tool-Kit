@@ -38,7 +38,7 @@ static class AciDetailing {
   return common.ToArray();}
  /* the Column Formatter draws its own template: notation and notes are applied to the drawing items (the preview and the DXF stay alike) */
  internal static void Apply(ColumnSheet sh){foreach(var it in sh.Items)if(it.Kind=="TEXT")it.Text=Notation(it.Text,"Column");
-  var note=sh.Items.LastOrDefault(i=>i.Kind=="TEXT"&&(i.Text??"").StartsWith("NOTES:"));double y=note!=null?note.P[1]-6:sh.Bottom;double width=sh.Right-sh.Left;foreach(var t in Notes("Column")){sh.Text(t,sh.Left,y,1.8,7,false,"TEXT",width);y-=4.2;}sh.Bottom=y-6;}
+  var note=sh.Items.LastOrDefault(i=>i.Kind=="TEXT"&&(i.Text??"").StartsWith("NOTES:"));double y=note!=null?note.P[1]-(note.W>0?Math.Ceiling(note.Text.Length*note.H*.62/note.W):1)*note.H*1.7-3:sh.Bottom;double width=sh.Right-sh.Left;foreach(var t in Notes("Column")){sh.Text(t,sh.Left,y,1.8,7,false,"TEXT",width);y-=4.2;}sh.Bottom=y-6;}
  /* the Beam and Slab Formatters fill the owner's templates: notation and notes are applied to the DXF */
  internal static void Apply(Dxf d,string member){var es=d.ModelEntities();var texts=es.Where(e=>e.Type=="MTEXT"||e.Type=="TEXT").ToList();if(texts.Count==0)return;
   foreach(var e in texts)foreach(var p in e.P)if(p.Code==1||p.Code==3)p.Value=Notation(p.Value,member);
