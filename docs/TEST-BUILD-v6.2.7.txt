@@ -1,0 +1,11 @@
+DTCE Tool Kit v6.2.7 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Column Formatter; owner: "yung schedule na nakasulat ayusin"):
+- Schedule values (the table in the window) now reads as the drawn schedule: Column marked (C1, C2 ...), level range from the lowest,
+  one row per drawn cell (neighbouring levels with the same section merged as in the drawing), section, main bars
+  "4 - Ø20mm + 8 - Ø16mm", lateral ties spaced at "Ø10mm: 1 - 50mm, 6 - 75mm, AND REST AT 200mm C/C", ties per set with what they
+  are (hoop, closed / open links, crossties), Lo and concrete / fy / cover; full captions without "..." cut-offs.
+- DXF: rotated texts (the vertical section dimension) are written with their text direction, so every CAD reader shows them turned.
+Checked on Linux/Mono only with the owner's schedule.dxf; not opened in AutoCAD here.
+
+Includes v6.2.6 and earlier builds.
