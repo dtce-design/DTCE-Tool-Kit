@@ -20,16 +20,40 @@ static class FaultTraces {
   for(int k=1;k<t.Points.Count;k++){double ax=(t.Points[k-1][0]-lon)*kx,ay=(t.Points[k-1][1]-lat)*ky,bx=(t.Points[k][0]-lon)*kx,by=(t.Points[k][1]-lat)*ky;double dx=bx-ax,dy=by-ay,L2=dx*dx+dy*dy;double u=L2<=0?0:Math.Max(0,Math.Min(1,-(ax*dx+ay*dy)/L2));double px=ax+u*dx,py=ay+u*dy,d=Math.Sqrt(px*px+py*py);if(d<best){best=d;nlon=lon+px/kx;nlat=lat+py/ky;}}return best;}
  static bool Unnamed(string n){return string.IsNullOrWhiteSpace(n)||n.Trim().StartsWith("Unnamed",StringComparison.OrdinalIgnoreCase);}
  static string Key(string n){if(Unnamed(n))return "";n=Regex.Replace((n??"").ToUpperInvariant(),@"\(.*?\)","");n=Regex.Replace(n,@"\b(FAULT|FAULTS|ZONE|SYSTEM|SYTEM|SEGMENT|TRENCH|THE|OF)\b","");return Regex.Replace(n,@"[^A-Z0-9]","");}
- internal static double Mmax(double lengthKm){return 5.08+1.16*Math.Log10(Math.Max(lengthKm,0.1));}
- /* the fault of the site: HazardHunterPH's fault when the data has it, else the nearest trace */
- internal static FaultEstimate ForSite(double lat,double lon,params string[] hazardHunterNames){var traces=All;if(traces.Count==0)return null;FaultTrace pick=null;bool named=false;
+ /* Wells and Coppersmith (1994), magnitude on surface rupture length, all slip types: M = 5.08 + 1.16 log10(SRL); 77 earthquakes,
+    standard deviation 0.28, SRL 1.3 to 432 km. Their data are shallow (< 20 km) crustal earthquakes; most relations do not differ
+    significantly with the style of faulting, so the all-slip-type relation is used. SRL is the length of the surface rupture of one
+    earthquake, so on a mapped fault L is the length of the trace (segment) that would rupture at once: the named segment, measured
+    along its trace; parallel strands are not added together. */
+ internal const double WcA=5.08,WcB=1.16,WcSigma=0.28,WcMinKm=1.3,WcMaxKm=432;
+ internal static double Mmax(double lengthKm){return WcA+WcB*Math.Log10(Math.Max(lengthKm,0.1));}
+ internal static bool Subduction(string slipType){return (slipType??"").IndexOf("Subduction",StringComparison.OrdinalIgnoreCase)>=0;}
+ /* the fault of the site: HazardHunterPH's fault when the traces have it; with no HazardHunterPH name the nearest trace. A named
+    fault that is not in the traces gives null: another fault's length is never used for it. */
+ internal static FaultEstimate ForSite(double lat,double lon,params string[] hazardHunterNames){return ForSite(All,lat,lon,"GEM",hazardHunterNames);}
+ internal static FaultEstimate ForSite(List<FaultTrace> traces,double lat,double lon,string source,params string[] hazardHunterNames){if(traces==null||traces.Count==0)return null;FaultTrace pick=null;bool asked=false;
   /* HazardHunterPH's segment (e.g. West Valley Fault) is tried before the fault system name (Valley Fault System) */
-  foreach(var name in hazardHunterNames??new string[0]){string key=Key(name);if(pick!=null||key.Length<4)continue;var match=traces.Where(t=>{string k=Key(t.Name);return k.Length>=4&&(k==key||k.StartsWith(key)||key.StartsWith(k));}).ToList();if(match.Count>0){double a,b;pick=match.OrderBy(t=>Distance(t,lat,lon,out a,out b)).First();named=true;}}
-  if(pick==null){double a,b;pick=traces.OrderBy(t=>Distance(t,lat,lon,out a,out b)).First();}
-  var e=new FaultEstimate{Name=pick.Name,SlipType=pick.SlipType,Catalog=pick.Catalog,FromHazardHunter=named};/* an unnamed trace (a plate-boundary or regional segment) stands alone; a named fault is measured along all its traces */e.Traces=Unnamed(pick.Name)?new List<FaultTrace>{pick}:traces.Where(t=>t.Name==pick.Name).ToList();e.LengthKm=e.Traces.Sum(t=>t.LengthKm);e.Mmax=Mmax(e.LengthKm);
-  var rates=e.Traces.Where(t=>!double.IsNaN(t.SlipRate)).Select(t=>t.SlipRate).ToList();if(rates.Count>0)e.SlipRate=rates.Max();double nl,no;e.DistanceKm=e.Traces.Min(t=>Distance(t,lat,lon,out nl,out no));Distance(pick,lat,lon,out nl,out no);e.NearLat=nl;e.NearLon=no;
-  e.Basis="Fault trace: "+e.Name+(e.SlipType==""?"":" ("+e.SlipType.ToLowerInvariant()+")")+(named?" - the HazardHunterPH fault":" - the nearest mapped trace")+", length L = "+e.LengthKm.ToString("0.0",Inv)+" km measured along "+e.Traces.Count+" trace(s); Mmax = 5.08 + 1.16 log10(L) = "+e.Mmax.ToString("0.00",Inv)+" (Wells and Coppersmith 1994); slip rate "+(double.IsNaN(e.SlipRate)?"not in the data":e.SlipRate.ToString("0.0#",Inv)+" mm/yr")+"."+(e.LengthKm>400?" L is beyond the Wells and Coppersmith data (about 400 km); check Mmax with PHIVOLCS.":"")+(e.SlipType.IndexOf("Subduction",StringComparison.OrdinalIgnoreCase)>=0?" Subduction interface: the relation is for crustal faults; use the PHIVOLCS trench magnitude where available.":"")+" Traces: GEM Global Active Faults Database (CC BY-SA 4.0), Philippine catalogue from PHIVOLCS maps.";
+  foreach(var name in hazardHunterNames??new string[0]){string key=Key(name);if(key.Length>=4)asked=true;if(pick!=null||key.Length<4)continue;var match=traces.Where(t=>{string k=Key(t.Name);return k.Length>=4&&(k==key||k.StartsWith(key)||key.StartsWith(k));}).ToList();if(match.Count>0){double a,b;pick=match.OrderBy(t=>Distance(t,lat,lon,out a,out b)).First();}}
+  if(pick==null){if(asked)return null;double a,b;pick=traces.OrderBy(t=>Distance(t,lat,lon,out a,out b)).First();}
+  var group=Unnamed(pick.Name)?new List<FaultTrace>{pick}:traces.Where(t=>t.Name==pick.Name).ToList();
+  string how=source=="KMZ"?"the red active fault line nearest the site on the PHIVOLCS map (KMZ), traced from the map image":asked?"the fault HazardHunterPH names, in the GEM fault traces":"the nearest mapped trace (no HazardHunterPH fault name)";
+  var e=Measure(group,lat,lon,how);e.FromHazardHunter=asked;return e;}
+ /* the length of the given traces (one fault, or pieces the user joined) and Mmax from it */
+ internal static FaultEstimate Measure(List<FaultTrace> group,double lat,double lon,string how){var first=group[0];var names=group.Select(t=>t.Name).Distinct().ToList();
+  var e=new FaultEstimate{Name=string.Join(" + ",names),SlipType=first.SlipType,Catalog=first.Catalog,Traces=group};e.LengthKm=group.Sum(t=>t.LengthKm);e.Mmax=Mmax(e.LengthKm);
+  var rates=group.Where(t=>!double.IsNaN(t.SlipRate)).Select(t=>t.SlipRate).ToList();if(rates.Count>0)e.SlipRate=rates.Max();
+  double nl=lat,no=lon,best=double.MaxValue;foreach(var t in group){double a,b;double d=Distance(t,lat,lon,out a,out b);if(d<best){best=d;nl=a;no=b;}}e.DistanceKm=best;e.NearLat=nl;e.NearLon=no;
+  bool kmz=first.Catalog=="KMZ";
+  e.Basis="Rupture length (Wells and Coppersmith 1994): "+e.Name+(e.SlipType==""?"":" ("+e.SlipType.ToLowerInvariant().Replace('_',' ')+")")+" - "+how+"; L = "+e.LengthKm.ToString("0.0",Inv)+" km measured along the trace"+(group.Count>1?" ("+group.Count+" parts)":"")+
+   "; Mmax = 5.08 + 1.16 log10(L) = "+e.Mmax.ToString("0.00",Inv)+" +/- "+WcSigma.ToString("0.00",Inv)+" (surface rupture length, all slip types, 77 earthquakes, SRL 1.3 to 432 km); slip rate "+(double.IsNaN(e.SlipRate)?"not in the data":e.SlipRate.ToString("0.0#",Inv)+" mm/yr")+"."+
+   (e.LengthKm>WcMaxKm?" L exceeds the 432 km of the data: Mmax is extrapolated; take the segment that would rupture, or the PHIVOLCS magnitude.":e.LengthKm<WcMinKm?" L is below the 1.3 km of the data.":"")+
+   (Subduction(e.SlipType)?" Subduction interface: the relation is for shallow crustal faults (subduction events are not in its data); use the PHIVOLCS trench magnitude.":"")+
+   (kmz?" Traced from the PHIVOLCS active fault map: red lines only, dashes up to about 1.5 km apart joined; a fault interrupted on the map may need its parts joined (Ctrl+click).":" Traces: GEM Global Active Faults Database (CC BY-SA 4.0), Philippine catalogue from PHIVOLCS maps.");
   return e;}
+ /* the Table 208-3 type at Mmax - s and Mmax + s: shows when the type depends on the scatter of the relation */
+ internal static string Sensitivity(double mmax,double slip){if(double.IsNaN(mmax))return "";string n;string lo=SourceType(mmax-WcSigma,slip,out n),mid=SourceType(mmax,slip,out n),hi=SourceType(mmax+WcSigma,slip,out n);
+  if(lo==mid&&hi==mid)return "Type "+mid+" holds for Mmax +/- "+WcSigma.ToString("0.00",Inv)+" ("+(mmax-WcSigma).ToString("0.00",Inv)+" to "+(mmax+WcSigma).ToString("0.00",Inv)+").";
+  return "Within Mmax +/- "+WcSigma.ToString("0.00",Inv)+" ("+(mmax-WcSigma).ToString("0.00",Inv)+" to "+(mmax+WcSigma).ToString("0.00",Inv)+") the type is "+lo+" to "+hi+": confirm Mmax with PHIVOLCS.";}
  /* NSCP 2015 Table 208-3, with the conservative choice when the slip rate is unknown */
  internal static string SourceType(double mmax,double slip,out string note){note="";if(double.IsNaN(mmax))return "";if(double.IsNaN(slip)){note=mmax>=7.0?"slip rate unknown - Type A taken (Mmax >= 7.0, conservative)":"slip rate unknown - Type B taken (Mmax < 7.0; Type C needs a slip rate <= 2 mm/yr)";return mmax>=7.0?"A":"B";}
   if(mmax>=7.0&&slip>=5)return "A";if(mmax<6.5&&slip<=2)return "C";return "B";}

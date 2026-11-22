@@ -32,8 +32,10 @@ static class KmzFaultTracer {
    var paths=comp.Count==1?new List<List<int>>{comp}:Paths(new HashSet<int>(comp),gw,gh);if(paths.Count>0)pieces.Add(paths);}
   /* the ends of the pieces with their direction (outwards); a short dash or dot has none */
   var ends=new List<double[]>();/* x, y, dirX, dirY (NaN = none), piece */
+  double reach0=1.5/cellKm;
   for(int k=0;k<pieces.Count;k++){var pc=pieces[k];var cells=new HashSet<int>(pc.SelectMany(q=>q));
-   if(cells.Count<6){/* a short dash: its direction is the long axis of its red pixels, an end each way */int x0=cells.Min(q=>q%gw)-1,x1=cells.Max(q=>q%gw)+1,y0=cells.Min(q=>q/gw)-1,y1=cells.Max(q=>q/gw)+1;double sx=0,sy=0,sxx=0,syy=0,sxy=0;int m=0;
+   int extent=Math.Max(cells.Max(q=>q%gw)-cells.Min(q=>q%gw),cells.Max(q=>q/gw)-cells.Min(q=>q/gw));
+   if(cells.Count<6||extent<reach0){/* a dash: its direction is the long axis of its red pixels, an end each way */int x0=cells.Min(q=>q%gw)-1,x1=cells.Max(q=>q%gw)+1,y0=cells.Min(q=>q/gw)-1,y1=cells.Max(q=>q/gw)+1;double sx=0,sy=0,sxx=0,syy=0,sxy=0;int m=0;
     for(int y=Math.Max(0,y0);y<=Math.Min(gh-1,y1);y++)for(int x=Math.Max(0,x0);x<=Math.Min(gw-1,x1);x++)if(count[y*gw+x]>0){double w8=count[y*gw+x];m++;sx+=w8*x;sy+=w8*y;sxx+=w8*x*x;syy+=w8*y*y;sxy+=w8*x*y;}
     double cxp=cells.Average(q=>(double)(q%gw)),cyp=cells.Average(q=>(double)(q/gw));double ax=double.NaN,ay=double.NaN;
     if(m>=3){double wsum=0;for(int y=Math.Max(0,y0);y<=Math.Min(gh-1,y1);y++)for(int x=Math.Max(0,x0);x<=Math.Min(gw-1,x1);x++)wsum+=count[y*gw+x];double mx=sx/wsum,my=sy/wsum,vxx=sxx/wsum-mx*mx,vyy=syy/wsum-my*my,vxy=sxy/wsum-mx*my;
