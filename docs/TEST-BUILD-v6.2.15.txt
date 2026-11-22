@@ -1,0 +1,17 @@
+DTCE Tool Kit v6.2.15 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Beam and Slab Formatters, ACI option; owner: "yung L/4 and L/5 dimo ba makikita yun based sa rcdc setting", "kapag sinabi kong
+ACI yung template mismo ng ACI ang gagamitin", "based sa schedule ko dimo ba machecheck sa pattern ng bars if 2 way or 1 way"):
+- ACI beam schedule: L4 / L5 = Ln/4 (the added top bars B / C extend Ln/4 past the support face) - the RCDC curtailment setting seen
+  in the owner's BEAMS.dxf (975 on the 3900 spans, 2100 on the 8400 span) and the Bar Bending Schedule rule; "-" where no bars are
+  added at that support. The placing diagram shows L4 = Ln/4, L5 = Ln/4.
+- ACI slab schedule: the ACI Detailing Manual templates instead of the DTCE template. Each slab is one-way or two-way by its bars
+  (one-way when the long span has no curtailed bottom bars and no top bars over the short supports): one-way slabs in the SLAB-1
+  ONE-WAY CONCRETE SLAB SCHEDULE (MARK | DEPTH | MAIN REINFORCEMENT TOP LEFT / BOTTOM / TOP RIGHT | TEMPERATURE REINFORCEMENT TOP /
+  BOT | REMARKS), two-way slabs in the SLAB-2 TWO-WAY CONCRETE SLAB SCHEDULE (MARK | DEPTH | TOP A B C D I J | BOTTOM E F G H |
+  REMARKS; beam-supported panels have the same bars in the column and middle strips, so one table), each with its typical section
+  (elevation) and the notes. The ACI slab DXF reads back unchanged (hidden data).
+Checked on Linux/Mono only (beam: Test_Schedule_of_Beams.dxf; slab: the test fixture with one-way and two-way rows); not opened in
+AutoCAD here.
+
+Includes v6.2.14 and earlier builds.

@@ -4,8 +4,8 @@ namespace BeamScheduleFormatter {
    22 November 2026: "di naman sinundan yung format or template ng ACI"): MARK | SIZE B x H | TYPE | MAIN HORIZONTAL REINFORCEMENT -
    TOP A (continuous), L4, B (added at the left support), C (added at the right support), L5, BOTTOM E (continuous), F (added at
    midspan), SIDE BAR EACH | TIES TR (end zones), TYPE, REST, TYPE | REMARKS, with the hoop (H1, H3, H4) and stirrup (S1, S2) details
-   that the schedule uses. The values come from the formatted rows; L4 / L5 (cut-off of the added top bars) are not in the source
-   schedule and are left to the design. Each row is kept as hidden data so the revised DXF still loads in the Bar Bending Schedule and
+   that the schedule uses. The values come from the formatted rows; L4 / L5 (cut-off of the added top bars) are Ln/4 from the
+   support face, the RCDC curtailment setting (BEAMS.dxf: 975 on 3900 spans, 2100 on 8400) and the Bar Bending Schedule rule. Each row is kept as hidden data so the revised DXF still loads in the Bar Bending Schedule and
    the Bill of Quantities. */
 static class AciBeamSchedule {
  static readonly CultureInfo Inv=CultureInfo.InvariantCulture;const string Data="DTCE-DATA";
@@ -21,7 +21,7 @@ static class AciBeamSchedule {
   if(m.Success){if(m.Groups[2].Success)tr=dia+": 1 @ "+m.Groups[1].Value+", "+m.Groups[2].Value+" @ "+m.Groups[3].Value;rest=dia+" @ "+m.Groups[4].Value;}else if(!string.IsNullOrWhiteSpace(r.Spacing)&&r.Spacing!="--")tr=dia+": "+AciDetailing.Notation(r.Spacing,"Beam");
   int legs;int.TryParse(Regex.Match(r.Leg??"",@"\d+").Value,out legs);string hoop=legs>=4?"H3":legs==3?"H4":"H1",stir=legs>=3?"S2":"S1";string sfr=r.Cell(11);bool skin=sfr!="--"&&sfr!="-";double d;double.TryParse(r.Cell(1),NumberStyles.Float,Inv,out d);
   var remarks=new List<string>();if(r.Numbers.Count>0)remarks.Add(string.Join(", ",r.Numbers));if(r.Cantilever)remarks.Add("CANTILEVER");var bL=Added(botL,e);var bR=Added(botR,e);if(bL.Count>0)remarks.Add("BOT. LEFT +"+Join(bL));if(bR.Count>0)remarks.Add("BOT. RIGHT +"+Join(bR));
-  return new[]{r.Mark,r.Cell(0)+" x "+r.Cell(1),skin||d>900?"2":"1",Join(a),"*",Join(Added(topL,a)),Join(Added(topR,a)),"*",Join(e),Join(Added(botM,e)),skin?N(sfr):"-",tr,tr=="-"?"-":hoop,rest,rest=="-"?"-":stir,string.Join("; ",remarks)};}
+  return new[]{r.Mark,r.Cell(0)+" x "+r.Cell(1),skin||d>900?"2":"1",Join(a),topL.Count>a.Count?"Ln/4":"-",Join(Added(topL,a)),Join(Added(topR,a)),topR.Count>a.Count?"Ln/4":"-",Join(e),Join(Added(botM,e)),skin?N(sfr):"-",tr,tr=="-"?"-":hoop,rest,rest=="-"?"-":stir,string.Join("; ",remarks)};}
  public static Dxf Build(Result result,string floor){var sh=new ColumnSheet();
   double[] w={22,26,12,30,10,30,30,10,30,30,22,40,12,24,12,46};double x0=0,top=0,th=2;double width=w.Sum();Func<int,double> X=i=>x0+w.Take(i).Sum();
   if(!string.IsNullOrWhiteSpace(floor))sh.Text(floor.Trim().ToUpperInvariant(),0,top+12,4,7,true,"TITLE",width);
@@ -38,7 +38,7 @@ static class AciBeamSchedule {
   /* hoop and stirrup details (Fig. BM-1_1) */
   y-=10;double dx=0;sh.Text("HOOP DETAILS",0,y,2.8,7,true,"TITLE",60);sh.Text("STIRRUP DETAILS",width/2,y,2.8,7,true,"TITLE",60);y-=6;double hx=0,sx=width/2;
   foreach(var t in new[]{"H1","H3","H4","S1","S2"}.Where(used.Contains)){bool hoopT=t.StartsWith("H");double bx=hoopT?hx:sx;Detail(sh,t,bx+4,y-26);sh.Text(t,bx+12,y-30,2.4,5,true,"TITLE",12);sh.Line(bx+9,y-31.6,bx+15,y-31.6,"TITLE");if(hoopT)hx+=30;else sx+=30;}
-  y-=40;y=PlacingDiagram(sh,0,y,width)-6;var notes=new List<string>{"NOTES:","1. MINIMUM INSIDE BEND DIAMETER AND STANDARD HOOK GEOMETRY PER ACI 318 25.3; HOOPS WITH 135° SEISMIC HOOKS.","2. A = CONTINUOUS TOP BARS, B / C = ADDED TOP BARS AT THE LEFT / RIGHT SUPPORT, E = CONTINUOUS BOTTOM BARS, F = ADDED BOTTOM BARS AT MIDSPAN; TR = TIES IN THE END ZONES, REST = TIES ELSEWHERE.","3. * L4 / L5: CUT-OFF LENGTHS OF THE ADDED TOP BARS FROM THE SUPPORT FACE, PER THE DESIGN (NOT GIVEN IN THE SOURCE SCHEDULE).","4. TYPE 1: TYPICAL BEAM SECTION; TYPE 2: BEAM WITH SIDE (SKIN) BARS EACH FACE. DIMENSIONS IN mm; BAR NOTATION #16 = 16 mm BAR."};
+  y-=40;y=PlacingDiagram(sh,0,y,width)-6;var notes=new List<string>{"NOTES:","1. MINIMUM INSIDE BEND DIAMETER AND STANDARD HOOK GEOMETRY PER ACI 318 25.3; HOOPS WITH 135° SEISMIC HOOKS.","2. A = CONTINUOUS TOP BARS, B / C = ADDED TOP BARS AT THE LEFT / RIGHT SUPPORT, E = CONTINUOUS BOTTOM BARS, F = ADDED BOTTOM BARS AT MIDSPAN; TR = TIES IN THE END ZONES, REST = TIES ELSEWHERE.","3. L4 / L5 = Ln/4: THE ADDED TOP BARS B / C EXTEND Ln/4 PAST THE SUPPORT FACE (THE RCDC CURTAILMENT SETTING, AS THE BAR BENDING SCHEDULE; Ln = CLEAR SPAN, THE LONGER ADJACENT SPAN AT AN INTERIOR SUPPORT), NOT LESS THAN THE DEVELOPMENT LENGTH ld.","4. TYPE 1: TYPICAL BEAM SECTION; TYPE 2: BEAM WITH SIDE (SKIN) BARS EACH FACE. DIMENSIONS IN mm; BAR NOTATION #16 = 16 mm BAR."};
   foreach(var n in notes){sh.Text(n,0,y,2,7,n=="NOTES:","NOTES",width);y-=4;}
   y-=6;sh.Text("REINFORCED CONCRETE BEAM SCHEDULE",width/2,y,5,5,true,"TITLE",width);sh.Line(width/2-48,y-4.4,width/2+48,y-4.4,"TITLE");
   sh.Left=0;sh.Right=width;sh.Top=top+(string.IsNullOrWhiteSpace(floor)?2:16);sh.Bottom=y-8;return ColumnFormatter.ToDxf(sh,null,null);}
@@ -52,7 +52,7 @@ static class AciBeamSchedule {
   Action<double> column=cx=>{sh.Line(cx,top+12,cx,bot-12,L);sh.Line(cx+colW,top+12,cx+colW,bot-12,L);};column(s0);column(s1);column(s2);
   sh.Line(s0,top,end,top,L);sh.Line(s0,bot,end,bot,L);sh.Line(s0,bot,s0,top,L);sh.Line(end,top+2,end-1.5,top-depth/2,L);sh.Line(end-1.5,top-depth/2,end,bot-2,L);
   double c=1.6;/* A and E with standard hooks at the discontinuous end */sh.Line(s0+c,top-c,end,top-c,T);sh.Line(s0+c,top-c,s0+c,bot+5,T);sh.Line(s0+c+.8,bot+c,end,bot+c,T);sh.Line(s0+c+.8,bot+c,s0+c+.8,top-5,T);
-  double l4=span*.3,l5=span*.3;/* B at the end support, C over the interior supports */sh.Line(s0+c+.6,top-c-1,s0+colW+l4,top-c-1,T);sh.Line(s0+c+.6,top-c-1,s0+c+.6,bot+7,T);
+  double l4=span*.25,l5=span*.25;/* B at the end support, C over the interior supports */sh.Line(s0+c+.6,top-c-1,s0+colW+l4,top-c-1,T);sh.Line(s0+c+.6,top-c-1,s0+c+.6,bot+7,T);
   foreach(var sx in new[]{s1,s2}){double a=sx-l5,b=Math.Min(end-2,sx+colW+l5);sh.Line(a,top-c-1,b,top-c-1,T);}
   /* F: added bottom bars ending L/8 from the supports */foreach(var sx in new[]{s0,s1}){double a=sx+colW+span/8,b=sx+colW+span-span/8;sh.Line(a,bot+c+1,b,bot+c+1,T);}
   /* ties: TR zones at each support face, REST between */double tr=span*.25;foreach(var sx in new[]{s0,s1}){double a=sx+colW,b=a+span;for(double t=a+1;t<=a+tr;t+=1.6)sh.Line(t,top-.6,t,bot+.6,"TIES");for(double t=b-1;t>=b-tr;t-=1.6)sh.Line(t,top-.6,t,bot+.6,"TIES");for(double t=a+tr+3.2;t<b-tr-1;t+=3.2)sh.Line(t,top-.6,t,bot+.6,"TIES");}
@@ -60,7 +60,7 @@ static class AciBeamSchedule {
   /* labels and dimensions */Action<string,double,double,double,double> tag=(t,x,y,tx,ty)=>{sh.Line(x,y,tx,ty,"DIM");sh.Text(t,tx,ty+(ty>y?1.2:-1.2),2,ty>y?8:2,false,"DIM",14);};
   tag("A",s0+colW+span*.55,top-c,s0+colW+span*.55,top+7);tag("B",s0+colW+l4*.6,top-c-1,s0+colW+l4*.6-6,top+7);tag("C",s1-l5*.5,top-c-1,s1-l5*.5,top+7);tag("E",s0+colW+span*.3,bot+c,s0+colW+span*.3,bot-7);tag("F",s0+colW+span*.6,bot+c+1,s0+colW+span*.6+6,bot-7);tag("SIDE BARS",s1+colW+span*.5,top-depth/2,s1+colW+span*.5+8,bot-7);
   Action<double,double,double,string> dim=(a,b,y,t)=>{sh.Line(a,y,b,y,"DIM");sh.Line(a,y-1,a,y+1,"DIM");sh.Line(b,y-1,b,y+1,"DIM");sh.Text(t,(a+b)/2,y+.8,1.9,8,false,"DIM",Math.Max(8,b-a));};
-  dim(s0+colW,s0+colW+l4,top+15,"L4");dim(s1-l5,s1,top+15,"L5");dim(s1+colW,s1+colW+l5,top+15,"L5");dim(s2-l5,s2,top+15,"L5");
+  dim(s0+colW,s0+colW+l4,top+15,"L4 = Ln/4");dim(s1-l5,s1,top+15,"L5 = Ln/4");dim(s1+colW,s1+colW+l5,top+15,"L5 = Ln/4");dim(s2-l5,s2,top+15,"L5 = Ln/4");
   dim(s0+colW,s0+colW+span/8,bot-14,"L1/8");dim(s1-span/8,s1,bot-14,"L1/8");dim(s1+colW,s1+colW+span/8,bot-14,"L2/8");
   dim(s0+colW,s0+colW+tr,bot-19,"TR");dim(s0+colW+tr,s1-tr,bot-19,"REST");dim(s1-tr,s1,bot-19,"TR");dim(s1+colW,s1+colW+tr,bot-19,"TR");
   dim(s0+colW,s1,bot-25,"END SPAN L1");dim(s1+colW,s2,bot-25,"INTERIOR SPAN L2");
