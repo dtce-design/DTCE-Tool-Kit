@@ -3,14 +3,15 @@ from ezdxf.enums import TextEntityAlignment
 class Sheet:
     def __init__(s):
         s.doc=ezdxf.new('R2010',setup=True);s.doc.units=4;s.msp=s.doc.modelspace()
-        for n,lw in [('CONCRETE',35),('REBAR',50),('BARDOT',0),('TEXT',18),('DIM',13),('TITLE',35),('FRAME',25),('HIDDEN',18),('BREAK',18),('HATCH',9)]:
+        for n,lw in [('CONCRETE',35),('REBAR',50),('BARDOT',0),('TEXT',18),('DIM',13),('TITLE',35),('FRAME',25),('HIDDEN',18),('BREAK',18),('HATCH',0)]:
             s.doc.layers.add(n,color=7,lineweight=lw)
         s.doc.layers.get('HIDDEN').dxf.linetype='DASHED'
         if 'DASHED' not in s.doc.linetypes: s.doc.linetypes.add('DASHED',pattern=[6,4,-2])
         st=s.doc.styles.get('Standard');st.dxf.font='arial.ttf'
     def pl(s,pts,layer='CONCRETE',closed=False):s.msp.add_lwpolyline(pts,close=closed,dxfattribs={'layer':layer})
-    def fill(s,pts,scale=0.08):
-        h=s.msp.add_hatch(color=8,dxfattribs={'layer':'HATCH'});h.set_pattern_fill('AR-CONC',scale=scale);h.paths.add_polyline_path(pts,is_closed=True)
+    def fill(s,pts,scale=0.14):
+        # light gray, 60% transparent, sparse (owner: "lighter transparency")
+        h=s.msp.add_hatch(color=253,dxfattribs={'layer':'HATCH'});h.set_pattern_fill('AR-CONC',scale=scale,color=253);h.transparency=0.6;h.paths.add_polyline_path(pts,is_closed=True)
     def ln(s,a,b,layer='CONCRETE'):s.msp.add_line(a,b,dxfattribs={'layer':layer})
     def bar(s,pts):s.msp.add_lwpolyline(pts,dxfattribs={'layer':'REBAR','const_width':0.9})
     def dot(s,x,y,r=1.5):
