@@ -5,7 +5,7 @@ namespace BeamScheduleFormatter {
    measured along all of its traces, and Mmax = 5.08 + 1.16 log10(L km) (Wells and Coppersmith 1994, surface rupture length, all
    slip types). The slip rate is the trace's preferred net slip rate where the data has one. The source type then follows NSCP
    2015 Table 208-3; with no slip rate the type is A when Mmax >= 7.0 (conservative) and B otherwise. */
-class FaultTrace {public string Name,SlipType,Catalog;public double SlipRate=double.NaN;public List<double[]> Points=new List<double[]>();/* lon, lat */
+class FaultTrace {public string Name,SlipType,Catalog,Category="",TraceType="",Scale="";public int Year;public bool Branch;/* Branch: a side branch / parallel piece, not on the main trace */public double SlipRate=double.NaN;public List<double[]> Points=new List<double[]>();/* lon, lat */
  public double LengthKm{get{double s=0;for(int k=1;k<Points.Count;k++)s+=FaultTraces.Km(Points[k-1][1],Points[k-1][0],Points[k][1],Points[k][0]);return s;}}}
 class FaultEstimate {public string Name="",SlipType="",Catalog="",Basis="";public double LengthKm,Mmax,SlipRate=double.NaN,DistanceKm,NearLat,NearLon;public bool FromHazardHunter;public List<FaultTrace> Traces=new List<FaultTrace>();}
 static class FaultTraces {
@@ -13,7 +13,9 @@ static class FaultTraces {
  internal static List<FaultTrace> All{get{if(all==null)all=Parse();return all;}}
  static List<FaultTrace> mapLines;
  /* the PHIVOLCS map lines built into the Admin edition (empty in the User edition) */
- internal static List<FaultTrace> MapLines{get{if(mapLines==null){mapLines=new List<FaultTrace>();foreach(var line in PhivolcsMapData.Lines.Split('\n')){var p=line.Trim().Split('|');if(p.Length<2)continue;var t=new FaultTrace{Name="PHIVOLCS map line "+p[0],Catalog="KMZ",SlipType="",Points=Pts(p[1])};if(t.Points.Count>1)mapLines.Add(t);}}return mapLines;}}
+ internal static List<FaultTrace> MapLines{get{if(mapLines==null){var list=new List<FaultTrace>();foreach(var line in PhivolcsMapData.Lines.Split('\n')){var p=line.Trim().Split('|');if(p.Length<5)continue;int y;int.TryParse(p[2],out y);
+  var t=new FaultTrace{Name="",Catalog="PHIVOLCS",SlipType="",Category=p[0]=="A"?"active":"potentially active",TraceType=p[1]=="C"?"certain":p[1]=="O"?"approximate offshore projection":"approximate",Year=y,Scale=p[3],Points=Pts(p[4])};if(t.Points.Count>1)list.Add(t);}
+  mapLines=PhivolcsFaultNetwork.Build(list);}return mapLines;}}
  internal static List<List<double[]>> Coast{get{if(coast==null)coast=PhCoastData.Lines.Split('\n').Select(l=>Pts(l.Trim())).Where(p=>p.Count>1).ToList();return coast;}}
  static List<double[]> Pts(string s){var list=new List<double[]>();foreach(var q in s.Split(';')){var c=q.Split(',');double a,b;if(c.Length==2&&double.TryParse(c[0],NumberStyles.Float,Inv,out a)&&double.TryParse(c[1],NumberStyles.Float,Inv,out b))list.Add(new[]{a,b});}return list;}
  static List<FaultTrace> Parse(){var list=new List<FaultTrace>();foreach(var line in PhFaultData.Traces.Split('\n')){var p=line.Trim().Split('|');if(p.Length<5)continue;var t=new FaultTrace{Name=p[0],SlipType=p[1],Catalog=p[3],Points=Pts(p[4])};double sr;if(double.TryParse(p[2],NumberStyles.Float,Inv,out sr))t.SlipRate=sr;if(t.Points.Count>1)list.Add(t);}return list;}
@@ -39,20 +41,24 @@ static class FaultTraces {
   foreach(var name in hazardHunterNames??new string[0]){string key=Key(name);if(key.Length>=4)asked=true;if(pick!=null||key.Length<4)continue;var match=traces.Where(t=>{string k=Key(t.Name);return k.Length>=4&&(k==key||k.StartsWith(key)||key.StartsWith(k));}).ToList();if(match.Count>0){double a,b;pick=match.OrderBy(t=>Distance(t,lat,lon,out a,out b)).First();}}
   if(pick==null){if(asked)return null;double a,b;pick=traces.OrderBy(t=>Distance(t,lat,lon,out a,out b)).First();}
   var group=Unnamed(pick.Name)?new List<FaultTrace>{pick}:traces.Where(t=>t.Name==pick.Name).ToList();
-  string how=source=="KMZ"?(pick.Name.StartsWith("PHIVOLCS map line ")?"the active fault line nearest the site on the built-in "+PhivolcsMapData.Source+", traced from the map image":"the red active fault line nearest the site on the PHIVOLCS map (KMZ), traced from the map image"):asked?"the fault HazardHunterPH names, in the GEM fault traces":"the nearest mapped trace (no HazardHunterPH fault name)";
+  string how=source=="KMZ"?(pick.Catalog=="PHIVOLCS"?"the PHIVOLCS fault line nearest the site":"the red active fault line nearest the site on the PHIVOLCS map (KMZ), traced from the map image"):asked?"the fault HazardHunterPH names, in the GEM fault traces":"the nearest mapped trace (no HazardHunterPH fault name)";
   var e=Measure(group,lat,lon,how);e.FromHazardHunter=asked;return e;}
  /* the length of the given traces (one fault, or pieces the user joined) and Mmax from it */
  internal static FaultEstimate Measure(List<FaultTrace> group,double lat,double lon,string how){var first=group[0];var names=group.Select(t=>t.Name).Distinct().ToList();
-  var e=new FaultEstimate{Name=string.Join(" + ",names),SlipType=first.SlipType,Catalog=first.Catalog,Traces=group};e.LengthKm=group.Sum(t=>t.LengthKm);e.Mmax=Mmax(e.LengthKm);
+  var e=new FaultEstimate{Name=string.Join(" + ",names),SlipType=first.SlipType,Catalog=first.Catalog,Traces=group};e.LengthKm=group.Where(t=>!t.Branch).Sum(t=>t.LengthKm);e.Mmax=Mmax(e.LengthKm);double allKm=group.Sum(t=>t.LengthKm);
   var rates=group.Where(t=>!double.IsNaN(t.SlipRate)).Select(t=>t.SlipRate).ToList();if(rates.Count>0)e.SlipRate=rates.Max();
   double nl=lat,no=lon,best=double.MaxValue;foreach(var t in group){double a,b;double d=Distance(t,lat,lon,out a,out b);if(d<best){best=d;nl=a;no=b;}}e.DistanceKm=best;e.NearLat=nl;e.NearLon=no;
-  bool kmz=first.Catalog=="KMZ";
-  e.Basis="Rupture length (Wells and Coppersmith 1994): "+e.Name+(e.SlipType==""?"":" ("+e.SlipType.ToLowerInvariant().Replace('_',' ')+")")+" - "+how+"; L = "+e.LengthKm.ToString("0.0",Inv)+" km measured along the trace"+(group.Count>1?" ("+group.Count+" parts)":"")+
+  bool kmz=first.Catalog=="KMZ",phivolcs=group.Any(t=>t.Catalog=="PHIVOLCS");
+  e.Basis="Rupture length (Wells and Coppersmith 1994): "+e.Name+(e.SlipType==""?"":" ("+e.SlipType.ToLowerInvariant().Replace('_',' ')+")")+" - "+how+"; L = "+e.LengthKm.ToString("0.0",Inv)+" km measured along the "+(group.Any(t=>t.Branch)?"main trace (side branches and parallel pieces not added; all mapped pieces "+allKm.ToString("0.0",Inv)+" km)":"trace"+(group.Count>1?" ("+group.Count+" parts)":""))+
    "; Mmax = 5.08 + 1.16 log10(L) = "+e.Mmax.ToString("0.00",Inv)+" +/- "+WcSigma.ToString("0.00",Inv)+" (surface rupture length, all slip types, 77 earthquakes, SRL 1.3 to 432 km); slip rate "+(double.IsNaN(e.SlipRate)?"not in the data":e.SlipRate.ToString("0.0#",Inv)+" mm/yr")+"."+
    (e.LengthKm>WcMaxKm?" L exceeds the 432 km of the data: Mmax is extrapolated; take the segment that would rupture, or the PHIVOLCS magnitude.":e.LengthKm<WcMinKm?" L is below the 1.3 km of the data.":"")+
    (Subduction(e.SlipType)?" Subduction interface: the relation is for shallow crustal faults (subduction events are not in its data); use the PHIVOLCS trench magnitude.":"")+
-   (kmz?" Traced from the PHIVOLCS active fault map: red lines only, dashes up to about 2 km apart joined; a fault interrupted on the map may need its parts joined (Ctrl+click).":" Traces: GEM Global Active Faults Database (CC BY-SA 4.0), Philippine catalogue from PHIVOLCS maps.");
+   (phivolcs?" "+PhivolcsSummary(group)+" Pieces are joined where their ends meet, across gaps up to 2 km in line (within 30 degrees) and up to 5 km for pieces of 1 km or more in line (within 15 degrees). Source: "+PhivolcsMapData.Source+".":
+    kmz?" Traced from the PHIVOLCS active fault map: red lines only, dashes up to about 2 km apart joined; a fault interrupted on the map may need its parts joined (Ctrl+click).":" Traces: GEM Global Active Faults Database (CC BY-SA 4.0), Philippine catalogue from PHIVOLCS maps.");
   return e;}
+ static string PhivolcsSummary(List<FaultTrace> group){var main=group.Where(t=>!t.Branch&&t.TraceType!="gap").ToList();if(main.Count==0)main=group;double tot=main.Sum(t=>t.LengthKm);if(tot<=0)return "";
+  Func<Func<FaultTrace,bool>,double> share=f=>main.Where(f).Sum(t=>t.LengthKm)/tot*100;var years=main.Where(t=>t.Year>0).Select(t=>t.Year).ToList();var scales=main.Select(t=>t.Scale).Where(x=>x!="").Distinct().ToList();
+  return "PHIVOLCS "+(share(t=>t.Category=="active")>=50?"active":"potentially active")+" fault: main trace "+share(t=>t.TraceType=="certain").ToString("0",Inv)+"% certain, "+share(t=>t.TraceType=="approximate").ToString("0",Inv)+"% approximate, "+share(t=>t.TraceType.Contains("offshore")).ToString("0",Inv)+"% offshore projection"+(years.Count>0?"; mapped "+years.Min()+(years.Max()!=years.Min()?"-"+years.Max():""):"")+(scales.Count>0?" at "+string.Join(", ",scales.Take(3)):"")+".";}
  /* the Table 208-3 type at Mmax - s and Mmax + s: shows when the type depends on the scatter of the relation */
  internal static string Sensitivity(double mmax,double slip){if(double.IsNaN(mmax))return "";string n;string lo=SourceType(mmax-WcSigma,slip,out n),mid=SourceType(mmax,slip,out n),hi=SourceType(mmax+WcSigma,slip,out n);
   if(lo==mid&&hi==mid)return "Type "+mid+" holds for Mmax +/- "+WcSigma.ToString("0.00",Inv)+" ("+(mmax-WcSigma).ToString("0.00",Inv)+" to "+(mmax+WcSigma).ToString("0.00",Inv)+").";

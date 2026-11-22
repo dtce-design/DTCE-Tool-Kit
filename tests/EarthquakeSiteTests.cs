@@ -30,7 +30,9 @@ class EarthquakeSiteTests {
    Check(names.Count==1&&Math.Abs(got-expect)<0.05*expect,"the dashed red line is traced as one fault of the right length ("+got.ToString("0.0")+" of "+expect.ToString("0.0")+" km), legend sample and symbol left out");}
   /* PHIVOLCS Region II map lines: built into the Admin edition only */
   if(PhivolcsMapData.Lines==""){Check(FaultTraces.MapLines.Count==0,"the User edition has no built-in PHIVOLCS map lines");}
-  else{var dm=FaultTraces.ForSite(FaultTraces.MapLines,18.02,121.95,"KMZ");Check(FaultTraces.MapLines.Count>1000&&dm!=null&&dm.DistanceKm<5&&Math.Abs(dm.LengthKm-50.5)<2&&dm.Basis.Contains("Region II"),"Admin: the southern Dummon River strand on the built-in Region II map is about 50.5 km");}
+  else{Func<double,double,FaultEstimate> at=(la,lo)=>FaultTraces.ForSite(FaultTraces.MapLines,la,lo,"KMZ");var wv=at(14.5995,120.9842);var dm=at(18.02,121.95);var cb=at(10.3157,123.8854);
+   Check(FaultTraces.MapLines.Count>4000&&Math.Abs(wv.DistanceKm-9.3)<0.5&&dm.DistanceKm<3.5&&Math.Abs(cb.DistanceKm-2.6)<0.3,"Admin: PHIVOLCS fault lines match the HazardHunterPH distances (Manila 9.3 km, Cebu 2.6 km)");
+   Check(dm.LengthKm>45&&dm.LengthKm<65&&wv.LengthKm>60&&wv.Traces.Any(t=>t.Branch)&&wv.LengthKm<wv.Traces.Sum(t=>t.LengthKm)&&wv.Basis.Contains("main trace"),"Admin: L is the main trace (Dummon River south "+dm.LengthKm.ToString("0.0")+" km, Valley "+wv.LengthKm.ToString("0.0")+" km), branches not added");}
   string note;Check(FaultTraces.SourceType(7.2,double.NaN,out note)=="A"&&note.Contains("unknown"),"no slip rate, Mmax >= 7: Type A");Check(FaultTraces.SourceType(6.6,double.NaN,out note)=="B","no slip rate, Mmax < 7: Type B");Check(FaultTraces.SourceType(6.0,1,out note)=="C"&&FaultTraces.SourceType(7.1,6,out note)=="A"&&FaultTraces.SourceType(7.1,3,out note)=="B","Table 208-3 with a slip rate");
   Console.WriteLine("PASS: "+checks+" earthquake site, fault source type and history checks");}
 }

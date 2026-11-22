@@ -94,12 +94,17 @@ class RsaCurveForm:DesignSheetForm {
  /* the site's fault: the HazardHunterPH fault in the built-in traces; if it is not there, the nearest red line of the loaded PHIVOLCS
     map; with no HazardHunterPH fault, the nearest trace. Then L, Mmax and the slip rate are filled (values the user typed stay). */
  void ChooseFault(bool lookUpDistance){double lat,lon;if(!Site(out lat,out lon))return;
-  if(fault!=null){estimate=FaultTraces.ForSite(lat,lon,fault.Segment,fault.FaultName);if(estimate==null)estimate=NearMapLine(lat,lon);}
-  else{estimate=NearMapLine(lat,lon)??FaultTraces.ForSite(lat,lon);}
+  /* the PHIVOLCS fault lines (Admin edition) or a loaded map first, checked against the HazardHunterPH distance; the GEM traces give the
+     slip rate and slip type of a named fault, and the fault when there are no PHIVOLCS lines */
+  var gem=fault!=null?FaultTraces.ForSite(lat,lon,fault.Segment,fault.FaultName):null;var line=NearMapLine(lat,lon);
+  if(line!=null){if(fault!=null){string hh=fault.Segment!=""&&fault.Segment!="ND"?fault.Segment:fault.FaultName;if(hh!="")line.Name=hh+" ("+line.Name+")";}
+   if(gem!=null){line.SlipRate=gem.SlipRate;if(line.SlipType=="")line.SlipType=gem.SlipType;if(!double.IsNaN(gem.SlipRate))line.Basis+=" Slip rate "+gem.SlipRate.ToString("0.0#",CultureInfo.InvariantCulture)+" mm/yr from the GEM trace of "+gem.Name+".";}
+   estimate=line;}
+  else estimate=fault!=null?gem:FaultTraces.ForSite(lat,lon);
   FillFromEstimate(lookUpDistance);}
  /* the nearest PHIVOLCS map line (built into the Admin edition, or traced from a loaded KMZ), when it is plausibly the site's fault:
     within 5 km of the HazardHunterPH distance, or within 30 km with no HazardHunterPH answer */
- FaultEstimate NearMapLine(double lat,double lon){if(kmzTraces.Count==0)return null;var e=FaultTraces.ForSite(kmzTraces,lat,lon,"KMZ");if(e==null)return null;double limit=fault!=null&&!double.IsNaN(fault.DistanceKm)?fault.DistanceKm+5:30;return e.DistanceKm<=limit?e:null;}
+ FaultEstimate NearMapLine(double lat,double lon){if(kmzTraces.Count==0)return null;var e=FaultTraces.ForSite(kmzTraces,lat,lon,"KMZ");if(e==null)return null;double limit=fault!=null&&!double.IsNaN(fault.DistanceKm)?fault.DistanceKm+(e.Catalog=="PHIVOLCS"?2:5):30;return e.DistanceKm<=limit?e:null;}
  void FillFromEstimate(bool setDistance){var p=fault==null?null:EarthquakeSite.Suggested(fault.FaultName);
   if(estimate!=null){string L=estimate.LengthKm.ToString("0.0",CultureInfo.InvariantCulture);if(Value("RuptureLength")==""||Value("RuptureLength")==autoLength){autoLength=L;Inputs["RuptureLength"].Text=L;}
    string m=estimate.Mmax.ToString("0.0#",CultureInfo.InvariantCulture);if(Value("Mmax")==""||Value("Mmax")==autoMmax){Inputs["Mmax"].Text=m;autoMmax=m;}
@@ -108,15 +113,15 @@ class RsaCurveForm:DesignSheetForm {
   if(setDistance){if(fault!=null&&!double.IsNaN(fault.DistanceKm))Inputs["Distance"].Text=fault.DistanceKm.ToString("0.0#",CultureInfo.InvariantCulture);else if(estimate!=null)Inputs["Distance"].Text=estimate.DistanceKm.ToString("0.0#",CultureInfo.InvariantCulture);}
   ShowFault();ApplySource();}
  /* a click on a fault line takes it as the site's fault; Ctrl+click adds a part (e.g. a fault interrupted on the map) */
- void PickFault(FaultTrace t,bool add){double lat,lon;if(!Site(out lat,out lon))return;var pool=t.Catalog=="KMZ"?kmzTraces:FaultTraces.All;var group=t.Name.StartsWith("Unnamed",StringComparison.OrdinalIgnoreCase)?new List<FaultTrace>{t}:pool.Where(x=>x.Name==t.Name).ToList();
+ void PickFault(FaultTrace t,bool add){double lat,lon;if(!Site(out lat,out lon))return;var pool=kmzTraces.Contains(t)?kmzTraces:FaultTraces.All;var group=t.Name.StartsWith("Unnamed",StringComparison.OrdinalIgnoreCase)?new List<FaultTrace>{t}:pool.Where(x=>x.Name==t.Name).ToList();
   if(add&&picked!=null){if(picked.Contains(t))picked=picked.Where(x=>!group.Contains(x)).ToList();else picked.AddRange(group);}else picked=group;
   if(picked.Count==0){picked=null;ChooseFault(false);return;}
-  estimate=FaultTraces.Measure(picked,lat,lon,"picked on the map"+(picked.Any(x=>x.Catalog=="KMZ")?" (PHIVOLCS map, KMZ)":"")+(fault!=null?"; the distance stays the HazardHunterPH distance":""));
+  estimate=FaultTraces.Measure(picked,lat,lon,"picked on the map"+(picked.Any(x=>x.Catalog=="PHIVOLCS")?" (PHIVOLCS fault lines)":picked.Any(x=>x.Catalog=="KMZ")?" (PHIVOLCS map, KMZ)":"")+(fault!=null?"; the distance stays the HazardHunterPH distance":""));
   autoLength=Value("RuptureLength");autoMmax=Value("Mmax");/* a picked fault replaces the earlier automatic values */FillFromEstimate(fault==null);}
  async Task LoadKmz(string path,Button button){button.Enabled=false;kmzStatus.ForeColor=PowTheme.Muted;kmzStatus.Text="Reading the map...";
   try{var tiles=await Task.Run(()=>EarthquakeMapView.ReadKmz(path));map.Overlay=tiles;map.Invalidate();kmzStatus.Text="Tracing the red fault lines...";
    var traced=await Task.Run(()=>KmzFaultTracer.Trace(tiles));kmzTraces=new List<FaultTrace>(FaultTraces.MapLines);kmzTraces.AddRange(traced);map.Extra=kmzTraces;kmzStatus.Text=traced.Select(x=>x.Name).Distinct().Count()+" red fault lines traced from "+System.IO.Path.GetFileName(path)+" - click one to take it as the site's fault";
-   if(estimate==null||estimate.Catalog=="KMZ"){picked=null;ChooseFault(false);}map.Invalidate();}
+   if(estimate==null||estimate.Catalog=="KMZ"||estimate.Catalog=="PHIVOLCS"){picked=null;ChooseFault(false);}map.Invalidate();}
   catch(Exception ex){kmzStatus.ForeColor=Color.Firebrick;kmzStatus.Text="Fault map: "+Inner(ex);}finally{button.Enabled=true;}}
  void ApplySource(){double mmax=double.NaN,slip=double.NaN;double v;if(double.TryParse(Value("Mmax"),NumberStyles.Float,CultureInfo.InvariantCulture,out v))mmax=v;if(double.TryParse(Value("SlipRate"),NumberStyles.Float,CultureInfo.InvariantCulture,out v))slip=v;string note;string type=FaultTraces.SourceType(mmax,slip,out note);double km=double.NaN;if(double.TryParse(Value("Distance"),NumberStyles.Float,CultureInfo.InvariantCulture,out v))km=v;
   if(type!=""){((ComboBox)Inputs["Source"]).SelectedItem=type;sourceSummary.ForeColor=PowTheme.Teal;sourceSummary.Text="Seismic source type "+type+" (Table 208-3: Mmax "+mmax.ToString("0.0#",CultureInfo.InvariantCulture)+", "+(double.IsNaN(slip)?note:"slip rate "+slip.ToString("0.##",CultureInfo.InvariantCulture)+" mm/yr")+")"+(km>=15?" - at "+km.ToString("0.0",CultureInfo.InvariantCulture)+" km, Na = Nv = 1.0 for any source type (Tables 208-4, 208-5)":"")+(fault==null||double.IsNaN(fault.DistanceKm)?"":"; closest distance "+fault.DistanceKm.ToString("0.0#",CultureInfo.InvariantCulture)+" km")+" - copied to Site and structure. "+FaultTraces.Sensitivity(mmax,slip);}

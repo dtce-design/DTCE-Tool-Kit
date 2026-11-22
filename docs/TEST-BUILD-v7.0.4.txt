@@ -1,0 +1,22 @@
+DTCE Tool Kit v7.0.4 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH - Response Spectrum (RSA) design sheet, Earthquake tab (owner: "hanap ka ng data if may mahanap kang layer or kmz file";
+"itry mo talaga sa hazard hunter"; "in arcgis").
+- Admin edition: the DOST-PHIVOLCS active fault lines (the GeoRiskPH / HazardHunterPH active fault data) are built in, replacing the
+  Region II lines traced from the map image in v7.0.3. Source: public ArcGIS Online layer "Active_Faults" published by DPWH
+  (item e8b46d97c4e245bf916a1c6a85b25efa; copyright PHIVOLCS; credits GeoRiskPH, DOST-PHIVOLCS), 5,082 lines nationwide, active and
+  potentially active, certain / approximate / offshore projection, mapped 2007-2020 at 1:5,000 to 1:50,000. The User edition does not
+  include them. (HazardHunterPH's own map server needs a session token and was not used; the PHIVOLCS GIS server's certificate has
+  expired; FaultFinder refuses connections from outside the Philippines.)
+- The lines are joined into faults: pieces whose ends meet (0.15 km), pieces in line across gaps up to 2 km (30 degrees), and pieces of
+  1 km or more in line across gaps up to 5 km (15 degrees). L (Wells and Coppersmith) is the main trace: the longest route through the
+  joined pieces; side branches and parallel pieces count for the distance and can be picked, but are not added to L.
+- The fault of the site is the PHIVOLCS line nearest the site when it is within 2 km of the HazardHunterPH distance; it is named with
+  the HazardHunterPH fault, and the slip rate / slip type come from the GEM trace of that fault where there is one. Without PHIVOLCS
+  lines (User edition) the GEM traces are used as before.
+- Checks against HazardHunterPH: Manila 9.4 km (HazardHunterPH 9.3 km, West Valley Fault) with L = 98.5 km, Mmax 7.39; Cebu 2.7 km
+  (2.6 km, Central Cebu Fault); Davao 7.1 km (7.1 km, New Carmen Fault); Aparri 17.7 km (17.7 km); Dummon River south strand
+  L = 55.7 km, Mmax 7.10 (type B to A within +/- 0.28).
+- The report states the share of certain / approximate / offshore trace, the mapping year and scale, and the joining rules.
+- A loaded PHIVOLCS KMZ map image is still traced as before (also in the User edition).
+Tests: EarthquakeSiteTests 26 checks (Admin) / 25 (User), RsaCurveTests 21 checks.
