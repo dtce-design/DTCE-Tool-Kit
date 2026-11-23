@@ -38,7 +38,7 @@ class StairSectionView:StairZoomView {
   var poly=outline.Concat(soff).ToArray();using(var b=new SolidBrush(Concrete))g.FillPolygon(b,poly);using(var p=new Pen(Ink,1.4f/Zoom))g.DrawPolygon(p,poly);
   /* supports */foreach(var sx in new[]{0.0,L}){var a=P(sx,sx==0?-tl:H-tl);g.FillPolygon(Brushes.DimGray,new[]{a,new PointF(a.X-8,a.Y+14),new PointF(a.X+8,a.Y+14)});}
   /* bars following the slab: bottom bars along the soffit, top bars over the supports and through the kinks (sampled along the profile) */
-  double c=i.Cover+i.MainDia/2,tsl=i.Slabless?t:ts;Func<double,double> topLine=xx=>xx<before?-c:xx>before+going?H-c:(xx-before)*R/T-c;Func<double,double> botLine=xx=>i.Slabless?(xx<before?-tl+c:xx>before+going?H-tl+c:(xx-before)*R/T-tsl+c):bot(xx)+c;
+  double c=i.Cover+i.MainDia/2,tsl=i.Slabless?t:ts;Func<double,double> topLine=xx=>i.Slabless?(xx<before?-c:xx>before+going?H-c:(xx-before)*R/T-c):Math.Min(H-c,Math.Max(-c,(xx-before)*R/T-c));/* the top face of the waist runs on at the slope until it meets the landing top (no step up the last riser) */Func<double,double> botLine=xx=>i.Slabless?(xx<before?-tl+c:xx>before+going?H-tl+c:(xx-before)*R/T-tsl+c):bot(xx)+c;
   Func<double,double,Func<double,double>,PointF[]> run=(a,b2,fz)=>{var pts=new List<PointF>();int nn=60;for(int q=0;q<=nn;q++){double xx=a+(b2-a)*q/nn;pts.Add(P(xx,fz(xx)));}return pts.ToArray();};
   using(var bar=new Pen(Steel,2.2f/Zoom)){
    if(i.Slabless)g.DrawLines(bar,run(150,L-150,botLine));
@@ -46,7 +46,15 @@ class StairSectionView:StairZoomView {
            flight bar runs straight on into the landing to its top cover and the landing bar runs on into the flight - the bars cross */
     Func<double,double> flight=xx=>{double z=slope(xx);if(before>0&&z<-tl)z=-tl;return z+c;};
     double xEnd=after>0?Math.Min(L-c,before+(H-2*c+ts)*T/R):L-c;g.DrawLines(bar,run(c,xEnd,flight));
-    if(after>0){double xCross=Math.Max(c,before+(H-tl+2*c)*T/R);g.DrawLines(bar,new[]{P(L-c,H-tl+c),P(xCross,H-tl+c)});}}double ext=going*0.25+300;var left=new List<PointF>{P(c,-c-tl*0.6)};left.AddRange(run(c,Math.Min(L-c,before+ext),topLine));g.DrawLines(bar,left.ToArray());var right=run(Math.Max(c,L-after-ext),L-c,topLine).ToList();right.Add(P(L-c,H-c-tl*0.6));g.DrawLines(bar,right.ToArray());}
+    if(after>0){double xCross=Math.Max(c,before+(H-tl+2*c)*T/R);g.DrawLines(bar,new[]{P(L-c,H-tl+c),P(xCross,H-tl+c)});}}double ext=going*0.25+300;
+   /* top bars: the end legs always bend down into the support; where a lower landing meets the flight the top face turns inward, so
+      the landing top bar runs straight on into the flight to its bottom cover and the flight top bar runs on into the landing - they
+      cross (as the bottom bars at the upper landing) */
+   if(!i.Slabless&&before>0){double xa=Math.Min(L-c,before+(ts-2*c)*T/R);g.DrawLines(bar,new[]{P(c,-c-tl*0.6),P(c,-c),P(Math.Max(c,xa),-c)});
+    double xb=Math.Max(c,before+(2*c-tl)*T/R);g.DrawLines(bar,run(xb,Math.Min(L-c,before+ext),xx=>(xx-before)*R/T-c));}
+   else{var left=new List<PointF>{P(c,topLine(c)-tl*0.6)};left.AddRange(run(c,Math.Min(L-c,before+ext),topLine));g.DrawLines(bar,left.ToArray());}
+   var right=run(Math.Max(c,L-after-ext),L-c,topLine).ToList();right.Add(P(L-c,topLine(L-c)-tl*0.6));g.DrawLines(bar,right.ToArray());}
+  /* distribution bars under the top bars too */if(!i.Slabless)using(var dot=new SolidBrush(Steel)){double ext=going*0.25+300,sp=Math.Max(150,i.DistDia*20)*1.5;foreach(var seg in new[]{new[]{c+100,Math.Min(L-c,before+ext)},new[]{Math.Max(c,L-after-ext),L-c-100}})for(double xx=seg[0];xx<seg[1];xx+=sp){var q=P(xx,topLine(xx)-i.MainDia);g.FillEllipse(dot,q.X-2.2f,q.Y-2.2f,4.4f,4.4f);}}
   using(var dot=new SolidBrush(Steel)){double sp=Math.Max(150,i.DistDia*20);for(double xx=200;xx<L-100;xx+=sp*1.5){var q=P(xx,botLine(xx)+i.MainDia);g.FillEllipse(dot,q.X-2.2f,q.Y-2.2f,4.4f,4.4f);}}
   /* bar callouts A / B / C, the same marks as the reinforcement table (owner, 23 November 2026: "sa reports yung section plus yung
      reinforcement kung saan yung tinutukoy") */
