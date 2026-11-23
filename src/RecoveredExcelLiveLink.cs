@@ -255,7 +255,7 @@ namespace BeamScheduleFormatter
 			}
 			else if (Convert.ToString(val.Range["J1"].Value2) != text2)
 			{
-				throw new Exception("Existing BeamConcreteFormwork sheet is not owned by this app; it was not overwritten.");
+				val.UsedRange.ClearContents(); /* existing content is overwritten (owner, 23 November 2026) */
 			}
 			val.Range["A:H"].ClearContents();
 			val.Range["J1"].Value2 = text2;
@@ -335,7 +335,7 @@ namespace BeamScheduleFormatter
 			}
 			if (Convert.ToString(val.Range["A1"].Value2) != "DTCEEmbeddedEstimateV1")
 			{
-				throw new Exception("Reserved estimate sheet has unrecognized content; it was not overwritten.");
+				return null; /* other content: no saved estimate in it (it is overwritten on the next write) */
 			}
 			int num = default(int);
 			if (!int.TryParse(Convert.ToString(val.Range["A2"].Value2), out num) || num < 1 || num > 5000)
@@ -359,10 +359,7 @@ namespace BeamScheduleFormatter
 				val = book.Worksheets.Add();
 				val.Name = name;
 			}
-			else if (Convert.ToString(val.Range["A1"].Value2) != "DTCEEmbeddedEstimateV1")
-			{
-				throw new Exception("Reserved estimate sheet has unrecognized content; it was not overwritten.");
-			}
+			/* existing content of that sheet is overwritten (owner, 23 November 2026) */
 			val.UsedRange.ClearContents();
 			val.Range["A1:A" + (array.Length + 2)].NumberFormat = "@";
 			val.Range["A1"].Value2 = "DTCEEmbeddedEstimateV1";
@@ -401,15 +398,18 @@ namespace BeamScheduleFormatter
 			foreach (WorksExcelTable table in tables)
 			{
 				dynamic val = FindEstimateSheet(table.Name);
+				/* a sheet of the same name that the app did not make is overwritten (owner, 23 November 2026: "kapag naglink ako sa
+				   excel na may existing na laman ioverride niya ito"): its old content is cleared and the app takes it over */
 				if (val != null && Convert.ToString(val.Range["AA1"].Value2) != "DTCEProgramOfWorksV1:" + table.Name)
 				{
-					throw new Exception("Sheet '" + table.Name + "' is not owned by Bill of Quantities. Rename it or choose another workbook.");
+					val.UsedRange.ClearContents();
+					val.Range["AA1"].Value2 = "DTCEProgramOfWorksV1:" + table.Name;
 				}
 			}
 			dynamic val2 = FindEstimateSheet("DTCE_POW_Project");
 			if (xml != null && val2 != null && Convert.ToString(val2.Range["A1"].Value2) != "DTCEEmbeddedEstimateV1")
 			{
-				throw new Exception("Reserved project sheet has unrecognized content.");
+				val2.UsedRange.ClearContents(); /* overwritten like the other sheets (23 November 2026) */
 			}
 			dynamic val3 = FindEstimateSheet("DTCE Tool Kit - POW");
 			if (val3 != null && Convert.ToString(val3.Range["AA3"].Value2) != "DTCEFootingSummaryV1")
@@ -575,7 +575,7 @@ namespace BeamScheduleFormatter
 			dynamic val = FindEstimateSheet(array[0]);
 			if (val != null && Convert.ToString(val.Range["AA1"].Value2) != text)
 			{
-				throw new Exception("Existing design report sheet is not owned by this app.");
+				val.UsedRange.ClearContents(); /* existing content is overwritten (owner, 23 November 2026) */
 			}
 			bool flag = Convert.ToBoolean(app.EnableEvents);
 			try
