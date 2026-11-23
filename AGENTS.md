@@ -251,6 +251,9 @@ EarthworkFootingTests exit code -1073740771; all 124 checks had passed): new Use
 Admin (1152921505702482946; visibility kept Private) submissions were created and committed; Partner Center reported "accepted for
 processing" (PreProcessing). Certification is not guaranteed. v7.2.5 and later need a new explicit request. The test runner fix for that exit
 code (EarthworkFootingTests closes its windows and exits 0) is on the development branch for the next release.
+New owner request (23 November 2026, "Upload sa store"; chose "Replace v7.2.4"): publish v7.2.5 (User and Admin) after its Windows CI passes
+(PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only - the v7.2.4 submissions
+still pending are cancelled and replaced; User visibility stays Public). Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
