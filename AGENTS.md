@@ -190,6 +190,11 @@ Done 21 November 2026: 1.1.0 was refused (version already approved, train closed
 Run 44913008843 (Windows build job re-run once after the EarthworkFootingTests exit code, all 124 checks passed): DTCE Access Admin
 1.1.1 build 239.2 uploaded; App Store Connect processing VALID (available for TestFlight). Not submitted for App Store review.
 Apple warned that from April 2027 iPhone apps must be built with the iOS 27 SDK (Xcode 27) or later.
+New owner request (23 November 2026, "Pakipublish sa microsoft store"): publish v7.0.4 (User and Admin) the same way after its Windows
+CI passes (merge the development branch to main for the GitHub release, then publish_microsoft_store=true;
+replace_pending_store_submission stays false unless the owner asks). The Admin edition includes the PHIVOLCS active fault lines
+(DPWH ArcGIS layer, copyright PHIVOLCS; no stated license); the owner was told this before asking. Later versions again need a new
+explicit request.
 
 ## Program of Works name (20 November 2026)
 
