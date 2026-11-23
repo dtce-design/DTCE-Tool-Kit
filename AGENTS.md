@@ -353,3 +353,12 @@ automatically (bolts: member and gusset paths; welded angles: gusset around the 
 - owner: "mas magagandang report at detalyado as may diagrams as much as possible ... maganda sa mata" applies to reports generally
 (v7.1.28). Steel plate sheets are marked PL<t>-<n> and their shared use is shown in the grid and the BOQ reports (v7.1.29). User edition:
 apps without access open view only (src/ViewOnly.cs; tabs and scrolling, no input or commands, "Enter access code" banner) (v7.2.0).
+
+## Complete reports (23 November 2026)
+
+Owner: "complete calculation lahat sa design sheets reports, including diagrams, illustrations, everything"; "lagyan mo pala ng 1inch
+margin sa left for binding"; "sa calculation reports naman ng boq ... ilagay lahat ng calculation". Report pages keep a 1 inch left
+margin (CalculationDocument.L / CW, EngineeringQuantityPdf.Left, HTML @page). Design-sheet reports are illustrated documents with the
+complete step-by-step calculation (RichText for text calculations, RichReport.Raster for figures): Earthquake (v7.2.1), Purlin and
+Splice / Development / Hooks (v7.2.2), Truss Connections (v7.1.28). Every Bill of Quantities source line carries its calculation
+(src/BoqComputations.cs; SourceQuantity with computation; MergeSources keeps them) and every section table has a Basis column (v7.2.3).

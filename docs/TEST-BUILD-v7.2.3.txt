@@ -1,0 +1,18 @@
+DTCE Tool Kit v7.2.3 (23 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Bill of Quantities calculation reports with the calculations (owner: "sa calculation reports naman ng boq, ayusin. summary
+detailed, extensive. ilagay lahat ng calculation"):
+- Every source line of the Detailed / Extensive reports now shows its calculation with the values (the "Calculation / basis" column was
+  empty for most lines):
+  footings - concrete L x W x T x n, forms 2(L + W) x T x n, gravel bed L x W x 0.10 x n, excavation (L + 0.60)(W + 0.60) x depth x n,
+  backfill = excavation - concrete - gravel; beams - concrete b x d x L x n, forms sides 2 d L n + soffit b L n; RC walls - concrete
+  L x H x t x n, forms faces / ends / bottom; canopies - concrete and soffit / edge forms; CHB walls - L x H x n (or area x n) minus
+  each opening = net; plaster / paint - gross (sides) minus wall tiles = net; gravel to buy with the allowance; earthworks - bank,
+  reusable, swell and shrink; rebar - the bar formula, pieces x cut x kg/m = net + laps + allocated offcut = purchase; structural
+  steel - the row inputs and each 6 m stock's weight shared by the cut lengths.
+  Rows of the same member merged into one line say how many rows and the total ("3 rows x [...] -> total 4.5 m3").
+- Summary, Detailed and Extensive: each section table has a Basis column - the formula of a single-source quantity, or the sum of
+  its sources with their values.
+Tests: OffcutReuseReportTests 7, AngleSegmentsTests 16, BeamQuantitiesTests, AdditionalWorksTests 99, BoqSavedRoutesTests 26,
+PowSourceFilesTests 26, TrussConnectionLayoutTests 16.
+Includes everything of v7.2.2.

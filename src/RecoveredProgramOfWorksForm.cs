@@ -1902,12 +1902,29 @@ namespace BeamScheduleFormatter
 			};
 		}
 
+		/* a source with the calculation behind it, shown in the Detailed / Extensive reports (owner, 23 November 2026) */
+		private static BillQuantity SourceQuantity(string name, double value, string unit, string computation)
+		{
+			var q = SourceQuantity(name, value, unit);
+			q.Computation = computation;
+			return q;
+		}
+
 		private static List<BillQuantity> MergeSources(IEnumerable<BillQuantity> values)
 		{
 			return (from v in values
 				where Math.Abs(v.Quantity) > 1E-10
 				group v by new { v.Description, v.Unit, v.Basis } into g
-				select SourceQuantity(g.Key.Description, g.Sum((BillQuantity v) => v.Quantity), g.Key.Unit, g.Key.Basis)).ToList();
+				select Keep(SourceQuantity(g.Key.Description, g.Sum((BillQuantity v) => v.Quantity), g.Key.Unit, g.Key.Basis), g)).ToList();
+		}
+
+		/* merged sources keep every calculation that went into them */
+		private static BillQuantity Keep(BillQuantity merged, IEnumerable<BillQuantity> parts)
+		{
+			var list = parts.ToList();
+			var texts = list.Where(p => !string.IsNullOrWhiteSpace(p.Computation)).GroupBy(p => p.Computation).Select(g => (g.Count() > 1 ? g.Count() + " rows × [" + g.Key + "]" : g.Key)).ToList();
+			merged.Computation = texts.Count == 0 ? null : string.Join("; plus ", texts) + (list.Count > 1 ? " → total " + BoqComputations.N(merged.Quantity) + " " + merged.Unit : "");
+			return merged;
 		}
 
 		private static string RebarSource(StockAllocation cut)
@@ -1915,12 +1932,12 @@ namespace BeamScheduleFormatter
 			return cut.Entry.Beam + " | " + cut.Entry.Description + (string.IsNullOrWhiteSpace(cut.Entry.ScheduleLabel) ? "" : (" | " + cut.Entry.ScheduleLabel));
 		}
 
-		private List<BillQuantity> TableSources(object[,] data, int quantityColumn, string unit, string prefix)
+		private List<BillQuantity> TableSources(object[,] data, int quantityColumn, string unit, string prefix, string[] formulas = null)
 		{
 			List<BillQuantity> list = new List<BillQuantity>();
 			for (int i = 0; i < data.GetLength(0); i++)
 			{
-				list.Add(SourceQuantity(prefix + Convert.ToString(data[i, 1]) + " | " + Convert.ToString(data[i, 0]), Convert.ToDouble(data[i, quantityColumn]), unit));
+				list.Add(SourceQuantity(prefix + Convert.ToString(data[i, 1]) + " | " + Convert.ToString(data[i, 0]), Convert.ToDouble(data[i, quantityColumn]), unit, formulas != null && i < formulas.Length ? formulas[i] : null));
 			}
 			return MergeSources(list);
 		}
@@ -1929,7 +1946,7 @@ namespace BeamScheduleFormatter
 		{
 			if (key == "BeamConcrete" || key == "BeamForms")
 			{
-				return TableSources(beam.ConcreteExcelRows(), (key == "BeamConcrete") ? 4 : 7, (key == "BeamConcrete") ? "m3" : "m2", "Beam ");
+				return TableSources(beam.ConcreteExcelRows(), (key == "BeamConcrete") ? 4 : 7, (key == "BeamConcrete") ? "m3" : "m2", "Beam ", beam.ConcreteFormulas(key == "BeamConcrete"));
 			}
 			if (key == "SlabConcrete" || key == "SlabForms")
 			{
@@ -1937,24 +1954,24 @@ namespace BeamScheduleFormatter
 			}
 			if (key == "RCWallConcrete" || key == "RCWallForms")
 			{
-				return MergeSources(rcWallResults.Select((RCWallTakeoff q) => SourceQuantity("RC wall " + q.Id + " | " + q.Description, (key == "RCWallConcrete") ? q.Concrete : q.Forms, (key == "RCWallConcrete") ? "m3" : "m2")));
+				return MergeSources(rcWallResults.Select((RCWallTakeoff q) => SourceQuantity("RC wall " + q.Id + " | " + q.Description, (key == "RCWallConcrete") ? q.Concrete : q.Forms, (key == "RCWallConcrete") ? "m3" : "m2", (key == "RCWallConcrete") ? BoqComputations.RcWallConcrete(q) : BoqComputations.RcWallForms(q))));
 			}
 			if (key == "FootingConcrete" || key == "FootingForms")
 			{
-				return MergeSources(footingResults.Select((FootingTakeoff q) => SourceQuantity("Footing " + q.Id + " | " + q.Description, (key == "FootingConcrete") ? q.Concrete : q.Forms, (key == "FootingConcrete") ? "m3" : "m2")));
+				return MergeSources(footingResults.Select((FootingTakeoff q) => SourceQuantity("Footing " + q.Id + " | " + q.Description, (key == "FootingConcrete") ? q.Concrete : q.Forms, (key == "FootingConcrete") ? "m3" : "m2", (key == "FootingConcrete") ? BoqComputations.FootingConcrete(q) : BoqComputations.FootingForms(q))));
 			}
 			if (key == "ConcreteTotal" || key == "FormsTotal")
 			{
 				bool concrete = key == "ConcreteTotal";
 				return MergeSources(FixedQuantitySources(concrete ? "BeamConcrete" : "BeamForms").Concat(FixedQuantitySources(concrete ? "SlabConcrete" : "SlabForms")).Concat(FixedQuantitySources(concrete ? "FootingConcrete" : "FootingForms")).Concat(FixedQuantitySources(concrete ? "RCWallConcrete" : "RCWallForms"))
-					.Concat(canopyResults.Select((CanopyTakeoff q) => SourceQuantity("Canopy / ledge " + q.Id + " | " + q.Description, concrete ? q.Concrete : q.Forms, concrete ? "m3" : "m2"))).Concat(miscQuantities.Select(q=>SourceQuantity(q.Kind+" "+q.Id+" | "+q.Description,concrete?q.Concrete:q.Forms,concrete?"m3":"m2"))).Concat(wallFootingResults.Select(q=>SourceQuantity("Wall footing "+q.Id+" | "+q.Description,concrete?q.Concrete:q.Forms,concrete?"m3":"m2"))));
+					.Concat(canopyResults.Select((CanopyTakeoff q) => SourceQuantity("Canopy / ledge " + q.Id + " | " + q.Description, concrete ? q.Concrete : q.Forms, concrete ? "m3" : "m2", concrete ? BoqComputations.CanopyConcrete(q) : BoqComputations.CanopyForms(q)))).Concat(miscQuantities.Select(q=>SourceQuantity(q.Kind+" "+q.Id+" | "+q.Description,concrete?q.Concrete:q.Forms,concrete?"m3":"m2"))).Concat(wallFootingResults.Select(q=>SourceQuantity("Wall footing "+q.Id+" | "+q.Description,concrete?q.Concrete:q.Forms,concrete?"m3":"m2"))));
 			}
 			if (key == "Grade40" || key == "Grade60")
 			{
 				int grade = ((key == "Grade40") ? 40 : 60);
 				return MergeSources(from a in projectRebarPlan
 					where a.Demand.Grade == grade
-					select SourceQuantity(RebarSource(a) + " | " + a.Demand.Diameter + "mm", a.Purchase, "kg"));
+					select SourceQuantity(RebarSource(a) + " | " + a.Demand.Diameter + "mm", a.Purchase, "kg", BoqComputations.Rebar(a)));
 			}
 			if (key == "WoodPaint")
 			{
@@ -1970,7 +1987,7 @@ namespace BeamScheduleFormatter
 			}
 			if (key == "Plaster" || key == "MasonryPaint")
 			{
-				return MergeSources(((key == "Plaster") ? plasterResults : paintResults).Select((KeyValuePair<string, PlasterTakeoff> p) => SourceQuantity(p.Key, p.Value.Net, "m2")));
+				return MergeSources(((key == "Plaster") ? plasterResults : paintResults).Select((KeyValuePair<string, PlasterTakeoff> p) => SourceQuantity(p.Key, p.Value.Net, "m2", BoqComputations.PlasterText(p.Value, WallSides(p.Key, key == "Plaster")))));
 			}
 			string category = ((key == "WallTiles") ? "Wall" : ((key == "CeilingFinishes") ? "Ceiling" : ((key == "FloorFinishes") ? "Floor" : ((key == "OtherFinishes") ? "Other" : ""))));
 			return MergeSources(from f in finishItems
@@ -1980,13 +1997,20 @@ namespace BeamScheduleFormatter
 
 		private List<BillQuantity> MasonryQuantitySources(int index)
 		{
-			return MergeSources(((index < 2) ? RegularWalls.Where((WallItem w) => w.ThicknessMm == (double)((index == 0) ? 100 : 150)) : wallItems.Where((WallItem w) => w.Material == MasonryTotalNames[index - 2])).Select((WallItem w) => SourceQuantity(w.Id + " | " + w.Description, w.Net(wallOpenings), "m2")));
+			return MergeSources(((index < 2) ? RegularWalls.Where((WallItem w) => w.ThicknessMm == (double)((index == 0) ? 100 : 150)) : wallItems.Where((WallItem w) => w.Material == MasonryTotalNames[index - 2])).Select((WallItem w) => SourceQuantity(w.Id + " | " + w.Description, w.Net(wallOpenings), "m2", BoqComputations.WallNet(w, wallOpenings))));
+		}
+
+		/* plaster / paint sides of a wall for the report */
+		private string WallSides(string id, bool plaster)
+		{
+			var w = wallItems.FirstOrDefault(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
+			return w == null ? "" : plaster ? w.Plaster : (w.Paint == "Same as plaster" ? w.Plaster : w.Paint);
 		}
 
 		private List<BillQuantity> GravelQuantitySources(int index)
 		{
 			List<BillQuantity> list = TableSources(beam.EarthworkExcelRows(), 10, "m3", "Beam ");
-			IEnumerable<BillQuantity> enumerable = footingResults.Select((FootingTakeoff q) => SourceQuantity("Footing " + q.Id + " | " + q.Description, q.Gravel, "m3")).Concat(wallFootingResults.Select(q=>SourceQuantity("Wall footing "+q.Id+" | "+q.Description,q.Gravel,"m3")));
+			IEnumerable<BillQuantity> enumerable = footingResults.Select((FootingTakeoff q) => SourceQuantity("Footing " + q.Id + " | " + q.Description, q.Gravel, "m3", BoqComputations.FootingGravel(q))).Concat(wallFootingResults.Select(q=>SourceQuantity("Wall footing "+q.Id+" | "+q.Description,q.Gravel,"m3")));
 			IEnumerable<BillQuantity> enumerable2 = ((gravelEntries == null) ? Enumerable.Empty<BillQuantity>() : (from DataGridViewRow r in gravelEntries.Rows
 				where r.Tag is double
 				select SourceQuantity(Cell(r, 0) + " | " + Cell(r, 1), (double)r.Tag, "m3")));
@@ -2000,20 +2024,29 @@ namespace BeamScheduleFormatter
 				IEnumerable<BillQuantity> enumerable3 = list;
 				source = enumerable3;
 			}
-			return MergeSources(((IEnumerable<BillQuantity>)source).Select((BillQuantity q) => SourceQuantity(q.Description, q.Quantity * ((index == 4) ? (1.0 + (double)gravelAllowance.Value / 100.0) : 1.0), q.Unit)));
+			double allowance = (index == 4) ? (1.0 + (double)gravelAllowance.Value / 100.0) : 1.0;
+			return MergeSources(((IEnumerable<BillQuantity>)source).Select((BillQuantity q) => SourceQuantity(q.Description, q.Quantity * allowance, q.Unit, (q.Computation ?? "") + (index == 4 ? (string.IsNullOrEmpty(q.Computation) ? "" : "; ") + BoqComputations.N(q.Quantity) + " × (1 + " + BoqComputations.N((double)gravelAllowance.Value) + "% allowance) = " + BoqComputations.N(q.Quantity * allowance) + " m³" : ""))));
 		}
 
 		private List<BillQuantity> EarthQuantitySources(int index)
 		{
 			if (index == 0 || index == 1)
 			{
-				return MergeSources(earthSources.Select((EarthworkMaterial q) => SourceQuantity(q.Source + " | " + q.Id, (index == 0) ? q.Bank : q.Fill, "m3")));
+				return MergeSources(earthSources.Select((EarthworkMaterial q) => SourceQuantity(q.Source + " | " + q.Id, (index == 0) ? q.Bank : q.Fill, "m3", EarthText(q, index == 0))));
 			}
 			if (index == 3)
 			{
 				return new List<BillQuantity> { SourceQuantity("External common borrow for the remaining compacted-space deficit", earthBalance.LooseCommonBorrow, "m3") };
 			}
-			return MergeSources(earthBalance.Sources.Select((EarthworkSourceUse q) => SourceQuantity(q.Material.Source + " | " + q.Material.Id, (index == 2) ? q.LooseUsed : ((index == 4) ? q.LooseSurplus : q.UnsuitableLoose), "m3")));
+			return MergeSources(earthBalance.Sources.Select((EarthworkSourceUse q) => SourceQuantity(q.Material.Source + " | " + q.Material.Id, (index == 2) ? q.LooseUsed : ((index == 4) ? q.LooseSurplus : q.UnsuitableLoose), "m3", BoqComputations.Earth(q.Material))));
+		}
+
+		/* footing excavation / backfill with their formula; other sources with their bank volume and soil factors */
+		private string EarthText(EarthworkMaterial q, bool bank)
+		{
+			var f = q.Source == "Footing" ? footingResults.FirstOrDefault(x => x.Soil == q) : null;
+			if (f != null) return bank ? BoqComputations.FootingExcavation(f) : BoqComputations.FootingBackfill(f);
+			return bank ? "bank (in-place) volume " + BoqComputations.N(q.Bank) + " m³" : "space to fill after compaction " + BoqComputations.N(q.Fill) + " m³";
 		}
 
 		private List<BillQuantity> MouldingQuantitySources(int index)
@@ -2027,7 +2060,7 @@ namespace BeamScheduleFormatter
 		{
 			if (index == 4)
 			{
-				return MergeSources(canopyPlan.Select((StockAllocation a) => SourceQuantity(RebarSource(a), a.Purchase, "kg")));
+				return MergeSources(canopyPlan.Select((StockAllocation a) => SourceQuantity(RebarSource(a), a.Purchase, "kg", BoqComputations.Rebar(a))));
 			}
 			return MergeSources(canopyResults.Select((CanopyTakeoff q) => SourceQuantity(q.Id + " | " + q.Description, (index == 0) ? q.Concrete : ((index == 1) ? q.SoffitForms : ((index == 2) ? q.EdgeForms : q.Forms)), (index == 0) ? "m3" : "m2")));
 		}
@@ -2036,12 +2069,26 @@ namespace BeamScheduleFormatter
 		{
 			return MergeSources(from DataGridViewRow r in grid.Rows
 				where !r.IsNewRow && Cell(r, grid.Columns.Count - 1) == "Estimated"
-				select SourceQuantity(Cell(r, 0) + " | " + Cell(r, 1), Convert.ToDouble(r.Cells[column].Value, CultureInfo.InvariantCulture), "kg"));
+				select SourceQuantity(Cell(r, 0) + " | " + Cell(r, 1), Convert.ToDouble(r.Cells[column].Value, CultureInfo.InvariantCulture), "kg", RowInputs(grid, r, column)));
+		}
+
+		/* the inputs of a steel row and the column the weight is read from, as the basis of its quantity */
+		private static string RowInputs(DataGridView grid, DataGridViewRow r, int column)
+		{
+			var parts = new List<string>();
+			for (int c = 2; c < Math.Min(column, grid.Columns.Count); c++)
+			{
+				if (!grid.Columns[c].Visible) continue;
+				string v = Convert.ToString(r.Cells[c].FormattedValue);
+				if (string.IsNullOrWhiteSpace(v)) continue;
+				parts.Add(grid.Columns[c].HeaderText.Replace("\r", " ").Replace("\n", " ").Trim() + " " + v);
+			}
+			return string.Join("; ", parts) + " → " + grid.Columns[column].HeaderText.Replace("\r", " ").Replace("\n", " ").Trim() + " " + Convert.ToString(r.Cells[column].FormattedValue);
 		}
 
 		private List<BillQuantity> StockPurchaseSources(IEnumerable<SteelStock> stocks)
 		{
-			return MergeSources(stocks.SelectMany((SteelStock stock) => stock.Cuts.Select((SteelCut cut) => SourceQuantity(cut.Demand.Member + " | " + stock.Specification, 6.0 * stock.KgM * cut.Demand.Length / stock.Net, "kg"))));
+			return MergeSources(stocks.SelectMany((SteelStock stock) => stock.Cuts.Select((SteelCut cut) => SourceQuantity(cut.Demand.Member + " | " + stock.Specification, 6.0 * stock.KgM * cut.Demand.Length / stock.Net, "kg", "stock #" + stock.Number + ": 6 m × " + BoqComputations.N(stock.KgM) + " kg/m = " + BoqComputations.N(6.0 * stock.KgM) + " kg, shared by the cut length: × " + BoqComputations.N(cut.Demand.Length) + " / " + BoqComputations.N(stock.Net) + " m used = " + BoqComputations.N(6.0 * stock.KgM * cut.Demand.Length / stock.Net) + " kg"))));
 		}
 
 		private List<BillQuantity> SteelQuantitySources(string name)
@@ -8114,7 +8161,7 @@ worksExcelTimer.Tick += async delegate
 				orderby g.Key.Grade, g.Key.Diameter
 				select g)
 			{
-				add("Rebar purchase by size", "Grade " + item2.Key.Grade + " / " + item2.Key.Diameter + " mm", item2.Sum((StockAllocation a) => a.Purchase), "kg").Sources.AddRange(MergeSources(item2.Select((StockAllocation a) => SourceQuantity(RebarSource(a), a.Purchase, "kg"))));
+				add("Rebar purchase by size", "Grade " + item2.Key.Grade + " / " + item2.Key.Diameter + " mm", item2.Sum((StockAllocation a) => a.Purchase), "kg").Sources.AddRange(MergeSources(item2.Select((StockAllocation a) => SourceQuantity(RebarSource(a), a.Purchase, "kg", BoqComputations.Rebar(a)))));
 			}
 			Action<string, string> action2 = delegate(string section, string name)
 			{
