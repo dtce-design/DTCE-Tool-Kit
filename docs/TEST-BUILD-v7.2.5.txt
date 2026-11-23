@@ -1,0 +1,21 @@
+DTCE Tool Kit v7.2.5 (23 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Strap Foundation: ground water table and permissible loss of contact (owner: "naconsider ba GWT sa strap design?"; "include
+permissible loss of contact"):
+- New inputs: Ground water table below grade (m, blank = none), Required FS against flotation (1.1), Minimum contact under wind /
+  seismic cases (% of base, 50). Older sheet files open with no water table.
+- Water table above the footing base: the water pressure on the base, U = γw (Df - GWT) B L, is deducted from the footing + soil
+  weight, so bearing, contact, sliding and overturning use the reduced weight. New check per footing: Flotation, FS = (footing + soil
+  + smallest service column load) / U >= the required FS (strap weight not counted).
+- Soil takes no tension: when the linear pressure gives q min < 0, the pressure q = max(0, a + b x + c z) is found that still carries
+  the resultant and both moments (biaxial, iterated on a 60 x 60 grid); q max is its peak (checked against qa and used for the footing
+  design) and the contact is the part of the base in compression. One-way case equals the closed form 2R / (3B(L/2 - e)).
+- Contact checks: gravity service cases need the whole base in contact; service cases with wind or seismic (W, WX, WL, WIND, E, EQ,
+  EQX, SEISMIC ... in the load case name) may lose contact down to the minimum contact. Check cards show the linear q min, the
+  redistributed peak and the contact %.
+- Report: the water table and contact rule in the materials table (with the cases taken as wind / seismic); statics table has q min
+  linear and Contact columns, partial-contact rows tinted.
+Tests: StrapFootingTests 80 (no-tension peak and contact against the closed form, wind / seismic detection, water uplift, net weight,
+flotation check).
+Not verified here: the report layout on Windows.
+Includes everything of v7.2.4.

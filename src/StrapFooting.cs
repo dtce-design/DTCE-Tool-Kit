@@ -16,12 +16,17 @@ class StrapNode {public string Node="";public double X,Z,Cx=.4,Cz=.4,B=1.5,L=1.5
 class StrapBeam {public string From="",To="",Top="4-20",Bottom="3-20",Stirrups="10@150";public double Width=.4,Depth=.75;}
 class StrapInput {public List<StrapNode> Nodes=new List<StrapNode>();public List<StrapBeam> Straps=new List<StrapBeam>();
  public double Fc=21,Fy=415,Fyt=275,Cover=75,StrapCover=40,Qa=150,Df=1.5,GammaSoil=18,GammaConc=24,SupportHeight=1.0,Friction=.4,Aggregate=20,SlidingFS=1.5,OverturningFS=1.5;public string Vertical="Y";
+ /* ground water table below grade (NaN = none), its unit weight, the minimum contact allowed under wind / seismic service cases (%) and
+    the factor of safety against flotation (owner, 23 November 2026: "naconsider ba GWT sa strap design?", "include permissible loss of contact") */
+ public double Gwt=double.NaN,GammaW=9.81,MinContact=50,FlotationFS=1.1;public Func<string,bool> Lateral=StrapFooting.LooksLateral;
  public Func<string,bool> Factored=StrapFooting.LooksFactored;}
-class StrapCase {public string Case;public bool Factored;public double[] P,R,Mp,Mq,Qmax,Qmin,Qavg,H,Hp,Hq,Mrp,Mrq,Wf;public double[] MuA,MuB,Shear,W;}
+class StrapCase {public string Case;public bool Factored,Lateral;public double[] P,R,Mp,Mq,Qmax,Qmin,Qavg,H,Hp,Hq,Mrp,Mrq,Wf,Contact,QminLinear;public double[] MuA,MuB,Shear,W;}
 static class StrapFooting {
  static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
  internal static string F(double v,string f="0.0"){return double.IsInfinity(v)?"∞":v.ToString(f,Inv);}
  /* a load combination with load factors (1.2D, 1.4D, 1.6L, 0.9D ...) is factored; otherwise service */
+ /* a load combination with wind or seismic (W, WX, WL, E, EQ, EX ... standing alone, or the words) may lose part of the contact */
+ internal static bool LooksLateral(string name){return Regex.IsMatch(name??"",@"(?<![A-Za-z])(W|WX|WY|WZ|WL|WIND|E|EX|EY|EZ|EQ|EQX|EQY|EQZ|EL|SEISMIC|EARTHQUAKE)(?![A-Za-z])",RegexOptions.IgnoreCase);}
  internal static bool LooksFactored(string name){return Regex.IsMatch(name??"",@"(^|[^0-9.])(1\.2|1\.4|1\.6|0\.9|1\.0E|1\.0\s*E)",RegexOptions.IgnoreCase);}
  sealed class Load {public double P,Hp,Hq,Mp,Mq;}
  /* plan coordinates and loads in one right-handed frame: Y up -> plan (X, Z), moments about X and Z; Z up -> plan (X, Y), the
@@ -35,10 +40,24 @@ static class StrapFooting {
   if(i.Fc<17||i.Fy<200||i.Qa<=0||i.Df<0)throw new Exception("Check fc' (>= 17 MPa), fy, allowable bearing and Df.");}
  internal static double Length(StrapNode a,StrapNode b){return Math.Sqrt((b.X-a.X)*(b.X-a.X)+(b.Z-a.Z)*(b.Z-a.Z));}
  internal static int Index(StrapInput i,string node){return i.Nodes.FindIndex(n=>n.Node.Equals(node,StringComparison.OrdinalIgnoreCase));}
- internal static double FootingWeight(StrapInput i,StrapNode n){return n.B*n.L*(n.T*i.GammaConc+Math.Max(0,i.Df-n.T)*i.GammaSoil);}
+ /* footing + soil above it, less the water pressure on the base when the water table is above the base (buoyancy) */
+ internal static double GrossWeight(StrapInput i,StrapNode n){return n.B*n.L*(n.T*i.GammaConc+Math.Max(0,i.Df-n.T)*i.GammaSoil);}
+ internal static double WaterHead(StrapInput i){return double.IsNaN(i.Gwt)?0:Math.Max(0,i.Df-i.Gwt);}
+ internal static double Uplift(StrapInput i,StrapNode n){return i.GammaW*WaterHead(i)*n.B*n.L;}
+ internal static double FootingWeight(StrapInput i,StrapNode n){return GrossWeight(i,n)-Uplift(i,n);}
+ /* soil takes no tension: q = max(0, a + b x + c z) over the base (x across B, z across L) with the resultant R and the moments
+    Mx = ∫q x dA, Mz = ∫q z dA; Newton iteration on a 60 x 60 grid from the linear distribution. Returns q max and the contact fraction. */
+ internal static double[] NoTension(double B,double L,double R,double Mx,double Mz){if(R<=1e-9)return new[]{double.PositiveInfinity,0};const int n=60;double dx=B/n,dz=L/n,dA=dx*dz;
+  double a=R/(B*L),b=Mx/(L*B*B*B/12),c=Mz/(B*L*L*L/12);double qmax=0,frac=1;
+  for(int it=0;it<80;it++){double f0=-R,f1=-Mx,f2=-Mz;var J=new double[3,3];int on=0;qmax=0;
+   for(int i=0;i<n;i++){double x=-B/2+(i+.5)*dx;for(int j=0;j<n;j++){double z=-L/2+(j+.5)*dz;double q=a+b*x+c*z;if(q<=0)continue;on++;qmax=Math.Max(qmax,q);f0+=q*dA;f1+=q*x*dA;f2+=q*z*dA;
+     double[] g={1,x,z};for(int r=0;r<3;r++)for(int k=0;k<3;k++)J[r,k]+=g[r]*g[k]*dA;}}
+   frac=on/(double)(n*n);if(on==0)return new[]{double.PositiveInfinity,0};if(Math.Abs(f0)<1e-7*R&&Math.Abs(f1)<1e-7*R*B&&Math.Abs(f2)<1e-7*R*L)break;
+   double[] d;try{d=Gauss(J,new[]{-f0,-f1,-f2});}catch(Exception){return new[]{double.PositiveInfinity,0};}a+=d[0];b+=d[1];c+=d[2];}
+  /* the corner values of the plane give the exact peak */qmax=Math.Max(Math.Max(a+b*B/2+c*L/2,a-b*B/2+c*L/2),Math.Max(a+b*B/2-c*L/2,a-b*B/2-c*L/2));return new[]{qmax,frac};}
  internal static double StrapWeight(StrapInput i,StrapBeam s){return s.Width*s.Depth*i.GammaConc;}
  /* one load case: soil resultants R, strap end moments and shears, soil pressures */
- internal static StrapCase Solve(StrapInput inp,string name,Dictionary<string,SupportReaction> rows,bool factored){int n=inp.Nodes.Count,m=inp.Straps.Count,N=n+2*m;var A=new double[N,N];var rhs=new double[N];var load=new Load[n];var W=new double[n];var res=new StrapCase{Case=name,Factored=factored,P=new double[n],R=new double[n],Mp=new double[n],Mq=new double[n],Qmax=new double[n],Qmin=new double[n],Qavg=new double[n],H=new double[n],Hp=new double[n],Hq=new double[n],Mrp=new double[n],Mrq=new double[n],Wf=new double[n],MuA=new double[m],MuB=new double[m],Shear=new double[m],W=new double[m]};
+ internal static StrapCase Solve(StrapInput inp,string name,Dictionary<string,SupportReaction> rows,bool factored){int n=inp.Nodes.Count,m=inp.Straps.Count,N=n+2*m;var A=new double[N,N];var rhs=new double[N];var load=new Load[n];var W=new double[n];var res=new StrapCase{Case=name,Factored=factored,P=new double[n],R=new double[n],Mp=new double[n],Mq=new double[n],Qmax=new double[n],Qmin=new double[n],Qavg=new double[n],H=new double[n],Hp=new double[n],Hq=new double[n],Mrp=new double[n],Mrq=new double[n],Wf=new double[n],Contact=new double[n],QminLinear=new double[n],MuA=new double[m],MuB=new double[m],Shear=new double[m],W=new double[m]};
   for(int k=0;k<n;k++){SupportReaction r;if(!rows.TryGetValue(inp.Nodes[k].Node,out r))throw new Exception("Load case "+name+" has no reaction at node "+inp.Nodes[k].Node+".");load[k]=LoadOf(r,inp.Vertical);res.P[k]=load[k].P;res.H[k]=Math.Sqrt(load[k].Hp*load[k].Hp+load[k].Hq*load[k].Hq);res.Hp[k]=load[k].Hp;res.Hq[k]=load[k].Hq;res.Mrp[k]=load[k].Mp;res.Mrq[k]=load[k].Mq;W[k]=factored?0:FootingWeight(inp,inp.Nodes[k]);res.Wf[k]=W[k];}
   var u=new double[m,2];var L=new double[m];var ia=new int[m];var ib=new int[m];double[] wStrap=new double[m];
   for(int s=0;s<m;s++){ia[s]=Index(inp,inp.Straps[s].From);ib[s]=Index(inp,inp.Straps[s].To);var a=inp.Nodes[ia[s]];var b=inp.Nodes[ib[s]];L[s]=Length(a,b);u[s,0]=(b.X-a.X)/L[s];u[s,1]=(b.Z-a.Z)/L[s];wStrap[s]=(factored?1.2:1.0)*StrapWeight(inp,inp.Straps[s]);res.W[s]=wStrap[s];}
@@ -57,7 +76,10 @@ static class StrapFooting {
   for(int k=0;k<n;k++){var nd=inp.Nodes[k];var ld=load[k];double R=x[k];res.R[k]=R;
    double mp=R*(-nd.Ez)+W[k]*nd.Ez-ld.Mp-inp.SupportHeight*ld.Hq,mq=R*nd.Ex-W[k]*nd.Ex-ld.Mq+inp.SupportHeight*ld.Hp;foreach(int s in straps[k]){var ts=t(s);double v=x[mu(s,k)];mp+=v*ts[0];mq+=v*ts[1];}
    /* the soil supplies the rest: moment about the footing centre */
-   res.Mp[k]=-mp;res.Mq[k]=-mq;double area=nd.B*nd.L,Ip=nd.B*nd.B*nd.B*nd.L/12,Iq=nd.B*nd.L*nd.L*nd.L/12;double gp=res.Mq[k]/Ip,gq=-res.Mp[k]/Iq;double q0=R/area,dq=Math.Abs(gp)*nd.B/2+Math.Abs(gq)*nd.L/2;res.Qavg[k]=q0;res.Qmax[k]=q0+dq;res.Qmin[k]=q0-dq;}
+   res.Mp[k]=-mp;res.Mq[k]=-mq;double area=nd.B*nd.L,Ip=nd.B*nd.B*nd.B*nd.L/12,Iq=nd.B*nd.L*nd.L*nd.L/12;double gp=res.Mq[k]/Ip,gq=-res.Mp[k]/Iq;double q0=R/area,dq=Math.Abs(gp)*nd.B/2+Math.Abs(gq)*nd.L/2;res.Qavg[k]=q0;res.Qmax[k]=q0+dq;res.Qmin[k]=q0-dq;res.QminLinear[k]=q0-dq;res.Contact[k]=1;
+   /* part of the base lifts off: the soil takes no tension, the pressure is redistributed over the part in contact */
+   if(q0-dq<0){var nt=NoTension(nd.B,nd.L,R,res.Mq[k],-res.Mp[k]);res.Qmax[k]=nt[0];res.Qmin[k]=0;res.Contact[k]=nt[1];}}
+  res.Lateral=inp.Lateral(name);
   return res;}
  internal static double[] Gauss(double[,] a,double[] b){int n=b.Length;var m=(double[,])a.Clone();var r=(double[])b.Clone();for(int c=0;c<n;c++){int p=c;for(int i=c+1;i<n;i++)if(Math.Abs(m[i,c])>Math.Abs(m[p,c]))p=i;if(Math.Abs(m[p,c])<1e-12)throw new Exception("The strap system cannot be solved (a footing or strap is not connected properly).");
    if(p!=c){for(int j=0;j<n;j++){double tmp=m[c,j];m[c,j]=m[p,j];m[p,j]=tmp;}double t2=r[c];r[c]=r[p];r[p]=t2;}for(int i=c+1;i<n;i++){double f=m[i,c]/m[c,c];if(f==0)continue;for(int j=c;j<n;j++)m[i,j]-=f*m[c,j];r[i]-=f*r[c];}}
@@ -78,8 +100,20 @@ static class StrapFooting {
   double sq=Math.Sqrt(inp.Fc);
   for(int k=0;k<inp.Nodes.Count;k++){var nd=inp.Nodes[k];string id="F"+nd.Node;double area=nd.B*nd.L;
    if(service.Count>0){var g=service.OrderByDescending(c=>c.Qmax[k]).First();double w=FootingWeight(inp,nd);
-    Add(list,steps,"Bearing pressure (service)","413.3.1",id,g.Case,g.Qmax[k],inp.Qa,"kPa","R = P + W(footing + soil) +/- strap shears = "+F(g.P[k])+" + "+F(w)+" -> R = "+F(g.R[k])+" kN","q = R / A +/- M / S = "+F(g.R[k])+" / "+F(area,"0.00")+" +/- ...  ->  q avg "+F(g.Qavg[k])+", q max "+F(g.Qmax[k])+" kPa","residual moment on the footing (not taken by straps): Mx "+F(g.Mp[k])+", Mz "+F(g.Mq[k])+" kN·m","q max <= qa (gross allowable bearing) = "+F(inp.Qa)+" kPa");
-    var u2=service.OrderBy(c=>c.Qmin[k]).First();double ratio=u2.Qavg[k]<=0?double.PositiveInfinity:(u2.Qmax[k]-u2.Qavg[k])/u2.Qavg[k];var cc=new SupportCheck{Name="Full contact, no uplift (service)",Clause="413.3",Node=id,Case=u2.Case,Demand=u2.Qmax[k]-u2.Qavg[k],Capacity=u2.Qavg[k],Unit="kPa",Ratio=ratio};list.Add(cc);steps[cc]=new List<string>{"q min = q avg - Δq = "+F(u2.Qavg[k])+" - "+F(u2.Qmax[k]-u2.Qavg[k])+" = "+F(u2.Qmin[k])+" kPa (must be >= 0)","Δq / q avg <= 1 keeps the whole footing in contact"};}
+    Add(list,steps,"Bearing pressure (service)","413.3.1",id,g.Case,g.Qmax[k],inp.Qa,"kPa","R = P + W(footing + soil"+(WaterHead(inp)>0?" - water uplift "+F(Uplift(inp,nd)):"")+") +/- strap shears = "+F(g.P[k])+" + "+F(w)+" -> R = "+F(g.R[k])+" kN"+(g.Contact[k]<1?"; part of the base lifts off - q max from the redistributed pressure ("+F(g.Contact[k]*100,"0")+"% in contact)":""),"q = R / A +/- M / S = "+F(g.R[k])+" / "+F(area,"0.00")+" +/- ...  ->  q avg "+F(g.Qavg[k])+", q max "+F(g.Qmax[k])+" kPa","residual moment on the footing (not taken by straps): Mx "+F(g.Mp[k])+", Mz "+F(g.Mq[k])+" kN·m","q max <= qa (gross allowable bearing) = "+F(inp.Qa)+" kPa");
+    /* contact: full contact under gravity cases; under wind / seismic cases part of the base may lift off down to the minimum contact
+       (owner, 23 November 2026: "include permissible loss of contact"); the pressure is then redistributed (soil takes no tension) */
+    foreach(bool lateral in new[]{false,true}){var set=service.Where(c=>c.Lateral==lateral).ToList();if(set.Count==0)continue;var u2=set.OrderBy(c=>c.Contact[k]).ThenBy(c=>c.QminLinear[k]).First();
+     double need=lateral?Math.Min(100,Math.Max(0,inp.MinContact)):100,have=u2.Contact[k]*100;
+     var cc=new SupportCheck{Name=lateral?"Contact under wind / seismic (service), at least "+F(need,"0")+"% of the base":"Full contact under gravity loads (service)",Clause=lateral?"413.3 (permissible loss of contact)":"413.3",Node=id,Case=u2.Case,Demand=need,Capacity=have,Unit="% of base",Ratio=have<=0?double.PositiveInfinity:need/have};list.Add(cc);
+     var lines=new List<string>{"linear pressure: q min = q avg - Δq = "+F(u2.Qavg[k])+" - "+F(u2.Qavg[k]-u2.QminLinear[k])+" = "+F(u2.QminLinear[k])+" kPa"};
+     if(u2.QminLinear[k]<0)lines.Add("q min < 0: the soil takes no tension - the pressure q = max(0, a + b x + c z) is redistributed over the part in contact so that it still carries R = "+F(u2.R[k])+" kN and the moments; contact = "+F(have,"0.0")+"% of the base, q max = "+F(u2.Qmax[k])+" kPa");
+     else lines.Add("q min >= 0: the whole base is in contact (100%)");
+     lines.Add(lateral?"wind / seismic case: contact >= "+F(need,"0")+"% allowed (input); "+(need>0?"Demand = required %, capacity = contact %":"")
+       :"gravity case: the whole base must stay in contact");steps[cc]=lines;}}
+   /* flotation: the water table above the base lifts the footing; weights and the smallest service column load must hold it down */
+   if(service.Count>0&&WaterHead(inp)>0){double U=Uplift(inp,nd),Wg=GrossWeight(inp,nd);var gfl=service.OrderBy(c=>c.P[k]).First();double hold=Wg+Math.Max(0,gfl.P[k]);
+    Add(list,steps,"Flotation (water table "+F(inp.Gwt,"0.00")+" m below grade), FS >= "+F(inp.FlotationFS,"0.0#"),"Buoyancy (W + P) / U",id,gfl.Case,inp.FlotationFS*U,hold,"kN","water head at the base hw = Df - GWT = "+F(inp.Df,"0.00")+" - "+F(inp.Gwt,"0.00")+" = "+F(WaterHead(inp),"0.00")+" m","uplift U = γw hw B L = "+F(inp.GammaW,"0.00")+" x "+F(WaterHead(inp),"0.00")+" x "+F(nd.B,"0.00")+" x "+F(nd.L,"0.00")+" = "+F(U)+" kN","holding down = footing + soil "+F(Wg)+" + smallest column load "+F(Math.Max(0,gfl.P[k]))+" = "+F(hold)+" kN (strap weight not counted)","FS = "+F(U>0?hold/U:double.PositiveInfinity,"0.00")+" >= "+F(inp.FlotationFS,"0.0#"));}
    if(service.Count>0){double fsS=inp.SlidingFS;var gs=service.OrderByDescending(c=>c.R[k]<=0?double.PositiveInfinity:fsS*c.H[k]/(inp.Friction*c.R[k])).First();double resist=inp.Friction*Math.Max(0,gs.R[k]);
     Add(list,steps,"Sliding of the footing (service), FS >= "+F(fsS,"0.0#"),"Geotechnical (μ R / H)",id,gs.Case,fsS*gs.H[k],resist,"kN","H = √(Hx² + H"+(inp.Vertical=="Z"?"y":"z")+"²) = "+F(gs.H[k])+" kN at the column","friction μ R = "+F(inp.Friction,"0.00")+" x "+F(gs.R[k])+" = "+F(resist)+" kN (passive soil and the strap not counted)","FS = μ R / H = "+(gs.H[k]>1e-9?F(resist/gs.H[k],"0.00"):"∞")+";  "+F(fsS,"0.0#")+" H <= μ R");}
    if(factored.Count==0)continue;

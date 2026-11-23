@@ -246,6 +246,14 @@ this release only - a v7.1.24 submission still in certification is cancelled and
 Partner Center User draft 1152921505702479990, so the User upload may be refused again until it is deleted. Later versions again need a
 new explicit request. Owner then: "deleted all submission" (Partner Center drafts deleted); "user app available or searchable in store":
 the User upload sets visibility Public (STORE_VISIBILITY, User job only). The release is v7.2.4 (v7.2.3 plus the Windows tab fix).
+Done 23 November 2026: v7.2.4 merged to main (PR #18; GitHub release v7.2.4-build-279). Store run 45191282769 (build re-run once after the
+EarthworkFootingTests exit code -1073740771; all 124 checks had passed): new User (1152921505702483442; visibility Private -> Public) and
+Admin (1152921505702482946; visibility kept Private) submissions were created and committed; Partner Center reported "accepted for
+processing" (PreProcessing). Certification is not guaranteed. v7.2.5 and later need a new explicit request. The test runner fix for that exit
+code (EarthworkFootingTests closes its windows and exits 0) is on the development branch for the next release.
+New owner request (23 November 2026, "Upload sa store"; chose "Replace v7.2.4"): publish v7.2.5 (User and Admin) after its Windows CI passes
+(PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only - the v7.2.4 submissions
+still pending are cancelled and replaced; User visibility stays Public). Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
@@ -368,3 +376,10 @@ margin (CalculationDocument.L / CW, EngineeringQuantityPdf.Left, HTML @page). De
 complete step-by-step calculation (RichText for text calculations, RichReport.Raster for figures): Earthquake (v7.2.1), Purlin and
 Splice / Development / Hooks (v7.2.2), Truss Connections (v7.1.28). Every Bill of Quantities source line carries its calculation
 (src/BoqComputations.cs; SourceQuantity with computation; MergeSources keeps them) and every section table has a Basis column (v7.2.3).
+
+## Strap Foundation water table and contact (23 November 2026)
+
+Owner: "naconsider ba GWT sa strap design?"; "include permissible loss of contact". Strap Foundation has a ground water table input
+(buoyancy deducted from the footing + soil weight, flotation check) and a no-tension soil pressure: gravity service cases need full
+contact; wind / seismic service cases (recognised from the load case name) may lose contact down to a minimum % of the base (input,
+default 50); the redistributed peak is used for bearing and the footing design (src/StrapFooting.cs, v7.2.5).
