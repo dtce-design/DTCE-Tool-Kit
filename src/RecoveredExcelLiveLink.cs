@@ -25,6 +25,8 @@ namespace BeamScheduleFormatter
 		private const string BillSchema = "DTCEBillOfQuantitiesV1";
 
 		public bool KeepUnloadedBackupItems;
+        /* empty the BACKUP quantity of items without an app quantity (false until the project quantities are known) */
+        public bool ClearMissingBackupItems;
 
 		public Dictionary<string, BackupTarget> LastBackupRoutes;
 
@@ -926,7 +928,10 @@ internal void WriteMappedBackup(List<BackupDemand> demands,List<BackupTarget> ta
   /* the app's quantities go to BACKUP: a quantity typed in the workbook on a pay item that has no quantity in the app is cleared too
      (owner, 23 November 2026: "pati yung mga may type values sa excel ioverride niya din kahit walang nakalagay sa app"), except
      Progress Photographs, which come from the workbook */
-  ClearedBackupRows.Clear();if(!KeepUnloadedBackupItems)foreach(var t in targets){if(groups.ContainsKey(t.Row)||BackupBillItem.WorkbookItem(t.Description))continue;dynamic cell=sheet.Cells[t.Row,55];bool formula=false;try{formula=Convert.ToBoolean(cell.HasFormula);}catch{}if(formula)continue;/* typed values only; formulas stay */object v=cell.Value2;if(v==null||Convert.ToString(v).Trim()=="")continue;
+  /* owner (23 November 2026, "bakit di pa din naalis yung mga quantities sa xlsm yung wala sa boq"): the quantity cell of an item that is
+     not in the Bill of Quantities is emptied whether it was typed or a formula (the app writes over formulas of the items it has too),
+     also while some rows still have input issues; only before the project's quantities are known nothing is cleared */
+  ClearedBackupRows.Clear();if(ClearMissingBackupItems)foreach(var t in targets){if(groups.ContainsKey(t.Row)||BackupBillItem.WorkbookItem(t.Description))continue;dynamic cell=sheet.Cells[t.Row,55];bool formula=false;try{formula=Convert.ToBoolean(cell.HasFormula);}catch{}object v=cell.Value2;if(!formula&&(v==null||Convert.ToString(v).Trim()==""))continue;
    try{sheet.Cells[t.Row,55].Value2=null;changed=true;ClearedBackupRows.Add(t.Row);}catch(Exception ex){throw new Exception("Excel could not clear BACKUP!BC"+t.Row+" ("+t.Code+" "+t.Description+"). "+ex.Message,ex);}}
  if(!detailsHidden){var hidden=targets.Where(t=>t.EndRow>=t.Row+1).Select(t=>"BC"+(t.Row+1)+":BC"+t.EndRow).ToList();foreach(string address in ExcelRangeBatches.Pack(hidden)){try{sheet.Range[address].EntireRow.Hidden=true;}catch(Exception ex){throw new Exception("Excel could not hide BACKUP detail rows at "+address+". Check worksheet protection and merged rows. "+ex.Message,ex);}}detailsHidden=true;}var wanted=new HashSet<string>(demands.Select(d=>BackupMapping.Name(d.Key)),StringComparer.OrdinalIgnoreCase);foreach(string name in saved.Keys.Where(n=>!KeepUnloadedBackupItems&&!wanted.Contains(n))){book.Names.Item(name).Delete();if(nameIdentityCache!=null)nameIdentityCache.Remove(name);ForgetBackupName(name);}if(changed){try{app.Calculate();}catch(Exception ex){throw new Exception("Excel could not recalculate the linked workbook after writing BACKUP quantities. "+ex.Message,ex);}}LastBackupRoutes=new Dictionary<string,BackupTarget>(routes);LastBackupTotals.Clear();foreach(var pair in totals)if(!basisOnly.Contains(pair.Key))LastBackupTotals[targets.Single(t=>t.Row==pair.Key).SlotId]=pair.Value;/* not saved: the owner saves the workbook in Excel (19 November 2026) */
  }finally{if(calculation.HasValue)try{app.Calculation=calculation.Value;}catch{}app.EnableEvents=events;app.ScreenUpdating=screen;}
