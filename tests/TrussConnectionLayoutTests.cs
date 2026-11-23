@@ -23,11 +23,11 @@ class TrussConnectionLayoutTests {
   Check(string.Join("|",pages.TabPages.Cast<TabPage>().Select(p=>p.Text))=="Weld design|Bolt design","main tabs");
   Func<int,string> subs=k=>string.Join("|",pages.TabPages[k].Controls.OfType<TabControl>().Single().TabPages.Cast<TabPage>().Select(p=>p.Text));
   Check(subs(0)=="Member and demand|Weld detail|Block shear|STAAD forces|Report","weld sub tabs: "+subs(0));
-  pages.SelectedIndex=1;Application.DoEvents();
+  /* a tab change made with the tab strip focused, as by the user (Calculate / Open changes return to the open design) */pages.Focus();Application.DoEvents();pages.SelectedIndex=1;Application.DoEvents();
   Check(subs(1)=="Member and demand|Bolt detail|Block shear|STAAD forces|Report"&&inputs["Connection"].Text=="Bolts","bolt sub tabs follow: "+subs(1));
   inputs["Family"].Text="Double angle";Application.DoEvents();Check(inputs["ShearPlanes"].Text=="2","double angle bolts in double shear");
   inputs["Tension"].Text="60";var doc=(CalculationDocument)typeof(TrussConnectionForm).GetMethod("BuildDocument",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(f,null);Check(doc.Sheets.Count>=4,"illustrated report");
-  pages.SelectedIndex=0;Application.DoEvents();Check(inputs["Connection"].Text=="Weld","weld follows");
+  pages.Focus();pages.SelectedIndex=0;Application.DoEvents();Check(inputs["Connection"].Text=="Weld","weld follows");
   f.Close();
   /* view only (User edition): opens without access, inputs and commands locked, tabs still browsable */
   #if !ADMIN_APP

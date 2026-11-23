@@ -21,11 +21,11 @@ class TrussConnectionForm:DesignSheetForm {
   InfoButton.Register(weldMain,"Weld design","Welded truss member to gusset: member and demand, weld lengths (interactive), block shear, STAAD forces and the report of the welded design.");
   InfoButton.Register(boltMain,"Bolt design","Bolted angle / double angle to gusset: member and demand, bolt layout (interactive), block shear, STAAD forces and the report of the bolted design.");
   weldTabs.TabPages.Add(weldPage);boltTabs.TabPages.Add(boltPage);Pages.TabPages.Add(weldMain);Pages.TabPages.Add(boltMain);Place(weldTabs);
-  Pages.Selecting+=(s,e)=>{if(switching||e.TabPage==null||e.TabPage==Pages.SelectedTab)return;bool user=Control.MouseButtons!=MouseButtons.None||Pages.Focused;
+  Pages.Selecting+=(s,e)=>{if(switching||e.TabPage==null||e.TabPage==Pages.SelectedTab)return;bool user=Control.MouseButtons!=MouseButtons.None||Pages.ContainsFocus||(Control.ModifierKeys&Keys.Control)!=0;
    /* Calculate / Open select the last tab to show the report: stay on the open design and show its Report instead */if(!user){e.Cancel=true;if(IsHandleCreated)BeginInvoke(new Action(ShowReport));}};
   /* a change the user did not make (Calculate / Open select the last tab; without a handle Windows raises no Selecting) goes back to the
      open design and shows its Report */
-  Pages.SelectedIndexChanged+=(s,e)=>{if(switching)return;bool user=Control.MouseButtons!=MouseButtons.None||Pages.Focused;
+  Pages.SelectedIndexChanged+=(s,e)=>{if(switching)return;bool user=Control.MouseButtons!=MouseButtons.None||Pages.ContainsFocus||(Control.ModifierKeys&Keys.Control)!=0;
    if(!user&&Pages.SelectedTab!=(connection.Text=="Bolts"?boltMain:weldMain)){OpenDesign(connection.Text=="Bolts");if(IsHandleCreated)BeginInvoke(new Action(ShowReport));return;}
    OpenDesign(Pages.SelectedTab==boltMain);};
   foreach(var tabs in new[]{weldTabs,boltTabs})tabs.SelectedIndexChanged+=(s,e)=>{var t=(TabControl)s;if(t.SelectedTab==reportPage)RefreshReport();};}
