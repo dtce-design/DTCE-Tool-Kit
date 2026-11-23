@@ -23,7 +23,11 @@ class TrussConnectionForm:DesignSheetForm {
   weldTabs.TabPages.Add(weldPage);boltTabs.TabPages.Add(boltPage);Pages.TabPages.Add(weldMain);Pages.TabPages.Add(boltMain);Place(weldTabs);
   Pages.Selecting+=(s,e)=>{if(switching||e.TabPage==null||e.TabPage==Pages.SelectedTab)return;bool user=Control.MouseButtons!=MouseButtons.None||Pages.Focused;
    /* Calculate / Open select the last tab to show the report: stay on the open design and show its Report instead */if(!user){e.Cancel=true;if(IsHandleCreated)BeginInvoke(new Action(ShowReport));}};
-  Pages.SelectedIndexChanged+=(s,e)=>{if(switching)return;OpenDesign(Pages.SelectedTab==boltMain);};
+  /* a change the user did not make (Calculate / Open select the last tab; without a handle Windows raises no Selecting) goes back to the
+     open design and shows its Report */
+  Pages.SelectedIndexChanged+=(s,e)=>{if(switching)return;bool user=Control.MouseButtons!=MouseButtons.None||Pages.Focused;
+   if(!user&&Pages.SelectedTab!=(connection.Text=="Bolts"?boltMain:weldMain)){OpenDesign(connection.Text=="Bolts");if(IsHandleCreated)BeginInvoke(new Action(ShowReport));return;}
+   OpenDesign(Pages.SelectedTab==boltMain);};
   foreach(var tabs in new[]{weldTabs,boltTabs})tabs.SelectedIndexChanged+=(s,e)=>{var t=(TabControl)s;if(t.SelectedTab==reportPage)RefreshReport();};}
  /* the sub tabs are rebuilt in order with Add only: TabPages.Insert does nothing on Windows before the tab control has its handle */
  void Place(NavigationTabs tabs){int keep=0;foreach(var other in new[]{weldTabs,boltTabs})if(other!=tabs&&other.TabPages.Contains(memberPage)){keep=other.SelectedIndex;foreach(var pg in new[]{memberPage,blockPage,staadPage,reportPage})other.TabPages.Remove(pg);}

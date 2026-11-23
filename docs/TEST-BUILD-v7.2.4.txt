@@ -3,6 +3,9 @@ DTCE Tool Kit v7.2.4 (23 November 2026) - Store release candidate (owner: "uploa
 PATCH - Truss Connections tabs on Windows: the Weld design / Bolt design sub tabs are rebuilt in order with Add only (TabPages.Insert
 does nothing on Windows before the tab control has its handle, so Member and demand could be missing and the section preview did not
 refresh - Windows CI SteelSectionRefreshUiTests).
+Also: Calculate / Open (which select the last main tab) no longer switch Truss Connections to Bolt design on Windows - a main-tab
+change the user did not make returns to the open design and shows its Report (Windows CI SteelFeatureTests round trip; the test
+now checks the Weld design / Bolt design tabs and their sub tabs).
 Store (owner: "user app available or searchable in store"): the User edition upload sets the Store visibility to Public (available and
 discoverable); the script prints the old and new value. The Admin edition keeps its Partner Center setting.
 Tests: SteelSectionRefreshUiTests 5, TrussConnectionLayoutTests 16, test_store_submission 13.
