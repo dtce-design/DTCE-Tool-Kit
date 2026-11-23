@@ -21,6 +21,18 @@ on:
         description: Explicitly deploy mobile Pages (requires owner instruction)
         type: boolean
         default: false
+      submit_ios_review:
+        description: Submit an already processed TestFlight build for App Store review, release manual (requires owner instruction)
+        type: boolean
+        default: false
+      ios_review_version:
+        description: App Store version to submit (e.g. 1.1.1)
+        type: string
+        default: ''
+      ios_review_build:
+        description: TestFlight build number to submit (e.g. 239.2)
+        type: string
+        default: ''
 permissions:
   contents: read
 concurrency:
@@ -331,6 +343,41 @@ jobs:
         env:
           APPLE_APP_ID: ${{ steps.apple.outputs.app_id }}
         run: python3 ios/ci/app_store.py check "$APPLE_APP_ID" "${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+      - name: Remove temporary API private key
+        if: always()
+        run: |
+          if [[ -n "${ASC_KEY_PATH:-}" ]]; then
+            rm -f -- "$ASC_KEY_PATH"
+          fi
+
+  ios-review-submit:
+    # Owner request only: attaches an already processed TestFlight build to its App Store version and submits it for review.
+    # The release after approval is manual; nothing is built or uploaded here.
+    if: github.event_name == 'workflow_dispatch' && inputs.submit_ios_review == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: apple-app-store-review
+      cancel-in-progress: false
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Apple credentials and app record
+        id: apple
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          export ASC_KEY_PATH="$RUNNER_TEMP/DTCE-ASC-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.p8"
+          echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
+          python3 ios/ci/app_store.py prepare
+      - name: Submit for App Store review
+        env:
+          APPLE_APP_ID: ${{ steps.apple.outputs.app_id }}
+          REVIEW_VERSION: ${{ inputs.ios_review_version }}
+          REVIEW_BUILD: ${{ inputs.ios_review_build }}
+        run: python3 ios/ci/app_store.py submit "$APPLE_APP_ID" "$REVIEW_VERSION" "$REVIEW_BUILD"
       - name: Remove temporary API private key
         if: always()
         run: |

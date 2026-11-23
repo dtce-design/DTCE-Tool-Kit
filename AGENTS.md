@@ -190,6 +190,11 @@ Done 21 November 2026: 1.1.0 was refused (version already approved, train closed
 Run 44913008843 (Windows build job re-run once after the EarthworkFootingTests exit code, all 124 checks passed): DTCE Access Admin
 1.1.1 build 239.2 uploaded; App Store Connect processing VALID (available for TestFlight). Not submitted for App Store review.
 Apple warned that from April 2027 iPhone apps must be built with the iOS 27 SDK (Xcode 27) or later.
+Owner (23 November 2026, "Submit for apple review ang test flight"): submit the TestFlight build DTCE Access Admin 1.1.1 (build 239.2)
+for App Store review. The workflow input submit_ios_review (default false; ios_review_version / ios_review_build) runs
+ios/ci/app_store.py submit: it attaches the processed build to the App Store version with release MANUAL and submits it; it never
+uploads or releases. Releasing after approval and later submissions need a new explicit request. Export compliance is never answered
+by the script.
 New owner request (23 November 2026, "Pakipublish sa microsoft store"): publish v7.0.4 (User and Admin) the same way after its Windows
 CI passes (merge the development branch to main for the GitHub release, then publish_microsoft_store=true;
 replace_pending_store_submission stays false unless the owner asks). The Admin edition includes the PHIVOLCS active fault lines
