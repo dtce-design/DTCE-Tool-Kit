@@ -268,6 +268,9 @@ Sheets the app did not make are still not overwritten (v7.1.8 reverted).
 
 Owner: "pagsamasamahin yung stair type at yung staircase design" / "stair type and geometry at model": the stair type and geometry
 inputs and the four Model views (section, 3D, plan, load / shear / moment) are one tab, "Stair type, geometry and model" (v7.1.12).
+Owner ("i drawing ng tama yung reinforcement ng stairs as to standard"; "di pa naka drawn to scale", v7.1.26): the section is drawn to
+scale (bars at their diameters, graphic scale bar), chairs stand square to the slab between the mats, crossing bars at re-entrant
+corners run ld past the crossing, and the shear diagram is positive above the axis.
 
 ## Door hardware (23 November 2026)
 
