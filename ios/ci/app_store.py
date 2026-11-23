@@ -167,8 +167,9 @@ def submit(app_id, version, build_number, exempt=False):
     try:
         api_send('POST', 'reviewSubmissionItems', {'data': {'type': 'reviewSubmissionItems', 'relationships': {'reviewSubmission': {'data': {'type': 'reviewSubmissions', 'id': submission['id']}}, 'appStoreVersion': {'data': {'type': 'appStoreVersions', 'id': version_id}}}}})
     except RuntimeError as error:
-        if 'HTTP 409' not in str(error):
-            raise
+        items = api_send('GET', 'reviewSubmissions/%s/items' % submission['id']).get('data', []) if 'HTTP 409' in str(error) else []
+        if not items:
+            raise RuntimeError('Apple did not accept version %s for review. %s' % (version, error)) from None
         print('The version is already an item of the review submission.')
     result = api_send('PATCH', 'reviewSubmissions/%s' % submission['id'], {'data': {'type': 'reviewSubmissions', 'id': submission['id'], 'attributes': {'submitted': True}}})
     final = result.get('data', {}).get('attributes', {}).get('state', 'submitted')
