@@ -240,6 +240,11 @@ Done 23 November 2026: v7.1.17 merged to main (PR #16; GitHub release OK, run 45
 (first attempt, no re-run needed): new User (1152921505702478667) and Admin (1152921505702478466) submissions were created and
 committed; Partner Center reported "accepted for processing" (PreProcessing). Certification is not guaranteed. v7.1.18 and later
 need a new explicit request.
+New owner request (23 November 2026, "upload to microsoft store"; chose "Replace pending"): publish v7.2.3 (User and Admin) after its
+Windows CI passes (PR to main for the GitHub release, then publish_microsoft_store=true with replace_pending_store_submission=true for
+this release only - a v7.1.24 submission still in certification is cancelled and replaced). The owner has not yet deleted the
+Partner Center User draft 1152921505702479990, so the User upload may be refused again until it is deleted. Later versions again need a
+new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
