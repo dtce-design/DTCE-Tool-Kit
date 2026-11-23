@@ -1,4 +1,4 @@
-DTCE Tool Kit v7.1.6 (23 November 2026) - the build requested for the Microsoft Store (owner: "PAKI PUSH NA AFTER SA MICROSOFT STORE";
+DTCE Tool Kit v7.1.6 (23 November 2026) - not uploaded; included in the Store release v7.1.7 (owner: "PAKI PUSH NA AFTER SA MICROSOFT STORE";
 supersedes v7.1.5).
 
 PATCH - Plumbing Works > Pipe Takeoff (owner: "sa pipe take off size huwag muna maglagay ng size"): a new row no longer starts with

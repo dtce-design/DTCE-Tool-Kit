@@ -1228,6 +1228,7 @@ namespace BeamScheduleFormatter
 				}
 				try
 				{
+					FillPipeSpecFromSize(item);
 					if (Cell(item, 2) == "") throw new Exception("Select the pipe size.");
 					PipeMeasure pipeMeasure = new PipeMeasure
 					{
