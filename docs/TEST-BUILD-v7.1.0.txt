@@ -35,6 +35,8 @@ PATCH - fixes and adjustments:
   already there is never replaced). Access codes, admin approvals and map caches stay in AppData.
 - The project stays open: it is no longer cleared when the app starts or when the Bill of Quantities closes (supersedes the
   18 November "blank each session" rule). Opening a Bill of Quantities file still loads that file's project.
+- Bill of Quantities status: double-click an input error to go to it (owner: "double click? pupunta sa tab?"): its works tab and
+  sheet open and the entry's row is selected at the cell the message asks for (description, deduction).
 Includes everything of v7.0.5 (Lintel Beam equal split, lintels in the Miscellaneous Structures rebar summary) and v7.0.0-v7.0.4.
 Tests: ProjectLibraryTests 11, OpeningLintelTests 25, MemberSchedulesTests 32, UpdateAndQuantityTests 31 (moulding quantity) and the
 full local test list (Mono UI tests that fail on the earlier code too are left to the Windows CI).
