@@ -1,0 +1,9 @@
+DTCE Tool Kit v7.1.16 (23 November 2026) - test build.
+
+PATCH - Project Information FY / ABC kept (owner: "bat hindi din nagsasave yung year at ABC"): opening a Bill of Quantities file saved
+before v7.1.14 (no FY / ABC in it) replaced the FY and ABC typed in the Project Information with blanks. Such a file now takes the FY
+and ABC of the same project (title and location) from the saved project list; a file saved with v7.1.14 or later keeps its own.
+Save the Bill of Quantities once to store the FY / ABC in the file.
+Tests: ProjectLibraryTests 20, PowOpenAndIssuesTests 12, ContractDurationTests 24; opening an older file checked with the
+Bill of Quantities open-file path.
+Includes everything of v7.1.15.

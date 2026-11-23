@@ -7927,7 +7927,7 @@ worksExcelTimer.Tick += async delegate
             if(worksExcel!=null){string workbook=Path.GetFileName(worksExcel.PathName);savedSourceFiles.AddRange(ProjectSources().Files.Where(f=>f.Kind=="Excel workbook (imported original)"&&f.Name.Equals(workbook,StringComparison.OrdinalIgnoreCase)));}
             projectSourceFiles.Replace(savedSourceFiles);
             if(savedProjectInformation==null&&!Automated)ProjectInfoStore.ClearProject();
-            if(savedProjectInformation!=null)ProjectInfoStore.Save(savedProjectInformation.Name,savedProjectInformation.Location,savedProjectInformation.Office,savedProjectInformation.OfficeAddress,savedProjectInformation.DatePrepared??"",savedProjectInformation.FiscalYear??"",savedProjectInformation.Abc??"");
+            if(savedProjectInformation!=null)ProjectInfoStore.Save(savedProjectInformation.Name,savedProjectInformation.Location,savedProjectInformation.Office,savedProjectInformation.OfficeAddress,savedProjectInformation.DatePrepared??"",PowProjectInformation.FiscalYearFor(savedProjectInformation),PowProjectInformation.AbcFor(savedProjectInformation));
 			PowTiming.Mark("project info / sources");
 			Recalculate();
 			PowTiming.Mark("recalculation");
