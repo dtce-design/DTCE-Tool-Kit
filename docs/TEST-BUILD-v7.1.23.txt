@@ -1,0 +1,17 @@
+DTCE Tool Kit v7.1.23 (23 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Staircase Design supports (owner: "bat ganon yung sa taas"; "siguro pwede mag assign ng beam as support tapos sa location niya sa
+landing"):
+- New inputs on "Stair type, geometry and model": Supports (Beams / Walls - simple supports), support beam width b and depth h, and
+  "Landing beam from the flight (mm, 0 = at the landing end)".
+- The section draws the beams where they are: under a landing (flush with its end, or centred at the given distance), and at a flight
+  end without a landing the floor beam beyond the last riser with the floor slab - the top of the flight no longer ends in a bare
+  riser line. Bottom and top bars run on into the floor beam (top bars hooked down at its far face).
+- Analysis: with a landing beam inside the landing, the span ends at the beam and the landing beyond it is an overhang whose hogging
+  moment (w a² / 2) is taken over the beam (top bars). The report notes the supports.
+- Fix: with "One end continuous" the end moment was applied with the wrong sign (the far end showed sagging instead of hogging, which
+  also raised the midspan moment). End moments now vary from the left to the right support value.
+Files saved before this version open with beams 250 x 400 at the landing ends.
+Not done: the 3D model does not show the beams yet.
+Tests: StaircaseTests 33 (support beams, overhang, one end continuous).
+Includes everything of v7.1.22.
