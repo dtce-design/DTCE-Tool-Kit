@@ -3,7 +3,7 @@ namespace BeamScheduleFormatter {
 // Drawn PDF/print pages for the exposure/Kzt explanation and STAAD wind data. Rows grow to fit wrapped text.
 static class WindAuditPages {
  class Block {public string Title,Text;public string[] Headers;public float[] Widths;public List<string[]> Rows;}
- const float Left=36,Width=523,Top=130,Bottom=790;
+ const float Left=CalculationDocument.L,Width=CalculationDocument.CW,Top=130,Bottom=790;
  static float Measure(string text,float width,float size,bool bold){using(var bmp=new Bitmap(1,1))using(var g=Graphics.FromImage(bmp)){g.PageUnit=GraphicsUnit.Point;using(var font=new Font("Segoe UI",size,bold?FontStyle.Bold:FontStyle.Regular,GraphicsUnit.Point))return g.MeasureString(text??"",font,(int)Math.Max(10,width)).Height;}}
  static float RowHeight(string[] row,float[] widths,bool bold){float h=0;for(int c=0;c<widths.Length;c++)h=Math.Max(h,Measure(c<row.Length?row[c]:"",widths[c]-8,7f,bold));return h+6;}
  internal static void Add(CalculationDocument doc,List<WindDirection> directions,List<WindStaadBand> bands,string commands){
@@ -13,7 +13,7 @@ static class WindAuditPages {
    if(d.TopographicChecks.Count>0)blocks.Add(new Block{Headers=new[]{"Kzt check (207A.8)","Value","Basis / decision"},Widths=new float[]{130,150,243},Rows=d.TopographicChecks.Select(r=>r.ToArray()).ToList()});}
   if(bands!=null&&bands.Count>0){blocks.Add(new Block{Title="STAAD WIND INPUT / WALL INTENSITIES",Text="INT = windward qz·G·Cp at the band top + |leeward qh·G·Cp| (kN/m²). Internal pressure cancels across opposite walls. Roof pressures are applied separately. Do not apply G and Cp again in STAAD."});
    blocks.Add(new Block{Headers=new[]{"Wind from / axis","Band top z m","Windward kPa","Leeward kPa","INT kPa"},Widths=new float[]{160,85,95,90,93},Rows=bands.Select(b=>new[]{b.Axis,b.Top.ToString("0.###"),b.Windward.ToString("0.###"),b.Leeward.ToString("0.###"),b.Combined.ToString("0.###")}).ToList()});
-   blocks.Add(new Block{Headers=new[]{"STAAD commands (UNIT METER KN)"},Widths=new float[]{523},Rows=commands.Split('\n').Select(l=>new[]{l}).ToList()});}
+   blocks.Add(new Block{Headers=new[]{"STAAD commands (UNIT METER KN)"},Widths=new float[]{CalculationDocument.CW},Rows=commands.Split('\n').Select(l=>new[]{l}).ToList()});}
   // Paginate blocks into sheets; table rows never split.
   var pages=new List<List<Action<Graphics,float>>>();var current=new List<Action<Graphics,float>>();float y=Top;var offsets=new List<List<float>>();var currentOffsets=new List<float>();
   Action newPage=()=>{pages.Add(current);offsets.Add(currentOffsets);current=new List<Action<Graphics,float>>();currentOffsets=new List<float>();y=Top;};

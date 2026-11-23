@@ -6,9 +6,9 @@ namespace BeamScheduleFormatter {
    headings; figures, checks and paragraphs are not split. */
 sealed class RichReport {
  /* page frame in points; set from the page size before each layout and each page is drawn */
- static float Left=36,Width=523,Top=128,Bottom=792;readonly bool a3;
- static void Frame(bool a3){Left=36;Top=128;Width=a3?1190.55f-72:523;Bottom=a3?841.89f-50:792;}
- public static float ContentWidth(bool a3){return a3?1190.55f-72:523;}
+ static float Left=CalculationDocument.L,Width=CalculationDocument.CW,Top=128,Bottom=792;readonly bool a3;
+ static void Frame(bool a3){Left=CalculationDocument.L;Top=128;Width=a3?1190.55f-CalculationDocument.L-36:CalculationDocument.CW;Bottom=a3?841.89f-50:792;}
+ public static float ContentWidth(bool a3){return a3?1190.55f-CalculationDocument.L-36:CalculationDocument.CW;}
  abstract class Block {internal abstract float Height(Graphics g);internal virtual bool Splittable{get{return false;}}internal abstract void Draw(Graphics g,float y);}
  readonly string title;readonly List<Block> blocks=new List<Block>();
  public RichReport(string title,bool a3Landscape=false){this.title=title;a3=a3Landscape;Frame(a3);}

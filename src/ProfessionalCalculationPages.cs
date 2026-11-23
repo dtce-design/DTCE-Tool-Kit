@@ -12,7 +12,7 @@ sealed partial class CalculationDocument {
       g.DrawString(command.Text,font,brush,new PointF((float)command.X,(float)(841.89-command.Y)-ascent),StringFormat.GenericTypographic);
      }
     }else if(command.Kind=="fill"){using(var brush=new SolidBrush(ReportColor(command.Color)))g.FillRectangle(brush,(float)command.X,(float)(841.89-command.Y),(float)command.W,(float)command.H);}
-    else if(command.Kind=="rule"){using(var pen=new Pen(Color.FromArgb(196,207,214),.5f))g.DrawLine(pen,36,(float)(841.89-command.Y),559.28f,(float)(841.89-command.Y));}
+    else if(command.Kind=="rule"){using(var pen=new Pen(Color.FromArgb(196,207,214),.5f))g.DrawLine(pen,CalculationDocument.L,(float)(841.89-command.Y),559.28f,(float)(841.89-command.Y));}
    }
   });}
   return doc;

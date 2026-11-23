@@ -3,7 +3,7 @@ namespace BeamScheduleFormatter {
 // A4 vector text/tables for quantity reports. No browser or Excel dependency.
 static partial class EngineeringQuantityPdf {
  // Body text uses the 7pt minimum to save paper (owner preference, 16 Nov 2026); headings stay larger.
- const double Left=36,Right=559.28,Bottom=50,Line=8.8,Body=7;
+ const double Left=72,Right=559.28,/* 1 inch binding margin on the left */Bottom=50,Line=8.8,Body=7;
  static readonly Encoding Encoding1252=Encoding.GetEncoding(1252);
  static string N(double value){return value.ToString("0.###",CultureInfo.InvariantCulture);}
  static string Clean(string text){return (text??"").Replace("\r","").Replace("Σ","Sum ").Replace("≥",">=").Replace("≤","<=").Replace("→"," to ").Replace("⁴","^4").Replace("³","3").Replace("²","2").Replace("−","-");}
