@@ -203,6 +203,12 @@ Owner (23 November 2026, "PAKI PUSH NA AFTER SA MICROSOFT STORE"; "bakit same pa
 their own PATCH numbers (v7.1.1 entry ID prefixes, v7.1.2 shared settings / project kept, v7.1.3 go to an input error); the Store
 release is v7.1.7 (v7.1.3, v7.1.4 no project selected on open / after closing, v7.1.5 POW workbook disposed-tabs crash fix,
 v7.1.6 no default pipe size, v7.1.7 chosen pipe size kept), the same way after its Windows CI passes. Every later change gets its own version number, released or not.
+Result 23 November 2026: v7.1.7 merged to main (PR #15); GitHub release run 45098961581 OK on attempt 2 (one re-run after the
+EarthworkFootingTests exit code). Store run 45098975713 failed twice on the same exit code (all 124 checks passed) before any upload;
+nothing was uploaded and nothing changed in Partner Center.
+New owner request (23 November 2026, "yan na ang iupload mo sa microsoft store"): publish v7.1.15 (User and Admin) instead of v7.1.7,
+the same way after its Windows CI passes (merge the development branch to main, then publish_microsoft_store=true;
+replace_pending_store_submission stays false unless the owner asks). Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
