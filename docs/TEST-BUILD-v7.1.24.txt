@@ -1,0 +1,13 @@
+DTCE Tool Kit v7.1.24 (23 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Staircase reinforcement detailing (owner: "proper anchoring ang correct reinforcement showing, walang detail ng chair bar and
+nosing bar?"):
+- Section: E nosing bars - one at each step nosing, tied to the waist top layer with a link; D chair bars under the top bars every
+  1000 mm (flight and landing); anchorage under each beam: at a floor beam "B: 90° hook, ldh" and "A: >= 150 into the beam", at a
+  landing beam "A, B continuous over the beam".
+- Reinforcement table (and report, marks D and E): anchorage of the bottom bars (>= 150 mm past the support face, 407.7.3.8.1);
+  anchorage of the top bars (90° hook, ldh = 0.24 fy / sqrt(f'c) db >= 8db, 150 mm, with a 12db leg, 425.4.3; straight
+  ld = fy / (2.1 sqrt(f'c)) db >= 300 mm, 425.4.2); nosing bars 1 - Ø(distribution) per step with links @ 300 mm; chair bars
+  Ø(main) @ 1000 mm each way.
+Tests: StaircaseTests 35.
+Includes everything of v7.1.23.

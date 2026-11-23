@@ -72,6 +72,10 @@ static class Staircase {
  /* the steel of a slab strip b wide and h thick for Mu (kN·m) */
  internal static double AsRequired(double Mu,double b,double d,double fc,double fy,out double rho){double Rn=Mu*1e6/(0.9*b*d*d);double q=1-2*Rn/(0.85*fc);if(q<0){rho=double.NaN;return double.NaN;}rho=0.85*fc/fy*(1-Math.Sqrt(q));return rho*b*d;}
  internal static double PhiMn(double As,double b,double d,double fc,double fy){double a=As*fy/(0.85*fc*b);double c=a/Beta1(fc);double et=0.003*(d-c)/Math.Max(c,1e-9);double phi=et>=0.005?0.9:et<=fy/200000?0.65:0.65+0.25*(et-fy/200000)/(0.005-fy/200000);return phi*As*fy*(d-a/2)/1e6;}
+ /* 90° standard hook (NSCP 425.4.3.1): ldh = 0.24 fy / (λ √f'c) db, at least 8 db and 150 mm; straight bars (425.4.2.3, db <= 19 mm):
+    ld = fy / (2.1 λ √f'c) db (2.1 -> 1.7 above 19 mm), at least 300 mm; rounded up to 25 mm */
+ internal static double HookLength(StairInput i){double v=Math.Max(Math.Max(0.24*i.Fy/Math.Sqrt(i.Fc)*i.MainDia,8*i.MainDia),150);return Math.Ceiling(v/25)*25;}
+ internal static double DevLength(StairInput i){double v=Math.Max(i.Fy/((i.MainDia<=19?2.1:1.7)*Math.Sqrt(i.Fc))*i.MainDia,300);return Math.Ceiling(v/25)*25;}
  static double Spacing(double As,double dia,double h){double s=Ab(dia)*1000/Math.Max(As,1);s=Math.Min(s,Math.Min(3*h,450));return Math.Max(75,Math.Floor(s/25)*25);}
  static double MinSteel(StairInput i,double b,double h){return (i.Fy<420?0.0020:Math.Max(0.0014,0.0018*420/i.Fy))*b*h;}
  public static StairResult Design(StairInput i){Validate(i);var r=new StairResult{In=i};double wd,wl,wdL,wlL;Loads(i,out wd,out wl,out wdL,out wlL);r.Wd=wd;r.Wl=wl;r.WdLanding=wdL;r.WlLanding=wlL;
@@ -108,6 +112,11 @@ static class Staircase {
   r.Steel.Add(new[]{m.Name,"Main bottom bars along the flight","Ø"+F(i.MainDia,"0")+" @ "+F(sp,"0")+" mm"});
   if(mn>0){double An=AsRequired(mn,b,d,i.Fc,i.Fy,out rho);double sn=Spacing(Math.Max(double.IsNaN(An)?1e9:An,Amin),i.MainDia,h);double An2=Ab(i.MainDia)*1000/sn;r.Checks.Add(new StairCheck{Name="Flexure - support (top bars)",Clause="422.2 / 407.5",Member=m.Name,Demand=mn,Capacity=PhiMn(An2,b,d,i.Fc,i.Fy),Unit="kN·m/m",Detail="Ø"+F(i.MainDia,"0")+" @ "+F(sn,"0")+" top, extend L/4 past the support face"});r.Steel.Add(new[]{m.Name,"Top bars over the continuous support(s), L/4","Ø"+F(i.MainDia,"0")+" @ "+F(sn,"0")+" mm"});}
   else r.Steel.Add(new[]{m.Name,"Top bars at the supports and at the kinks (nominal, 0.0018bh)","Ø"+F(i.MainDia,"0")+" @ "+F(Spacing(Amin,i.MainDia,h),"0")+" mm, L/5 from the support"});
+  /* anchorage, nosing bars and chair bars (owner, 23 November 2026: "proper anchoring ... walang detail ng chair bar and nosing bar") */
+  r.Steel.Add(new[]{m.Name,"Anchorage of the bottom bars","into the support beam / landing at least 150 mm past the support face (407.7.3.8.1)"});
+  r.Steel.Add(new[]{m.Name,"Anchorage of the top bars","90° hook into the support beam, ldh = "+F(HookLength(i),"0")+" mm with a 12db = "+F(12*i.MainDia,"0")+" mm leg (425.4.3); straight ld = "+F(DevLength(i),"0")+" mm where there is no hook (425.4.2)"});
+  if(!i.Slabless&&m.Segs.Any(q=>q.Flight)){r.Steel.Add(new[]{m.Name,"Nosing bars, one at each step nosing","1 - Ø"+F(i.DistDia,"0")+" per step, full width, tied to the waist with Ø"+F(i.DistDia,"0")+" links @ 300 mm"});}
+  r.Steel.Add(new[]{m.Name,"Chair bars holding the top bars","Ø"+F(i.MainDia,"0")+" @ 1000 mm each way"});
   double phiVc=0.75*0.17*Math.Sqrt(i.Fc)*b*d/1000;r.Checks.Add(new StairCheck{Name="One-way shear",Clause="422.5.5.1",Member=m.Name,Demand=v,Capacity=phiVc,Unit="kN/m",Detail="φVc = 0.75 × 0.17 √f'c b d"});
   double hmin=MinThickness(m.Support,L)*(0.4+i.Fy/700);r.Checks.Add(new StairCheck{Name="Minimum thickness (deflection)",Clause="Table 407.3.1.1",Member=m.Name,Demand=hmin,Capacity=h,Unit="mm",Detail="L = "+F(L*1000,"0")+" mm, "+m.Support.ToLowerInvariant()+(i.Fy!=420?", × (0.4 + fy/700)":"")});
   double sd=Math.Min(Math.Floor(Math.Min(Ab(i.DistDia)*1000/(0.0018*b*h),Math.Min(5*h,450))/25)*25,450);r.Steel.Add(new[]{m.Name,"Distribution bars across the flight","Ø"+F(i.DistDia,"0")+" @ "+F(sd,"0")+" mm"});

@@ -47,7 +47,9 @@ class StairSectionView:StairZoomView {
    if(before>0){double c0=i.LandingBeamAt>0&&i.LandingBeamAt<before?xs0:i.BeamB/2;list.Add(new[]{c0-i.BeamB/2,c0+i.BeamB/2,-tl});}else list.Add(new[]{-i.BeamB,0,0.0});
    if(after>0){double c1=i.LandingBeamAt>0&&i.LandingBeamAt<after?xe0:L-i.BeamB/2;list.Add(new[]{c1-i.BeamB/2,c1+i.BeamB/2,H-tl});}else list.Add(new[]{L,L+i.BeamB,H});
    foreach(var bm in list){var r0=P(bm[0],bm[2]);var r1=P(bm[1],bm[2]-(bm[2]==0||bm[2]==H?i.BeamH:i.BeamH-tl));var rect=new RectangleF(Math.Min(r0.X,r1.X),Math.Min(r0.Y,r1.Y),Math.Abs(r1.X-r0.X),Math.Abs(r1.Y-r0.Y));g.FillRectangle(bb,rect);g.DrawRectangle(bp,rect.X,rect.Y,rect.Width,rect.Height);
-    Text(g,"Beam "+Staircase.F(i.BeamB,"0")+" x "+Staircase.F(i.BeamH,"0"),rect.X+rect.Width/2,rect.Bottom+9,7.5f);}
+    Text(g,"Beam "+Staircase.F(i.BeamB,"0")+" x "+Staircase.F(i.BeamH,"0"),rect.X+rect.Width/2,rect.Bottom+9,7.5f);
+    /* anchorage under each beam label: a floor beam takes the hooked top bars (ldh) and the bottom bars (>= 150 mm) */bool floorBeam=bm[2]==0||bm[2]==H;
+    Text(g,floorBeam?"B: 90° hook, ldh "+Staircase.F(Staircase.HookLength(i),"0"):"A, B continuous over the beam",rect.X+rect.Width/2,rect.Bottom+21,7f);if(floorBeam)Text(g,"A: ≥ 150 into the beam",rect.X+rect.Width/2,rect.Bottom+32,7f);}
    /* the floor slab beyond a flight end without a landing */
    using(var dp=new Pen(Ink,1f/Zoom){DashStyle=DashStyle.Dash}){if(after<=0){var f0=P(L+i.BeamB,H);var f1=P(L+i.BeamB+350,H-tl);var fr=new RectangleF(f0.X,f0.Y,f1.X-f0.X,f1.Y-f0.Y);g.FillRectangle(bb,fr);g.DrawRectangle(dp,fr.X,fr.Y,fr.Width,fr.Height);Text(g,"floor",fr.X+fr.Width/2,fr.Y-8,7.5f);}
     if(before<=0){var f0=P(-i.BeamB-350,0);var f1=P(-i.BeamB,-tl);var fr=new RectangleF(f0.X,f0.Y,f1.X-f0.X,f1.Y-f0.Y);g.FillRectangle(bb,fr);g.DrawRectangle(dp,fr.X,fr.Y,fr.Width,fr.Height);Text(g,"floor",fr.X+fr.Width/2,fr.Y-8,7.5f);}}}
@@ -73,6 +75,16 @@ class StairSectionView:StairZoomView {
    var right=run(Math.Max(c,L-after-ext),L-c,topLine).ToList();if(beams&&after<=0){/* into the floor beam, hooked down at its far face */right.Add(P(L+i.BeamB-c,topLine(L-c)));right.Add(P(L+i.BeamB-c,topLine(L-c)-i.BeamH*0.6));}else right.Add(P(L-c,topLine(L-c)-tl*0.6));g.DrawLines(bar,right.ToArray());}
   /* distribution bars under the top bars too */if(!i.Slabless)using(var dot=new SolidBrush(Steel)){double ext=going*0.25+300,sp=Math.Max(150,i.DistDia*20)*1.5;foreach(var seg in new[]{new[]{c+100,Math.Min(L-c,before+ext)},new[]{Math.Max(c,L-after-ext),L-c-100}})for(double xx=seg[0];xx<seg[1];xx+=sp){var q=P(xx,topLine(xx)-i.MainDia);g.FillEllipse(dot,q.X-2.2f,q.Y-2.2f,4.4f,4.4f);}}
   using(var dot=new SolidBrush(Steel)){double sp=Math.Max(150,i.DistDia*20);for(double xx=200;xx<L-100;xx+=sp*1.5){var q=P(xx,botLine(xx)+i.MainDia);g.FillEllipse(dot,q.X-2.2f,q.Y-2.2f,4.4f,4.4f);}}
+  /* nosing bars (one at each step nosing, tied to the waist with a link), chair bars holding the top bars, and the anchorage lengths
+     (owner, 23 November 2026: "proper anchoring ... walang detail ng chair bar and nosing bar") */
+  PointF noseAt=PointF.Empty,chairAt=PointF.Empty;
+  if(!i.Slabless){double cn=i.Cover+i.DistDia/2;using(var link=new Pen(Steel,1.2f/Zoom))using(var dot=new SolidBrush(Steel))for(int j=0;j<n-1;j++){double nx=before+j*T+cn,nz=(j+1)*R-cn;var q=P(nx,nz);g.FillEllipse(dot,q.X-3f,q.Y-3f,6f,6f);
+     var down=P(nx,topLine(nx));g.DrawLine(link,q,down);/* the link ties the nosing bar to the waist top layer */if(j==Math.Min(n-2,Math.Max(1,n/2)))noseAt=q;}
+   /* chairs every 1000 mm under the top bars */double ext1=going*0.25+300;var spans=new List<double[]>{new[]{c+150,Math.Min(L-c,before+ext1)},new[]{Math.Max(c,L-after-ext1),L-c-150}};
+   using(var cp=new Pen(Color.FromArgb(120,60,60),1.3f/Zoom))foreach(var sg in spans)for(double xx=sg[0]+200;xx<sg[1]-100;xx+=1000){double zt=topLine(xx)-i.MainDia,zb=botLine(xx)+i.MainDia;if(zt-zb<20)continue;
+     g.DrawLines(cp,new[]{P(xx-90,zb),P(xx-45,zt),P(xx+45,zt),P(xx+90,zb)});if(chairAt.IsEmpty)chairAt=P(xx,zt);}
+   /* anchorage: hook ldh at the top-bar ends in a beam, 150 mm minimum for the bottom bars */
+}
   /* bar callouts A / B / C, the same marks as the reinforcement table (owner, 23 November 2026: "sa reports yung section plus yung
      reinforcement kung saan yung tinutukoy") */
   if(Result!=null&&!i.Slabless){string name=Result.Members.Count>0?Result.Members[Math.Min(Member,Result.Members.Count-1)].Name:"";
@@ -82,7 +94,8 @@ class StairSectionView:StairZoomView {
    /* A and C stacked to the lower right of the flight, clear of the steps */float colX=P(before+going*0.72,0).X,rowY=P(0,H*0.22).Y;
    double xm=before+going*0.5;var bottomAt=P(xm,slope(xm)+c);callAt("A",bottomAt,new PointF(colX,rowY),provide("Main bottom"));
    double xt=before+Math.Min(going*0.18,ext0(going));var topAt=P(xt,topLine(xt));call("B",topAt,-18,-46,provide("Top bars"));
-   double spd=Math.Max(150,i.DistDia*20)*1.5,xd=200;while(xd<before+going*0.62&&xd+spd<L-100)xd+=spd;var distAt=P(xd,botLine(xd)+i.MainDia);callAt("C",distAt,new PointF(colX,rowY+18),provide("Distribution"));}
+   double spd=Math.Max(150,i.DistDia*20)*1.5,xd=200;while(xd<before+going*0.62&&xd+spd<L-100)xd+=spd;var distAt=P(xd,botLine(xd)+i.MainDia);callAt("C",distAt,new PointF(colX,rowY+18),provide("Distribution"));
+   if(!chairAt.IsEmpty)callAt("D",chairAt,new PointF(colX,rowY+36),"Chair bars "+provide("Chair"));if(!noseAt.IsEmpty){string nb=provide("Nosing");int cut=nb.IndexOf(", full width",StringComparison.Ordinal);callAt("E",noseAt,new PointF(colX,rowY+54),"Nosing bars "+(cut>0?nb.Substring(0,cut):nb)+" + links");}}
   /* dimensions: spaced on the screen, not in mm, so the two lines never overlap at a small scale (owner screenshot, 23 November 2026) */
   using(var dp=new Pen(Dim,1/Zoom)){float y0=P(0,-tl).Y+20;var c1=new PointF(P(before,0).X,y0);var c2=new PointF(P(before+going,0).X,y0);g.DrawLine(dp,c1,c2);g.DrawLine(dp,c1.X,y0-4,c1.X,y0+4);g.DrawLine(dp,c2.X,y0-4,c2.X,y0+4);Text(g,(n-1)+" treads x "+Staircase.F(T,"0")+" = "+Staircase.F(going,"0"),(c1.X+c2.X)/2,y0+10);
    float y1=y0+26;var a=new PointF(P(0,0).X,y1);var b=new PointF(P(L,0).X,y1);g.DrawLine(dp,a,b);g.DrawLine(dp,a.X,y1-4,a.X,y1+4);g.DrawLine(dp,b.X,y1-4,b.X,y1+4);Text(g,"L = "+Staircase.F(L,"0")+" mm (plan)",(a.X+b.X)/2,y1+10,8.5f,true);}

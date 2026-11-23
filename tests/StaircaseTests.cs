@@ -24,5 +24,8 @@ class StaircaseTests {
    Check(new StairInput{LandingBeamAt=2000}.LandingSpan(1300)==1300&&new StairInput().OnBeams,"a beam beyond the landing end, or 0, is at the landing end; beams are the default support");}
   {var oc=Staircase.Design(new StairInput{Support="One end continuous"});var m=oc.Members[0];double p1,n1,v1;var dd=Staircase.Analyse(m,true,out p1,out n1,out v1);double W=m.Segs.Sum(q=>(1.2*q.Wd+1.6*q.Wl)*q.Length);double expect=-W/m.Length*m.Length*m.Length/10;
    Check(Math.Abs(dd[2][0])<1e-9&&Math.Abs(dd[2][dd[2].Length-1]-expect)<1e-6,"one end continuous: 0 at the free end, wL²/10 hogging at the continuous end ("+dd[2][dd[2].Length-1]+" vs "+expect+")");}
+  /* anchorage, nosing and chair bars (owner, 23 November 2026) */
+  {var d0=new StairInput();Check(Staircase.HookLength(d0)==275&&Staircase.DevLength(d0)==525,"Ø12, f'c 21, fy 414: ldh 0.24 fy/√f'c db = 260 -> 275 mm; ld fy/(2.1√f'c) db = 516 -> 525 mm");
+   var rs=Staircase.Design(d0);Check(rs.Steel.Any(q=>q[1].StartsWith("Nosing bars"))&&rs.Steel.Any(q=>q[1].StartsWith("Chair bars"))&&rs.Steel.Any(q=>q[1].StartsWith("Anchorage of the top bars")&&q[2].Contains("ldh = 275")),"nosing bars, chair bars and anchorage are listed");}
   Console.WriteLine("PASS: "+checks+" staircase design checks");}
 }
