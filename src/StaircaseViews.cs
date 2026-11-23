@@ -96,23 +96,18 @@ class StairSectionView:StairZoomView {
    if(!i.Slabless){var right=run(topFull?(before>0?Math.Max(c,before+(2*c-tl)*T/R):c):Math.Max(c,L-after-ext),L-c,topLine).ToList();if(beams&&after<=0){/* into the floor beam, hooked down at its far face */right.Add(P(L+i.BeamB-c,topLine(L-c)));right.Add(P(L+i.BeamB-c,topLine(L-c)-i.BeamH*0.6));}else right.Add(P(L-c,topLine(L-c)-tl*0.6));g.DrawLines(bar,right.ToArray());}}
   /* distribution bars under the top bars too */if(!i.Slabless)using(var dot=new SolidBrush(Steel)){double ext=topFull?L:going*0.25+300,sp=Math.Max(150,i.DistDia*20)*1.5;foreach(var seg in new[]{new[]{c+100,Math.Min(L-c,before+ext)},new[]{Math.Max(c,L-after-ext),L-c-100}})for(double xx=seg[0];xx<seg[1];xx+=sp){var q=P(xx,topLine(xx)-dOff);dotAt(dot,q,distR);}}
   if(!i.Slabless)using(var dot=new SolidBrush(Steel)){double sp=Math.Max(150,i.DistDia*20);for(double xx=200;xx<L-100;xx+=sp*1.5){var q=P(xx,botLine(xx)+dOff);dotAt(dot,q,distR);}}
-  /* nosing bars (one at each step nosing, tied to the waist with a link), chair bars holding the top bars, and the anchorage lengths
-     (owner, 23 November 2026: "proper anchoring ... walang detail ng chair bar and nosing bar") */
+  /* step bars and nosing bars (owner, 23 November 2026: "proper anchoring ... walang detail ng chair bar and nosing bar") */
   PointF noseAt=PointF.Empty,chairAt=PointF.Empty;
-  if(!i.Slabless){double cn=i.Cover+i.DistDia/2;using(var link=new Pen(Steel,Math.Max(1f/Zoom,(float)(i.DistDia*s))))using(var dot=new SolidBrush(Steel))for(int j=0;j<n-1;j++){double nx=before+j*T+cn,nz=(j+1)*R-cn;var q=P(nx,nz);dotAt(dot,q,distR);
-     var down=P(nx,topLine(nx));g.DrawLine(link,q,down);/* the link ties the nosing bar to the waist top layer */if(j==Math.Min(n-2,Math.Max(1,n/2)))noseAt=q;}
-   /* chair bars to the standard detail (owner, 23 November 2026: "yung chair bar ng stairs parang mali pa"): a bent bar whose feet rest
-      on the bottom mat, whose legs stand at right angles to the slab (not plumb) and whose top leg carries the top mat, drawn to scale
-      at its real height (h - covers - bars), every 1000 mm where the top bars are */
-   double ext1=topFull?L:going*0.25+300;var spans=topFull?new List<double[]>{new[]{c+150,L-c-150}}:new List<double[]>{new[]{c+150,Math.Min(L-c,before+ext1)},new[]{Math.Max(c,L-after-ext1),L-c-150}};
-   using(var cp=new Pen(Color.FromArgb(150,45,45),barW){LineJoin=LineJoin.Round})foreach(var sg in spans)for(double xx=sg[0]+200;xx<sg[1]-250;xx+=1000){
-     double dt=(topLine(xx+5)-topLine(xx-5))/10,db=(botLine(xx+5)-botLine(xx-5))/10,dtb=(topLine(xx+250)-topLine(xx-80))/330,dbb=(botLine(xx+250)-botLine(xx-80))/330;
-     if(Math.Abs(dt-db)>1e-3||Math.Abs(dtb-dt)>1e-3||Math.Abs(dbb-db)>1e-3)continue;/* only where both faces run parallel (not at a kink) */
-     double th=Math.Atan(dt),ux=Math.Cos(th),uz=Math.Sin(th),z0=botLine(xx)+i.MainDia+i.DistDia,z1=topLine(xx)-i.MainDia-i.DistDia,hc=(z1-z0)*Math.Cos(th);if(hc<20)continue;
-     Func<double,double,PointF> Q=(a,b2)=>P(xx+a*ux-b2*uz,z0+a*uz+b2*ux);const double foot=80,top=150;
-     g.DrawLines(cp,new[]{Q(-foot,0),Q(0,0),Q(0,hc),Q(top,hc),Q(top,0),Q(top+foot,0)});if(chairAt.IsEmpty)chairAt=Q(top/2,hc);}
-   /* anchorage: hook ldh at the top-bar ends in a beam, 150 mm minimum for the bottom bars */
-}
+  if(!i.Slabless){/* step bars (the "chair bars" of a stair, owner, 23 November 2026: "reinforcement ng steps kako"): in every step a bar
+      bent to the step - up the riser at the cover, round the nosing, along the tread at the cover - with both legs lapped onto the waist
+      top bars; a nosing bar runs the full width in its bend. Drawn to scale. */
+   double cn=i.Cover+i.DistDia/2,lap=Math.Max(150,12*i.DistDia);float sw=Math.Max(1.2f/Zoom,(float)(i.DistDia*s));
+   using(var sb=new Pen(Color.FromArgb(160,30,30),sw){LineJoin=LineJoin.Round})using(var dot=new SolidBrush(Steel))for(int j=0;j<n-1;j++){
+     double xr=before+j*T+cn,zt=(j+1)*R-cn,xb=before+(j+1)*T-cn;if(xb-xr<50)continue;
+     /* riser leg: down past the waist top bars by the lap; tread leg: on to the next riser, then down onto the top bars by the lap */
+     double z0=topLine(xr)-lap*0.5,zb=Math.Min(zt,topLine(xb))-lap*0.5;
+     g.DrawLines(sb,new[]{P(xr,z0),P(xr,zt),P(xb,zt),P(xb,zb)});
+     var q=P(xr+dOff,zt-dOff);dotAt(dot,q,distR);if(j==Math.Min(n-2,Math.Max(1,n/2))){noseAt=q;chairAt=P((xr+xb)/2,zt);}}}
   /* bar callouts A / B / C, the same marks as the reinforcement table (owner, 23 November 2026: "sa reports yung section plus yung
      reinforcement kung saan yung tinutukoy") */
   if(Result!=null&&!i.Slabless){string name=Result.Members.Count>0?Result.Members[Math.Min(Member,Result.Members.Count-1)].Name:"";
@@ -123,7 +118,7 @@ class StairSectionView:StairZoomView {
    double xm=before+going*0.5;var bottomAt=P(xm,slope(xm)+c);callAt("A",bottomAt,new PointF(colX,rowY),provide("Main bottom"));
    double xt=before+Math.Min(going*0.18,ext0(going));var topAt=P(xt,topLine(xt));call("B",topAt,-18,-46,provide("Top bars"));
    double spd=Math.Max(150,i.DistDia*20)*1.5,xd=200;while(xd<before+going*0.62&&xd+spd<L-100)xd+=spd;var distAt=P(xd,botLine(xd)+dOff);callAt("C",distAt,new PointF(colX,rowY+18),provide("Distribution"));
-   if(!chairAt.IsEmpty)callAt("D",chairAt,new PointF(colX,rowY+36),"Chair bars "+provide("Chair"));if(!noseAt.IsEmpty){string nb=provide("Nosing");int cut=nb.IndexOf(", full width",StringComparison.Ordinal);callAt("E",noseAt,new PointF(colX,rowY+54),"Nosing bars "+(cut>0?nb.Substring(0,cut):nb)+" + links");}}
+   if(!chairAt.IsEmpty){string st=provide("Step bars");int cs=st.IndexOf(", at the cover",StringComparison.Ordinal);callAt("D",chairAt,new PointF(colX,rowY+36),"Step bars (chair bars) "+(cs>0?st.Substring(0,cs):st));}if(!noseAt.IsEmpty){string nb=provide("Nosing");int cut=nb.IndexOf(", full width",StringComparison.Ordinal);callAt("E",noseAt,new PointF(colX,rowY+54),"Nosing bars "+(cut>0?nb.Substring(0,cut):nb)+", in the bend");}}
   /* dimensions: spaced on the screen, not in mm, so the two lines never overlap at a small scale (owner screenshot, 23 November 2026) */
   using(var dp=new Pen(Dim,1/Zoom)){float y0=P(0,-tl).Y+20;var c1=new PointF(P(before,0).X,y0);var c2=new PointF(P(before+going,0).X,y0);g.DrawLine(dp,c1,c2);g.DrawLine(dp,c1.X,y0-4,c1.X,y0+4);g.DrawLine(dp,c2.X,y0-4,c2.X,y0+4);Text(g,(n-1)+" treads x "+Staircase.F(T,"0")+" = "+Staircase.F(going,"0"),(c1.X+c2.X)/2,y0+10);
    float y1=y0+26;var a=new PointF(P(0,0).X,y1);var b=new PointF(P(L,0).X,y1);g.DrawLine(dp,a,b);g.DrawLine(dp,a.X,y1-4,a.X,y1+4);g.DrawLine(dp,b.X,y1-4,b.X,y1+4);Text(g,"L = "+Staircase.F(L,"0")+" mm (plan)",(a.X+b.X)/2,y1+10,8.5f,true);}

@@ -117,8 +117,9 @@ static class Staircase {
   /* anchorage, nosing bars and chair bars (owner, 23 November 2026: "proper anchoring ... walang detail ng chair bar and nosing bar") */
   r.Steel.Add(new[]{m.Name,"Anchorage of the bottom bars","into the support beam / landing at least 150 mm past the support face (407.7.3.8.1)"});
   r.Steel.Add(new[]{m.Name,"Anchorage of the top bars","90° hook into the support beam, ldh = "+F(HookLength(i),"0")+" mm with a 12db = "+F(12*i.MainDia,"0")+" mm leg (425.4.3); straight ld = "+F(DevLength(i),"0")+" mm where there is no hook (425.4.2)"});
-  if(!i.Slabless&&m.Segs.Any(q=>q.Flight)){r.Steel.Add(new[]{m.Name,"Nosing bars, one at each step nosing","1 - Ø"+F(i.DistDia,"0")+" per step, full width, tied to the waist with Ø"+F(i.DistDia,"0")+" links @ 300 mm"});}
-  r.Steel.Add(new[]{m.Name,"Chair bars holding the top bars","Ø"+F(i.MainDia,"0")+" @ 1000 mm each way"});
+  if(!i.Slabless&&m.Segs.Any(q=>q.Flight)){r.Steel.Add(new[]{m.Name,"Step bars (chair bars), bent to the riser and tread of every step","Ø"+F(i.DistDia,"0")+" @ 300 mm across the width, at the cover inside the riser and under the tread, both legs lapped onto the waist top bars"});
+   r.Steel.Add(new[]{m.Name,"Nosing bars, one at each step nosing","1 - Ø"+F(i.DistDia,"0")+" per step, full width, in the bend of the step bars"});}
+  r.Steel.Add(new[]{m.Name,"Bar supports (spacers) under the top bars","Ø"+F(i.MainDia,"0")+" @ 1000 mm each way"});
   double phiVc=0.75*0.17*Math.Sqrt(i.Fc)*b*d/1000;r.Checks.Add(new StairCheck{Name="One-way shear",Clause="422.5.5.1",Member=m.Name,Demand=v,Capacity=phiVc,Unit="kN/m",Detail="φVc = 0.75 × 0.17 √f'c b d"});
   double hmin=MinThickness(m.Support,L)*(0.4+i.Fy/700);r.Checks.Add(new StairCheck{Name="Minimum thickness (deflection)",Clause="Table 407.3.1.1",Member=m.Name,Demand=hmin,Capacity=h,Unit="mm",Detail="L = "+F(L*1000,"0")+" mm, "+m.Support.ToLowerInvariant()+(i.Fy!=420?", × (0.4 + fy/700)":"")});
   double sd=Math.Min(Math.Floor(Math.Min(Ab(i.DistDia)*1000/(0.0018*b*h),Math.Min(5*h,450))/25)*25,450);r.Steel.Add(new[]{m.Name,"Distribution bars across the flight","Ø"+F(i.DistDia,"0")+" @ "+F(sd,"0")+" mm"});

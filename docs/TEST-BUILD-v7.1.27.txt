@@ -1,0 +1,11 @@
+DTCE Tool Kit v7.1.27 (23 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Staircase Design step reinforcement (owner: "ha bat ganon yung chair bar?? reinforcement ng steps kako"):
+- The section now shows the step bars (chair bars) of every step: a bar bent to the step - up the riser at the cover, round the
+  nosing, along the tread at the cover - with both legs lapped onto the waist top bars, drawn to scale; the nosing bar sits in its
+  bend. The bent support chairs drawn in v7.1.26 are gone.
+- Reinforcement table: new row D "Step bars (chair bars), bent to the riser and tread of every step" (distribution bar size @ 300 mm
+  across the width); E nosing bars are "in the bend of the step bars" (the separate links are replaced by the step bars); the top-mat
+  supports are listed as "Bar supports (spacers) under the top bars".
+Tests: StaircaseTests 35.
+Includes everything of v7.1.26.
