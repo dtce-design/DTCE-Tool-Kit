@@ -37,18 +37,24 @@ partial class ProgramOfWorksForm {
    d.Sources.Add(new BillQuantity{Section="General Requirements",Description="Filled by the app: "+why+" (type a quantity in the Bill of Quantities to change it, 0 to remove it)",Unit=item.Unit,Quantity=q});result.Add(d);}
   return result;}
  /* Progress Photographs follow the Contract Duration of the Bill of Quantities (owner, 23 November 2026: "progress photo graph naka
-    link sa contract duration ng boq"): months = contract duration (calendar days) / 30, rounded up. A quantity typed in the app still
+    link sa contract duration ng boq"): months from the start to the end date as the POW workbook (BACKUP!N64), to 2 decimals. A quantity typed in the app still
     wins; with no contract duration yet (empty construction schedule) the quantity in the linked BACKUP is kept. */
  internal const string ProgressPhotoPrefix="Progress Photographs|";
  /* filled by the app but still typed over in the Bill of Quantities: Part A / B suggestions and Progress Photographs */
  internal static bool IsAppFilled(BackupDemand d){return IsGeneralSuggestion(d)||d!=null&&d.Key!=null&&d.Key.StartsWith(ProgressPhotoPrefix,StringComparison.Ordinal);}
  internal static int DurationMonthsOf(int calendarDays){return calendarDays<=0?0:(int)Math.Ceiling(calendarDays/30.0-1e-9);}
  int ContractDurationDays(IEnumerable<BackupDemand> computed){int working=durationWorkingOverride>0?durationWorkingOverride:ScheduleDaysForSuggestions(computed);if(working<=0)return 0;
-  try{int[] used;return ContractDurationCalc.Compute(durationStartDate,working,durationHolidayList.Select(h=>h.Date),DurationRainy(out used)).ContractDuration;}catch(Exception){return 0;}}
+  try{ApplyAutoStart();int[] used;var r=ContractDurationCalc.Compute(durationStartDate,working,durationHolidayList.Select(h=>h.Date),DurationRainy(out used));durationEndForPhotos=r.End;return r.ContractDuration;}catch(Exception){return 0;}}
+ DateTime durationEndForPhotos;
+ /* months between the start and end dates as the owner's POW workbook (BACKUP!N64): whole months by DATEDIF(start,end,"m") plus the
+    days after the last whole month divided by the days of that month (owner, 23 November 2026) */
+ internal static double PhotoMonths(DateTime start,DateTime end){if(end<start)return 0;int m=(end.Year-start.Year)*12+end.Month-start.Month;if(end.Day<start.Day)m--;if(m<0)m=0;
+  Func<int,DateTime> edate=k=>{var t=new DateTime(start.Year,start.Month,1).AddMonths(k);return new DateTime(t.Year,t.Month,Math.Min(start.Day,DateTime.DaysInMonth(t.Year,t.Month)));};
+  var from=edate(m);while(from>end&&m>0){m--;from=edate(m);}return m+(end-from).Days/(double)DateTime.DaysInMonth(from.Year,from.Month);}
  List<BackupDemand> ProgressPhotoDemands(List<BackupDemand> computed){var result=new List<BackupDemand>();if(backupBill==null||suggestingGeneral)return result;
   var items=backupBill.Where(i=>i.FromWorkbook&&!i.ManualQuantity.HasValue&&string.IsNullOrEmpty(i.ManualInputText)).ToList();if(items.Count==0)return result;
-  int days=ContractDurationDays(computed.Where(d=>d.Key==null||!d.Key.StartsWith("BOQ manual|",StringComparison.Ordinal)).ToList());int months=DurationMonthsOf(days);
-  foreach(var item in items){double q;string why;if(months>0){q=months;why="Contract Duration "+days+" calendar days / 30 = "+months+" month(s)";}
+  int days=ContractDurationDays(computed.Where(d=>d.Key==null||!d.Key.StartsWith("BOQ manual|",StringComparison.Ordinal)).ToList());double months=days>0?Math.Round(PhotoMonths(durationStartDate,durationEndForPhotos),2):0;
+  foreach(var item in items){double q;string why;if(months>0){q=months;why="Contract Duration "+days+" calendar days, "+durationStartDate.ToString("MMM d, yyyy",System.Globalization.CultureInfo.InvariantCulture)+" to "+durationEndForPhotos.ToString("MMM d, yyyy",System.Globalization.CultureInfo.InvariantCulture)+" = "+months.ToString("0.##",System.Globalization.CultureInfo.InvariantCulture)+" month(s) (whole months + days / days of the month, as BACKUP!N64)";}
    else if(item.WorkbookQuantity.HasValue&&item.WorkbookQuantity.Value>0){q=item.WorkbookQuantity.Value;why="no Contract Duration yet - quantity of the linked BACKUP";}else continue;
    var d=new BackupDemand{Key=ProgressPhotoPrefix+item.Slot,Description=item.Description,Unit=item.Unit,Quantity=q,TargetSlotId=item.Slot,TargetIdentity=item.Signature,ManualPriority=1};
    d.Sources.Add(new BillQuantity{Section="General Requirements",Description="Progress Photographs: "+why+" (type a quantity in the Bill of Quantities to change it)",Unit=item.Unit,Quantity=q});result.Add(d);}

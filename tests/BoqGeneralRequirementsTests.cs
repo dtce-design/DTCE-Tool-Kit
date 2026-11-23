@@ -31,17 +31,17 @@ class BoqGeneralRequirementsTests {
    Check(s(item("B.11(1)",null))==0&&s(item("B.15(1)",null))==0&&s(item("A.1.1(3)",null))==0&&s(item("A.1.2(1)",null))==0,"provisional sums, detours, field offices and vehicles are left to the engineer");
    var rows=f.ScheduleRows();int days=rows.Where(x=>x.Days>0).Select(x=>x.Finish).DefaultIfEmpty(0).Max();int months=(int)Math.Ceiling(days/30.0-1e-9);
    Check(days>0&&s(item("A.1.4(1)",null))==0,"progress photographs are not among these rules (they follow the Contract Duration)");
-   var photoDemand=f.BackupQuantities().Where(d=>d.TargetSlotId==item("A.1.4(1)",null).Slot).ToList();int photoMonths=photoDemand.Count==1?(int)photoDemand[0].Quantity:-1;
-   Check(photoDemand.Count==1&&photoDemand[0].Key.StartsWith(ProgramOfWorksForm.ProgressPhotoPrefix)&&photoMonths>=months,"progress photographs = Contract Duration months ("+photoMonths+", schedule "+months+")");
+   var photoDemand=f.BackupQuantities().Where(d=>d.TargetSlotId==item("A.1.4(1)",null).Slot).ToList();double photoMonths=photoDemand.Count==1?photoDemand[0].Quantity:-1;
+   Check(photoDemand.Count==1&&photoDemand[0].Key.StartsWith(ProgramOfWorksForm.ProgressPhotoPrefix)&&photoMonths>0,"progress photographs = Contract Duration months ("+photoMonths+", schedule "+months+")");
    Check(s(item("A.1.1(16)",null))==0,"field office operation needs a field office");
    item("A.1.1(3)",null).ManualQuantity=1;item("A.1.2(3)",null).ManualQuantity=2;f.Recalculate();suggested=f.BackupQuantities().Where(ProgramOfWorksForm.IsGeneralSuggestion).ToList();
    Check(s(item("A.1.1(16)",null))==months&&s(item("A.1.2(6)",null))==2*months&&s(item("A.1.1(15)",null))==0,"typed field office and vehicles bring their operation months");
    Check(suggested.All(d=>d.Sources.Count==1&&d.Sources[0].Description.StartsWith("Filled by the app")),"each filled quantity explains where it comes from");
    /* typed quantities win; 0 removes; blank returns to the app's value */
    var mob=item("B.9(1)",null);Check(Final(f,mob)==1,"mobilization shows 1 ls");mob.ManualQuantity=0;f.Recalculate();Check(Final(f,mob)==0,"typing 0 removes it");
-   var photos=item("A.1.4(1)",null);photos.ManualQuantity=12;f.Recalculate();Check(Final(f,photos)==12,"a typed number of months wins");photos.ManualQuantity=null;f.Recalculate();Check(Final(f,photos)==photoMonths,"blank returns to the app's months ("+Final(f,photos)+" vs "+photoMonths+", days "+f.ScheduleRows().Where(x=>x.Days>0&&!x.Span).Select(x=>x.Finish).DefaultIfEmpty(0).Max()+")");
+   var photos=item("A.1.4(1)",null);photos.ManualQuantity=12;f.Recalculate();Check(Final(f,photos)==12,"a typed number of months wins");photos.ManualQuantity=null;f.Recalculate();/* the schedule (and so the Contract Duration) changed with the typed quantities above */photoMonths=f.BackupQuantities().Where(d=>d.TargetSlotId==photos.Slot&&d.Key.StartsWith(ProgramOfWorksForm.ProgressPhotoPrefix)).Select(d=>d.Quantity).DefaultIfEmpty(-1).First();Check(photoMonths>0&&Final(f,photos)==photoMonths,"blank returns to the app's months ("+Final(f,photos)+" vs "+photoMonths+", days "+f.ScheduleRows().Where(x=>x.Days>0&&!x.Span).Select(x=>x.Finish).DefaultIfEmpty(0).Max()+")");
    Call(f,"UpdateBackupBillDashboard");var grid=Get<DataGridView>(f,"boqGrid");var row=grid.Rows.Cast<DataGridViewRow>().First(x=>x.Tag==photos);
-   Check(!row.Cells[2].ReadOnly&&Convert.ToString(row.Cells[2].Value)==photoMonths.ToString()&&row.Cells[2].ToolTipText.StartsWith("Filled by the app"),"the filled months stay editable in the Bill of Quantities");
+   Check(!row.Cells[2].ReadOnly&&Convert.ToString(row.Cells[2].Value)==photoMonths.ToString("0.########",System.Globalization.CultureInfo.InvariantCulture)&&row.Cells[2].ToolTipText.StartsWith("Filled by the app"),"the filled months stay editable in the Bill of Quantities");
    Check(f.ScheduleRows().Any(x=>x.Code=="B.5(1)"&&x.Days>0),"billboards appear in the construction schedule");
    /* "hindi ba pwede paiksiin yung working days": more crews on an item shorten it */
    {var item0=f.ScheduleRows().First(x=>x.Rate>0&&x.Days>0);var overrides=Get<System.Collections.IDictionary>(f,"scheduleOverrides");var type=typeof(ProgramOfWorksForm).Assembly.GetType("BeamScheduleFormatter.ScheduleOverride");

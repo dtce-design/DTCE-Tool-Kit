@@ -218,8 +218,11 @@ Owner: "yung quantities na nasa app ang mapupunta sa pow backup" (not the other 
 BACKUP (.xlsm) are never shown or used as app quantities (BackupBillItem.WorkbookQuantity is not a fallback); the app writes its
 computed / typed quantities to the mapped BACKUP items. Typed BACKUP!BC values of mapped items without an app quantity are cleared
 (owner: "pati yung mga may type values sa excel ioverride niya din"); formula cells stay. Progress Photographs follow the Bill of
-Quantities Contract Duration (owner: "progress photo graph naka link sa contract duration ng boq"; months = calendar days / 30,
-rounded up; typed app value wins; the BACKUP value is kept only while there is no contract duration). v7.1.11.
+Quantities Contract Duration (owner: "progress photo graph naka link sa contract duration ng boq"): months from the start to the end
+date as the owner's BACKUP!N64 (DATEDIF whole months + remaining days / days of that month, 2 decimals); typed app value wins; the
+BACKUP value is kept only while there is no contract duration. The Contract Duration start date follows FRONT PAGE!CB7 by default
+(MAX(date prepared + 90 days, or 75 when ABC >= PHP 50 M; first Monday on or after May 1 of the FY)), with ABC and FY inputs
+(v7.1.13, owner: "yung sa formula sa excel na ginawa ko").
 Sheets the app did not make are still not overwritten (v7.1.8 reverted).
 
 ## Staircase Design page (23 November 2026)
