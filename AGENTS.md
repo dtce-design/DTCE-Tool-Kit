@@ -196,6 +196,9 @@ ios/ci/app_store.py submit: it attaches the processed build to the App Store ver
 uploads or releases. Releasing after approval and later submissions need a new explicit request. Export compliance is answered only
 with the input ios_exempt_encryption=true, which the owner chose for build 239.2 ("Set it as exempt for me": the app only signs and
 verifies access codes - signatures, SHA-256, HMAC, Face ID - and encrypts no data).
+Done 23 November 2026: run 45135053286 (development branch, submit_ios_review=true) set the export compliance (exempt), created App
+Store version 1.1.1 (release MANUAL), attached build 239.2, set What's New "Bug fixes and performance improvements." (owner's choice)
+and submitted it: state WAITING_FOR_REVIEW. Approval is not guaranteed; releasing after approval needs a new explicit request.
 New owner request (23 November 2026, "Pakipublish sa microsoft store"): publish v7.0.4 (User and Admin) the same way after its Windows
 CI passes (merge the development branch to main for the GitHub release, then publish_microsoft_store=true;
 replace_pending_store_submission stays false unless the owner asks). The Admin edition includes the PHIVOLCS active fault lines
