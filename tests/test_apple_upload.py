@@ -66,3 +66,76 @@ class UploadScriptTests(unittest.TestCase):
             self.assertIn('-authenticationKeyPath',calls[1])
 
 if __name__=='__main__':unittest.main()
+
+class AppStoreReviewSubmitTests(unittest.TestCase):
+    """Owner request (23 November 2026, "Submit for apple review ang test flight"): the processed TestFlight build is attached to
+    its App Store version (release manual) and submitted for review; nothing is uploaded or released."""
+    def run_submit(self, build_attrs, versions, exempt=False):
+        calls = []
+        def fake(method, resource, body=None, params=None):
+            calls.append((method, resource, body, params))
+            if method == 'GET' and resource == 'builds':
+                return {'data': [{'id': 'b1', 'attributes': build_attrs}]}
+            if method == 'GET' and resource.endswith('/appStoreVersions'):
+                return {'data': versions}
+            if method == 'POST' and resource == 'appStoreVersions':
+                return {'data': {'id': 'v1', 'attributes': {}}}
+            if method == 'GET' and resource == 'reviewSubmissions':
+                return {'data': []}
+            if method == 'POST' and resource == 'reviewSubmissions':
+                return {'data': {'id': 'r1'}}
+            if method == 'PATCH' and resource == 'reviewSubmissions/r1':
+                return {'data': {'attributes': {'state': 'WAITING_FOR_REVIEW'}}}
+            return {}
+        original = asc.api_send
+        asc.api_send = fake
+        try:
+            asc.submit('123', '1.1.1', '239.2', exempt)
+        finally:
+            asc.api_send = original
+        return calls
+
+    def test_submits_valid_build_with_manual_release(self):
+        calls = self.run_submit({'processingState': 'VALID', 'usesNonExemptEncryption': False}, [])
+        created = [c for c in calls if c[0] == 'POST' and c[1] == 'appStoreVersions'][0]
+        self.assertEqual(created[2]['data']['attributes']['releaseType'], 'MANUAL')
+        self.assertIn(('PATCH', 'appStoreVersions/v1/relationships/build', {'data': {'type': 'builds', 'id': 'b1'}}, None), calls)
+        self.assertTrue(any(c[0] == 'POST' and c[1] == 'reviewSubmissionItems' for c in calls))
+        self.assertEqual(calls[-1][2]['data']['attributes']['submitted'], True)
+
+    def test_refuses_unanswered_export_compliance(self):
+        with self.assertRaises(RuntimeError):
+            self.run_submit({'processingState': 'VALID', 'usesNonExemptEncryption': None}, [])
+
+    def test_already_in_review_is_left_alone(self):
+        calls = self.run_submit({'processingState': 'VALID', 'usesNonExemptEncryption': False}, [{'id': 'v0', 'attributes': {'appStoreState': 'WAITING_FOR_REVIEW'}}])
+        self.assertFalse(any(c[0] in ('POST', 'PATCH') for c in calls))
+
+    def test_owner_exempt_answer_is_set_before_submitting(self):
+        calls = self.run_submit({'processingState': 'VALID', 'usesNonExemptEncryption': None}, [], exempt=True)
+        self.assertEqual(calls[1][0:2], ('PATCH', 'builds/b1'))
+        self.assertEqual(calls[1][2]['data']['attributes']['usesNonExemptEncryption'], False)
+        self.assertEqual(calls[-1][2]['data']['attributes']['submitted'], True)
+
+    def test_whats_new_is_filled_where_empty(self):
+        calls = []
+        def fake(method, resource, body=None, params=None):
+            calls.append((method, resource, body))
+            if method == 'GET' and resource == 'builds':
+                return {'data': [{'id': 'b1', 'attributes': {'processingState': 'VALID', 'usesNonExemptEncryption': False}}]}
+            if method == 'GET' and resource.endswith('/appStoreVersions'):
+                return {'data': [{'id': 'v1', 'attributes': {'appStoreState': 'PREPARE_FOR_SUBMISSION'}}]}
+            if method == 'GET' and resource.endswith('/appStoreVersionLocalizations'):
+                return {'data': [{'id': 'l1', 'attributes': {'locale': 'en-US', 'whatsNew': None}}, {'id': 'l2', 'attributes': {'locale': 'fil', 'whatsNew': 'Typed'}}]}
+            if method == 'POST' and resource == 'reviewSubmissions':
+                return {'data': {'id': 'r1'}}
+            return {'data': []} if method == 'GET' else {}
+        original = asc.api_send
+        asc.api_send = fake
+        try:
+            asc.submit('123', '1.1.1', '239.2', False, 'Bug fixes and performance improvements.')
+        finally:
+            asc.api_send = original
+        patched = [c for c in calls if c[0] == 'PATCH' and c[1].startswith('appStoreVersionLocalizations/')]
+        self.assertEqual([c[1] for c in patched], ['appStoreVersionLocalizations/l1'])
+        self.assertEqual(patched[0][2]['data']['attributes']['whatsNew'], 'Bug fixes and performance improvements.')

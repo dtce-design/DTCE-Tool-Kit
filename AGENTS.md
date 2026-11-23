@@ -190,6 +190,23 @@ Done 21 November 2026: 1.1.0 was refused (version already approved, train closed
 Run 44913008843 (Windows build job re-run once after the EarthworkFootingTests exit code, all 124 checks passed): DTCE Access Admin
 1.1.1 build 239.2 uploaded; App Store Connect processing VALID (available for TestFlight). Not submitted for App Store review.
 Apple warned that from April 2027 iPhone apps must be built with the iOS 27 SDK (Xcode 27) or later.
+Owner (23 November 2026, "Submit for apple review ang test flight"): submit the TestFlight build DTCE Access Admin 1.1.1 (build 239.2)
+for App Store review. The workflow input submit_ios_review (default false; ios_review_version / ios_review_build) runs
+ios/ci/app_store.py submit: it attaches the processed build to the App Store version with release MANUAL and submits it; it never
+uploads or releases. Releasing after approval and later submissions need a new explicit request. Export compliance is answered only
+with the input ios_exempt_encryption=true, which the owner chose for build 239.2 ("Set it as exempt for me": the app only signs and
+verifies access codes - signatures, SHA-256, HMAC, Face ID - and encrypts no data).
+Done 23 November 2026: run 45135053286 (development branch, submit_ios_review=true) set the export compliance (exempt), created App
+Store version 1.1.1 (release MANUAL), attached build 239.2, set What's New "Bug fixes and performance improvements." (owner's choice)
+and submitted it: state WAITING_FOR_REVIEW. Approval is not guaranteed; releasing after approval needs a new explicit request.
+Owner (23 November 2026, "Update mo na lang sa test flight now"): upload a new iPhone build to TestFlight. It is 1.1.2 (1.1.1 is in
+review; 1.1.2 adds Staircase Design, program 8192, to the access-code generator): merge the development branch to main (GitHub release
+of the desktop app v7.1.24 follows automatically), then run the workflow on main with publish_ios=true (publish_microsoft_store stays
+false). TestFlight only - App Store review of 1.1.2 and later uploads need a new explicit request.
+New owner request (23 November 2026, "upload mo na din sa Microsoft Store yung bago"; chose "Replace v7.1.17"): publish v7.1.24 (User
+and Admin) to the Microsoft Store after its Windows CI passes (PR #17 to main), with publish_microsoft_store=true and
+replace_pending_store_submission=true for this release only - the v7.1.17 submissions still in certification are cancelled and
+replaced. Later versions again need a new explicit request.
 New owner request (23 November 2026, "Pakipublish sa microsoft store"): publish v7.0.4 (User and Admin) the same way after its Windows
 CI passes (merge the development branch to main for the GitHub release, then publish_microsoft_store=true;
 replace_pending_store_submission stays false unless the owner asks). The Admin edition includes the PHIVOLCS active fault lines
@@ -212,6 +229,10 @@ replace_pending_store_submission stays false unless the owner asks). Later versi
 Owner (23 November 2026, chose "Upload v7.1.16" and added "kapag nagdouble click sa saved project information magclose na din yung
 window"): the Store release is v7.1.17 (v7.1.15, v7.1.16 FY / ABC kept when opening older Bill of Quantities files, v7.1.17
 double-click a saved project to use it and close), the same way after its Windows CI passes.
+Done 23 November 2026: v7.1.17 merged to main (PR #16; GitHub release OK, run 45106720078, first attempt). Store run 45106734729
+(first attempt, no re-run needed): new User (1152921505702478667) and Admin (1152921505702478466) submissions were created and
+committed; Partner Center reported "accepted for processing" (PreProcessing). Certification is not guaranteed. v7.1.18 and later
+need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
@@ -240,6 +261,21 @@ Sheets the app did not make are still not overwritten (v7.1.8 reverted).
 
 Owner: "pagsamasamahin yung stair type at yung staircase design" / "stair type and geometry at model": the stair type and geometry
 inputs and the four Model views (section, 3D, plan, load / shear / moment) are one tab, "Stair type, geometry and model" (v7.1.12).
+
+## Door hardware (23 November 2026)
+
+Owner: hinges are "Ball Bearing Stainless Door Hinge" in 2 pcs/pack, sizes 3.0x3.0x2.5mm, 3.5x3.5x2.5mm, 4.0x3.0x3.0mm, 4.0x4.0x3.0mm
+(BOQ lines in packs per size; Hinge size column Automatic or chosen); double-leaf doors get 1 leverset, one 4" Chrome Plated Chain Bolt
+and one 4" Chrome Plated Foot Bolt; optional Deadbolt (Double Cylinder / Single Cylinder with Thumbturn, Satin Stainless Steel); leaves of
+different widths are typed in Leaf widths (e.g. 0.90+0.30) and each leaf gets its own hinges (src/DoorHardware.cs, v7.1.18). All go to
+1004(2) Finishing Hardware.
+
+## Dropdowns, truss schedules and offcut sources (23 November 2026)
+
+Owner: dropdown cells must not change under the arrow keys or the mouse wheel while the list is closed (src/ComboKeyGuard.cs, every grid
+styled by GridAppearance; v7.1.19). Angle Bars has "Truss schedules": truss types with members; their Angle Bars rows are generated and
+locked (src/TrussSchedules.cs, v7.1.19). Detailed / Extensive BOQ reports show where reused offcuts come from for rebar, 6 m steel stock
+and railings (src/OffcutReuseReport.cs, v7.1.20).
 
 ## Complete rows only (23 November 2026)
 

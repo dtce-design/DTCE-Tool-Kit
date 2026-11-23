@@ -1,0 +1,13 @@
+DTCE Tool Kit v7.1.21 (23 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Staircase Design drawings (owner, with a screenshot: "di pa maayos yung section ng stairs rebar tapos yung 3d view dapat deretso
+lang yung underside"; "sa reports yung section plus yung reinforcement kung saan yung tinutukoy"):
+- Section: the waist soffit runs straight at the slope until it meets the underside of each landing (the landing no longer shows a
+  wedge). Bottom bars: the flight bar bends round the lower corner; at the upper landing, where the soffit turns inward, the flight
+  bar runs straight on into the landing to its top cover and the landing bottom bar runs on into the flight, so the bars cross.
+- Section callouts: A main bottom bars, B top bars at the supports, C distribution bars, with their sizes and spacing.
+- 3D model: each waist-slab flight is one solid with the steps on top and a straight sloped underside (no stepped blocks).
+- Report: the reinforcement table has a Mark column (A / B / C) and the section of each flight with the marked bars follows it.
+Not verified here: the PDF output (needs the bundled qpdf tools on Windows); the figures are the same drawings as on screen.
+Tests: StaircaseTests 29.
+Includes everything of v7.1.20.

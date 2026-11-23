@@ -1,0 +1,15 @@
+DTCE Tool Kit v7.1.22 (23 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Strap Foundation tables and Staircase reinforcement (owner: "yung table di nakikita yung sa pinaka dulo right"; "correct
+reinforcement sa stairs"):
+- Strap Foundation: the footings, straps and support-reaction tables show every column, up to the last one on the right, without
+  scrolling sideways. The table pane's layout column took the tables' own preferred width and was wider than the visible pane; it is now
+  the pane width, the columns share it (headers wrap) and the tables take 58 % of the window.
+- Staircase section reinforcement:
+  - top bars follow the top of the waist into the landing (they no longer climb the last riser) and their end legs bend down into the
+    support;
+  - where a lower landing meets the flight (top face turns inward) the top bars cross: the landing top bar runs on into the flight to
+    the bottom cover and the flight top bar runs on into the landing; at the upper landing the bottom bars cross (v7.1.21);
+  - distribution bars are shown inside the top bars as well as the bottom bars.
+Tests: StaircaseTests 29, StrapFootingTests.
+Includes everything of v7.1.21.
