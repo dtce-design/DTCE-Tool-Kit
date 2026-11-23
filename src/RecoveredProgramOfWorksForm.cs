@@ -4615,6 +4615,7 @@ worksExcelTimer.Tick += async delegate
             InstallStandardSettings();
             InstallRowInclusion();
             AddConstructionSchedule();AddContractDuration();
+            OrderWorksTabs();
             PlaceSteelSetColumns();
             if (wood != null) PlaceOpeningPaintColumns(wood);
 			tabs.Multiline = true;
@@ -6913,6 +6914,7 @@ worksExcelTimer.Tick += async delegate
 								PaintJamb = OpeningPaint(item, PaintLeafColumn) /* one combined paint checkbox (owner, 18 November 2026) */
 							};
 							openingItem.Validate();
+							ApplyMouldingQuantity(openingItem);
 							if (!ids.Add(openingItem.Id))
 							{
 								throw new Exception("Duplicate Opening ID (including other opening tab).");

@@ -60,6 +60,7 @@ partial class ProgramOfWorksForm {
   var byId=new Dictionary<string,DataGridViewRow>(StringComparer.OrdinalIgnoreCase);foreach(var r in openingRows)if(!byId.ContainsKey(Cell(r,0)))byId[Cell(r,0)]=r;
   foreach(string id in removedMouldingOpenings){DataGridViewRow r;if(byId.TryGetValue(id,out r))r.Cells[22].Value=false;}removedMouldingOpenings.Clear();
   var referenced=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+  /* the moulding quantity typed on the moulding sheet (blank = every unit of the opening) */mouldingQuantities.Clear();foreach(DataGridViewRow m in mouldingEntries.Rows){if(m.IsNewRow)continue;string id=Cell(m,MouldingOpeningColumn),q=Cell(m,4);if(id!=""&&q!="")mouldingQuantities[id]=q;}
   foreach(DataGridViewRow m in mouldingEntries.Rows){if(m.IsNewRow)continue;string id=Cell(m,MouldingOpeningColumn);if(id=="")continue;referenced.Add(id);DataGridViewRow r;if(byId.TryGetValue(id,out r)){r.Cells[22].Value=true;r.Cells[24].Value=Cell(m,2);}}
   foreach(var r in openingRows){if(!Checked(r,22)||referenced.Contains(Cell(r,0)))continue;/* older project: opening flagged for exterior moulding -> show it on the moulding sheet */
    var m=mouldingEntries.Rows[mouldingEntries.Rows.Add()];m.Cells[1].Value=(Cell(r,3)==""?"Opening":Cell(r,3))+" "+Cell(r,0)+(Cell(r,1)==""?"":" | "+Cell(r,1));m.Cells[2].Value=Cell(r,24);m.Cells[MouldingOpeningColumn].Value=Cell(r,0);referenced.Add(Cell(r,0));}
@@ -67,10 +68,14 @@ partial class ProgramOfWorksForm {
   var items=((DataGridViewComboBoxColumn)mouldingEntries.Columns[MouldingOpeningColumn]).Items;var ids=new[]{""}.Concat(openingRows.Select(r=>Cell(r,0))).Concat(referenced).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
   if(!items.Cast<object>().Select(Convert.ToString).SequenceEqual(ids)){items.Clear();items.AddRange(ids);}}
  // Moulding rows tied to an opening show that opening's moulding; the quantity is counted once through the opening.
+ readonly Dictionary<string,string> mouldingQuantities=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+ /* fewer units than the opening may get moulding; the typed number is kept while it differs from the opening quantity, so a blank
+    or the full quantity follows the schedule */
+ void ApplyMouldingQuantity(OpeningItem o){string q;if(!o.Exterior||!mouldingQuantities.TryGetValue(o.Id,out q))return;int n;if(!int.TryParse(q,System.Globalization.NumberStyles.Integer,System.Globalization.CultureInfo.InvariantCulture,out n)||n<0||n>o.Quantity){errors.Add("Moulding of opening "+o.Id+": the quantity must be a whole number from 0 to "+o.Quantity+"; all units counted.");return;}if(n!=o.Quantity)o.MouldingQuantity=n;}
  bool OpeningMouldingRow(DataGridViewRow row){if(row.Cells.Count<=MouldingOpeningColumn)return false;string id=Cell(row,MouldingOpeningColumn);if(id=="")return false;var opening=openings.FirstOrDefault(o=>string.Equals(o.Id,id,StringComparison.OrdinalIgnoreCase));
-  foreach(int c in new[]{3,4}){row.Cells[c].ReadOnly=true;row.Cells[c].Style.BackColor=Color.FromArgb(235,237,240);}
+  row.Cells[3].ReadOnly=true;row.Cells[3].Style.BackColor=Color.FromArgb(235,237,240);row.Cells[4].ReadOnly=false;row.Cells[4].Style.BackColor=ModernUi.Input;
   if(opening==null){row.Cells[6].Value="Opening "+id+" not found in the Door & Window Schedule";errors.Add("Moulding "+Cell(row,0)+": opening "+id+" not found");return true;}
-  row.Cells[3].Value=opening.Quantity>0?(opening.MouldingLength/opening.Quantity).ToString("0.###",System.Globalization.CultureInfo.InvariantCulture):"";row.Cells[4].Value=opening.Quantity.ToString();Measure(row,5,opening.MouldingLength);row.Cells[6].Value="From opening "+opening.Id;return true;}
+  int units=opening.MouldingQuantity>=0?opening.MouldingQuantity:opening.Quantity;row.Cells[3].Value=opening.Quantity>0?OpeningMoulding.Length(opening.Kind,opening.Width,opening.Height,1,true).ToString("0.###",System.Globalization.CultureInfo.InvariantCulture):"";row.Cells[4].Value=units.ToString(System.Globalization.CultureInfo.InvariantCulture);Measure(row,5,opening.MouldingLength);row.Cells[6].Value="From opening "+opening.Id+(units<opening.Quantity?" ("+units+" of "+opening.Quantity+" units)":"");return true;}
  // Include checkboxes for opening painting (owner, 17 November 2026). Checked = painted; new rows start unticked (owner, 18 November 2026).
  // Saved as entry attributes pl / pj ("0" when unchecked) so older files keep their paint quantities.
  /* A plain "Opening" (owner, 18 November 2026: "walang material, walang anything, dimension lang"): only ID, description, wall,

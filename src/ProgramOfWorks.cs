@@ -1,9 +1,9 @@
 using System;using System.IO;using System.Linq;using System.Text;using System.Xml;using System.Globalization;using System.Collections.Generic;using System.Drawing;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 class OpeningItem {
- public string Id,Description,Wall,Material,Kind;public double Width,Height,JambDepth,JambThickness,LeafThickness;public int Quantity,Faces,HingesPerUnit,LocksPerUnit;public int Leaves=1;public string Operation="Swing";public bool Exterior;public string MouldingProfile="";
+ public string Id,Description,Wall,Material,Kind;public double Width,Height,JambDepth,JambThickness,LeafThickness;public int Quantity,Faces,HingesPerUnit,LocksPerUnit;public int Leaves=1;public string Operation="Swing";public bool Exterior;public string MouldingProfile="";/* units of this opening that get moulding (owner, 23 November 2026: "editable quantity kasi di naman lahat malalagyan"); -1 = all */public int MouldingQuantity=-1;
  /* Owner (17 November 2026): painting of the door/window leaf and of the jamb can each be left out. */public bool PaintLeaf=true,PaintJamb=true;
- public double MouldingLength{get{return Material=="Manual"||Material=="Opening"?0:OpeningMoulding.Length(Kind,Width,Height,Quantity,Exterior);}}
+ public double MouldingLength{get{return Material=="Manual"||Material=="Opening"||MouldingQuantity==0?0:OpeningMoulding.Length(Kind,Width,Height,MouldingQuantity>=0?MouldingQuantity:Quantity,Exterior);}}
  public double Area{get{return Width*Height*Quantity;}}
  public bool Wood{get{return Material=="Wood";}}
  public double LeafWidth{get{return Width-2*JambThickness;}}public double LeafHeight{get{return Height-(Kind=="Window"?2:1)*JambThickness;}}
