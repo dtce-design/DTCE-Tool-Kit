@@ -70,7 +70,7 @@ if __name__=='__main__':unittest.main()
 class AppStoreReviewSubmitTests(unittest.TestCase):
     """Owner request (23 November 2026, "Submit for apple review ang test flight"): the processed TestFlight build is attached to
     its App Store version (release manual) and submitted for review; nothing is uploaded or released."""
-    def run_submit(self, build_attrs, versions):
+    def run_submit(self, build_attrs, versions, exempt=False):
         calls = []
         def fake(method, resource, body=None, params=None):
             calls.append((method, resource, body, params))
@@ -90,7 +90,7 @@ class AppStoreReviewSubmitTests(unittest.TestCase):
         original = asc.api_send
         asc.api_send = fake
         try:
-            asc.submit('123', '1.1.1', '239.2')
+            asc.submit('123', '1.1.1', '239.2', exempt)
         finally:
             asc.api_send = original
         return calls
@@ -110,3 +110,9 @@ class AppStoreReviewSubmitTests(unittest.TestCase):
     def test_already_in_review_is_left_alone(self):
         calls = self.run_submit({'processingState': 'VALID', 'usesNonExemptEncryption': False}, [{'id': 'v0', 'attributes': {'appStoreState': 'WAITING_FOR_REVIEW'}}])
         self.assertFalse(any(c[0] in ('POST', 'PATCH') for c in calls))
+
+    def test_owner_exempt_answer_is_set_before_submitting(self):
+        calls = self.run_submit({'processingState': 'VALID', 'usesNonExemptEncryption': None}, [], exempt=True)
+        self.assertEqual(calls[1][0:2], ('PATCH', 'builds/b1'))
+        self.assertEqual(calls[1][2]['data']['attributes']['usesNonExemptEncryption'], False)
+        self.assertEqual(calls[-1][2]['data']['attributes']['submitted'], True)

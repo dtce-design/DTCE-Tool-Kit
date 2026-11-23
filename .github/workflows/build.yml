@@ -33,6 +33,10 @@ on:
         description: TestFlight build number to submit (e.g. 239.2)
         type: string
         default: ''
+      ios_exempt_encryption:
+        description: Owner's export-compliance answer - the build uses no non-exempt encryption (set only when the owner said so)
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -377,7 +381,8 @@ jobs:
           APPLE_APP_ID: ${{ steps.apple.outputs.app_id }}
           REVIEW_VERSION: ${{ inputs.ios_review_version }}
           REVIEW_BUILD: ${{ inputs.ios_review_build }}
-        run: python3 ios/ci/app_store.py submit "$APPLE_APP_ID" "$REVIEW_VERSION" "$REVIEW_BUILD"
+          EXEMPT: ${{ inputs.ios_exempt_encryption && 'exempt' || '' }}
+        run: python3 ios/ci/app_store.py submit "$APPLE_APP_ID" "$REVIEW_VERSION" "$REVIEW_BUILD" "$EXEMPT"
       - name: Remove temporary API private key
         if: always()
         run: |

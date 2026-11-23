@@ -130,7 +130,7 @@ def api_send(method, resource, body=None, params=None):
 SUBMITTED_STATES = {'WAITING_FOR_REVIEW', 'IN_REVIEW', 'PENDING_DEVELOPER_RELEASE', 'PENDING_APPLE_RELEASE', 'PROCESSING_FOR_APP_STORE', 'READY_FOR_SALE', 'READY_FOR_DISTRIBUTION'}
 
 
-def submit(app_id, version, build_number):
+def submit(app_id, version, build_number, exempt=False):
     """Submit a processed TestFlight build for App Store review (owner request only). The version is released MANUALLY after
     approval, so approval never publishes it by itself."""
     if not re.fullmatch(r'\d+', app_id) or not re.fullmatch(r'\d+\.\d+(?:\.\d+)?', version) or not re.fullmatch(r'\d+(?:\.\d+)*', build_number):
@@ -142,7 +142,11 @@ def submit(app_id, version, build_number):
     state = build['attributes'].get('processingState')
     if state != 'VALID':
         raise RuntimeError('Build %s is %s, not VALID; it cannot be submitted yet' % (build_number, state))
-    if build['attributes'].get('usesNonExemptEncryption') is None:
+    if build['attributes'].get('usesNonExemptEncryption') is None and exempt:
+        # the owner's own answer (23 November 2026, "Set it as exempt for me"): the app only signs / verifies access codes
+        api_send('PATCH', 'builds/%s' % build['id'], {'data': {'type': 'builds', 'id': build['id'], 'attributes': {'usesNonExemptEncryption': False}}})
+        print('Export compliance set as the owner answered: no non-exempt encryption.')
+    elif build['attributes'].get('usesNonExemptEncryption') is None:
         raise RuntimeError('Export compliance (encryption) is not answered for build %s. Answer it in App Store Connect > TestFlight, then run this again.' % build_number)
     versions = api_send('GET', 'apps/%s/appStoreVersions' % app_id, params={'filter[platform]': 'IOS', 'filter[versionString]': version, 'limit': '5'}).get('data', [])
     if versions:
@@ -225,7 +229,7 @@ if __name__ == '__main__':
         elif sys.argv[1] == 'check':
             check_build(sys.argv[2], sys.argv[3])
         elif sys.argv[1] == 'submit':
-            submit(sys.argv[2], sys.argv[3], sys.argv[4])
+            submit(sys.argv[2], sys.argv[3], sys.argv[4], len(sys.argv) > 5 and sys.argv[5] == 'exempt')
         else:
             raise ValueError('Unknown operation')
     except (ValueError, RuntimeError, OSError) as error:
