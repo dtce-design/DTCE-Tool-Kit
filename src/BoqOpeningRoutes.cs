@@ -13,7 +13,7 @@ namespace BeamScheduleFormatter {
 // These are defaults only: a quantity the user already mapped, changed or unmapped in the BOQ keeps that choice.
 partial class ProgramOfWorksForm {
  static string OpeningPayCode(string key){
-  if(key.StartsWith("Doors & Windows|Leversets|",StringComparison.Ordinal)||key.StartsWith("Doors & Windows|Hinges|",StringComparison.Ordinal))return "1004(2)";
+  if(key.StartsWith("Doors & Windows|Leversets|",StringComparison.Ordinal)||key.StartsWith("Doors & Windows|Hinges|",StringComparison.Ordinal)||IsDoorHardwareKey(key))return "1004(2)";
   if(key.StartsWith("Door / window jambs|",StringComparison.Ordinal))return "1010(4)";
   if(!key.StartsWith("Door / window schedule|",StringComparison.Ordinal))return null;
   string[] parts=key.Split('|');if(parts.Length<3)return null;string kind=parts[2].Trim();

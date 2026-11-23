@@ -241,6 +241,14 @@ Sheets the app did not make are still not overwritten (v7.1.8 reverted).
 Owner: "pagsamasamahin yung stair type at yung staircase design" / "stair type and geometry at model": the stair type and geometry
 inputs and the four Model views (section, 3D, plan, load / shear / moment) are one tab, "Stair type, geometry and model" (v7.1.12).
 
+## Door hardware (23 November 2026)
+
+Owner: hinges are "Ball Bearing Stainless Door Hinge" in 2 pcs/pack, sizes 3.0x3.0x2.5mm, 3.5x3.5x2.5mm, 4.0x3.0x3.0mm, 4.0x4.0x3.0mm
+(BOQ lines in packs per size; Hinge size column Automatic or chosen); double-leaf doors get 1 leverset, one 4" Chrome Plated Chain Bolt
+and one 4" Chrome Plated Foot Bolt; optional Deadbolt (Double Cylinder / Single Cylinder with Thumbturn, Satin Stainless Steel); leaves of
+different widths are typed in Leaf widths (e.g. 0.90+0.30) and each leaf gets its own hinges (src/DoorHardware.cs, v7.1.18). All go to
+1004(2) Finishing Hardware.
+
 ## Complete rows only (23 November 2026)
 
 Owner: "naeestimate pa din kahit di kumpleto"; "pati yung sa deduction dapat may input". A Bill of Quantities row with a blank

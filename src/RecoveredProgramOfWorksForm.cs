@@ -4623,6 +4623,7 @@ worksExcelTimer.Tick += async delegate
             OrderWorksTabs();
             PlaceSteelSetColumns();
             if (wood != null) PlaceOpeningPaintColumns(wood);
+            PlaceDoorHardwareColumns(wood);PlaceDoorHardwareColumns(aluminum);if(manualOpeningsGrid!=null&&manualOpeningsGrid.Columns.Contains(HingeSizeColumn))foreach(var hw in new[]{HingeSizeColumn,DeadboltColumn,LeafWidthsColumn})manualOpeningsGrid.Columns[hw].Visible=false;
 			tabs.Multiline = true;
             ShowMasonryFinishSides();
             ExplainBarSpacingColumns();
@@ -5475,6 +5476,7 @@ worksExcelTimer.Tick += async delegate
 			AddMouldingColumns(g);
 			AddOpeningMaterialColumn(g, isWood ? "Wood" : "Aluminum");
 			AddOpeningPaintColumns(g);
+			AddDoorHardwareColumns(g); /* hinge size, leaf widths, deadbolt (owner, 23 November 2026) */
 			DataGridViewCellStyle defaultCellStyle = g.Columns[20].DefaultCellStyle;
 			Color backColor = (g.Columns[21].DefaultCellStyle.BackColor = ModernUi.Input);
 			defaultCellStyle.BackColor = backColor;
@@ -6917,9 +6919,11 @@ worksExcelTimer.Tick += async delegate
 								MouldingProfile = Cell(item, 24),
 								Exterior = (dataGridView != manualOpeningsGrid && !plainOpening && Cell(item, 22) != "" && bool.Parse(Cell(item, 22))),
 								PaintLeaf = OpeningPaint(item, PaintLeafColumn),
-								PaintJamb = OpeningPaint(item, PaintLeafColumn) /* one combined paint checkbox (owner, 18 November 2026) */
+								PaintJamb = OpeningPaint(item, PaintLeafColumn), /* one combined paint checkbox (owner, 18 November 2026) */
+								HingeSize = RowHingeSize(item), Deadbolt = RowDeadbolt(item), LeafWidths = RowLeafWidths(item) /* door hardware (owner, 23 November 2026) */
 							};
 							openingItem.Validate();
+							if (openingItem.Kind == "Door") openingItem.DoorLeaves(); /* leaf widths checked with the row */
 							ApplyMouldingQuantity(openingItem);
 							if (!ids.Add(openingItem.Id))
 							{
@@ -7568,6 +7572,7 @@ worksExcelTimer.Tick += async delegate
 						WriteSteelSets(item.Key, item2, xmlElement3);
 						WriteSteelPaintOnly(item2, xmlElement3);
 						WriteOpeningPaint(item.Key, item2, xmlElement3);
+						WriteDoorHardware(item2, xmlElement3);
 						WriteRowExcluded(item2, xmlElement3);
 						xmlElement2.AppendChild(xmlElement3);
 					}
@@ -7887,6 +7892,7 @@ worksExcelTimer.Tick += async delegate
 						ReadSteelSets(item3.Key, item3.Value.Rows[index], item4);
 						ReadSteelPaintOnly(item3.Value.Rows[index], item4);
 						ReadOpeningPaint(item3.Key, item3.Value.Rows[index], item4);
+						ReadDoorHardware(item3.Value.Rows[index], item4);
 						if ((item3.Key == "Wood" || item3.Key == "Aluminum") && !item4.HasAttribute("c" + OpeningMaterialColumn)) item3.Value.Rows[index].Cells[OpeningMaterialColumn].Value = (item3.Key == "Wood") ? "Wood" : "Aluminum";
 						ReadRowExcluded(item3.Value.Rows[index], item4);
 					}
@@ -8132,7 +8138,9 @@ worksExcelTimer.Tick += async delegate
 					where FinishTypeRegistry.Key(f.MaterialName) == item.Key
 					select SourceQuantity(f.Id + " | " + f.Description, f.Total(FindWall(f.Wall), wallOpenings, finishItems), "m2")));
 			}
-			action("Doors & Windows", new string[3] { "WoodPaint", "Leversets", "Hinges" });
+			/* hinges are bought as Ball Bearing Stainless Door Hinges, 2 pcs per pack, by size; chain / foot bolts and deadbolts (owner, 23 November 2026) */
+			action("Doors & Windows", new string[2] { "WoodPaint", "Leversets" });
+			rows.AddRange(DoorHardwareQuantities());
 			foreach (OpeningItem item3 in from o in openings
 				where o.Material != "Manual"
 				orderby o.Id

@@ -8,11 +8,11 @@ class OpeningRoutesUiTests {
   add("D-01","Door","Wood");add("D-02","Door","Aluminum");add("W-01","Window","Aluminum");add("D-03","Door","PVC");add("D-04","Door","Steel");add("W-04","Window","Steel");f.Recalculate();
   var bill=Get<List<BackupBillItem>>(f,"backupBill");var routes=Get<Dictionary<string,string>>(f,"backupBillRoutes");var demands=f.BackupQuantities();
   Func<string,string> code=prefix=>{var d=demands.FirstOrDefault(x=>x.Key.StartsWith(prefix,StringComparison.Ordinal));if(d==null||!routes.ContainsKey(d.Key))return "";return bill.First(b=>b.Slot==routes[d.Key]).Code;};
-  Check(code("Doors & Windows|Leversets|")=="1004(2)"&&code("Doors & Windows|Hinges|")=="1004(2)","Leversets and hinges go to Finishing Hardware");
+  Check(code("Doors & Windows|Leversets|")=="1004(2)"&&code("Doors & Windows|Ball Bearing Stainless Door Hinge ")=="1004(2)","Leversets and hinge packs go to Finishing Hardware");
   Check(code("Door / window schedule|D-01 |")=="1010(4)"&&code("Door / window jambs|D-01 |")=="1010(4)","Wood door and jamb go to Wooden Doors and Windows");
   Check(code("Door / window schedule|D-02 |")=="1007(2)"&&code("Door / window schedule|W-01 |")=="1008(2)","Aluminum door / window items");
   Check(code("Door / window schedule|D-03 |")=="1043(1)"&&code("Door / window schedule|D-04 |")=="1006(6)"&&code("Door / window schedule|W-04 |")=="1005(5)","PVC door, steel door and steel window items");
-  string key=demands.First(x=>x.Key.StartsWith("Doors & Windows|Hinges|",StringComparison.Ordinal)).Key;string other=bill.First(b=>b.Code=="1004(1)").Slot;
+  string key=demands.First(x=>x.Key.StartsWith("Doors & Windows|Ball Bearing Stainless Door Hinge ",StringComparison.Ordinal)).Key;string other=bill.First(b=>b.Code=="1004(1)").Slot;
   typeof(ProgramOfWorksForm).GetMethod("SetBoqRoute",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(f,new object[]{key,other});f.BackupQuantities();Check(routes[key]==other,"A mapping changed by the user is kept");
   typeof(ProgramOfWorksForm).GetMethod("SetBoqRoute",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(f,new object[]{key,null});f.BackupQuantities();Check(!routes.ContainsKey(key),"An unmapped quantity stays unmapped");
   /* "Opening" type (owner, 18 November 2026): dimensions only - no material, hardware or BOQ item */

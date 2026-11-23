@@ -1,0 +1,19 @@
+DTCE Tool Kit v7.1.18 (23 November 2026) - test build; not uploaded to the Microsoft Store (v7.1.17 is the requested Store release).
+
+PATCH - Doors & Windows finishing hardware as bought (owner, with the supplier list of Ball Bearing Stainless Door Hinges; "yung sa double
+leaf 1 leverset tapos 1 each 4" Chrome Plated Chain Bolt, 4" Chrome Plated Foot Bolt; option din if Double Cylinder ... Single Cylinder
+with Thumbturn ... Deadbolt"; "minsan may double leaf na magkaiba ang size nilang dalawa"):
+- Hinges are listed in the Bill of Quantities as "Ball Bearing Stainless Door Hinge <size> (2pcs/pack)" in packs (pieces / 2, rounded
+  up for the project), for each size: 3.0x3.0x2.5mm, 3.5x3.5x2.5mm, 4.0x3.0x3.0mm, 4.0x4.0x3.0mm. The hinge count per leaf is the
+  same as before (Hager basis).
+- New column "Hinge size": Automatic (windows 3.0x3.0; door leaf up to 0.80 m 3.5x3.5; up to 0.90 m 4.0x3.0; wider or exterior
+  4.0x4.0) or a chosen size for the whole opening.
+- New column "Leaf widths m": for leaves of different widths, one width per leaf (e.g. 0.90+0.30; mm also accepted). Each leaf gets
+  its own hinge count and automatic size. Blank = equal leaves. The widths must match Leaves / unit and fit the door.
+- Double-leaf doors: 1 leverset (as before) plus one 4" Chrome Plated Chain Bolt and one 4" Chrome Plated Foot Bolt per unit.
+- New column "Deadbolt": None, Double Cylinder or Single Cylinder with Thumbturn (Satin Stainless Steel), one per door unit.
+- All of these go to 1004(2) Finishing Hardware automatically. Aluminum doors and windows still come with their own hardware.
+- Saved in the Bill of Quantities file (hs, lw, db); older files open unchanged.
+Tests: DoorHardwareTests 11 (new), ProgramOfWorksTests 25, OpeningHardwareLinkTests 19, OpeningRoutesUiTests (hinge packs to
+1004(2)), BoqSavedRoutesTests; save / open round trip checked.
+Includes everything of v7.1.17.
