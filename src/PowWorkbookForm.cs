@@ -72,7 +72,7 @@ sealed partial class PowWorkbookForm : Form {
   WbBook loaded=null;WbCalc c=null;Exception error=null;Dictionary<string,object> projectEdits=null;
   var t=new Thread(()=>{try{if(custom!=null){loaded=WbBook.Load(custom);}else{var bytes=BuiltInTemplate();if(bytes==null)throw new Exception("The built-in POW template is missing from this build.");loaded=WbBook.Load(new MemoryStream(bytes));loaded.SourceBytes=bytes;}
     c=new WbCalc(loaded);if(project!=null)projectEdits=ReadProject(project);c.CalculateAll();}catch(Exception x){error=x;}},512*1024*1024){IsBackground=true};
-  t.Start();var timer=new System.Windows.Forms.Timer{Interval=200};timer.Tick+=(s,e)=>{if(t.IsAlive)return;timer.Stop();timer.Dispose();Enabled=true;Cursor=Cursors.Default;
+  t.Start();var timer=new System.Windows.Forms.Timer{Interval=200};timer.Tick+=(s,e)=>{if(t.IsAlive)return;timer.Stop();timer.Dispose();/* the window was closed while the workbook was loading (owner, 23 November 2026: "Cannot access a disposed object. NavigationTabs" from BuildTabs) */if(IsDisposed||Disposing||groups.IsDisposed)return;Enabled=true;Cursor=Cursors.Default;
    if(error!=null){status.Text="Could not open the POW workbook: "+error.Message;MessageBox.Show(this,error.Message,Text);return;}
    book=loaded;calc=c;templateName=custom!=null?Path.GetFileName(custom):"built-in DPWH POW V6.02";render=new WbRender(book,calc);render.RowHidden=RowHidden;view.Render=render;edits.Clear();originals.Clear();
    string note="";if(projectEdits!=null){int applied=Apply(projectEdits);projectPath=project;note=", "+applied+" saved value(s) from "+Path.GetFileName(project);WbCalc.RunWithLargeStack(()=>{calc.Reset();calc.CalculateAll();});}else projectPath=null;

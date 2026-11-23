@@ -201,7 +201,8 @@ Owner (23 November 2026, chose "Upload v7.1.0"): the Store release is v7.1.0 (v7
 tabs in construction sequence, manual canopy schedules, rows estimated only with description / deduction, editable moulding quantity).
 Owner (23 November 2026, "PAKI PUSH NA AFTER SA MICROSOFT STORE"; "bakit same pa din version no?"): the fixes added after v7.1.0 got
 their own PATCH numbers (v7.1.1 entry ID prefixes, v7.1.2 shared settings / project kept, v7.1.3 go to an input error); the Store
-release is v7.1.4 (v7.1.3 plus no project selected on open / after closing), the same way after its Windows CI passes. Every later change gets its own version number, released or not.
+release is v7.1.5 (v7.1.3, v7.1.4 no project selected on open / after closing, v7.1.5 POW workbook disposed-tabs crash fix), the
+same way after its Windows CI passes. Every later change gets its own version number, released or not.
 
 ## Shared settings and the open project (23 November 2026)
 

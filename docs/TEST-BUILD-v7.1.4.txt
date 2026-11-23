@@ -1,4 +1,4 @@
-DTCE Tool Kit v7.1.4 (23 November 2026) - the build requested for the Microsoft Store (owner: "PAKI PUSH NA AFTER SA MICROSOFT STORE";
+DTCE Tool Kit v7.1.4 (23 November 2026) - not uploaded; included in the Store release v7.1.5 (owner: "PAKI PUSH NA AFTER SA MICROSOFT STORE";
 supersedes v7.1.3).
 
 PATCH - Project Information (owner: "kapag bagong open or naka close huwag mag select ng project information"):
