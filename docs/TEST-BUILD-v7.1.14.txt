@@ -1,0 +1,10 @@
+DTCE Tool Kit v7.1.14 (23 November 2026) - test build; not uploaded to the Microsoft Store (v7.1.7 is the requested Store release).
+
+PATCH - Project Information (owner: "sa project setting maglagay ng year doon at ABC"):
+- Project Information has "Fiscal Year" and "ABC (PHP)" beside Date Prepared. They are saved with the project information, in the
+  saved project list and in Bill of Quantities files, and a new project starts without them. Both are optional.
+- The Contract Duration start date by the POW formula (v7.1.13) now takes the FY and ABC from the Project Information; the ABC / FY
+  boxes on the Contract Duration tab are removed and the tab shows the values it uses. A blank FY is the year after the date
+  prepared; a blank ABC uses 90 days.
+Tests: ProjectLibraryTests 18, ContractDurationTests 24, AdditionalWorksTests 99, PowOpenAndIssuesTests 12.
+Includes everything of v7.1.13.

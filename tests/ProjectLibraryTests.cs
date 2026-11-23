@@ -19,7 +19,13 @@ class ProjectLibraryTests {
     form.Text=form.Text+"  -  linked to CHB Estimate";Check(form.Text=="Staircase Design  -  linked to CHB Estimate"+ProjectCaption.Marker+"Two-storey school building Phase 1","text added to the title later is kept: "+form.Text);
     ProjectInfoStore.Save("Bridge","Aparri","Office","Address");Check(form.Text=="Staircase Design  -  linked to CHB Estimate"+ProjectCaption.Marker+"Bridge","a new project changes the open window: "+form.Text);
     var dialog=new System.Windows.Forms.Form{Text="Lintel reinforcement schedule",FormBorderStyle=System.Windows.Forms.FormBorderStyle.FixedDialog};AppBrand.Apply(dialog);Check(dialog.Text=="Lintel reinforcement schedule","dialogs keep their title");
-    ProjectInfoStore.Save("","","Office","Address");Check(form.Text=="Staircase Design  -  linked to CHB Estimate","no project: no suffix");form.Dispose();dialog.Dispose();}}
+    ProjectInfoStore.Save("","","Office","Address");Check(form.Text=="Staircase Design  -  linked to CHB Estimate","no project: no suffix");form.Dispose();dialog.Dispose();}
+   /* fiscal year and ABC in the Project Information (owner, 23 November 2026) */
+   {ProjectInfoStore.Save("FY test","Aparri","Office","Address","2026-11-12","2027","4950000");var pi=ProjectInfoStore.Read();Check(pi.FiscalYearValue==2027&&pi.AbcValue==4950000m,"FY and ABC saved");
+    ProjectInfoStore.Save("FY test","Aparri","Office","Address","2026-11-12");pi=ProjectInfoStore.Read();Check(pi.FiscalYear=="2027"&&pi.Abc=="4950000","saving without FY / ABC keeps them");
+    Check(ProjectLibrary.List().First(x=>x.Name=="FY test").FiscalYear=="2027","FY kept in the saved project list");
+    Check(ProgramOfWorksForm.FormulaStart(pi.Prepared.Value,pi.AbcValue,pi.FiscalYearValue)==new DateTime(2027,5,3),"start date from the Project Information FY / ABC");
+    ProjectInfoStore.ClearProject();pi=ProjectInfoStore.Read();Check(pi.FiscalYear==""&&pi.Abc=="","a new project starts without FY / ABC");}}
   finally{ProjectInfoStore.DirectoryPath=previous;try{Directory.Delete(dir,true);}catch(Exception){}}
   Console.WriteLine("PASS: "+checks+" saved project information checks");}
 }
