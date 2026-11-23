@@ -38,7 +38,7 @@ on:
         type: boolean
         default: false
       ios_whats_new:
-        description: "What's New in This Version" text chosen by the owner (filled where empty)
+        description: What's New in This Version text chosen by the owner (filled where empty)
         type: string
         default: ''
 permissions:
