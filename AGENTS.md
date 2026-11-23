@@ -246,6 +246,11 @@ this release only - a v7.1.24 submission still in certification is cancelled and
 Partner Center User draft 1152921505702479990, so the User upload may be refused again until it is deleted. Later versions again need a
 new explicit request. Owner then: "deleted all submission" (Partner Center drafts deleted); "user app available or searchable in store":
 the User upload sets visibility Public (STORE_VISIBILITY, User job only). The release is v7.2.4 (v7.2.3 plus the Windows tab fix).
+Done 23 November 2026: v7.2.4 merged to main (PR #18; GitHub release v7.2.4-build-279). Store run 45191282769 (build re-run once after the
+EarthworkFootingTests exit code -1073740771; all 124 checks had passed): new User (1152921505702483442; visibility Private -> Public) and
+Admin (1152921505702482946; visibility kept Private) submissions were created and committed; Partner Center reported "accepted for
+processing" (PreProcessing). Certification is not guaranteed. v7.2.5 and later need a new explicit request. The test runner fix for that exit
+code (EarthworkFootingTests closes its windows and exits 0) is on the development branch for the next release.
 
 ## Shared settings and the open project (23 November 2026)
 
