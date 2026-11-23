@@ -212,6 +212,10 @@ replace_pending_store_submission stays false unless the owner asks). Later versi
 Owner (23 November 2026, chose "Upload v7.1.16" and added "kapag nagdouble click sa saved project information magclose na din yung
 window"): the Store release is v7.1.17 (v7.1.15, v7.1.16 FY / ABC kept when opening older Bill of Quantities files, v7.1.17
 double-click a saved project to use it and close), the same way after its Windows CI passes.
+Done 23 November 2026: v7.1.17 merged to main (PR #16; GitHub release OK, run 45106720078, first attempt). Store run 45106734729
+(first attempt, no re-run needed): new User (1152921505702478667) and Admin (1152921505702478466) submissions were created and
+committed; Partner Center reported "accepted for processing" (PreProcessing). Certification is not guaranteed. v7.1.18 and later
+need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
