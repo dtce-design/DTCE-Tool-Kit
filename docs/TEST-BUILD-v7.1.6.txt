@@ -1,0 +1,8 @@
+DTCE Tool Kit v7.1.6 (23 November 2026) - the build requested for the Microsoft Store (owner: "PAKI PUSH NA AFTER SA MICROSOFT STORE";
+supersedes v7.1.5).
+
+PATCH - Plumbing Works > Pipe Takeoff (owner: "sa pipe take off size huwag muna maglagay ng size"): a new row no longer starts with
+the first size of the material tab; the Size is chosen from the dropdown. Until it is chosen the row says "Select the pipe size."
+and is not estimated, and it stays visible on the material tabs (choosing a size puts it in that tab).
+Tests: OpeningLintelTests 27 (pipe row without a size).
+Includes everything of v7.1.5.

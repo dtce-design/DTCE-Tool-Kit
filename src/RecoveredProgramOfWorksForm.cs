@@ -1228,6 +1228,7 @@ namespace BeamScheduleFormatter
 				}
 				try
 				{
+					if (Cell(item, 2) == "") throw new Exception("Select the pipe size.");
 					PipeMeasure pipeMeasure = new PipeMeasure
 					{
 						Id = Cell(item, 0),
@@ -9997,11 +9998,8 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 			{
 				if (pipeGroupTabs.SelectedTab != null)
 				{
-					string[] array = PipeGroups.Choices(pipeGroupTabs.SelectedTab.Text);
-					if (array.Length != 0)
-					{
-						e.Row.Cells[2].Value = array[0];
-					}
+					/* no size is put in a new row (owner, 23 November 2026: "sa pipe take off size huwag muna maglagay ng size"); the
+					   size is chosen in the Size column */
 				}
 			};
 			InstallPipeSizeColumn();
@@ -10039,7 +10037,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 				{
 					if (!item.IsNewRow)
 					{
-						item.Visible = Empty(item) || PipeGroups.Group(Cell(item, 2)) == pipeGroupTabs.SelectedTab.Text;
+						item.Visible = Empty(item) || Cell(item, 2) == "" /* no size yet: shown until one is chosen */ || PipeGroups.Group(Cell(item, 2)) == pipeGroupTabs.SelectedTab.Text;
 					}
 				}
 				SyncPipeSizeColumn();

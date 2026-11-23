@@ -1,4 +1,4 @@
-DTCE Tool Kit v7.1.5 (23 November 2026) - the build requested for the Microsoft Store (owner: "PAKI PUSH NA AFTER SA MICROSOFT STORE";
+DTCE Tool Kit v7.1.5 (23 November 2026) - not uploaded; included in the Store release v7.1.6 (owner: "PAKI PUSH NA AFTER SA MICROSOFT STORE";
 supersedes v7.1.4).
 
 PATCH - POW workbook: fixes "Cannot access a disposed object. Object name: 'NavigationTabs'." (owner's report from v6.0.48 and
