@@ -51,7 +51,7 @@ partial class ProgramOfWorksForm {
  LengthConfiguration ExtraConfiguration(string kind){var m=extraMaterials[kind];int small=int.Parse(m.Small.Text),large=int.Parse(m.Large.Text);return CalculationStore.Resolve(double.Parse(m.Fc.Text,CultureInfo.InvariantCulture),small,small==40?275:420,large,large==40?275:420);}
  void RecalculateExtraWorks(){miscQuantities.Clear();slopeQuantities.Clear();wallFootingResults.Clear();wallFootingPlan.Clear();leanSources.Clear();miscPlan.Clear();slopePlan.Clear();extraSiteQuantities.Clear();if(!extraReady)return;
   foreach(var item in extraGrids.Values.Where(x=>x.Group!="Carpentry and Joinery Works"&&x.Key!="Railing"&&x.Key!="SagRods"&&x.Key!="PlumbingFixtures")){var ids=new HashSet<string>(StringComparer.OrdinalIgnoreCase);foreach(DataGridViewRow row in item.Grid.Rows){if(row.IsNewRow)continue;row.Tag=null;for(int i=item.Inputs;i<item.Grid.Columns.Count;i++)if(item.Grid.Columns[i].Name!=ScheduleMarkColumn)row.Cells[i].Value="";if(Empty(row))continue;try{
-    if(item.Key=="Trees")AssignTreeIdentity(row);if(Cell(row,0)==""||!ids.Add(Cell(row,0)))throw new Exception("Enter a unique ID for this computation sheet.");
+    if(item.Key=="Trees")AssignTreeIdentity(row);if(Cell(row,0)==""||!ids.Add(Cell(row,0)))throw new Exception("Enter a unique ID for this computation sheet.");RequireDescription(row);
     if(item.Key=="WallFooting")RecalculateWallFooting(item,row);
     else if(item.Key.StartsWith("Misc")||item.Key=="StructuralColumn"||item.Key=="SlopeRCWall"||item.Key=="SlopeSlab"){
      var cfg=ExtraConfiguration(item.Kind);var settings=extraMaterials[item.Kind];MiscStructureQuantity q;

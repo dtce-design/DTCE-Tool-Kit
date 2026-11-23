@@ -19,7 +19,7 @@ partial class ProgramOfWorksForm {
  static SteelProfile SagRodProfile(string dia){return RailingSections.Find("Round bar "+dia+"mm");}
  void RecalculateSagRods(){sagRods.Clear();sagRodStocks=new List<SteelStock>();if(sagRodGrid==null)return;var g=sagRodGrid.Grid;var ids=new HashSet<string>(StringComparer.OrdinalIgnoreCase);var demands=new List<SteelCutDemand>();
   foreach(DataGridViewRow row in g.Rows){if(row.IsNewRow)continue;row.Tag=null;for(int c=sagRodGrid.Inputs;c<g.Columns.Count;c++)row.Cells[c].Value="";if(Empty(row))continue;
-   try{if(Cell(row,0)==""||!ids.Add(Cell(row,0)))throw new Exception("Enter a unique sag rod ID.");var profile=SagRodProfile(Cell(row,2));if(profile==null)throw new Exception("Select the rod diameter.");
+   try{if(Cell(row,0)==""||!ids.Add(Cell(row,0)))throw new Exception("Enter a unique sag rod ID.");RequireDescription(row);var profile=SagRodProfile(Cell(row,2));if(profile==null)throw new Exception("Select the rod diameter.");
     double piece=Number(row,3);if(!(piece>0))throw new Exception("Enter the rod length.");if(new[]{4,5,6,7}.Any(c=>Cell(row,c)==""))throw new Exception("Enter QTY, Units, Sets and Multiplier (use 1 where not applicable).");int pieces=checked(Count(row,4)*Count(row,5)*Count(row,6)*Count(row,7));int segments=RailingSections.Segments(piece);
     var t=new SagRodTakeoff{Id=Cell(row,0),Description=Cell(row,1),Profile=profile.Name,PieceLength=piece,KgM=profile.KgM,PaintPerMetre=SteelPainting.AreaPerMetre(profile),Pieces=pieces};
     var demand=new SteelCutDemand{Member="Sag rod "+t.Id,Specification=profile.Name,Length=piece/segments,Quantity=checked(pieces*segments),KgM=profile.KgM};t.Demand=demand;demands.Add(demand);sagRods.Add(t);row.Tag=t;

@@ -813,6 +813,7 @@ namespace BeamScheduleFormatter
 				item.Cells[3].Style.BackColor = item.Cells[4].Style.BackColor = ModernUi.Input;
 				try
 				{
+					RequireDescription(item);
 					MouldingTakeoff mouldingTakeoff = new MouldingTakeoff
 					{
 						Id = Cell(item, 0),
@@ -8968,6 +8969,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 				}
 				try
 				{
+					RequireDescription(item);
 					int num = Count(item, 20);
 					int num2 = Count(item, 21);
 					LengthConfiguration lengthConfiguration = CalculationStore.Resolve(Number(item, 19), num, (num == 40) ? 275 : 420, num2, (num2 == 40) ? 275 : 420);
