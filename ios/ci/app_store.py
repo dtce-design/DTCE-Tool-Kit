@@ -137,7 +137,7 @@ def api_send(method, resource, body=None, params=None):
 SUBMITTED_STATES = {'WAITING_FOR_REVIEW', 'IN_REVIEW', 'PENDING_DEVELOPER_RELEASE', 'PENDING_APPLE_RELEASE', 'PROCESSING_FOR_APP_STORE', 'READY_FOR_SALE', 'READY_FOR_DISTRIBUTION'}
 
 
-def submit(app_id, version, build_number, exempt=False):
+def submit(app_id, version, build_number, exempt=False, whats_new=''):
     """Submit a processed TestFlight build for App Store review (owner request only). The version is released MANUALLY after
     approval, so approval never publishes it by itself."""
     if not re.fullmatch(r'\d+', app_id) or not re.fullmatch(r'\d+\.\d+(?:\.\d+)?', version) or not re.fullmatch(r'\d+(?:\.\d+)*', build_number):
@@ -168,6 +168,12 @@ def submit(app_id, version, build_number, exempt=False):
     version_id = store_version['id']
     api_send('PATCH', 'appStoreVersions/%s' % version_id, {'data': {'type': 'appStoreVersions', 'id': version_id, 'attributes': {'releaseType': 'MANUAL'}}})
     api_send('PATCH', 'appStoreVersions/%s/relationships/build' % version_id, {'data': {'type': 'builds', 'id': build['id']}})
+    if whats_new:
+        # the owner's "What's New in This Version" text, on every language of the version that has none yet
+        for loc in api_send('GET', 'appStoreVersions/%s/appStoreVersionLocalizations' % version_id).get('data', []):
+            if not (loc.get('attributes') or {}).get('whatsNew'):
+                api_send('PATCH', 'appStoreVersionLocalizations/%s' % loc['id'], {'data': {'type': 'appStoreVersionLocalizations', 'id': loc['id'], 'attributes': {'whatsNew': whats_new[:4000]}}})
+                print("What's New set for " + str((loc.get('attributes') or {}).get('locale')) + '.')
     print('Build %s attached to version %s.' % (build_number, version))
     open_submissions = api_send('GET', 'reviewSubmissions', params={'filter[app]': app_id, 'filter[platform]': 'IOS', 'filter[state]': 'READY_FOR_REVIEW', 'limit': '5'}).get('data', [])
     submission = open_submissions[0] if open_submissions else api_send('POST', 'reviewSubmissions', {'data': {'type': 'reviewSubmissions', 'attributes': {'platform': 'IOS'}, 'relationships': {'app': {'data': {'type': 'apps', 'id': app_id}}}}})['data']
@@ -237,7 +243,7 @@ if __name__ == '__main__':
         elif sys.argv[1] == 'check':
             check_build(sys.argv[2], sys.argv[3])
         elif sys.argv[1] == 'submit':
-            submit(sys.argv[2], sys.argv[3], sys.argv[4], len(sys.argv) > 5 and sys.argv[5] == 'exempt')
+            submit(sys.argv[2], sys.argv[3], sys.argv[4], len(sys.argv) > 5 and sys.argv[5] == 'exempt', sys.argv[6] if len(sys.argv) > 6 else '')
         else:
             raise ValueError('Unknown operation')
     except (ValueError, RuntimeError, OSError) as error:

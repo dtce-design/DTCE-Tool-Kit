@@ -116,3 +116,26 @@ class AppStoreReviewSubmitTests(unittest.TestCase):
         self.assertEqual(calls[1][0:2], ('PATCH', 'builds/b1'))
         self.assertEqual(calls[1][2]['data']['attributes']['usesNonExemptEncryption'], False)
         self.assertEqual(calls[-1][2]['data']['attributes']['submitted'], True)
+
+    def test_whats_new_is_filled_where_empty(self):
+        calls = []
+        def fake(method, resource, body=None, params=None):
+            calls.append((method, resource, body))
+            if method == 'GET' and resource == 'builds':
+                return {'data': [{'id': 'b1', 'attributes': {'processingState': 'VALID', 'usesNonExemptEncryption': False}}]}
+            if method == 'GET' and resource.endswith('/appStoreVersions'):
+                return {'data': [{'id': 'v1', 'attributes': {'appStoreState': 'PREPARE_FOR_SUBMISSION'}}]}
+            if method == 'GET' and resource.endswith('/appStoreVersionLocalizations'):
+                return {'data': [{'id': 'l1', 'attributes': {'locale': 'en-US', 'whatsNew': None}}, {'id': 'l2', 'attributes': {'locale': 'fil', 'whatsNew': 'Typed'}}]}
+            if method == 'POST' and resource == 'reviewSubmissions':
+                return {'data': {'id': 'r1'}}
+            return {'data': []} if method == 'GET' else {}
+        original = asc.api_send
+        asc.api_send = fake
+        try:
+            asc.submit('123', '1.1.1', '239.2', False, 'Bug fixes and performance improvements.')
+        finally:
+            asc.api_send = original
+        patched = [c for c in calls if c[0] == 'PATCH' and c[1].startswith('appStoreVersionLocalizations/')]
+        self.assertEqual([c[1] for c in patched], ['appStoreVersionLocalizations/l1'])
+        self.assertEqual(patched[0][2]['data']['attributes']['whatsNew'], 'Bug fixes and performance improvements.')
