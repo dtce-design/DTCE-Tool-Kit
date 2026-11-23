@@ -373,3 +373,10 @@ margin (CalculationDocument.L / CW, EngineeringQuantityPdf.Left, HTML @page). De
 complete step-by-step calculation (RichText for text calculations, RichReport.Raster for figures): Earthquake (v7.2.1), Purlin and
 Splice / Development / Hooks (v7.2.2), Truss Connections (v7.1.28). Every Bill of Quantities source line carries its calculation
 (src/BoqComputations.cs; SourceQuantity with computation; MergeSources keeps them) and every section table has a Basis column (v7.2.3).
+
+## Strap Foundation water table and contact (23 November 2026)
+
+Owner: "naconsider ba GWT sa strap design?"; "include permissible loss of contact". Strap Foundation has a ground water table input
+(buoyancy deducted from the footing + soil weight, flotation check) and a no-tension soil pressure: gravity service cases need full
+contact; wind / seismic service cases (recognised from the load case name) may lose contact down to a minimum % of the base (input,
+default 50); the redistributed peak is used for bearing and the footing design (src/StrapFooting.cs, v7.2.5).

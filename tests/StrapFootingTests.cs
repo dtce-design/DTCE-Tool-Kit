@@ -37,7 +37,7 @@ class StrapFootingTests {
   var full=new StrapInput();full.Nodes.Add(new StrapNode{Node="1",B=1.6,L=2.8,T=.6,Ex=.6});full.Nodes.Add(new StrapNode{Node="2",X=6,B=2.6,L=2.6,T=.6});full.Straps.Add(new StrapBeam{From="1",To="2",Width=.4,Depth=.8,Top="4-25",Bottom="3-20"});
   var rows=new List<SupportReaction>{new SupportReaction{Node="1",Case="1 DL+LL",Fy=600},new SupportReaction{Node="2",Case="1 DL+LL",Fy=900},new SupportReaction{Node="1",Case="2 1.2DL+1.6LL",Fy=820},new SupportReaction{Node="2",Case="2 1.2DL+1.6LL",Fy=1240}};
   var notes=new List<string>();var cases=StrapFooting.Cases(full,rows,notes);Check(cases.Count==2&&cases.Count(x=>x.Factored)==1,"service and factored cases found");var steps=new Dictionary<SupportCheck,List<string>>();var list=StrapFooting.Check(full,cases,notes,steps);
-  foreach(var name in new[]{"Bearing pressure (service)","Full contact, no uplift (service)","Footing punching shear (two-way)","Strap top bars (hogging)","Strap bottom bars (sagging)","Strap shear"})Check(list.Any(x=>x.Name==name),"check present: "+name);
+  foreach(var name in new[]{"Bearing pressure (service)","Full contact under gravity loads (service)","Footing punching shear (two-way)","Strap top bars (hogging)","Strap bottom bars (sagging)","Strap shear"})Check(list.Any(x=>x.Name==name),"check present: "+name);
   Check(list.Where(x=>x.Name.StartsWith("Footing flexure")).Count()==4,"footing flexure both directions for both footings");Check(steps.Count==list.Count&&steps.Values.All(v=>v.Count>0),"every check has its derivation");
   var punch=list.First(x=>x.Name.StartsWith("Footing punching")&&x.Node=="F1");Check(steps[punch].Any(l=>l.Contains("edge")),"the property-line column punches as an edge column");
   Check(list.First(x=>x.Name=="Strap top bars (hogging)").Demand>0,"strap needs top steel at the exterior column");
@@ -76,5 +76,15 @@ class StrapFootingTests {
   /* bars per layer for each width: n = floor((inside + c) / (db + c)), c = max(25, db, 4/3 aggregate); 40 cover, Ø10 stirrups, 20 mm aggregate */
   foreach(var t in new[]{new[]{250,20,3},new[]{300,20,4},new[]{350,20,5},new[]{400,20,7},new[]{400,25,6},new[]{500,25,8},new[]{300,16,5}})Check(BeamCutting.PerLayer(t[0]-2*40-2*10,t[1],20)==t[2],t[0]+" mm wide: "+t[2]+" bars of Ø"+t[1]+" per layer");
   Check(BeamCutting.PerLayer(60,28,20)==1,"a section narrower than two bars and one clear space holds one bar per layer (no false 2)");
+  /* permissible loss of contact (owner, 23 November 2026): no-tension soil, one-way eccentricity e > L/6 -> q max = 2R / (3 B (L/2 - e)),
+     contact 3 (L/2 - e) / L */
+  {double B=2,L=3,R=600,e=.8;var nt=StrapFooting.NoTension(B,L,R,0,R*e);Near(nt[0],2*R/(3*B*(L/2-e)),"no-tension peak, one way",2e-3);Near(nt[1],3*(L/2-e)/L,"contact fraction, one way",0.02);
+   var lin=StrapFooting.NoTension(B,L,R,0,R*.3);Near(lin[0],R/(B*L)*(1+6*.3/L),"within the kern the plane stays linear",1e-3);Check(double.IsInfinity(StrapFooting.NoTension(B,L,-5,0,0)[0]),"net uplift: no contact");}
+  Check(StrapFooting.LooksLateral("1.0D+0.75(L+0.6W)")&&StrapFooting.LooksLateral("D+0.7EQX")&&StrapFooting.LooksLateral("DL + WIND")&&!StrapFooting.LooksLateral("DEAD + LIVE")&&!StrapFooting.LooksLateral("1.2D+1.6L"),"wind / seismic cases recognised");
+  /* ground water table 0.5 m below grade, base at 1.5 m: uplift 9.81 x 1.0 x B x L off the weight; flotation check present */
+  {var gw=new StrapInput{Df=1.5,Gwt=.5,GammaConc=24,GammaSoil=18};var nd=new StrapNode{Node="1",B=2,L=2,T=.5};gw.Nodes.Add(nd);Near(StrapFooting.Uplift(gw,nd),9.81*1.0*4,"water uplift");Near(StrapFooting.FootingWeight(gw,nd),4*(.5*24+1.0*18)-39.24,"net footing weight");
+   var dry=new StrapInput{Df=1.5,GammaConc=24,GammaSoil=18};Near(StrapFooting.FootingWeight(dry,nd),4*(.5*24+1.0*18),"no water table: full weight");
+   var gRows=new List<SupportReaction>{new SupportReaction{Node="1",Case="DL+LL",Fy=10}};var gNotes=new List<string>();var gSteps=new Dictionary<SupportCheck,List<string>>();var gCases=StrapFooting.Cases(gw,gRows,gNotes);var ck=StrapFooting.Check(gw,gCases,gNotes,gSteps);
+   Check(ck.Any(x=>x.Name.StartsWith("Flotation")),"flotation check with a water table");}
   Console.WriteLine("PASS: "+checks+" strap foundation checks");}
 }
