@@ -73,7 +73,7 @@ class TemplateLayout {
  public string LegText(string value){string raw=Leg.Get(1);return raw.StartsWith("{")&&raw.Contains(";")?raw.Substring(0,raw.LastIndexOf(';')+1)+value+"}":value;}
 }
 class Engine {
- public const string Version="7.1.3";
+ public const string Version="7.1.4";
  public static string Normal(string s){return Regex.Replace(s.ToUpperInvariant().Replace("%%C","Ø").Replace("\\U+2205","Ø").Replace("--","-"),@"\s+","");}
  public static string Format(string s){if(s=="-"||s=="--")return "--";s=s.Replace("#","%%C").Replace("\\U+2205","%%C").Replace("%%c","%%C");s=Regex.Replace(s,@"^(\d+)-","$1 - ");return Regex.Replace(s,@"(%%C\d+)(EF)$","$1 EF");}
  const string BeamToken=@"\d*[A-Z]+\d+";
@@ -361,7 +361,9 @@ partial class MainForm:Form {
 static class Program {
  [STAThread]static int Main(string[] args){
   Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);ModernUi.Install();HorizontalWheel.Install();
-  /* Owner (23 November 2026, superseding 18 November): the saved project stays open after a restart. */
+  /* Owner (23 November 2026: "kapag bagong open or naka close huwag mag select ng project information"): the app opens with no project
+     selected; the saved projects (shared by the Store app and the .exe) are picked from the list, and a Bill of Quantities file loads its own. */
+  if(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI")))ProjectInfoStore.ClearProject();
   try{
    #if TEST_BUILD
    if(args.Length>0&&args[0]=="--self-test")return SelfTest(args);

@@ -4611,7 +4611,8 @@ worksExcelTimer.Tick += async delegate
             ConfigureAngleQuantityView();
             InstallRecovery();
             /* closing the Program of Works ends its project: the next one starts with blank project information */
-            /* the project stays after the Bill of Quantities closes (owner, 23 November 2026) */
+            /* closing the Bill of Quantities ends its project: none is selected afterwards (owner, 23 November 2026) */
+            FormClosed += (s0, e0) => { if (!Automated) ProjectInfoStore.ClearProject(); };
             InstallStandardSettings();
             InstallRowInclusion();
             AddConstructionSchedule();AddContractDuration();

@@ -201,14 +201,15 @@ Owner (23 November 2026, chose "Upload v7.1.0"): the Store release is v7.1.0 (v7
 tabs in construction sequence, manual canopy schedules, rows estimated only with description / deduction, editable moulding quantity).
 Owner (23 November 2026, "PAKI PUSH NA AFTER SA MICROSOFT STORE"; "bakit same pa din version no?"): the fixes added after v7.1.0 got
 their own PATCH numbers (v7.1.1 entry ID prefixes, v7.1.2 shared settings / project kept, v7.1.3 go to an input error); the Store
-release is v7.1.3, the same way after its Windows CI passes. Every later change gets its own version number, released or not.
+release is v7.1.4 (v7.1.3 plus no project selected on open / after closing), the same way after its Windows CI passes. Every later change gets its own version number, released or not.
 
 ## Shared settings and the open project (23 November 2026)
 
 Owner: "kahit sana app from store or downloaded lang exe file sana naoopen pa din yung saved settings and project". User settings and
 saved projects live in Documents\DTCE Tool Kit (src/SharedData.cs), shared by the Store (MSIX, AppData virtualized) and the .exe; old
-AppData / Store-private copies are brought over once. The project is no longer cleared on app start or when the Bill of Quantities
-closes (supersedes the 18 November "starts blank each session" rule).
+AppData / Store-private copies are brought over once. Owner (23 November 2026, "kapag bagong open or naka close huwag mag select ng
+project information"): no project is selected when the app opens or after the Bill of Quantities closes (v7.1.4); projects are
+picked from the saved list (shared) or loaded with a Bill of Quantities file.
 
 ## Complete rows only (23 November 2026)
 
