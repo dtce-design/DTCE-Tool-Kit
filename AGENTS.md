@@ -195,6 +195,8 @@ CI passes (merge the development branch to main for the GitHub release, then pub
 replace_pending_store_submission stays false unless the owner asks). The Admin edition includes the PHIVOLCS active fault lines
 (DPWH ArcGIS layer, copyright PHIVOLCS; no stated license); the owner was told this before asking. Later versions again need a new
 explicit request.
+Owner (23 November 2026, chose "Include: upload v7.0.5"): the Store release is v7.0.5 (v7.0.4 plus the Lintel Beam equal split and the
+lintels in the Miscellaneous Structures rebar summary), the same way after its Windows CI passes.
 
 ## Program of Works name (20 November 2026)
 

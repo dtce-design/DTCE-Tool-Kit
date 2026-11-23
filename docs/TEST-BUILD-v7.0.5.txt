@@ -1,0 +1,10 @@
+DTCE Tool Kit v7.0.5 (23 November 2026) - the build requested for the Microsoft Store (owner chose to include these fixes in the
+upload instead of v7.0.4).
+
+PATCH - Bill of Quantities, Reinforced Concrete Works > Miscellaneous Structures:
+- Lintel Beam: the automatic lintels over openings and the lintels entered by hand share the sheet equally (owner: "equal space ng
+  dalawang input ng lintel beams"); the automatic part follows half of the sheet height when the window is resized (at least 260 px).
+- Rebar by grade and diameter: the automatic lintels over openings are now included (owner: "walang nagpapakita" - the sheet said
+  "No reinforcement on this sheet yet" although the lintels had rebar). The project offcut reuse already included them.
+Tests: OpeningLintelTests 22 checks (new: the Miscellaneous Structures rebar summary includes the automatic lintels).
+Includes everything of v7.0.4.

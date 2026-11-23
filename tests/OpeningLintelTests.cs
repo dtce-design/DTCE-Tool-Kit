@@ -37,6 +37,8 @@ class OpeningLintelTests {
   /* files saved before: the total for the group is divided by the Wall Qty */
   {var doc=new System.Xml.XmlDocument();doc.LoadXml("<P><OpeningAssignments><Link wall='W9' schedule='X' qty='4'/></OpeningAssignments></P>");var old=OpeningLinks.Read(doc.DocumentElement);Check(old[0].Total&&OpeningLinks.Legacy(doc.DocumentElement),"old files are read as totals");
    var root=new System.Xml.XmlDocument().CreateElement("P");root.OwnerDocument.AppendChild(root);OpeningLinks.Write(root,new[]{new OpeningLink{Wall="W9",Schedule="X",Quantity=2}});var again=OpeningLinks.Read(root);Check(!again[0].Total&&!OpeningLinks.Legacy(root),"new files are per wall unit");}
+  {var lr=(System.Collections.Generic.List<MiscStructureQuantity>)t.GetField("lintelResults",F).GetValue(pow);var plan=((System.Collections.Generic.IEnumerable<StockAllocation>)t.GetMethod("RebarPlanFor",F).Invoke(pow,new object[]{"Miscellaneous Structures"})).ToList();
+   Check(lr.Count>0&&lr.All(q=>plan.Any(al=>al.Entry==q.Steel)),"Miscellaneous Structures rebar by grade and diameter includes the automatic lintels");}
   var auto=(CheckBox)t.GetField("autoLintels",F).GetValue(pow);auto.Checked=false;t.GetMethod("Recalculate",F,null,Type.EmptyTypes,null).Invoke(pow,null);
   Check(!((System.Collections.Generic.List<MiscStructureQuantity>)t.GetField("miscQuantities",F).GetValue(pow)).Any(q=>q.Kind==LintelSchedule.Kind),"turned off: no automatic lintels");
   /* RC wall side B bars (owner, 21 November 2026) and insulation roll defaults 1 m x 50 m */
