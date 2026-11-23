@@ -203,6 +203,10 @@ Owner (23 November 2026, "Update mo na lang sa test flight now"): upload a new i
 review; 1.1.2 adds Staircase Design, program 8192, to the access-code generator): merge the development branch to main (GitHub release
 of the desktop app v7.1.24 follows automatically), then run the workflow on main with publish_ios=true (publish_microsoft_store stays
 false). TestFlight only - App Store review of 1.1.2 and later uploads need a new explicit request.
+New owner request (23 November 2026, "upload mo na din sa Microsoft Store yung bago"; chose "Replace v7.1.17"): publish v7.1.24 (User
+and Admin) to the Microsoft Store after its Windows CI passes (PR #17 to main), with publish_microsoft_store=true and
+replace_pending_store_submission=true for this release only - the v7.1.17 submissions still in certification are cancelled and
+replaced. Later versions again need a new explicit request.
 New owner request (23 November 2026, "Pakipublish sa microsoft store"): publish v7.0.4 (User and Admin) the same way after its Windows
 CI passes (merge the development branch to main for the GitHub release, then publish_microsoft_store=true;
 replace_pending_store_submission stays false unless the owner asks). The Admin edition includes the PHIVOLCS active fault lines
