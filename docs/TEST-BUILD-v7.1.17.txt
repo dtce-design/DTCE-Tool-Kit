@@ -1,0 +1,7 @@
+DTCE Tool Kit v7.1.17 (23 November 2026) - requested Microsoft Store release (owner: "Upload v7.1.16. kapag nagdouble click sa saved
+project information magclose na din yung window").
+
+PATCH - Project Information: double-clicking a saved project loads it, saves it as the project information and closes the window
+(a single click still only loads it into the fields). The side note says so.
+Checked: double-click on a saved project closes the window and keeps its FY / ABC.
+Includes everything of v7.1.16.

@@ -209,6 +209,9 @@ nothing was uploaded and nothing changed in Partner Center.
 New owner request (23 November 2026, "yan na ang iupload mo sa microsoft store"): publish v7.1.15 (User and Admin) instead of v7.1.7,
 the same way after its Windows CI passes (merge the development branch to main, then publish_microsoft_store=true;
 replace_pending_store_submission stays false unless the owner asks). Later versions again need a new explicit request.
+Owner (23 November 2026, chose "Upload v7.1.16" and added "kapag nagdouble click sa saved project information magclose na din yung
+window"): the Store release is v7.1.17 (v7.1.15, v7.1.16 FY / ABC kept when opening older Bill of Quantities files, v7.1.17
+double-click a saved project to use it and close), the same way after its Windows CI passes.
 
 ## Shared settings and the open project (23 November 2026)
 

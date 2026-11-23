@@ -1,4 +1,4 @@
-DTCE Tool Kit v7.1.16 (23 November 2026) - test build.
+DTCE Tool Kit v7.1.16 (23 November 2026) - test build; part of the v7.1.17 Store release.
 
 PATCH - Project Information FY / ABC kept (owner: "bat hindi din nagsasave yung year at ABC"): opening a Bill of Quantities file saved
 before v7.1.14 (no FY / ABC in it) replaced the FY and ABC typed in the Project Information with blanks. Such a file now takes the FY
