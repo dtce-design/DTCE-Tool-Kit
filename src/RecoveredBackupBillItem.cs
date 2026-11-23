@@ -18,7 +18,8 @@ namespace BeamScheduleFormatter
 		public double? WorkbookQuantity;
 		/* the one item whose quantity comes from the POW workbook (owner, 23 November 2026: "except for progress photograph sa pow xlsm
 		   file kukunin"); every other quantity is the app's */
-		internal bool FromWorkbook { get { string d = new string((Description ?? "").ToUpperInvariant().Where(char.IsLetter).ToArray()); return d.Contains("PROGRESSPHOTO"); } }
+		internal bool FromWorkbook { get { return WorkbookItem(Description); } }
+		internal static bool WorkbookItem(string description) { string d = new string((description ?? "").ToUpperInvariant().Where(char.IsLetter).ToArray()); return d.Contains("PROGRESSPHOTO"); }
 		internal double? WorkbookFallback { get { return FromWorkbook ? WorkbookQuantity : null; } }
 
 		public double? ManualQuantity;
@@ -42,7 +43,7 @@ namespace BeamScheduleFormatter
 		public BackupDemand ManualDemand()
 		{
             if(!string.IsNullOrEmpty(ManualInputText)&&!BackupBill.ReadQuantity(ManualInputText).HasValue)return null;
-			double? num = ManualQuantity ?? WorkbookFallback; /* a quantity already in BACKUP is not taken into the app (owner, 23 November 2026: the app's quantities go to the POW BACKUP, not the other way around) */
+			double? num = ManualQuantity; /* a quantity already in BACKUP is not taken into the app (owner, 23 November 2026: the app's quantities go to the POW BACKUP, not the other way around); Progress Photographs follow the Contract Duration (ProgressPhotoDemands) */
 			if (!num.HasValue)
 			{
 				return null;

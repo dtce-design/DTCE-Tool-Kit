@@ -72,6 +72,8 @@ static class PowWorkbookEngineTests {
   Check((double)plan.Values["BACKUP!BC105"]==50&&(double)plan.Values["BACKUP!BC77"]==2&&plan.Values["BACKUP!BC74"]==null,"by row: 102(2) row 105, COA billboard row 77; DPWH billboard row 74 cleared");
   var concreteRow=plan.Values.Where(kv=>kv.Value is double&&(double)kv.Value==12.5).Select(kv=>kv.Key).ToList();Check(concreteRow.Count==1,"900(1)c found by item no. when its row differs ("+string.Join(",",concreteRow)+")");
   Check(!plan.Values.ContainsKey("BACKUP!BC59"),"formula quantity cells (A.1.4(1) months) are left alone");
+  /* Progress Photographs keep a value typed in the workbook (owner, 23 November 2026: "except for progress photograph") */
+  {var bk=pow.Sheet("BACKUP");var cell=bk.GetOrAdd(59,55);var keepF=cell.Formula;var keepV=cell.Cached;cell.Formula=null;cell.Cached=6.0;var typed=PowBackupLink.Plan(pow,pc,items);Check(!typed.Values.ContainsKey("BACKUP!BC59")&&typed.Values.ContainsKey("BACKUP!BC74")&&typed.Values["BACKUP!BC74"]==null,"typed Progress Photographs (row 59) kept; other items without a quantity cleared");cell.Formula=keepF;cell.Cached=keepV;}
   var backup=pow.Sheet("BACKUP");foreach(var kv in plan.Values){int r,c;WbBook.ParseA1(kv.Key.Substring(7),out r,out c);backup.GetOrAdd(r,c).Cached=kv.Value;}WbCalc.RunWithLargeStack(()=>{pc.Reset();pc.CalculateAll();});
   var det=pow.Sheet("DETAILED");Near(pc.CellValue(det,71,51),50,"DETAILED quantity of 102(2) follows BACKUP");Check(pc.CellValue(det,71,1) as string=="","102(2) row shown (no X)");Check("X".Equals(pc.CellValue(det,18,1)),"item without quantity hidden (X)");
   Console.WriteLine("PASS: "+checks+" POW worksheet engine checks (formulas, shared formulas, tables, names, recalculation, formats, A4 pages).");}

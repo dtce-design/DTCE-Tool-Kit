@@ -18,7 +18,9 @@ static class PowBackupLink {
   for(int r=1;r<=sheet.MaxRow;r++){var codeCell=sheet.Get(r,CodeColumn);if(codeCell==null)continue;var v=calc.CellValue(sheet,codeCell) as string;if(v==null)continue;v=v.Trim();if(!IsCode(v))continue;var q=sheet.Get(r,QuantityColumn);if(q!=null&&(q.Formula!=null||q.ArrayMaster!=null))continue;List<int> list;if(!rows.TryGetValue(v,out list))rows[v]=list=new List<int>();list.Add(r);}
   var wanted=new Dictionary<int,double>();
   foreach(var item in items){List<int> list;if(!rows.TryGetValue(item.Code,out list)||list.Count==0){res.Unmatched.Add(item);continue;}int row=list.Contains(item.Row)?item.Row:list.OrderBy(r=>Math.Abs(r-item.Row)).First();double prev;wanted[row]=(wanted.TryGetValue(row,out prev)?prev:0)+item.Quantity;res.Matched++;}
-  foreach(var list in rows.Values)foreach(var r in list){double q;res.Values["BACKUP!"+WbBook.ColumnName(QuantityColumn)+r]=wanted.TryGetValue(r,out q)?(object)q:null;}
+  /* Progress Photographs keep the workbook quantity unless the Bill of Quantities has one (owner, 23 November 2026) */
+  Func<int,bool> photo=r=>{for(int c=CodeColumn+1;c<=CodeColumn+8;c++){var d=sheet.Get(r,c);if(d==null)continue;var t=calc.CellValue(sheet,d) as string;if(t!=null&&BackupBillItem.WorkbookItem(t))return true;}return false;};
+  foreach(var list in rows.Values)foreach(var r in list){double q;if(wanted.TryGetValue(r,out q))res.Values["BACKUP!"+WbBook.ColumnName(QuantityColumn)+r]=q;else if(!photo(r))res.Values["BACKUP!"+WbBook.ColumnName(QuantityColumn)+r]=null;}
   return res;}
  public static string Signature(IEnumerable<BoqPowItem> items){return string.Join("|",items.OrderBy(i=>i.Row).ThenBy(i=>i.Code).Select(i=>i.Code+"@"+i.Row+"="+i.Quantity.ToString("R",System.Globalization.CultureInfo.InvariantCulture)));}
 }

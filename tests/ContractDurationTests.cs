@@ -43,5 +43,15 @@ class ContractDurationTests {
   {AccessCodes.Granted=true;var F=System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance;var w=new ProgramOfWorksForm();string saved=(string)typeof(ProgramOfWorksForm).GetField("saved",F).GetValue(w);
    w.Show();System.Windows.Forms.Application.DoEvents();var tabs=(System.Windows.Forms.TabControl)typeof(ProgramOfWorksForm).GetField("tabs",F).GetValue(w);foreach(System.Windows.Forms.TabPage page in tabs.TabPages){tabs.SelectedTab=page;System.Windows.Forms.Application.DoEvents();}
    string now=(string)typeof(ProgramOfWorksForm).GetMethod("DataXml",F).Invoke(w,null);Check(saved==now&&now.Contains("<Holiday "),"a new POW stays unchanged after its tabs are opened; holidays are part of the saved project");w.Hide();}
+  /* Progress Photographs follow the Contract Duration of the Bill of Quantities (owner, 23 November 2026) */
+  {var F=System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance;var w=new ProgramOfWorksForm();var T=typeof(ProgramOfWorksForm);
+   var bill=(List<BackupBillItem>)T.GetField("backupBill",F).GetValue(w);bill.Clear();var photo=new BackupBillItem{Slot="ph-1",Code="A.1.4(1)",Description="Provision of Progress Photographs",Unit="mo",WorkbookQuantity=9};bill.Add(photo);
+   T.GetField("durationStartDate",F).SetValue(w,new DateTime(2027,5,3));T.GetField("durationWorkingOverride",F).SetValue(w,72);
+   Func<List<BackupDemand>> q=()=>(List<BackupDemand>)T.GetMethod("BackupQuantities",F).Invoke(w,new object[]{false});
+   var rainyArgs=new object[]{null};var rainy=(int[])T.GetMethod("DurationRainy",F).Invoke(w,rainyArgs);var hol=(List<DurationHoliday>)T.GetField("durationHolidayList",F).GetValue(w);
+   int days=ContractDurationCalc.Compute(new DateTime(2027,5,3),72,hol.Select(h=>h.Date),rainy).ContractDuration;var d=q().Where(x=>x.TargetSlotId=="ph-1").ToList();
+   Check(days>72&&d.Count==1&&d[0].Quantity==Math.Ceiling(days/30.0)&&d[0].Quantity!=9,"Progress Photographs = Contract Duration "+days+" days / 30 = "+(d.Count==1?d[0].Quantity.ToString():"none")+" months, not the BACKUP value");
+   photo.ManualQuantity=2;Check(!q().Any(x=>x.TargetSlotId=="ph-1"&&x.Key.StartsWith(ProgramOfWorksForm.ProgressPhotoPrefix)),"a quantity typed in the app wins over the Contract Duration");photo.ManualQuantity=null;
+   T.GetField("durationWorkingOverride",F).SetValue(w,0);d=q().Where(x=>x.TargetSlotId=="ph-1").ToList();Check(d.Count==1&&d[0].Quantity==9,"no Contract Duration yet: the BACKUP quantity is kept");}
   Console.WriteLine("PASS: "+checks+" contract duration checks");}
 }

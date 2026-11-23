@@ -215,9 +215,12 @@ picked from the saved list (shared) or loaded with a Bill of Quantities file.
 ## The app's quantities go to BACKUP (23 November 2026)
 
 Owner: "yung quantities na nasa app ang mapupunta sa pow backup" (not the other way around). Quantities already in the linked
-BACKUP (.xlsm) are never shown or used as app quantities (BackupBillItem.WorkbookQuantity is not a fallback), except the Progress
-Photographs item, which takes the workbook quantity when none is typed (owner: "except for progress photograph"); the app writes its
-computed / typed quantities to the mapped BACKUP items. Sheets the app did not make are still not overwritten (v7.1.8 reverted).
+BACKUP (.xlsm) are never shown or used as app quantities (BackupBillItem.WorkbookQuantity is not a fallback); the app writes its
+computed / typed quantities to the mapped BACKUP items. Typed BACKUP!BC values of mapped items without an app quantity are cleared
+(owner: "pati yung mga may type values sa excel ioverride niya din"); formula cells stay. Progress Photographs follow the Bill of
+Quantities Contract Duration (owner: "progress photo graph naka link sa contract duration ng boq"; months = calendar days / 30,
+rounded up; typed app value wins; the BACKUP value is kept only while there is no contract duration). v7.1.11.
+Sheets the app did not make are still not overwritten (v7.1.8 reverted).
 
 ## Complete rows only (23 November 2026)
 
