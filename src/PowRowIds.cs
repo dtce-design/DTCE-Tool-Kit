@@ -8,7 +8,11 @@ partial class ProgramOfWorksForm {
   {"Wood","WD"},{"Aluminum","AL"},{"CHBOpenings","OP"},{"FinishSchedule","FT"},{"WallFinishes","WF"},{"CeilingFinishes","CF"},{"FloorFinishes","FF"},{"OtherFinishes","OF"},
   {"RoofSheets","RF"},{"RoofAccessories","RA"},{"CutFill","CUT"},{"Footings","F"},{"Canopies","CN"},{"GravelEntries","GR"},{"MouldingEntries","MD"},
   {"PlumbingPipes","PP"},{"PlumbingLS","PLS"},{"PlumbingChambers","ST"},{"PlumbingRebar","PB"},{"PlumbingMembers","PM"},{"RCWalls","RW"},
-  {"Clearing","CG"},{"Trees","TR"},{"SlopeFill","SF"},{"SlopeStone","SM"},{"StructuralColumn","C"},{"WallFooting","WFT"},{"Railing","RL"},{"SagRods","SR"}};
+  {"Clearing","CG"},{"Trees","TR"},{"SlopeFill","SF"},{"SlopeStone","SM"},{"StructuralColumn","C"},{"WallFooting","WFT"},{"Railing","RL"},{"SagRods","SR"},
+  /* every estimate its own prefix, so an ID is not repeated in the project (owner, 23 November 2026: "unique entry id per works or per
+     estimate"; chose per estimate); IDs already in a project are kept */
+  {"Carpentry0","MBC"},{"Carpentry1","MWC"},{"Carpentry2","ALC"},{"Carpentry3","RFF"},{"Carpentry4","FLF"},{"Carpentry5","FB"},{"Carpentry6","LPB"},
+  {"Pavement0","REX"},{"Pavement1","SGP"},{"Pavement2","ABS"},{"Pavement3","PC150"},{"Pavement4","PC230"},{"Pavement5","SW"}};
  IEnumerable<KeyValuePair<string,DataGridView>> AutoIdGrids(){
   var tables=Tables();foreach(var item in tables)if(RowIdPrefixes.ContainsKey(item.Key))yield return item;
   foreach(var item in extraGrids.Values)if(item.Grid!=null&&!tables.ContainsKey(item.Key))yield return new KeyValuePair<string,DataGridView>(item.Key,item.Grid);}

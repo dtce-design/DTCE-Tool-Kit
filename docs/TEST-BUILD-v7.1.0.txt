@@ -22,6 +22,11 @@ PATCH - fixes and adjustments:
   deduction now show this status and are not counted until it is entered.
 - Moulding of a door / window: the quantity is editable (owner: "editable quantity kasi di naman lahat malalagyan"); blank or the
   full opening quantity follows the Door & Window Schedule; a smaller number (0 = none) counts only those units.
+- Entry IDs: every estimate has its own prefix (owner: "unique entry id per works or per estimate"; chose per estimate), so an
+  automatic ID is not repeated in the project: Carpentry and Joinery - Modular Base Cabinets MBC, Modular Wall Cabinets MWC, Aluminum
+  Cabinets ALC, Roof Frame RFF, Floor Frame FLF, Fascia Board FB, Laminated Phenolic Board LPB (Column Estimate keeps C); Pavement
+  Construction - Roadway Excavation REX, Subgrade Preparation SGP, Aggregate Base / Subbase ABS, PCCP 150 mm PC150, PCCP 230 mm
+  PC230, Sidewalk SW. IDs already in a project are kept; new rows take the new prefix.
 Includes everything of v7.0.5 (Lintel Beam equal split, lintels in the Miscellaneous Structures rebar summary) and v7.0.0-v7.0.4.
 Tests: ProjectLibraryTests 11, OpeningLintelTests 25, MemberSchedulesTests 32, UpdateAndQuantityTests 31 (moulding quantity) and the
 full local test list (Mono UI tests that fail on the earlier code too are left to the Windows CI).
