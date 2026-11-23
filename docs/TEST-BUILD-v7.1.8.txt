@@ -1,4 +1,4 @@
-DTCE Tool Kit v7.1.8 (23 November 2026) - test build; not uploaded to the Microsoft Store (v7.1.7 is the requested Store release).
+DTCE Tool Kit v7.1.8 (23 November 2026) - test build; not uploaded; its change was reverted in v7.1.9 (misread request).
 
 PATCH - Excel link (owner: "kapag naglink ako sa excel na may existing na laman ioverride niya ito"): when the linked workbook already
 has a sheet with the name the app writes (the Bill of Quantities quantity sheets, BeamConcreteFormwork, a design report sheet or the

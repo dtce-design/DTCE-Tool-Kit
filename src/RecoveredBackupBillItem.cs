@@ -37,7 +37,7 @@ namespace BeamScheduleFormatter
 		public BackupDemand ManualDemand()
 		{
             if(!string.IsNullOrEmpty(ManualInputText)&&!BackupBill.ReadQuantity(ManualInputText).HasValue)return null;
-			double? num = ManualQuantity ?? ((BackupMapping.Unit(Unit) == "ls") ? WorkbookQuantity : ((double?)null));
+			double? num = ManualQuantity; /* a quantity already in BACKUP is not taken into the app (owner, 23 November 2026: the app's quantities go to the POW BACKUP, not the other way around) */
 			if (!num.HasValue)
 			{
 				return null;

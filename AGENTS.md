@@ -212,6 +212,12 @@ AppData / Store-private copies are brought over once. Owner (23 November 2026, "
 project information"): no project is selected when the app opens or after the Bill of Quantities closes (v7.1.4); projects are
 picked from the saved list (shared) or loaded with a Bill of Quantities file.
 
+## The app's quantities go to BACKUP (23 November 2026)
+
+Owner: "yung quantities na nasa app ang mapupunta sa pow backup" (not the other way around). Quantities already in the linked
+BACKUP (.xlsm) are never shown or used as app quantities (BackupBillItem.WorkbookQuantity is not a fallback); the app writes its
+computed / typed quantities to the mapped BACKUP items. Sheets the app did not make are still not overwritten (v7.1.8 reverted).
+
 ## Complete rows only (23 November 2026)
 
 Owner: "naeestimate pa din kahit di kumpleto"; "pati yung sa deduction dapat may input". A Bill of Quantities row with a blank
