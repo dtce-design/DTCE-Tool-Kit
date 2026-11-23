@@ -383,3 +383,10 @@ Owner: "naconsider ba GWT sa strap design?"; "include permissible loss of contac
 (buoyancy deducted from the footing + soil weight, flotation check) and a no-tension soil pressure: gravity service cases need full
 contact; wind / seismic service cases (recognised from the load case name) may lose contact down to a minimum % of the base (input,
 default 50); the redistributed peak is used for bearing and the footing design (src/StrapFooting.cs, v7.2.5).
+
+## iPhone app and web generator updates (23 November 2026)
+
+Owner: "saka lang iupdate yung ios and web if may bagong dagdag na worksheet or design sheet or workspace". Change the iPhone app (ios/)
+and the web access-code generator (mobile/) only when a new worksheet, design sheet or workspace (a new program in
+src/ProgramAccess.cs) is added - then add its program to both; otherwise leave them as they are. Uploads (TestFlight / App Store / Pages)
+still need their own explicit request.
