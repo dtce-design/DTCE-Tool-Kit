@@ -1,0 +1,12 @@
+DTCE Tool Kit v7.1.20 (23 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Bill of Quantities reports: where reused offcuts come from (owner: "sa reports ng BOQ dapat nakikita din kung saan nanggaling yung
+offcuts reuse bara sa RSB, angle bars at ibang member na may commercial length"). Detailed and Extensive reports add:
+- "Reinforcing steel - offcut reuse": each commercial bar shared by more than one bar mark - grade / diameter / commercial length,
+  number of bars, the bar it was bought for (mark, pieces x cut length), the bars cut from its offcut, and the final offcut.
+- "Structural steel - offcut reuse (6 m stock)": the same for purlins, angle bars (truss members included), metal fascia frame and
+  sag rods, naming each member by ID and description.
+- "Railings - offcut reuse (6 m stock)" in the Finishing Works / overall report.
+Identical stocks are counted together. The weights are already in the purchase totals (no quantity changes).
+Tests: OffcutReuseReportTests 4 (new), EngineeringQuantityPdfTests 8, CommercialBarsTests 836, ProfessionalTakeoffTests 15.
+Includes everything of v7.1.19.

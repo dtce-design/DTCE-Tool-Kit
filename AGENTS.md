@@ -253,6 +253,13 @@ and one 4" Chrome Plated Foot Bolt; optional Deadbolt (Double Cylinder / Single 
 different widths are typed in Leaf widths (e.g. 0.90+0.30) and each leaf gets its own hinges (src/DoorHardware.cs, v7.1.18). All go to
 1004(2) Finishing Hardware.
 
+## Dropdowns, truss schedules and offcut sources (23 November 2026)
+
+Owner: dropdown cells must not change under the arrow keys or the mouse wheel while the list is closed (src/ComboKeyGuard.cs, every grid
+styled by GridAppearance; v7.1.19). Angle Bars has "Truss schedules": truss types with members; their Angle Bars rows are generated and
+locked (src/TrussSchedules.cs, v7.1.19). Detailed / Extensive BOQ reports show where reused offcuts come from for rebar, 6 m steel stock
+and railings (src/OffcutReuseReport.cs, v7.1.20).
+
 ## Complete rows only (23 November 2026)
 
 Owner: "naeestimate pa din kahit di kumpleto"; "pati yung sa deduction dapat may input". A Bill of Quantities row with a blank
