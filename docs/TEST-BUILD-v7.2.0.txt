@@ -1,0 +1,16 @@
+DTCE Tool Kit v7.2.0 (23 November 2026) - test build; not uploaded to the Microsoft Store.
+
+MINOR - View-only apps in the User edition (owner: "sa user pwede nila maaccess yung app pero di nila magagamit, pwede sila magscroll
+next tab, pero di sila makakapag input"):
+- Without an access code for an app (the access-code prompt cancelled, or a code that does not include it), the workspace or design
+  sheet still opens. Tabs, sub tabs, drawings and tables can be opened and scrolled; every text box is read-only, dropdowns, check
+  boxes and commands (Calculate, Save, Open, Export, print, row buttons) are disabled, grids take no typing, paste or delete, and a
+  banner at the top says it is view only with an "Enter access code" button.
+- After the prompt is cancelled once, other apps open view-only without asking again until "Enter access code" is used. Once a code
+  includes the app, opening it again gives the usable app; when access expires on a usable app the existing "Access has expired"
+  lock still applies.
+- The Project Information requirement applies only to apps that can be used.
+- The Admin edition is unchanged.
+Not verified here: the Windows look of the banner and locked controls.
+Tests: TrussConnectionLayoutTests (view only).
+Includes everything of v7.1.29.

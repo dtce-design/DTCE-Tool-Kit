@@ -1883,9 +1883,8 @@ namespace BeamScheduleFormatter
 				}
 				double num = list2.Sum((PlateSheet s) => s.BuyKg * s.Cuts.Where((PlatePlacement c) => c.Demand == demand).Sum((PlatePlacement c) => c.Width * c.Length) / s.NetArea);
 				item3.Cells[9].Value = list2.Count;
-				item3.Cells[10].Value = string.Join("; ", (from s in list2
-					group s by s.Format.Name into g
-					select g.Count() + " x " + g.Key).ToArray());
+				/* each sheet by its mark, and the other plates cut from its offcut (owner, 23 November 2026: "walang narereuse na steel plates") */
+				item3.Cells[10].Value = PlateSheetText(plateStocks, list2, demand);
 				Measure(item3, 11, num);
 				Measure(item3, 12, Math.Max(0.0, num - demand.Area * (double)demand.Quantity * demand.ThicknessMm / 1000.0 * 7850.0));
 			}
@@ -4489,7 +4488,7 @@ namespace BeamScheduleFormatter
 
 		public ProgramOfWorksForm()
 		{
-			if (!AccessCodes.CanUseApp(2))
+			if (!ViewOnly.Opening && !AccessCodes.CanUseApp(2))
 			{
 				throw new Exception("Estimator access required.");
 			}

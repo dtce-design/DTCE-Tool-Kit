@@ -343,3 +343,13 @@ owner types Part A / B quantities in the app's Bill of Quantities and they are c
 fill them (ProgramOfWorksForm.FillGeneralRequirements stays false).
 Workspaces (owner, 19 November 2026): each workspace (Formatters, Program of Works, Design Sheets, Project Information, Access
 Code Generator) opens in its own window; the Workspaces window stays open.
+
+## Truss Connections, plate reuse and view-only apps (23 November 2026)
+
+Owner: Truss Connections has two main tabs, Weld design and Bolt design, each with Member and demand / detail / Block shear / STAAD
+forces / Report sub tabs (shared inputs move to the open design; the open tab sets weld or bolts). Interactive bolt layout
+(src/TrussBoltDrawing.cs); slotted HSS / pipe weld detail; double-angle back-to-back spacing = gusset thickness; block shear computed
+automatically (bolts: member and gusset paths; welded angles: gusset around the welds); illustrated report (src/TrussConnectionReport.cs)
+- owner: "mas magagandang report at detalyado as may diagrams as much as possible ... maganda sa mata" applies to reports generally
+(v7.1.28). Steel plate sheets are marked PL<t>-<n> and their shared use is shown in the grid and the BOQ reports (v7.1.29). User edition:
+apps without access open view only (src/ViewOnly.cs; tabs and scrolling, no input or commands, "Enter access code" banner) (v7.2.0).

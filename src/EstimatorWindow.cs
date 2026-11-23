@@ -9,7 +9,7 @@ partial class EstimatorForm:Form { internal DataGridView WorksInputGrid{get{retu
  #if !ADMIN_APP
  AccessRenewal renewal;
  #endif
- public EstimatorForm(Result initial){AppBrand.Apply(this);if(!AccessCodes.CanUseApp(2))throw new Exception("This app is not included in your current access.");Shown+=(s,e)=>InputFocus.Apply(this);
+ public EstimatorForm(Result initial){AppBrand.Apply(this);if(!ViewOnly.Opening&&!AccessCodes.CanUseApp(2))throw new Exception("This app is not included in your current access.");Shown+=(s,e)=>InputFocus.Apply(this);
   Text="Beam Estimator v"+Engine.Version;Width=1380;Height=880;MinimumSize=new Size(1100,740);StartPosition=FormStartPosition.CenterParent;Font=new Font("Segoe UI",9);BackColor=Color.FromArgb(243,246,250);
   var tools=new FlowLayoutPanel{Dock=DockStyle.Top,Height=110,Padding=new Padding(8),WrapContents=true,AutoScroll=true};
   /* no repeated commands (owner, 20 November 2026: "isummarize mo yung buttons huwag gawin redundant"): Load beam schedule DXF

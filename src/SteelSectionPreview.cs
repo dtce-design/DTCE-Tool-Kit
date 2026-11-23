@@ -1,7 +1,7 @@
 using System;using System.Linq;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 sealed class SteelSectionPreview:Control {
- readonly Func<SteelProfile> selected;readonly Func<bool> doubleAngle;readonly ToolTip hint=new ToolTip();
+ readonly Func<SteelProfile> selected;readonly Func<bool> doubleAngle;internal Func<double> BackToBack;readonly ToolTip hint=new ToolTip();
  double zoom=1;PointF pan;Point drag;bool dragging;string detail="";readonly Control[] watched;
  internal SteelProfile CurrentProfile{get{return selected();}}
  internal SteelSectionPreview(Func<SteelProfile> section,Func<bool> pair,params Control[] watched){
@@ -15,6 +15,8 @@ sealed class SteelSectionPreview:Control {
   MouseWheel+=(s,e)=>{zoom=Math.Max(.4,Math.Min(4,zoom*Math.Pow(1.15,e.Delta/120.0)));Invalidate();};
   DoubleClick+=(s,e)=>ResetView();KeyDown+=(s,e)=>{if(e.KeyCode==Keys.Home){ResetView();e.Handled=true;}};
  }
+ internal static void Render(SteelProfile profile,bool pair,double gap,Graphics g,RectangleF rc){if(profile==null||rc.Width<=1||rc.Height<=1)return;int w=1400,h=Math.Max(200,(int)(w*rc.Height/rc.Width));
+  using(var d=new SteelSectionPreview(()=>profile,()=>pair){Width=w,Height=h,BackToBack=()=>gap})using(var bmp=new Bitmap(w,h)){using(var bg=Graphics.FromImage(bmp)){bg.Clear(Color.White);d.PaintPaper(new PaintEventArgs(bg,new Rectangle(0,0,w,h)));}var st=g.Save();g.InterpolationMode=InterpolationMode.HighQualityBicubic;g.DrawImage(bmp,rc);g.Restore(st);}}
  void ProfileChanged(object sender,EventArgs e){if(!IsDisposed)ResetView();}
  void ResetView(){zoom=1;pan=PointF.Empty;Invalidate();}
  protected override void Dispose(bool disposing){if(disposing){foreach(var control in watched){control.TextChanged-=ProfileChanged;var combo=control as ComboBox;if(combo!=null){combo.SelectedIndexChanged-=ProfileChanged;combo.SelectionChangeCommitted-=ProfileChanged;}}hint.Dispose();}base.Dispose(disposing);}
@@ -25,7 +27,7 @@ sealed class SteelSectionPreview:Control {
   g.Clear(palette.Surface);using(var font=new Font("Segoe UI",9))using(var bold=new Font("Segoe UI",10,FontStyle.Bold)){
    SteelProfile p=selected();if(p==null){DrawLabel(g,"Select a catalog profile to display its section.",font,palette.Ink,12,12);return;}
    bool pair=doubleAngle!=null&&doubleAngle();bool pipe=p.Kind=="HSS circle / pipe";
-   var plates=SteelSectionGeometry.Plates(p,pair);
+   double gapMm=pair&&BackToBack!=null?BackToBack():0;if(double.IsNaN(gapMm)||double.IsInfinity(gapMm)||gapMm<0||gapMm>200)gapMm=0;var plates=SteelSectionGeometry.Plates(p,pair,gapMm);
    double minX=pipe?0:plates.Min(v=>v[0]),maxX=pipe?p.H:plates.Max(v=>v[0]+v[2]);
    double width=maxX-minX,height=p.H;
    float info=Math.Min(290,Math.Max(180,Width*.3f)),canvas=Width-info;
@@ -47,7 +49,8 @@ sealed class SteelSectionPreview:Control {
    float tx=canvas+14;DrawLabel(g,p.Name,bold,palette.Ink,tx,70,info-25);
    detail=(pipe?"Outside diameter D": "Depth H")+" = "+N(p.H)+" mm\n"+(pipe?"":"Flange / leg B = "+N(p.B)+" mm\n")+"Thickness t = "+N(p.T)+" mm\n"+(p.Kind=="Purlin"?"Lip c = "+N(p.Lip)+" mm\n":"")+"Catalog mass = "+N(p.KgM)+" kg/m"+(pair?" per angle":"");
    DrawLabel(g,detail,font,palette.Ink,tx,125,info-25);
-   DrawLabel(g,pair?"Double angle: mirrored pair; gap is illustrative. Actual orientation / gusset spacing must match the joint.":"Dimensions follow the selected catalog profile. Sharp-corner idealisation; bend radii are not shown.",font,palette.Muted,tx,245,info-25);
+   if(pair&&gapMm>0){var gx0=ox+(float)(-gapMm)*scale;var gx1=ox;using(var gp=new SolidBrush(Color.FromArgb(120,160,160,160)))g.FillRectangle(gp,gx0,oy-(float)p.H*scale-14,gx1-gx0,(float)p.H*scale+28);}
+   DrawLabel(g,pair?(gapMm>0?"Double angle back to back: gap = gusset plate thickness = "+N(gapMm)+" mm (grey plate).":"Double angle: mirrored pair; gap is illustrative. Actual orientation / gusset spacing must match the joint."):"Dimensions follow the selected catalog profile. Sharp-corner idealisation; bend radii are not shown.",font,palette.Muted,tx,245,info-25);
    DrawLabel(g,"View only — zoom and pan do not change design inputs.",font,palette.Muted,12,Height-23);
   }
  }

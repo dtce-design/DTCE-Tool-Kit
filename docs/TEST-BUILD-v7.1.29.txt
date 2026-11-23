@@ -1,0 +1,12 @@
+DTCE Tool Kit v7.1.29 (23 November 2026) - not built separately; included in the v7.2.0 test build. Not uploaded to the Microsoft Store.
+
+PATCH - Steel plates show their offcut reuse (owner: "an tingin ko kasi doon sa calculation walang narereuse na steel plates"):
+- The plate fitting already cut plates of one thickness from the offcuts of sheets opened for other rows, but nothing showed it. Each
+  sheet now has a mark (PL<thickness>-<n>); the Selected stock sheets column names the sheet and the other rows cut from it
+  ("PL10-1 4 ft x 8 ft shared with BP-1 Base plate 8 pc(s)").
+- Detailed / Extensive Bill of Quantities reports (Structural Steel Works and overall): new "Steel plates - offcut reuse (handbook
+  sheets)" table - the row each sheet was opened for, the rows cut from its offcut, and the offcut left on the sheet.
+- Plates of different thicknesses cannot share a sheet (as before).
+- Staircase report legend: D = step bars (chair bars) bent to each riser and tread.
+Tests: OffcutReuseReportTests 7.
+Includes everything of v7.1.28.
