@@ -1,0 +1,9 @@
+DTCE Tool Kit v6.0.51 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (BBS report, beam sections; owner: "hindi ba dapat section ng beam mark ang ilagay, kasi nakakalito sa schedule din ng bar mark"):
+- Sections are named by the beam mark and position instead of 1A / 1B / 1C: the cut labels in the elevation read "1B-001 L",
+  "1B-001 M", "1B-001 R" (with the span when one mark is used in several spans of the line), the section titles read
+  "1B-001  LEFT", "1B-001  MIDSPAN", "1B-001  RIGHT", and the typical-section lists use the same names.
+Checked on Linux/Mono only.
+
+Includes v6.0.50 and earlier builds.

@@ -22,6 +22,7 @@ class UpdateAndQuantityTests {
  #if WINDOWS_TESTS
  WindowsUi();
  #endif
+  /* fewer units of an opening may get moulding (23 November 2026) */{var d=new OpeningItem{Id="D1",Kind="Door",Material="Wood",Width=0.9,Height=2.1,Quantity=4,Exterior=true};Near(d.MouldingLength,(2*2.1+0.9)*4,"door moulding: both sides and top, every unit");d.MouldingQuantity=2;Near(d.MouldingLength,(2*2.1+0.9)*2,"moulding on 2 of 4 doors");d.MouldingQuantity=0;Near(d.MouldingLength,0,"no moulding on any unit");}
  Console.WriteLine("PASS: "+checks+" update-policy, stock-weight and BOQ/moulding assertions");return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}}
  #if WINDOWS_TESTS
  static System.Windows.Forms.DataGridView Grid(object form,string field){return (System.Windows.Forms.DataGridView)form.GetType().GetField(field,System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(form);}

@@ -49,7 +49,7 @@ static class ContractDurationCalc {
   {2023,new int?[]{5,7,0,1,3,3,9,5,5,6,8,7}},{2024,new int?[]{5,0,0,0,2,2,6,5,11,9,13,8}},{2025,new int?[]{10,6,2,3,4,0,11,7,11,8,14,10}},{2026,new int?[]{9,1,0,1,0,2,9,8,null,null,null,null}}};}
  /* the last rainfall records entered on this computer (owner, 19 November 2026: "kapag wala pang bagong data ng rainy
     days, yung luma pa din") - a project without records uses them, else the built-in PAGASA Aparri records */
- internal static string RainStorePath=System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"BeamTools","RainyDays.txt");
+ internal static string RainStorePath=System.IO.Path.Combine(SharedData.Folder("Settings","BeamTools","RainyDays.txt"),"RainyDays.txt");
  /* owner (19 November 2026, "include if kailan ka naginsert ng data sa rainy days, if kailan prinepare yung pow yun lang ang
     isasama sa rainy days, di mapapalitan yung contract duration"): every rainy-day value keeps the date it was entered; a POW
     uses only the values entered on or before its preparation date, so later records do not change its contract duration.

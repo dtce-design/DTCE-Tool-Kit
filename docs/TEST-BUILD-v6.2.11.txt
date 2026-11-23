@@ -1,0 +1,14 @@
+DTCE Tool Kit v6.2.11 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Column Formatter; owner: "pwede ka ba gumawa din ng reference elevation per column.. gaya doon sa rcdc", COLUMNS_WALLS.dxf
+"based din dito"):
+- Column elevations (option, on by default): a DETAIL OF COLUMN per column mark at 1:50 below the schedule, as RCDC's: the floors with
+  their elevations (TOC), the column outline per level, the ties at their spacing (first tie 50 from each face, the Z1 spacing over
+  Lo at each end, the rest between) with the zone dimensions and the tie labels, the main bars with the bar labels, the laps, 90°
+  hooks at the top and dowel hooks at the bottom, and SECTION 1-1 beside it with the bar legend. In both the standard and ACI layouts.
+- Lap position option as RCDC's lapping position: Slab top (just above each floor, default) or Mid height.
+- Beam depths at the joints are not in the column schedule, so the joints are not drawn. The Bar Bending Schedule still takes the
+  laps just above each floor.
+Checked on Linux/Mono only with schedule.dxf and test_rcdcd.dxf; not opened in AutoCAD here.
+
+Includes v6.2.10 and earlier builds.

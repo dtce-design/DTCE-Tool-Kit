@@ -37,6 +37,8 @@ class OpeningLintelTests {
   /* files saved before: the total for the group is divided by the Wall Qty */
   {var doc=new System.Xml.XmlDocument();doc.LoadXml("<P><OpeningAssignments><Link wall='W9' schedule='X' qty='4'/></OpeningAssignments></P>");var old=OpeningLinks.Read(doc.DocumentElement);Check(old[0].Total&&OpeningLinks.Legacy(doc.DocumentElement),"old files are read as totals");
    var root=new System.Xml.XmlDocument().CreateElement("P");root.OwnerDocument.AppendChild(root);OpeningLinks.Write(root,new[]{new OpeningLink{Wall="W9",Schedule="X",Quantity=2}});var again=OpeningLinks.Read(root);Check(!again[0].Total&&!OpeningLinks.Legacy(root),"new files are per wall unit");}
+  {var lr=(System.Collections.Generic.List<MiscStructureQuantity>)t.GetField("lintelResults",F).GetValue(pow);var plan=((System.Collections.Generic.IEnumerable<StockAllocation>)t.GetMethod("RebarPlanFor",F).Invoke(pow,new object[]{"Miscellaneous Structures"})).ToList();
+   Check(lr.Count>0&&lr.All(q=>plan.Any(al=>al.Entry==q.Steel)),"Miscellaneous Structures rebar by grade and diameter includes the automatic lintels");}
   var auto=(CheckBox)t.GetField("autoLintels",F).GetValue(pow);auto.Checked=false;t.GetMethod("Recalculate",F,null,Type.EmptyTypes,null).Invoke(pow,null);
   Check(!((System.Collections.Generic.List<MiscStructureQuantity>)t.GetField("miscQuantities",F).GetValue(pow)).Any(q=>q.Kind==LintelSchedule.Kind),"turned off: no automatic lintels");
   /* RC wall side B bars (owner, 21 November 2026) and insulation roll defaults 1 m x 50 m */
@@ -46,5 +48,17 @@ class OpeningLintelTests {
    var vb=diff.Steel.Result.Lines.Single(l=>l.Part=="VERTICAL / side B");Check(vb.Diameter==16&&vb.PiecesPerBeam==(int)Math.Ceiling((5-0.05-0.016)/0.15-1e-10)+1,"side B vertical bars with their own diameter and spacing");
    Check(diff.Steel.Result.Lines.Single(l=>l.Part=="HORIZONTAL / side B").Diameter==12,"side B horizontal blank = as side A");
    var ins=(DataGridView)t.GetField("insulationRolls",F).GetValue(pow);Check(ins.Rows.Cast<DataGridViewRow>().All(ir=>Convert.ToString(ir.Cells[1].Value)=="1"&&Convert.ToString(ir.Cells[2].Value)=="50"),"insulation rolls 1 m x 50 m by default");}
+  /* a row is estimated only when its description and deduction are entered (23 November 2026) */
+  {var grids=(System.Collections.IDictionary)typeof(ProgramOfWorksForm).GetField("extraGrids",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(pow);var item=grids["Carpentry6"];var board=(DataGridView)item.GetType().GetField("Grid").GetValue(item);
+   int br=board.Rows.Add("C-001","","0.85","1.9","3");pow.Recalculate();Check(Convert.ToString(board.Rows[br].Cells[8].Value)==ProgramOfWorksForm.DescriptionMissing,"no description: not estimated ("+board.Rows[br].Cells[8].Value+")");
+   board.Rows[br].Cells[1].Value="Female Toilet - Shower";pow.Recalculate();Check(Convert.ToString(board.Rows[br].Cells[8].Value)==ProgramOfWorksForm.DeductionMissing,"no deduction: not estimated ("+board.Rows[br].Cells[8].Value+")");Check(pow.GoToIssue(board.Rows[br].Cells[0].Value+"" == "" ? "" : "Laminated Phenolic Board (Toilet and Urinal Partition) "+board.Rows[br].Cells[0].Value+": "+ProgramOfWorksForm.DeductionMissing)&&board.CurrentCell!=null&&board.CurrentCell.RowIndex==br&&board.CurrentCell.ColumnIndex==5,"double-click on the error goes to the entry's deduction cell");
+   board.Rows[br].Cells[5].Value="0";pow.Recalculate();Check(Convert.ToString(board.Rows[br].Cells[8].Value)=="Estimated"&&Math.Abs(Convert.ToDouble(board.Rows[br].Cells[6].Value)-0.85*1.9*3)<1e-9,"description and deduction 0: estimated");board.Rows.RemoveAt(br);pow.Recalculate();}
+  /* a pipe without a size is not estimated (23 November 2026: no size is put in a new row) */
+  {var pipes=(DataGridView)t.GetField("plumbingPipes",F).GetValue(pow);int pr=pipes.Rows.Add("PP-901","Kitchen line","","5","1");pow.Recalculate();Check(Convert.ToString(pipes.Rows[pr].Cells[6].Value)=="Select the pipe size.","pipe row without a size: "+pipes.Rows[pr].Cells[6].Value);pipes.Rows.RemoveAt(pr);pow.Recalculate();
+   /* a size chosen while the row was being created (the change was not applied to the specification) is kept and used */
+   var size=(DataGridViewComboBoxColumn)t.GetField("pipeSize",F).GetValue(pow);var tabsP=(TabControl)t.GetField("pipeGroupTabs",F).GetValue(pow);string group=tabsP.SelectedTab.Text;
+   if(group!="Other pipes"){string spec=PipeGroups.Choices(group)[0];string sz=ProgramOfWorksForm.PipeSizeOf(spec);int qr=pipes.Rows.Add("PP-902","Laundry drain","","0.38","1");var cell=(DataGridViewComboBoxCell)pipes.Rows[qr].Cells[size.Index];cell.Items.Add(sz);
+    t.GetField("filling",F).SetValue(pow,true);cell.Value=sz;t.GetField("filling",F).SetValue(pow,false);pow.Recalculate();
+    Check(Convert.ToString(pipes.Rows[qr].Cells[6].Value)=="Estimated"&&Convert.ToString(pipes.Rows[qr].Cells[2].Value)==spec&&Convert.ToString(cell.Value)==sz,"a chosen size stays and is estimated: "+pipes.Rows[qr].Cells[6].Value+" / "+cell.Value);pipes.Rows.RemoveAt(qr);pow.Recalculate();}}
   Console.WriteLine("PASS: "+checks+" automatic lintel checks");pow.Dispose();}
 }

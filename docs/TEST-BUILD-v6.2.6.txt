@@ -1,0 +1,12 @@
+DTCE Tool Kit v6.2.6 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Column Formatter; owner: "may mga mali padin", "other option raw as closed ties kagaya ng nasa dxf file, pero masmaganda kasing
+linis nitong sample template na ginawa ko"):
+- Crossties are drawn round the bars of their line like the other ties (they were drawn off the bars), with the 135° hook and the
+  90° hook (straight tail) round the end bars.
+- Closed ties option: the ties as RCDC drew them, in the clean style of the owner's sample; each hook is at the corner / end where the
+  RCDC drawing has it (closed ties at the top left, crosstie 135° hooks at the bottom or left end as RCDC).
+- Open ties option unchanged (each inner link two lapped C-shaped ties as the sample).
+Checked on Linux/Mono only with the owner's schedule.dxf; not opened in AutoCAD here.
+
+Includes v6.2.5 and earlier builds.

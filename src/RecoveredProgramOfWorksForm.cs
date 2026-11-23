@@ -813,6 +813,7 @@ namespace BeamScheduleFormatter
 				item.Cells[3].Style.BackColor = item.Cells[4].Style.BackColor = ModernUi.Input;
 				try
 				{
+					RequireDescription(item);
 					MouldingTakeoff mouldingTakeoff = new MouldingTakeoff
 					{
 						Id = Cell(item, 0),
@@ -1227,6 +1228,8 @@ namespace BeamScheduleFormatter
 				}
 				try
 				{
+					FillPipeSpecFromSize(item);
+					if (Cell(item, 2) == "") throw new Exception("Select the pipe size.");
 					PipeMeasure pipeMeasure = new PipeMeasure
 					{
 						Id = Cell(item, 0),
@@ -4610,10 +4613,12 @@ worksExcelTimer.Tick += async delegate
             ConfigureAngleQuantityView();
             InstallRecovery();
             /* closing the Program of Works ends its project: the next one starts with blank project information */
+            /* closing the Bill of Quantities ends its project: none is selected afterwards (owner, 23 November 2026) */
             FormClosed += (s0, e0) => { if (!Automated) ProjectInfoStore.ClearProject(); };
             InstallStandardSettings();
             InstallRowInclusion();
             AddConstructionSchedule();AddContractDuration();
+            OrderWorksTabs();
             PlaceSteelSetColumns();
             if (wood != null) PlaceOpeningPaintColumns(wood);
 			tabs.Multiline = true;
@@ -6607,6 +6612,7 @@ worksExcelTimer.Tick += async delegate
 						};
 						if (!flag || !(finishItem.Basis == "Whole wall (auto)"))
 						{
+							RequireDeduction(item, flag ? 10 : 6);
 							string typed = TypedFinishArea(item);
 							if (typed != "") finishItem.TypedArea = Number(item, item.DataGridView.Columns[FinishTypedAreaColumn].Index);
 							if (typed == "" || Cell(item, flag ? 7 : 3) != "" || Cell(item, flag ? 8 : 4) != "")
@@ -6912,6 +6918,7 @@ worksExcelTimer.Tick += async delegate
 								PaintJamb = OpeningPaint(item, PaintLeafColumn) /* one combined paint checkbox (owner, 18 November 2026) */
 							};
 							openingItem.Validate();
+							ApplyMouldingQuantity(openingItem);
 							if (!ids.Add(openingItem.Id))
 							{
 								throw new Exception("Duplicate Opening ID (including other opening tab).");
@@ -8968,6 +8975,7 @@ boqStatus.ForeColor = list.Count>0?Color.Firebrick:PowTheme.Teal;
 				}
 				try
 				{
+					RequireDescription(item);
 					int num = Count(item, 20);
 					int num2 = Count(item, 21);
 					LengthConfiguration lengthConfiguration = CalculationStore.Resolve(Number(item, 19), num, (num == 40) ? 275 : 420, num2, (num2 == 40) ? 275 : 420);
@@ -9991,11 +9999,8 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 			{
 				if (pipeGroupTabs.SelectedTab != null)
 				{
-					string[] array = PipeGroups.Choices(pipeGroupTabs.SelectedTab.Text);
-					if (array.Length != 0)
-					{
-						e.Row.Cells[2].Value = array[0];
-					}
+					/* no size is put in a new row (owner, 23 November 2026: "sa pipe take off size huwag muna maglagay ng size"); the
+					   size is chosen in the Size column */
 				}
 			};
 			InstallPipeSizeColumn();
@@ -10033,7 +10038,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 				{
 					if (!item.IsNewRow)
 					{
-						item.Visible = Empty(item) || PipeGroups.Group(Cell(item, 2)) == pipeGroupTabs.SelectedTab.Text;
+						item.Visible = Empty(item) || Cell(item, 2) == "" /* no size yet: shown until one is chosen */ || PipeGroups.Group(Cell(item, 2)) == pipeGroupTabs.SelectedTab.Text;
 					}
 				}
 				SyncPipeSizeColumn();

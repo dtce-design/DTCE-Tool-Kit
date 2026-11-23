@@ -1,0 +1,8 @@
+DTCE Tool Kit v7.1.7 (23 November 2026) - the build requested for the Microsoft Store (owner: "PAKI PUSH NA AFTER SA MICROSOFT STORE";
+supersedes v7.1.6).
+
+PATCH - Plumbing Works > Pipe Takeoff (owner: "nawawala yung size"): the size chosen in the dropdown was copied to the row's pipe
+specification only by a change event; when the choice was made while the new row was being created, the specification stayed blank
+and the next recalculation cleared the dropdown. The chosen size is now kept, and the recalculation fills the specification from it.
+Tests: OpeningLintelTests 28 (a size chosen while the row is created stays and is estimated).
+Includes everything of v7.1.6.

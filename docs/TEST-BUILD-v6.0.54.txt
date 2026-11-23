@@ -1,0 +1,11 @@
+DTCE Tool Kit v6.0.54 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Bar Bending Schedule; owner: "if same lang naman length ng bar marks at termination niya bat hindi na lang same bar mark?"):
+- Identical bars of a beam line share one bar mark: same face (top / bottom / stirrup / side face / spacer), diameter, grade,
+  shape and ends, cut length after rounding and, for hoops, the same section. E.g. every 2L-Ø10 hoop of a 300x500 line is one
+  S mark; identical extra bars at different supports are one T or B mark. The schedule per element lists each mark once with
+  the bar numbers summed; the elevation and bar details still show each placement with its count.
+- A bar removed on the cutting list keeps a mark of its own.
+Checked on Linux/Mono only.
+
+Includes v6.0.53 and earlier builds.

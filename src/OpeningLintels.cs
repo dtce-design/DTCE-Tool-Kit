@@ -19,6 +19,9 @@ partial class ProgramOfWorksForm {
   var manual=new Label{Dock=DockStyle.Bottom,Height=26,Text="OTHER LINTELS (entered by hand)",Font=ModernUi.Strong,ForeColor=PowTheme.Ink,TextAlign=ContentAlignment.BottomLeft};
   panel.Controls.Add(lintelGrid);panel.Controls.Add(lintelSummary);panel.Controls.Add(lintelNote);panel.Controls.Add(top);panel.Controls.Add(manual);
   page.Controls.Add(panel);page.Controls.SetChildIndex(panel,page.Controls.Count-1);
+  /* the automatic lintels and the lintels entered by hand share the sheet equally (owner, 23 November 2026: "equal space ng dalawang
+     input ng lintel beams") */
+  EventHandler half=(s,e)=>{int h=page.ClientSize.Height/2;if(h>=260&&panel.Height!=h)panel.Height=h;};page.Resize+=half;page.VisibleChanged+=half;half(null,EventArgs.Empty);
   TabPage chb;if(sheetPages.TryGetValue("CHB Estimate",out chb)){chbLintelSummary=new Label{Dock=DockStyle.Top,AutoSize=false,Height=30,Font=ModernUi.Strong,ForeColor=PowTheme.Teal,TextAlign=ContentAlignment.MiddleLeft,Padding=new Padding(6,0,0,0)};chb.Controls.Add(chbLintelSummary);chb.Controls.SetChildIndex(chbLintelSummary,chb.Controls.Count-1);}}
  /* the reinforcement schedule editor: one row per mark, checked before it is used; Reset gives the report's schedule back */
  bool EditLintelSchedule(){string[] heads={"Mark","CHB (4 / 6)","Largest clear opening m","b mm","h mm","Bottom bars","Top bars","Mid bars","Ties (single / closed)","Tie spacing mm","Bearing each end mm","Lateral brace"};

@@ -1,0 +1,11 @@
+DTCE Tool Kit v6.2.14 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Beam Formatter, ACI option; owner: "sa formatter ilagay mo na din sana yung elevation"):
+- The ACI beam schedule has the typical elevation of the ACI Detailing Manual Fig. BM-1_2, BEAM BARS PLACING DIAGRAM - TYPE 1: an
+  end span and an interior span between columns with A (continuous top, standard hook at the discontinuous end), B / C (added top
+  bars over L4 / L5 from the support faces), E (continuous bottom), F (added bottom bars ending L/8 from the supports), the ties in
+  the TR zones and the REST between, the side bars, the span and zone dimensions and the lap splice note. Not to scale: the source
+  schedule has no span lengths, so it is the typical diagram that the schedule letters refer to.
+Checked on Linux/Mono only with Test_Schedule_of_Beams.dxf (46 rows read back unchanged); not opened in AutoCAD here.
+
+Includes v6.2.13 and earlier builds.

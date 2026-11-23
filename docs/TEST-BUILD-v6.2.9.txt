@@ -1,0 +1,10 @@
+DTCE Tool Kit v6.2.9 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Column Formatter; owner: "incorporate na yung column tie sa column schedule", test_rcdcd.dxf):
+- ACI option: the tie arrangement of each level is drawn in its cell of the COLUMN SCHEDULE (TIE ARRANGEMENT row, as the ACI
+  Detailing Manual Fig. 4.10.3), under DIMENSION / SIZE / TIES / HOOPS / COLUMN TIE TYPE / CONCRETE; the separate tie type table is
+  no longer needed. The column tie type letter stays (same letter, same arrangement).
+- Level ranges keep their third decimal (e.g. 4.20 TO 7.858): an RCDC schedule with levels like 7.858 m failed the export check.
+Checked on Linux/Mono only with schedule.dxf and test_rcdcd.dxf; not opened in AutoCAD here.
+
+Includes v6.2.8 and earlier builds.

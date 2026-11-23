@@ -18,7 +18,12 @@ partial class ProgramOfWorksForm {
   plumbingPipes.DefaultValuesNeeded+=(s,e)=>PreparePipeSizeCell(e.Row);}
  void PreparePipeSizeCell(DataGridViewRow row){if(pipeSize==null||pipeGroupTabs==null||pipeGroupTabs.SelectedTab==null)return;string group=pipeGroupTabs.SelectedTab.Text;if(group==OtherPipes)return;
   var cell=(DataGridViewComboBoxCell)row.Cells[pipeSize.Index];var sizes=PipeGroups.Choices(group).Select(PipeSizeOf).ToArray();cell.Items.Clear();cell.Items.AddRange(sizes);
-  string size=PipeSizeOf(Cell(row,2));cell.Value=sizes.FirstOrDefault(x=>string.Equals(x,size,StringComparison.OrdinalIgnoreCase));}
+  /* the size chosen in the dropdown is kept when the specification is not filled yet (owner, 23 November 2026: "nawawala yung size") */
+  string size=PipeSizeOf(Cell(row,2)),chosen=Convert.ToString(cell.Value);var fromSpec=sizes.FirstOrDefault(x=>string.Equals(x,size,StringComparison.OrdinalIgnoreCase));
+  cell.Value=fromSpec??sizes.FirstOrDefault(x=>string.Equals(x,chosen,StringComparison.OrdinalIgnoreCase));}
+ /* a size chosen in the dropdown whose specification was not filled (the change happened while the row was being created) */
+ void FillPipeSpecFromSize(DataGridViewRow row){if(pipeSize==null||pipeGroupTabs==null||pipeGroupTabs.SelectedTab==null||Cell(row,2)!="")return;string size=Convert.ToString(row.Cells[pipeSize.Index].Value);if(size=="")return;
+  string spec=PipeSpecFor(pipeGroupTabs.SelectedTab.Text,size);if(spec!=null)row.Cells[2].Value=spec;}
  void SyncPipeSizeColumn(){if(pipeSize==null||pipeGroupTabs==null||pipeGroupTabs.SelectedTab==null)return;bool other=pipeGroupTabs.SelectedTab.Text==OtherPipes;
   plumbingPipes.Columns[2].Visible=other;pipeSize.Visible=!other;if(other)return;foreach(DataGridViewRow row in plumbingPipes.Rows)if(row.Visible)PreparePipeSizeCell(row);}
 }

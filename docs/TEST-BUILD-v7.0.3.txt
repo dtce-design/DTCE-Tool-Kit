@@ -1,0 +1,12 @@
+DTCE Tool Kit v7.0.3 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH - Response Spectrum (RSA) design sheet, Earthquake tab (owner: "admin app"): the Admin edition has the active fault lines of the
+DOST-PHIVOLCS map "Distribution of Active Faults and Trenches in Region II" (AFT-2021-020000-03, July 2021) built in, traced from the
+KMZ the owner supplied, so no KMZ has to be loaded for Region II. The User edition does not include them.
+- When the HazardHunterPH fault is not in the GEM traces (e.g. Dummon River Fault System), the nearest built-in map line is taken if it
+  is within 5 km of the HazardHunterPH distance (30 km when HazardHunterPH does not answer); L, Mmax (Wells and Coppersmith) and the
+  source type follow. Example: the southern Dummon River strand, L = 50.5 km, Mmax = 7.06 +/- 0.28.
+- The built-in lines are drawn in red on the earthquake map (when no map image is loaded) and can be clicked / Ctrl+clicked.
+- Other regions are added the same way from their PHIVOLCS KMZ maps.
+Tests: EarthquakeSiteTests 25 checks in both editions (Admin: built-in Dummon River strand about 50.5 km; User: no built-in lines),
+RsaCurveTests 21 checks.

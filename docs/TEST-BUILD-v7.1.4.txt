@@ -1,0 +1,10 @@
+DTCE Tool Kit v7.1.4 (23 November 2026) - not uploaded; included in the Store release v7.1.5 (owner: "PAKI PUSH NA AFTER SA MICROSOFT STORE";
+supersedes v7.1.3).
+
+PATCH - Project Information (owner: "kapag bagong open or naka close huwag mag select ng project information"):
+- When the app is opened, and after the Bill of Quantities is closed, no project is selected: Project Information starts blank (the
+  office name and address stay). Pick a project from the saved projects list or type a new one; opening a Bill of Quantities file
+  loads its own project. This takes back the "project stays open" part of v7.1.2; the saved projects list and settings stay shared
+  by the Store app and the downloaded .exe (Documents\DTCE Tool Kit).
+Tests: ProjectLibraryTests 13.
+Includes everything of v7.1.3.

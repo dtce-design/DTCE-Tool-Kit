@@ -1,0 +1,13 @@
+DTCE Tool Kit v6.2.12 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Column Formatter; owner: "how about yung sa walls combined walls etc?", "siguro incorporate sa schedule?"):
+- The RCDC COMBINED WALL SCHEDULE in the same DXF (e.g. test_rcdcd.dxf: CW1 with its legs C12, C18 and C19) is read with the columns:
+  per wall mark and level the concrete, the bars of each leg ("C18 : 15-#10+12-#10+...+(10-#12)"), the links of each leg (MAIN LINKS
+  / OTHER LINKS, BE MAIN LINK / BE OTHERS / MID MAIN LINKS / MID OTHERS, per level as RCDC gives them) and the wall plan as RCDC drew
+  it (bars, links, outline).
+- The revised schedule has a WALL SCHEDULE block (WALL MARKED, the levels from the lowest) with the wall plan in monochrome above the
+  concrete, the leg bars and the leg links; in the standard (Ø) and ACI (#) layouts. Schedule values lists the walls too.
+- The walls are drawing and text only: the Bar Bending Schedule and the Bill of Quantities take the columns.
+Checked on Linux/Mono only with test_rcdcd.dxf and schedule.dxf; not opened in AutoCAD here.
+
+Includes v6.2.11 and earlier builds.

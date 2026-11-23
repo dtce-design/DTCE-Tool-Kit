@@ -1,0 +1,16 @@
+DTCE Tool Kit v6.0.53 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Bar Bending Schedule, beam):
+- SFR ("yung SFR nagpapakita bang tama?"): side face bars of an end span ran Ld past the face, outside the end of the beam
+  (e.g. from -0.525 m); they now stop at the cover with a 90° hook. "1 - Ø16 EF" is still 1 bar each face (2 per beam).
+  SFR is now drawn: dashed line at mid-depth in the model view and report elevation, bars on both faces with a tag in the model
+  view section, and its own "SIDE FACE BARS" row in the report bar details.
+- One bar mark per set ("bakit isang layer lang yung bar pero magkaibang bar mark?"): the extra top bars over an interior support
+  are one set (the larger of the left / right counts) to the curtailment on both sides, and so are the extra bottom bars over an
+  interior support (two identical sets were listed before).
+- 2nd-layer bars centred as a group at the 1st-layer bar spacing ("bakit di nakacenter yung bars").
+- Report elevation: the cuts read L / M / R (the beam mark is on the span dimension) so labels no longer run into each other;
+  bar marks in the bar details are in proper tags.
+Checked on Linux/Mono only.
+
+Includes v6.0.52 and earlier builds.

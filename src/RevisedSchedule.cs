@@ -3,7 +3,7 @@ namespace BeamScheduleFormatter {
 static class RevisedSchedule {
  public static string Plain(string raw){string s=raw.Replace("\\P"," ").Replace("\\U+2205","%%C");s=Regex.Replace(s,@"\\[A-Za-z][^;]*;","");return Regex.Replace(s.Replace("{","").Replace("}",""),@"\s+"," ").Trim();}
  public static string Serialize(Dxf d){var b=new StringBuilder();foreach(var e in d.Records)foreach(var p in e.P){b.AppendLine(p.Code.ToString());b.AppendLine(p.Value);}return b.ToString();}
- public static Analysis Read(string raw,string name){var entities=Dxf.Parse(raw).ModelEntities();
+ public static Analysis Read(string raw,string name){var entities=Dxf.Parse(raw).ModelEntities();var aci=AciBeamSchedule.Read(entities,name);if(aci!=null)return aci;
   var text=entities.Where(e=>e.Type=="MTEXT"||e.Type=="TEXT").Select(e=>{var copy=e.Copy(true);string value=string.Concat(copy.P.Where(p=>p.Code==1||p.Code==3).Select(p=>p.Value));copy.P.RemoveAll(p=>p.Code==1||p.Code==3);copy.P.Add(new Pair(1,value));return copy;}).ToList();
   var widthHeaders=text.Where(e=>Plain(e.Get(1)).Equals("B",StringComparison.OrdinalIgnoreCase)).OrderByDescending(e=>e.Num(20)).ToList();
   if(widthHeaders.Count==0||widthHeaders.Skip(1).Any(e=>System.Math.Abs(e.Num(20)-widthHeaders[0].Num(20))<.001))throw new Exception("Missing/ambiguous beam schedule header: B. Load one compatible schedule per DXF.");

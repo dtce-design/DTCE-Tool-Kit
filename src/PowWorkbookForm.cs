@@ -8,7 +8,7 @@ namespace BeamScheduleFormatter {
    template's values stay as they are until the owner types a new value; the typed values are the POW project, saved as a .pow.xml file
    (root <PowWorkbook>). "Use another POW workbook" can still replace the built-in template with a newer DPWH version. */
 sealed partial class PowWorkbookForm : Form {
- internal static string DataFolder{get{var dir=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"DTCE Tool Kit","POW");Directory.CreateDirectory(dir);return dir;}}
+ internal static string DataFolder{get{return SharedData.Folder("POW",Path.Combine("DTCE Tool Kit","POW"));}}
  /* a workbook chosen with "Use another POW workbook" wins over the built-in template */
  internal static string CustomTemplatePath{get{foreach(var n in new[]{"PowWorkbook.xlsm","PowWorkbook.xlsx"}){var p=Path.Combine(DataFolder,n);if(File.Exists(p))return p;}return null;}}
  static string LastProjectPath{get{return Path.Combine(DataFolder,"LastProject.txt");}}
@@ -26,7 +26,7 @@ sealed partial class PowWorkbookForm : Form {
  readonly Dictionary<string,object> edits=new Dictionary<string,object>(StringComparer.OrdinalIgnoreCase);readonly Dictionary<string,object> originals=new Dictionary<string,object>(StringComparer.OrdinalIgnoreCase);
  string projectPath;bool dirty;string templateName="";string boqSignature;
  readonly CheckBox linkBoq=new CheckBox{Text="BACKUP linked to Bill of Quantities",Checked=true,AutoSize=true};
- public PowWorkbookForm(){Text="Program of Works (POW)";Font=new Font("Segoe UI",9.5f);BackColor=PowTheme.Background;Width=1280;Height=820;KeyPreview=true;
+ public PowWorkbookForm(){Text="Program of Works (POW)";/* the project title in the window title, as in every workspace (23 November 2026) */ProjectCaption.Attach(this);Font=new Font("Segoe UI",9.5f);BackColor=PowTheme.Background;Width=1280;Height=820;KeyPreview=true;
   var bar=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,WrapContents=true,Padding=new Padding(8,5,8,3),Name="PowCommandBar"};
   Func<string,Action,Button> btn=(t,h)=>{var b=new Button{Text=t,AutoSize=true,Height=30,Margin=new Padding(0,0,8,0)};b.Click+=(s,e)=>{try{h();}catch(Exception ex){MessageBox.Show(this,ex.Message,"Program of Works (POW)");}};bar.Controls.Add(b);return b;};
   Action<string,KeyValuePair<string,Action>?[]> menuBtn=(t,items)=>{var menu=new ContextMenuStrip();foreach(var item in items){if(item==null){menu.Items.Add(new ToolStripSeparator());continue;}var pair=item.Value;var parts=pair.Key.Split('\t');var entry=new ToolStripMenuItem(parts[0]);if(parts.Length>1)entry.ShortcutKeyDisplayString=parts[1];entry.Click+=(s,e)=>{try{pair.Value();}catch(Exception ex){MessageBox.Show(this,ex.Message,"Program of Works (POW)");}};menu.Items.Add(entry);}
@@ -63,7 +63,7 @@ sealed partial class PowWorkbookForm : Form {
  sealed class DupaItem{public string Sheet,Label;public override string ToString(){return Label;}}
  static readonly string[] Front={"FRONT PAGE","BOQ","DETAILED","ABC","SUM","SOQ","ITEMIZED","OSH","EQUIPMENT","BACKUP","CD","Contract Duration","Labor","PERR","CMPD","Indirect Cost"};
  bool IsDupa(WbSheet s){var v=s.Get(4,1);return v!=null&&"DETAILED UNIT PRICE ANALYSIS".Equals(Convert.ToString(v.Cached),StringComparison.OrdinalIgnoreCase);}
- void UpdateTitle(){string name=projectPath==null?"New POW (not saved)":Path.GetFileName(projectPath);Text="Program of Works (POW) - "+name+(dirty?" *":"");var host=FindForm();if(Parent!=null&&host!=null&&host!=this)host.Text=Text;UpdateHeader();}
+ void UpdateTitle(){string name=projectPath==null?"New POW (not saved)":Path.GetFileName(projectPath);string title="Program of Works (POW) - "+name+(dirty?" *":"");Text=title;var host=FindForm();if(Parent!=null&&host!=null&&host!=this)host.Text=title;UpdateHeader();}
  void ImportWorkbook(){if(!ConfirmDiscard())return;using(var d=new OpenFileDialog{Title="Use another DPWH POW workbook as the template",Filter="Excel workbook (*.xlsm;*.xlsx)|*.xlsm;*.xlsx"}){if(d.ShowDialog(this)!=DialogResult.OK)return;
    string ext=Path.GetExtension(d.FileName).ToLowerInvariant();string target=Path.Combine(DataFolder,"PowWorkbook"+ext);foreach(var old in new[]{"PowWorkbook.xlsm","PowWorkbook.xlsx"}){var p=Path.Combine(DataFolder,old);if(File.Exists(p)&&!string.Equals(p,target,StringComparison.OrdinalIgnoreCase))File.Delete(p);}
    File.Copy(d.FileName,target,true);projectPath=null;LoadTemplate(null);}}
@@ -72,7 +72,7 @@ sealed partial class PowWorkbookForm : Form {
   WbBook loaded=null;WbCalc c=null;Exception error=null;Dictionary<string,object> projectEdits=null;
   var t=new Thread(()=>{try{if(custom!=null){loaded=WbBook.Load(custom);}else{var bytes=BuiltInTemplate();if(bytes==null)throw new Exception("The built-in POW template is missing from this build.");loaded=WbBook.Load(new MemoryStream(bytes));loaded.SourceBytes=bytes;}
     c=new WbCalc(loaded);if(project!=null)projectEdits=ReadProject(project);c.CalculateAll();}catch(Exception x){error=x;}},512*1024*1024){IsBackground=true};
-  t.Start();var timer=new System.Windows.Forms.Timer{Interval=200};timer.Tick+=(s,e)=>{if(t.IsAlive)return;timer.Stop();timer.Dispose();Enabled=true;Cursor=Cursors.Default;
+  t.Start();var timer=new System.Windows.Forms.Timer{Interval=200};timer.Tick+=(s,e)=>{if(t.IsAlive)return;timer.Stop();timer.Dispose();/* the window was closed while the workbook was loading (owner, 23 November 2026: "Cannot access a disposed object. NavigationTabs" from BuildTabs) */if(IsDisposed||Disposing||groups.IsDisposed)return;Enabled=true;Cursor=Cursors.Default;
    if(error!=null){status.Text="Could not open the POW workbook: "+error.Message;MessageBox.Show(this,error.Message,Text);return;}
    book=loaded;calc=c;templateName=custom!=null?Path.GetFileName(custom):"built-in DPWH POW V6.02";render=new WbRender(book,calc);render.RowHidden=RowHidden;view.Render=render;edits.Clear();originals.Clear();
    string note="";if(projectEdits!=null){int applied=Apply(projectEdits);projectPath=project;note=", "+applied+" saved value(s) from "+Path.GetFileName(project);WbCalc.RunWithLargeStack(()=>{calc.Reset();calc.CalculateAll();});}else projectPath=null;

@@ -1,0 +1,82 @@
+using System;using System.Collections.Generic;using System.Globalization;using System.Linq;using System.Text.RegularExpressions;
+namespace BeamScheduleFormatter {
+/* the ACI option of the Beam Formatter as the ACI Detailing Manual MNL-66(20) Fig. BM-1_1 REINFORCED CONCRETE BEAM SCHEDULE (owner,
+   22 November 2026: "di naman sinundan yung format or template ng ACI"): MARK | SIZE B x H | TYPE | MAIN HORIZONTAL REINFORCEMENT -
+   TOP A (continuous), L4, B (added at the left support), C (added at the right support), L5, BOTTOM E (continuous), F (added at
+   midspan), SIDE BAR EACH | TIES TR (end zones), TYPE, REST, TYPE | REMARKS, with the hoop (H1, H3, H4) and stirrup (S1, S2) details
+   that the schedule uses. The values come from the formatted rows; L4 / L5 (cut-off of the added top bars) are Ln/4 from the
+   support face, the RCDC curtailment setting (BEAMS.dxf: 975 on 3900 spans, 2100 on 8400) and the Bar Bending Schedule rule. Each row is kept as hidden data so the revised DXF still loads in the Bar Bending Schedule and
+   the Bill of Quantities. */
+static class AciBeamSchedule {
+ static readonly CultureInfo Inv=CultureInfo.InvariantCulture;const string Data="DTCE-DATA";
+ static string N(string t){return AciDetailing.Notation(Engine.Format(t)).Replace(" - ","-");}
+ static List<string> Groups(BeamRow r,int c){return r.Cells[c].Where(t=>t.Trim()!="+"&&t.Trim()!="-"&&t.Trim()!="--"&&t.Trim()!="").Select(t=>t.Trim()).ToList();}
+ static string Key(string t){return Engine.Normal(t);}
+ /* the groups of a support not in the continuous groups */
+ static List<string> Added(List<string> at,List<string> continuous){var rest=new List<string>(at);foreach(var c in continuous){int i=rest.FindIndex(x=>Key(x)==Key(c));if(i>=0)rest.RemoveAt(i);}return rest;}
+ static string Join(IEnumerable<string> g){var l=g.ToList();return l.Count==0?"-":string.Join(" + ",l.Select(N));}
+ internal static string[] Values(BeamRow r){var topL=Groups(r,5);var topM=Groups(r,6);var topR=Groups(r,7);var botL=Groups(r,2);var botM=Groups(r,3);var botR=Groups(r,4);
+  var a=topM.Count>0?topM:topL.Take(1).ToList();var e=botL.Where(x=>botR.Any(y=>Key(y)==Key(x))&&botM.Any(y=>Key(y)==Key(x))).ToList();if(e.Count==0)e=botM.Take(1).ToList();
+  string dia=AciDetailing.Notation(Engine.Format(r.Diameter??""));string tr="-",rest="-";var m=Regex.Match(r.Spacing??"",@"^\s*1\s*-\s*(\d+)mm,\s*(?:(\d+)\s*-\s*(\d+)mm,\s*)?AND\s+REST\s+AT\s+(\d+)mm",RegexOptions.IgnoreCase);
+  if(m.Success){if(m.Groups[2].Success)tr=dia+": 1 @ "+m.Groups[1].Value+", "+m.Groups[2].Value+" @ "+m.Groups[3].Value;rest=dia+" @ "+m.Groups[4].Value;}else if(!string.IsNullOrWhiteSpace(r.Spacing)&&r.Spacing!="--")tr=dia+": "+AciDetailing.Notation(r.Spacing,"Beam");
+  int legs;int.TryParse(Regex.Match(r.Leg??"",@"\d+").Value,out legs);string hoop=legs>=4?"H3":legs==3?"H4":"H1",stir=legs>=3?"S2":"S1";string sfr=r.Cell(11);bool skin=sfr!="--"&&sfr!="-";double d;double.TryParse(r.Cell(1),NumberStyles.Float,Inv,out d);
+  var remarks=new List<string>();if(r.Numbers.Count>0)remarks.Add(string.Join(", ",r.Numbers));if(r.Cantilever)remarks.Add("CANTILEVER");var bL=Added(botL,e);var bR=Added(botR,e);if(bL.Count>0)remarks.Add("BOT. LEFT +"+Join(bL));if(bR.Count>0)remarks.Add("BOT. RIGHT +"+Join(bR));
+  return new[]{r.Mark,r.Cell(0)+" x "+r.Cell(1),skin||d>900?"2":"1",Join(a),topL.Count>a.Count?"Ln/4":"-",Join(Added(topL,a)),Join(Added(topR,a)),topR.Count>a.Count?"Ln/4":"-",Join(e),Join(Added(botM,e)),skin?N(sfr):"-",tr,tr=="-"?"-":hoop,rest,rest=="-"?"-":stir,string.Join("; ",remarks)};}
+ public static Dxf Build(Result result,string floor){var sh=new ColumnSheet();
+  double[] w={22,26,12,30,10,30,30,10,30,30,22,40,12,24,12,46};double x0=0,top=0,th=2;double width=w.Sum();Func<int,double> X=i=>x0+w.Take(i).Sum();
+  if(!string.IsNullOrWhiteSpace(floor))sh.Text(floor.Trim().ToUpperInvariant(),0,top+12,4,7,true,"TITLE",width);
+  double y=top;sh.Rect(x0,y-9,x0+width,y,"SCHEDULE");sh.Text("REINFORCED CONCRETE BEAM SCHEDULE",x0+width/2,y-4.5,4.2,5,true,"TITLE",width-4);y-=9;
+  double h1=6,h2=6,h3=6,hy=y,hb=y-h1-h2-h3;sh.Rect(x0,hb,x0+width,hy,"SCHEDULE");
+  Action<int,int,double,double,string> head=(c0,c1,ya,yb,t)=>{sh.Rect(X(c0),yb,X(c1+1),ya,"SCHEDULE");sh.Text(t,(X(c0)+X(c1+1))/2,(ya+yb)/2,2,5,false,"HEAD",X(c1+1)-X(c0)-1);};
+  head(0,0,hy,hb,"MARK");head(1,1,hy,hy-h1,"SIZE");head(1,1,hy-h1,hb,"B x H");head(2,2,hy,hb,"TYPE");head(3,10,hy,hy-h1,"MAIN HORIZONTAL REINFORCEMENT");head(3,7,hy-h1,hy-h1-h2,"TOP");head(8,9,hy-h1,hy-h1-h2,"BOTTOM");head(10,10,hy-h1,hb,"SIDE BAR EACH");
+  string[] letters={"A","L4","B","C","L5","E","F"};for(int i=0;i<7;i++)head(3+i,3+i,hy-h1-h2,hb,letters[i]);head(11,14,hy,hy-h1,"TIES");head(11,11,hy-h1,hb,"TR");head(12,12,hy-h1,hb,"TYPE");head(13,13,hy-h1,hb,"REST");head(14,14,hy-h1,hb,"TYPE");head(15,15,hy,hb,"REMARKS");
+  y=hb;var used=new HashSet<string>();
+  foreach(var r in result.Rows){var v=Values(r);int lines=1;for(int i=0;i<v.Length;i++)lines=Math.Max(lines,(int)Math.Ceiling(v[i].Length*th*.62/(w[i]-1.5)));double rh=Math.Max(6,lines*th*1.6+2.4);
+   for(int i=0;i<v.Length;i++){sh.Rect(X(i),y-rh,X(i+1),y,"SCHEDULE");sh.Text(v[i],X(i)+w[i]/2,y-rh/2,th,5,i==0,i==0?"MARK":"CELLTEXT",w[i]-1.5);}
+   if(v[12]!="-")used.Add(v[12]);if(v[14]!="-")used.Add(v[14]);
+   sh.Text("ACI BEAM|"+r.Mark+"|"+(r.Leg??"")+"|"+(r.Diameter??"")+"|"+(r.Spacing??"")+"|"+string.Join("|",Enumerable.Range(0,12).Select(c=>string.Join("~",r.Cells[c]))),X(0)+w[0]/2,y-rh/2,.8,5,false,Data);y-=rh;}
+  /* hoop and stirrup details (Fig. BM-1_1) */
+  y-=10;double dx=0;sh.Text("HOOP DETAILS",0,y,2.8,7,true,"TITLE",60);sh.Text("STIRRUP DETAILS",width/2,y,2.8,7,true,"TITLE",60);y-=6;double hx=0,sx=width/2;
+  foreach(var t in new[]{"H1","H3","H4","S1","S2"}.Where(used.Contains)){bool hoopT=t.StartsWith("H");double bx=hoopT?hx:sx;Detail(sh,t,bx+4,y-26);sh.Text(t,bx+12,y-30,2.4,5,true,"TITLE",12);sh.Line(bx+9,y-31.6,bx+15,y-31.6,"TITLE");if(hoopT)hx+=30;else sx+=30;}
+  y-=40;y=PlacingDiagram(sh,0,y,width)-6;var notes=new List<string>{"NOTES:","1. MINIMUM INSIDE BEND DIAMETER AND STANDARD HOOK GEOMETRY PER ACI 318 25.3; HOOPS WITH 135° SEISMIC HOOKS.","2. A = CONTINUOUS TOP BARS, B / C = ADDED TOP BARS AT THE LEFT / RIGHT SUPPORT, E = CONTINUOUS BOTTOM BARS, F = ADDED BOTTOM BARS AT MIDSPAN; TR = TIES IN THE END ZONES, REST = TIES ELSEWHERE.","3. L4 / L5 = Ln/4: THE ADDED TOP BARS B / C EXTEND Ln/4 PAST THE SUPPORT FACE (THE RCDC CURTAILMENT SETTING, AS THE BAR BENDING SCHEDULE; Ln = CLEAR SPAN, THE LONGER ADJACENT SPAN AT AN INTERIOR SUPPORT), NOT LESS THAN THE DEVELOPMENT LENGTH ld.","4. TYPE 1: TYPICAL BEAM SECTION; TYPE 2: BEAM WITH SIDE (SKIN) BARS EACH FACE. DIMENSIONS IN mm; BAR NOTATION #16 = 16 mm BAR."};
+  foreach(var n in notes){sh.Text(n,0,y,2,7,n=="NOTES:","NOTES",width);y-=4;}
+  y-=6;sh.Text("REINFORCED CONCRETE BEAM SCHEDULE",width/2,y,5,5,true,"TITLE",width);sh.Line(width/2-48,y-4.4,width/2+48,y-4.4,"TITLE");
+  sh.Left=0;sh.Right=width;sh.Top=top+(string.IsNullOrWhiteSpace(floor)?2:16);sh.Bottom=y-8;return ColumnFormatter.ToDxf(sh,null,null);}
+ /* the typical elevation of the schedule (owner, 22 November 2026: "sa formatter ilagay mo na din sana yung elevation"; MNL-66 Fig.
+    BM-1_2 BEAM BARS PLACING DIAGRAM - TYPE 1): an end span and an interior span between columns with A (continuous top, standard hook
+    at the discontinuous end), B / C (added top bars over L4 / L5 from the support faces), E (continuous bottom, hooked at the end), F
+    (added bottom bars, ending L/8 from the supports), the ties in the TR zones at each support and the REST between, side bars; not
+    to scale - the lengths are in the schedule and the design */
+ static double PlacingDiagram(ColumnSheet sh,double x0,double yTop,double width){const string L="ELEVATION",T="DIAGRAM";double depth=16,colW=10,top=yTop-14,bot=top-depth;
+  double s0=x0+20,span=(width-60)/2.2,s1=s0+colW+span,s2=s1+colW+span,end=Math.Min(x0+width-4,s2+colW+span*.2);
+  Action<double> column=cx=>{sh.Line(cx,top+12,cx,bot-12,L);sh.Line(cx+colW,top+12,cx+colW,bot-12,L);};column(s0);column(s1);column(s2);
+  sh.Line(s0,top,end,top,L);sh.Line(s0,bot,end,bot,L);sh.Line(s0,bot,s0,top,L);sh.Line(end,top+2,end-1.5,top-depth/2,L);sh.Line(end-1.5,top-depth/2,end,bot-2,L);
+  double c=1.6;/* A and E with standard hooks at the discontinuous end */sh.Line(s0+c,top-c,end,top-c,T);sh.Line(s0+c,top-c,s0+c,bot+5,T);sh.Line(s0+c+.8,bot+c,end,bot+c,T);sh.Line(s0+c+.8,bot+c,s0+c+.8,top-5,T);
+  double l4=span*.25,l5=span*.25;/* B at the end support, C over the interior supports */sh.Line(s0+c+.6,top-c-1,s0+colW+l4,top-c-1,T);sh.Line(s0+c+.6,top-c-1,s0+c+.6,bot+7,T);
+  foreach(var sx in new[]{s1,s2}){double a=sx-l5,b=Math.Min(end-2,sx+colW+l5);sh.Line(a,top-c-1,b,top-c-1,T);}
+  /* F: added bottom bars ending L/8 from the supports */foreach(var sx in new[]{s0,s1}){double a=sx+colW+span/8,b=sx+colW+span-span/8;sh.Line(a,bot+c+1,b,bot+c+1,T);}
+  /* ties: TR zones at each support face, REST between */double tr=span*.25;foreach(var sx in new[]{s0,s1}){double a=sx+colW,b=a+span;for(double t=a+1;t<=a+tr;t+=1.6)sh.Line(t,top-.6,t,bot+.6,"TIES");for(double t=b-1;t>=b-tr;t-=1.6)sh.Line(t,top-.6,t,bot+.6,"TIES");for(double t=a+tr+3.2;t<b-tr-1;t+=3.2)sh.Line(t,top-.6,t,bot+.6,"TIES");}
+  /* side bars */for(double t=s0+colW;t<end-4;t+=4)sh.Line(t,top-depth/2,t+2,top-depth/2,T);
+  /* labels and dimensions */Action<string,double,double,double,double> tag=(t,x,y,tx,ty)=>{sh.Line(x,y,tx,ty,"DIM");sh.Text(t,tx,ty+(ty>y?1.2:-1.2),2,ty>y?8:2,false,"DIM",14);};
+  tag("A",s0+colW+span*.55,top-c,s0+colW+span*.55,top+7);tag("B",s0+colW+l4*.6,top-c-1,s0+colW+l4*.6-6,top+7);tag("C",s1-l5*.5,top-c-1,s1-l5*.5,top+7);tag("E",s0+colW+span*.3,bot+c,s0+colW+span*.3,bot-7);tag("F",s0+colW+span*.6,bot+c+1,s0+colW+span*.6+6,bot-7);tag("SIDE BARS",s1+colW+span*.5,top-depth/2,s1+colW+span*.5+8,bot-7);
+  Action<double,double,double,string> dim=(a,b,y,t)=>{sh.Line(a,y,b,y,"DIM");sh.Line(a,y-1,a,y+1,"DIM");sh.Line(b,y-1,b,y+1,"DIM");sh.Text(t,(a+b)/2,y+.8,1.9,8,false,"DIM",Math.Max(8,b-a));};
+  dim(s0+colW,s0+colW+l4,top+15,"L4 = Ln/4");dim(s1-l5,s1,top+15,"L5 = Ln/4");dim(s1+colW,s1+colW+l5,top+15,"L5 = Ln/4");dim(s2-l5,s2,top+15,"L5 = Ln/4");
+  dim(s0+colW,s0+colW+span/8,bot-14,"L1/8");dim(s1-span/8,s1,bot-14,"L1/8");dim(s1+colW,s1+colW+span/8,bot-14,"L2/8");
+  dim(s0+colW,s0+colW+tr,bot-19,"TR");dim(s0+colW+tr,s1-tr,bot-19,"REST");dim(s1-tr,s1,bot-19,"TR");dim(s1+colW,s1+colW+tr,bot-19,"TR");
+  dim(s0+colW,s1,bot-25,"END SPAN L1");dim(s1+colW,s2,bot-25,"INTERIOR SPAN L2");
+  sh.Line(s0+c,top-c,s0-6,top+5,"DIM");sh.Text("STANDARD HOOK (TYP.) AT THE DISCONTINUOUS END",x0,top+6,1.8,7,false,"DIM",40);sh.Text("CLASS B LAP SPLICE OF A AT MIDSPAN, OF E OVER THE SUPPORTS (ACI 318 25.5)",s1+colW,bot-31,1.8,7,false,"DIM",width/2);
+  double titleY=bot-38;sh.Text("BEAM BARS PLACING DIAGRAM - TYPE 1 (NOT TO SCALE)",x0+width/2,titleY,4,5,true,"TITLE",width);sh.Line(x0+width/2-62,titleY-3.6,x0+width/2+62,titleY-3.6,"TITLE");return titleY-6;}
+ /* the hoop and stirrup shapes, about 16 x 22 */
+ static void Detail(ColumnSheet sh,string t,double x,double y){double w=16,h=22,r=1.2,k=.707;const string L="DETAIL";
+  Action<double,double,double,double> hoop=(a,b,c,d)=>{sh.RoundRect(a,b,c,d,r,L);sh.Line(a+r*(1-k),d-r*(1-k),a+r*(1-k)+2.6,d-r*(1-k)-2.6,L);sh.Line(a+r*(1-k)+1,d-r*(1-k)+.2,a+r*(1-k)+3.6,d-r*(1-k)-2.4,L);};
+  Action<double,double,double> stirrup=(a,c,b)=>{sh.PLine(new List<double[]>{new[]{a+2.2,y+h-2.2,0},new[]{a,y+h,0},new[]{a,b+r,.41421356},new[]{a+r,b,0},new[]{c-r,b,.41421356},new[]{c,b+r,0},new[]{c,y+h,0},new[]{c-2.2,y+h-2.2,0}},false,0,L);};
+  if(t=="H1")hoop(x,y,x+w,y+h);else if(t=="H3"){hoop(x,y,x+w*.65,y+h);hoop(x+w*.35,y+1,x+w,y+h-1);}else if(t=="H4"){hoop(x,y,x+w,y+h);stirrup(x+w*.3,x+w*.7,y+1);}
+  else if(t=="S1")stirrup(x,x+w,y);else if(t=="S2"){stirrup(x,x+w*.65,y);stirrup(x+w*.35,x+w,y+1);}}
+ /* reading the ACI schedule back: the rows from the hidden data */
+ public static Analysis Read(List<Entity> entities,string name){var data=entities.Where(e=>(e.Type=="MTEXT"||e.Type=="TEXT")&&e.Get(8)==Data).Select(e=>string.Concat(e.P.Where(p=>p.Code==3||p.Code==1).Select(p=>p.Value))).Where(t=>t.StartsWith("ACI BEAM|")).ToList();if(data.Count==0)return null;
+  var a=new Analysis{Path=name,Floor=""};foreach(var t in data){var p=t.Split('|');if(p.Length<17)continue;var r=new BeamRow{Mark=p[1],Leg=p[2],Diameter=p[3],Spacing=p[4],RevisedSpacing=p[4]};r.Numbers.Add(r.Mark);r.SourceRows.Add(a.Source.Count+1);
+   for(int c=0;c<12;c++)if(p[5+c]!="")r.Cells[c].AddRange(p[5+c].Split('~'));r.Cells[8].Clear();r.Cells[8].Add(r.Leg);r.Cells[9].Clear();r.Cells[9].Add(r.Diameter);r.Cells[10].Clear();r.Cells[10].Add(r.Spacing);
+   r.Cells[12].Add("-");r.Cells[13].Add(r.Spacing.IndexOf("TO FREE END",StringComparison.OrdinalIgnoreCase)>=0?"CANTILEVERED":"-");a.Source.Add(r);}
+  a.BeamCount=a.Source.Count;a.Prefix=a.Source.Count>0?Regex.Match(a.Source[0].Mark,@"^\d*[A-Z]+").Value:"";return a.Source.Count>0?a:null;}
+}
+}

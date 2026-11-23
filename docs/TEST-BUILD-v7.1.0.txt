@@ -1,0 +1,27 @@
+DTCE Tool Kit v7.1.0 (23 November 2026) - not uploaded; the Store release is v7.1.3, which includes it.
+
+MINOR - new features:
+- Every workspace window shows the project (owner: "dapat lahat ng design sheets ipakita yung project name"; "sa lahat ng workspace"):
+  the Project Information title is added to the window title ("... | Project: <title>"), shortened when very long, and follows a
+  change of project. Small dialogs keep their own title. Reports already print the project in their header.
+- Bill of Quantities works tabs in construction sequence (owner: "arrange yung main tabs" - "yung pagkakasunod sunod ng works"):
+  Bill of Quantities, Earthworks, Reinforced Concrete Works, Structural Steel Works, Masonry Works, Roofing Works, Carpentry and
+  Joinery Works, Doors & Windows, Plumbing Works, Finishing Works, Pavement Construction, Slope Protection Works, Construction
+  Schedule, Contract Duration, Reports.
+- Manual canopy schedules (owner: "option to input schedule or button for manual schedule"): Miscellaneous Structures > Canopy /
+  Ledge Estimate has a "Manual canopy schedules" button like the column and footing schedules; a type holds the projection,
+  thickness, cover, both bar layers, wall anchorage, extra ends and bottom mat; rows choose it in Schedule mark (length along the wall
+  and quantity stay on the row). Saved with the project.
+
+PATCH - fixes and adjustments:
+- A row is estimated only when it is complete (owner: "naeestimate pa din kahit di kumpleto"; "paki check na din sa lahat"; "pati
+  yung sa deduction dapat may input"): rows with a blank Description / location (Miscellaneous Structures, site works, wall
+  footings, carpentry and joinery, railings, sag rods, moulding, RC walls) show "Enter the description / location." and are left out
+  of the quantities; the deduction of carpentry face areas, floor / ceiling / other finishes and wall finishes measured by dimensions
+  must be entered (0 if none) - "Enter the deduction in m2 (0 if none)." NOTE: rows of older projects with a blank description or
+  deduction now show this status and are not counted until it is entered.
+- Moulding of a door / window: the quantity is editable (owner: "editable quantity kasi di naman lahat malalagyan"); blank or the
+  full opening quantity follows the Door & Window Schedule; a smaller number (0 = none) counts only those units.
+Includes everything of v7.0.5 (Lintel Beam equal split, lintels in the Miscellaneous Structures rebar summary) and v7.0.0-v7.0.4.
+Tests: ProjectLibraryTests 11, OpeningLintelTests 25, MemberSchedulesTests 32, UpdateAndQuantityTests 31 (moulding quantity) and the
+full local test list (Mono UI tests that fail on the earlier code too are left to the Windows CI).

@@ -1,0 +1,9 @@
+DTCE Tool Kit v7.1.5 (23 November 2026) - not uploaded; included in the Store release v7.1.6 (owner: "PAKI PUSH NA AFTER SA MICROSOFT STORE";
+supersedes v7.1.4).
+
+PATCH - POW workbook: fixes "Cannot access a disposed object. Object name: 'NavigationTabs'." (owner's report from v6.0.48 and
+v7.1.4; stack: PowWorkbookForm.BuildTabs from the LoadTemplate timer). The workbook loads in the background and a timer finishes the
+job; when the POW workbook (or the Bill of Quantities holding it) was closed before the load ended, the timer still built the tabs
+of the closed window. The timer now stops without touching a closed window.
+Not reproducible under Mono (its TabControl clears tabs without a window handle); the fix follows the Windows stack trace.
+Includes everything of v7.1.4.

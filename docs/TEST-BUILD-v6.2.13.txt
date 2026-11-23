@@ -1,0 +1,17 @@
+DTCE Tool Kit v6.2.13 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Beam Formatter, ACI option; owner: "di naman sinundan yung format or template ng ACI", "kapag sinabi kong ACI yung template
+mismo ng ACI ang gagamitin"):
+- Detailing / schedule "ACI 318M / SP-66 (# bars)" now produces the ACI Detailing Manual MNL-66(20) Fig. BM-1_1 REINFORCED CONCRETE
+  BEAM SCHEDULE instead of the DTCE template: MARK | SIZE B x H | TYPE | MAIN HORIZONTAL REINFORCEMENT - TOP A, L4, B, C, L5,
+  BOTTOM E, F, SIDE BAR EACH | TIES TR, TYPE, REST, TYPE | REMARKS, with the HOOP DETAILS (H1 / H3 / H4) and STIRRUP DETAILS (S1 /
+  S2) the schedule uses and the notes.
+- A = continuous top bars (midspan top), B / C = added top bars at the left / right support, E = continuous bottom bars, F = added
+  bottom bars at midspan (bars added at a support only are in REMARKS), TR = ties in the end zones ("#10: 1 @ 50, 24 @ 70"), REST =
+  the rest; 2 legs H1 / S1, 3 legs H4 / S2, 4 legs H3 / S2; REMARKS keeps the original beam numbers. L4 / L5 (cut-off of the added
+  top bars) are not in the source schedule and are marked * (per the design).
+- The ACI beam DXF reads back unchanged in the Bar Bending Schedule and the Bill of Quantities (hidden data); the app preview no
+  longer shows hidden data and keeps single-line texts on one line.
+Checked on Linux/Mono only with Test_Schedule_of_Beams.dxf (46 rows read back unchanged); not opened in AutoCAD here.
+
+Includes v6.2.12 and earlier builds.

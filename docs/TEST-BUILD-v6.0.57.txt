@@ -1,0 +1,8 @@
+DTCE Tool Kit v6.0.57 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Slab Formatter; owner: "naayos na ba ito"):
+- The table header sizes its bands from the font, so the bottom band holds two lines ("CONTINUOUS / SUPPORT" was cut off,
+  especially at larger Windows display scaling). The whole header stays navy with white captions (since v6.0.49).
+Checked on Linux/Mono only.
+
+Includes v6.0.56 and earlier builds.

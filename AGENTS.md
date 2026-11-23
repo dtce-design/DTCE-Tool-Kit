@@ -186,6 +186,37 @@ Certification is not guaranteed. v6.0.49 and later need a new explicit request.
 Owner (21 November 2026, "Iupload sa apple store app"): upload the native iPhone app (DTCE Access Admin, ios/) to App Store
 Connect: run the workflow on main with publish_ios=true (publish_microsoft_store stays false). This authorizes this upload only;
 App Store review submission/release in App Store Connect and later iPhone uploads need a new explicit request. Pages stays off.
+Done 21 November 2026: 1.1.0 was refused (version already approved, train closed), so the iPhone app is now 1.1.1 (PR #14).
+Run 44913008843 (Windows build job re-run once after the EarthworkFootingTests exit code, all 124 checks passed): DTCE Access Admin
+1.1.1 build 239.2 uploaded; App Store Connect processing VALID (available for TestFlight). Not submitted for App Store review.
+Apple warned that from April 2027 iPhone apps must be built with the iOS 27 SDK (Xcode 27) or later.
+New owner request (23 November 2026, "Pakipublish sa microsoft store"): publish v7.0.4 (User and Admin) the same way after its Windows
+CI passes (merge the development branch to main for the GitHub release, then publish_microsoft_store=true;
+replace_pending_store_submission stays false unless the owner asks). The Admin edition includes the PHIVOLCS active fault lines
+(DPWH ArcGIS layer, copyright PHIVOLCS; no stated license); the owner was told this before asking. Later versions again need a new
+explicit request.
+Owner (23 November 2026, chose "Include: upload v7.0.5"): the Store release is v7.0.5 (v7.0.4 plus the Lintel Beam equal split and the
+lintels in the Miscellaneous Structures rebar summary), the same way after its Windows CI passes.
+Owner (23 November 2026, chose "Upload v7.1.0"): the Store release is v7.1.0 (v7.0.5 plus the project title in every window, the works
+tabs in construction sequence, manual canopy schedules, rows estimated only with description / deduction, editable moulding quantity).
+Owner (23 November 2026, "PAKI PUSH NA AFTER SA MICROSOFT STORE"; "bakit same pa din version no?"): the fixes added after v7.1.0 got
+their own PATCH numbers (v7.1.1 entry ID prefixes, v7.1.2 shared settings / project kept, v7.1.3 go to an input error); the Store
+release is v7.1.7 (v7.1.3, v7.1.4 no project selected on open / after closing, v7.1.5 POW workbook disposed-tabs crash fix,
+v7.1.6 no default pipe size, v7.1.7 chosen pipe size kept), the same way after its Windows CI passes. Every later change gets its own version number, released or not.
+
+## Shared settings and the open project (23 November 2026)
+
+Owner: "kahit sana app from store or downloaded lang exe file sana naoopen pa din yung saved settings and project". User settings and
+saved projects live in Documents\DTCE Tool Kit (src/SharedData.cs), shared by the Store (MSIX, AppData virtualized) and the .exe; old
+AppData / Store-private copies are brought over once. Owner (23 November 2026, "kapag bagong open or naka close huwag mag select ng
+project information"): no project is selected when the app opens or after the Bill of Quantities closes (v7.1.4); projects are
+picked from the saved list (shared) or loaded with a Bill of Quantities file.
+
+## Complete rows only (23 November 2026)
+
+Owner: "naeestimate pa din kahit di kumpleto"; "pati yung sa deduction dapat may input". A Bill of Quantities row with a blank
+Description / location, or a blank deduction where the deduction is used, is not estimated (src/RequiredDescription.cs); 0 is typed
+when there is nothing to deduct.
 
 ## Program of Works name (20 November 2026)
 

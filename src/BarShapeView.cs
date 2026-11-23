@@ -15,7 +15,7 @@ static class BarShapes {
  internal static PointF[][] Outline(CutPiece p){double a=p.DimA,b=p.DimB,c=p.DimC;if(p.DrawnStraight>0){if(p.ShapeCode=="HOOK1")a=p.DrawnStraight;else if(p.ShapeCode=="HOOK2")b=p.DrawnStraight;}switch(p.ShapeCode){
   case "HOOK1":return new[]{new[]{new PointF(0,(float)b),new PointF(0,0),new PointF((float)a,0)}};
   case "HOOK2":return new[]{new[]{new PointF(0,(float)a),new PointF(0,0),new PointF((float)b,0),new PointF((float)b,(float)c)}};
-  case "HOOP":{/* owner (20 November 2026, "iisa lang ang hook"): both ends of the hoop end in 135° hooks at the same corner */float w=(float)a,h=(float)b,t=(float)Math.Max(c*.7071,Math.Min(w,h)*.28),gap=(float)Math.Max(Math.Min(w,h)*.045,1);/* tails drawn long enough to read as 135° hooks into the core (owner, 21 November 2026: "paki fix yung hook ng stirrup") */
+  case "HOOP":{/* owner (20 November 2026, "iisa lang ang hook"): both ends of the hoop end in 135° hooks at the same corner */float w=(float)a,h=(float)b,t=(float)Math.Max(c*.7071,Math.Min(w,h)*.36),gap=(float)Math.Max(Math.Min(w,h)*.07,1);/* longer tails, set further apart, so the two 135° hooks read clearly (owner, 22 November 2026: "pakiaayos yung hook neto") *//* tails drawn long enough to read as 135° hooks into the core (owner, 21 November 2026: "paki fix yung hook ng stirrup") */
    return new[]{new[]{new PointF(t,h-gap-t),new PointF(0,h-gap),new PointF(0,0),new PointF(w,0),new PointF(w,h),new PointF(gap,h),new PointF(gap+t,h-t)}};}
   case "CROSSTIE":{float h=(float)a,t=(float)(b*.7071);return new[]{new[]{new PointF(t,h-t),new PointF(0,h),new PointF(0,0),new PointF((float)c,0)}};}
   case "CRANK":{/* lap A at the offset, crank B, straight D; the crank is drawn larger but keeps a visible slope (owner, 21 November 2026:
@@ -43,7 +43,10 @@ static class BarShapes {
    double sa=p.ShapeCode=="HOOK1"&&p.DrawnStraight>0?p.DrawnStraight:p.DimA,sb=p.ShapeCode=="HOOK2"&&p.DrawnStraight>0?p.DrawnStraight:p.DimB;
    switch(p.ShapeCode){case "HOOK1":label("A",p.DimA,map(new PointF((float)sa/2,0)),0,1);label("B",p.DimB,map(new PointF(0,(float)p.DimB/2)),-1,0);break;
     case "HOOK2":label("A",p.DimA,map(new PointF(0,(float)p.DimA/2)),-1,0);label("B",p.DimB,map(new PointF((float)sb/2,0)),0,1);label("C",p.DimC,map(new PointF((float)sb,(float)p.DimC/2)),1,0);break;
-    case "HOOP":label("A",p.DimA,map(new PointF((float)p.DimA/2,0)),0,1);label("B",p.DimB,map(new PointF((float)p.DimA,(float)p.DimB/2)),1,0);label("C",p.DimC,map(new PointF((float)p.DimC,(float)p.DimB)),1,-1);break;
+    case "HOOP":{/* C is the 135° hook (owner, 22 November 2026: "bat walang sukat yung hook?"): labelled on the hook tail, not on the top side */var o=lines[0];label("A",p.DimA,map(new PointF((float)p.DimA/2,0)),0,1);label("B",p.DimB,map(new PointF((float)p.DimA,(float)p.DimB/2)),1,0);
+     var tailEnd=map(o[o.Length-1]);var tailMid=map(new PointF((o[o.Length-2].X+o[o.Length-1].X)/2,(o[o.Length-2].Y+o[o.Length-1].Y)/2));
+     string ct=lettersOnly?"C":(plainLabels?"":"C = ")+p.DimC.ToString("0",Inv);var csz=g.MeasureString(ct,font);g.DrawString(ct,font,b,tailEnd.X+4,tailEnd.Y-csz.Height*.2f);
+     var corner=map(new PointF(0,(float)p.DimB));string ang="135°";var asz=g.MeasureString(ang,font);g.DrawString(ang,font,b,Math.Max(box.Left,corner.X-asz.Width-2),Math.Max(box.Top,corner.Y-asz.Height));break;}
     case "CROSSTIE":label("A",p.DimA,map(new PointF(0,(float)p.DimA/2)),-1,0);label("B",p.DimB,map(new PointF(0,(float)p.DimA)),1,-1);label("C",p.DimC,map(new PointF((float)p.DimC/2,0)),0,1);break;
     case "CRANK":case "CRANKHOOK":{var o=Outline(p)[0];label("A",p.DimA,map(new PointF(o[1].X/2,o[1].Y)),0,-1);label("B",p.DimB,map(new PointF((o[1].X+o[2].X)/2,(o[1].Y+o[2].Y)/2)),0,1);label("C",p.DimC,map(new PointF(0,o[1].Y/2)),-1,0);label("D",p.DimD,map(new PointF((o[2].X+o[3].X)/2,0)),0,1);if(o.Length>4)label("E",p.DimE,map(new PointF(o[4].X,o[4].Y/2)),1,0);break;}
     default:label("A",p.DimA,map(new PointF((float)p.DimA/2,0)),0,1);break;}}}

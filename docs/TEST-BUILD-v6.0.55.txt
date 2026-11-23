@@ -1,0 +1,10 @@
+DTCE Tool Kit v6.0.55 test build (22 November 2026) - not uploaded to the Microsoft Store (v6.0.48 is the last requested upload).
+
+PATCH (Bar Bending Schedule; owner: "palitan din yung beam line ID"):
+- New beam lines start as BL-1 (was B1, which read like bottom bar B1 and like a beam mark); the column is headed
+  "BEAM LINE ID (e.g. BL-1)". Bar marks then read BL-1-T3, BL-1-S13 in full and T3, S13 within the line.
+- Saved BBS files keep their line IDs (renaming a line would drop the cutting-list edits saved under it); rename a line in the
+  BEAM LINE ID column if wanted.
+Checked on Linux/Mono only.
+
+Includes v6.0.54 and earlier builds.
