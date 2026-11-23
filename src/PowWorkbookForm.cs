@@ -110,8 +110,16 @@ sealed partial class PowWorkbookForm : Form {
  /* typed inputs: constants only; formulas stay as in the workbook */
  void EditCell(WbSheet s,int r,int c){var cell=s.Get(r,c);if(cell!=null&&(cell.Formula!=null||cell.ArrayMaster!=null))status.Text=s.Name+"!"+WbBook.ColumnName(c)+r+" is computed by a formula; change the input cells it uses instead.";}
  /* sets one typed value, remembering the template value it replaces (a value equal to the template's is no longer an edit) */
- void SetValue(string at,object value){int bang=at.LastIndexOf('!');var s=book.Sheet(at.Substring(0,bang));int r,c;if(s==null||!WbBook.ParseA1(at.Substring(bang+1),out r,out c))return;var cell=s.GetOrAdd(r,c);if(cell.Formula!=null||cell.ArrayMaster!=null)return;
+ void SetValue(string at,object value){int bang=at.LastIndexOf('!');var s=book.Sheet(at.Substring(0,bang));int r,c;if(s==null||!WbBook.ParseA1(at.Substring(bang+1),out r,out c))return;var cell=s.GetOrAdd(r,c);if(cell.ArrayMaster!=null||cell.IsArrayMaster)return;
+  /* the BACKUP quantity column follows the Bill of Quantities even where the template computes it with a formula (owner, 23 November
+     2026: "bakit di pa din naalis yung mga quantities ... yung wala sa boq"): the formula is kept aside and comes back with New / Open */
+  if(cell.Formula!=null){if(!BoqLinked(at))return;formulaOriginals[at]=new KeyValuePair<string,WbNode>(cell.Formula,cell.Ast);originals[at]=cell.Cached;cell.Formula=null;cell.Ast=null;cell.Value=null;cell.State=0;cell.Cached=value;edits[at]=value;return;}
+  if(formulaOriginals.ContainsKey(at)){cell.Cached=value;edits[at]=value;return;}
   if(!originals.ContainsKey(at))originals[at]=cell.Cached;cell.Cached=value;if(Same(value,originals[at])){edits.Remove(at);originals.Remove(at);}else edits[at]=value;}
+ readonly Dictionary<string,KeyValuePair<string,WbNode>> formulaOriginals=new Dictionary<string,KeyValuePair<string,WbNode>>(StringComparer.OrdinalIgnoreCase);
+ internal static bool BoqLinked(string at){return at.StartsWith("BACKUP!"+WbBook.ColumnName(PowBackupLink.QuantityColumn),StringComparison.OrdinalIgnoreCase);}
+ /* back to the template: the typed value is removed, a formula the link replaced comes back */
+ void Restore(string at){KeyValuePair<string,WbNode> f;if(formulaOriginals.TryGetValue(at,out f)){int bang=at.LastIndexOf('!');var s=book.Sheet(at.Substring(0,bang));int r,c;if(s!=null&&WbBook.ParseA1(at.Substring(bang+1),out r,out c)){var cell=s.GetOrAdd(r,c);cell.Formula=f.Key;cell.Ast=f.Value;cell.Cached=originals[at];cell.Value=null;cell.State=0;}formulaOriginals.Remove(at);edits.Remove(at);originals.Remove(at);return;}object o;if(originals.TryGetValue(at,out o))SetValue(at,o);}
  static bool Same(object a,object b){if(a==null||(a is string&&(string)a==""))return b==null||(b is string&&(string)b=="");return a.Equals(b);}
  int Apply(Dictionary<string,object> values){int n=0;foreach(var kv in values){int before=edits.Count;SetValue(kv.Key,kv.Value);n++;}return n;}
  string Prompt(string title,string value){using(var f=new Form{Text=title,Width=460,Height=150,FormBorderStyle=FormBorderStyle.FixedDialog,StartPosition=FormStartPosition.CenterParent,MinimizeBox=false,MaximizeBox=false,Font=Font}){
@@ -132,8 +140,8 @@ sealed partial class PowWorkbookForm : Form {
   projectPath=path;dirty=false;Remember(path);UpdateTitle();status.Text="Saved "+Path.GetFileName(path)+" ("+edits.Count+" value(s) changed from the template).";return true;}
  void OpenProject(){if(book==null||!ConfirmDiscard())return;using(var d=new OpenFileDialog{Title="Open POW",Filter="Program of Works (POW)|*.pow.xml|All files|*.*"}){if(d.ShowDialog(this)!=DialogResult.OK)return;
    Dictionary<string,object> values;try{values=ReadProject(d.FileName);}catch(Exception ex){MessageBox.Show(this,ex.Message,Text);return;}
-   foreach(var at in originals.Keys.ToList()){var o=originals[at];SetValue(at,o);}edits.Clear();originals.Clear();Apply(values);projectPath=d.FileName;dirty=false;Remember(d.FileName);Recalculate(null);UpdateTitle();status.Text="Opened "+Path.GetFileName(d.FileName)+" ("+values.Count+" saved value(s)).";}}
- void NewProject(){if(book==null||!ConfirmDiscard())return;foreach(var at in originals.Keys.ToList())SetValue(at,originals[at]);edits.Clear();originals.Clear();projectPath=null;dirty=false;try{File.Delete(LastProjectPath);}catch(IOException){}Recalculate(null);UpdateTitle();status.Text="New POW from the template. Change input cells, then Save POW.";}
+   foreach(var at in originals.Keys.ToList())Restore(at);edits.Clear();originals.Clear();formulaOriginals.Clear();Apply(values);projectPath=d.FileName;dirty=false;Remember(d.FileName);Recalculate(null);UpdateTitle();status.Text="Opened "+Path.GetFileName(d.FileName)+" ("+values.Count+" saved value(s)).";}}
+ void NewProject(){if(book==null||!ConfirmDiscard())return;foreach(var at in originals.Keys.ToList())Restore(at);edits.Clear();originals.Clear();formulaOriginals.Clear();projectPath=null;dirty=false;try{File.Delete(LastProjectPath);}catch(IOException){}Recalculate(null);UpdateTitle();status.Text="New POW from the template. Change input cells, then Save POW.";}
  Form hookedHost;
  void HookHost(){var host=TopLevelControl as Form;if(host==null||host==hookedHost)return;hookedHost=host;host.Activated+=(s,e)=>SyncBoq(false);}
  /* BACKUP column BC follows the Bill of Quantities workspace: each pay item's quantity goes to its BACKUP row (matched by row and item no.);

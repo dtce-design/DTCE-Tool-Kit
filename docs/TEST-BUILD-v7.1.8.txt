@@ -1,0 +1,9 @@
+DTCE Tool Kit v7.1.8 (23 November 2026) - test build; not uploaded; its change was reverted in v7.1.9 (misread request).
+
+PATCH - Excel link (owner: "kapag naglink ako sa excel na may existing na laman ioverride niya ito"): when the linked workbook already
+has a sheet with the name the app writes (the Bill of Quantities quantity sheets, BeamConcreteFormwork, a design report sheet or the
+app's hidden estimate sheet) but the app did not make it, its content is now cleared and overwritten instead of stopping with "Sheet
+... is not owned by Bill of Quantities" / "was not overwritten". Sheets with other names stay untouched; the BACKUP mapping is
+unchanged (mapped BACKUP quantities were already written over). The app still does not save the workbook - save it in Excel.
+Tests: WorksWorkbookWriterTests 14 (an existing sheet of the same name is overwritten and taken over; the workbook is not saved).
+Includes everything of v7.1.7.

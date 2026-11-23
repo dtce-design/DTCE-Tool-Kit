@@ -1,0 +1,13 @@
+DTCE Tool Kit v7.1.13 (23 November 2026) - test build; not uploaded to the Microsoft Store (v7.1.7 is the requested Store release).
+
+PATCH - Contract Duration and Progress Photographs, as the owner's POW workbook (owner: "bakit contract duration 122CD pero 4mos ang
+progress photograph"; "project start date, di mo ba makita yung sa formula sa excel na ginawa ko"):
+- Start date by the POW formula (FRONT PAGE!CB7), on by default: MAX(date prepared + 90 days, or + 75 days when the ABC is PHP 50 M
+  or more; the first Monday on or after May 1 of the FY). New inputs on the Contract Duration tab: "ABC (PHP)" and "FY" (0 = the
+  year after the date prepared). Untick "Start date by the POW formula" to type the start date. Projects saved before open with the
+  formula on.
+- Progress Photographs = months from the start to the end date as BACKUP!N64: whole months (DATEDIF "m") + the remaining days /
+  the days of that month, to 2 decimals (117 calendar days from May 3, 2027 = 3.77). v7.1.11 used calendar days / 30 rounded up.
+- The BOQ source line shows the start and end dates used.
+Tests: ContractDurationTests 24, BoqGeneralRequirementsTests (months by the workbook formula), AdditionalWorksTests 99.
+Includes everything of v7.1.12.

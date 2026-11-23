@@ -1,0 +1,15 @@
+DTCE Tool Kit v7.1.11 (23 November 2026) - test build; not uploaded to the Microsoft Store (v7.1.7 is the requested Store release).
+
+PATCH - Bill of Quantities linked to the POW BACKUP:
+- Progress Photographs follow the Contract Duration of the Bill of Quantities (owner: "progress photo graph naka link sa contract
+  duration ng boq"): months = contract duration (calendar days) / 30, rounded up, shown as filled by the app and still editable;
+  a quantity typed in the app wins. With no contract duration yet (empty construction schedule) the quantity already in the linked
+  BACKUP is kept. This replaces v7.1.10 (Progress Photographs read from the workbook).
+- Typed values in the linked BACKUP are overridden even when the app has no quantity (owner: "pati yung mga may type values sa excel
+  ioverride niya din kahit walang nakalagay sa app"): a typed BACKUP!BC value of a mapped pay item without an app quantity is
+  cleared (formula cells stay; the Progress Photographs row is not cleared). The status bar shows how many were cleared. The same
+  applies to the built-in POW workbook BACKUP.
+Not verified here: the Excel (COM) clearing runs only on Windows with Excel; check it on a copy of your workbook.
+Tests: ContractDurationTests 19, BoqGeneralRequirementsTests (Contract Duration months), AdditionalWorksTests 99,
+PowWorkbookEngineTests 46.
+Includes everything of v7.1.10.

@@ -43,5 +43,21 @@ class ContractDurationTests {
   {AccessCodes.Granted=true;var F=System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance;var w=new ProgramOfWorksForm();string saved=(string)typeof(ProgramOfWorksForm).GetField("saved",F).GetValue(w);
    w.Show();System.Windows.Forms.Application.DoEvents();var tabs=(System.Windows.Forms.TabControl)typeof(ProgramOfWorksForm).GetField("tabs",F).GetValue(w);foreach(System.Windows.Forms.TabPage page in tabs.TabPages){tabs.SelectedTab=page;System.Windows.Forms.Application.DoEvents();}
    string now=(string)typeof(ProgramOfWorksForm).GetMethod("DataXml",F).Invoke(w,null);Check(saved==now&&now.Contains("<Holiday "),"a new POW stays unchanged after its tabs are opened; holidays are part of the saved project");w.Hide();}
+  /* Progress Photographs follow the Contract Duration of the Bill of Quantities (owner, 23 November 2026) */
+  {var F=System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance;var w=new ProgramOfWorksForm();var T=typeof(ProgramOfWorksForm);
+   var bill=(List<BackupBillItem>)T.GetField("backupBill",F).GetValue(w);bill.Clear();var photo=new BackupBillItem{Slot="ph-1",Code="A.1.4(1)",Description="Provision of Progress Photographs",Unit="mo",WorkbookQuantity=9};bill.Add(photo);
+   T.GetField("durationStartAuto",F).SetValue(w,false);T.GetField("durationStartDate",F).SetValue(w,new DateTime(2027,5,3));T.GetField("durationWorkingOverride",F).SetValue(w,72);
+   Func<List<BackupDemand>> q=()=>(List<BackupDemand>)T.GetMethod("BackupQuantities",F).Invoke(w,new object[]{false});
+   var rainyArgs=new object[]{null};var rainy=(int[])T.GetMethod("DurationRainy",F).Invoke(w,rainyArgs);var hol=(List<DurationHoliday>)T.GetField("durationHolidayList",F).GetValue(w);
+   int days=ContractDurationCalc.Compute(new DateTime(2027,5,3),72,hol.Select(h=>h.Date),rainy).ContractDuration;var d=q().Where(x=>x.TargetSlotId=="ph-1").ToList();
+   var r107=ContractDurationCalc.Compute(new DateTime(2027,5,3),72,hol.Select(h=>h.Date),rainy);Check(days>72&&d.Count==1&&d[0].Quantity==Math.Round(ProgramOfWorksForm.PhotoMonths(new DateTime(2027,5,3),r107.End),2)&&d[0].Quantity!=9,"Progress Photographs = Contract Duration "+days+" days / 30 = "+(d.Count==1?d[0].Quantity.ToString():"none")+" months, not the BACKUP value");
+   photo.ManualQuantity=2;Check(!q().Any(x=>x.TargetSlotId=="ph-1"&&x.Key.StartsWith(ProgramOfWorksForm.ProgressPhotoPrefix)),"a quantity typed in the app wins over the Contract Duration");photo.ManualQuantity=null;
+   T.GetField("durationWorkingOverride",F).SetValue(w,0);d=q().Where(x=>x.TargetSlotId=="ph-1").ToList();Check(d.Count==1&&d[0].Quantity==9,"no Contract Duration yet: the BACKUP quantity is kept");}
+  /* the owner's POW workbook: FRONT PAGE!CB7 start date and BACKUP!N64 months of Progress Photographs */
+  Check(ProgramOfWorksForm.FormulaStart(new DateTime(2026,11,12),4950000m,2027)==new DateTime(2027,5,3),"start = first Monday on or after May 1, 2027 (prepared + 90 days is earlier)");
+  Check(ProgramOfWorksForm.FormulaStart(new DateTime(2027,3,1),60000000m,2027)==new DateTime(2027,5,15)&&ProgramOfWorksForm.FormulaStart(new DateTime(2027,3,1),1000000m,2027)==new DateTime(2027,5,30),"prepared + 75 days (ABC of PHP 50 M or more) or + 90 days");
+  Check(ProgramOfWorksForm.FormulaStart(new DateTime(2026,11,12),0m,0)==new DateTime(2027,5,3),"FY 0 = the year after the date prepared");
+  Check(Math.Abs(ProgramOfWorksForm.PhotoMonths(new DateTime(2027,5,3),new DateTime(2027,8,27))-3.774193548387097)<1e-9,"117 calendar days = 3.774 months as BACKUP!N64");
+  Check(Math.Abs(ProgramOfWorksForm.PhotoMonths(new DateTime(2027,1,31),new DateTime(2027,3,1))-(1+1/31.0))<1e-9||Math.Abs(ProgramOfWorksForm.PhotoMonths(new DateTime(2027,1,31),new DateTime(2027,3,1))-1.0357142857)<1e-6,"month-end start dates");
   Console.WriteLine("PASS: "+checks+" contract duration checks");}
 }

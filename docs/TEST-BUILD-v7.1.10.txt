@@ -1,0 +1,8 @@
+DTCE Tool Kit v7.1.10 (23 November 2026) - test build; not uploaded to the Microsoft Store (v7.1.7 is the requested Store release).
+
+PATCH - Bill of Quantities linked to the POW BACKUP (owner: "except for progress photograph sa pow xlsm file kukunin"): the one
+exception to v7.1.9 - the Progress Photographs item takes its quantity from the POW workbook (BACKUP) when no quantity is typed in
+the app; every other quantity still comes from the app and goes to BACKUP. The item is recognised by its description ("Progress
+Photograph(s)").
+Tests: AdditionalWorksTests 98 (Progress Photographs from the workbook).
+Includes everything of v7.1.9.

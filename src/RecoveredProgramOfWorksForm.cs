@@ -1107,6 +1107,8 @@ namespace BeamScheduleFormatter
 			if(flag)list.AddRange(ConcretePayQuantities().Select(BackupDemand.From));
             /* Part A / B quantities filled by the app; a typed BOQ quantity still wins (owner, 19 November 2026) */
             /* owner (19 November 2026, "iallow na lang maginput ng qty sa boq ng app for part A and B"): the owner types Part A / B; the app no longer fills them */
+            /* Progress Photographs from the Contract Duration (owner, 23 November 2026) */
+            list.AddRange(ProgressPhotoDemands(list));
             if(flag&&FillGeneralRequirements)list.AddRange(GeneralRequirementSuggestions(list.Where(d=>d.Key==null||!d.Key.StartsWith("BOQ manual|",StringComparison.Ordinal)).ToList(),true));
             RouteRequiredQuantities(list);
             ApplyBoqIncludes(list);
@@ -7925,7 +7927,7 @@ worksExcelTimer.Tick += async delegate
             if(worksExcel!=null){string workbook=Path.GetFileName(worksExcel.PathName);savedSourceFiles.AddRange(ProjectSources().Files.Where(f=>f.Kind=="Excel workbook (imported original)"&&f.Name.Equals(workbook,StringComparison.OrdinalIgnoreCase)));}
             projectSourceFiles.Replace(savedSourceFiles);
             if(savedProjectInformation==null&&!Automated)ProjectInfoStore.ClearProject();
-            if(savedProjectInformation!=null)ProjectInfoStore.Save(savedProjectInformation.Name,savedProjectInformation.Location,savedProjectInformation.Office,savedProjectInformation.OfficeAddress,savedProjectInformation.DatePrepared??"");
+            if(savedProjectInformation!=null)ProjectInfoStore.Save(savedProjectInformation.Name,savedProjectInformation.Location,savedProjectInformation.Office,savedProjectInformation.OfficeAddress,savedProjectInformation.DatePrepared??"",PowProjectInformation.FiscalYearFor(savedProjectInformation),PowProjectInformation.AbcFor(savedProjectInformation));
 			PowTiming.Mark("project info / sources");
 			Recalculate();
 			PowTiming.Mark("recalculation");
@@ -9685,7 +9687,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 						})
 						where BackupMapping.Unit(d.Unit) == BackupMapping.Unit(item.Unit)
 						select d).ToList();
-					double? num = item.ManualQuantity ?? (((BackupMapping.Unit(item.Unit) != "ls" && list.Count > 0) || list.Any((BackupDemand d) => d.ManualPriority >= 1)) ? new double?(BackupMapping.FinalQuantity(list, item.Unit)) : item.WorkbookQuantity);
+					double? num = item.ManualQuantity ?? (((BackupMapping.Unit(item.Unit) != "ls" && list.Count > 0) || list.Any((BackupDemand d) => d.ManualPriority >= 1)) ? new double?(BackupMapping.FinalQuantity(list, item.Unit)) : item.WorkbookFallback) /* only Progress Photographs from BACKUP (23 November 2026) */;
 					b.AppendLine(item.Code + " | " + PayItemText.Display(item.Description) + " | " + (num.HasValue ? num.Value.ToString("0.########", CultureInfo.InvariantCulture) : "not entered") + " " + item.Unit);
 				}
 			}

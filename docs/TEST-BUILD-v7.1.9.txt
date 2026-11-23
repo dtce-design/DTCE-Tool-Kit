@@ -1,0 +1,11 @@
+DTCE Tool Kit v7.1.9 (23 November 2026) - test build; not uploaded to the Microsoft Store (v7.1.7 is the requested Store release).
+
+PATCH - Bill of Quantities linked to the POW BACKUP (.xlsm) (owner: "kapag nilinked ko na yung POW backup sa BOQ ko huwag ioverride
+yung quantities ... the other way around"; "yung quantities na nasa app ang mapupunta sa pow backup"): the app is the source of the
+quantities. The quantities already in BACKUP are no longer taken into the app: a BACKUP item without a computed or typed quantity in
+the app shows "not entered" (not the workbook value) in the Bill of Quantities table, report, Part A / B and Construction Schedule,
+and a workbook LS value no longer becomes an app quantity. The app's quantities are written to the mapped BACKUP items as before.
+Reverts v7.1.8 (overwriting other sheets of the same name), which was a misreading of the request: such sheets are again left alone
+with "Sheet ... is not owned by Bill of Quantities".
+Tests: AdditionalWorksTests 97 (a BACKUP LS value is not taken into the app; a typed one is), WorksWorkbookWriterTests 14 (restored).
+Includes everything of v7.1.8 except the reverted change.

@@ -203,6 +203,15 @@ Owner (23 November 2026, "PAKI PUSH NA AFTER SA MICROSOFT STORE"; "bakit same pa
 their own PATCH numbers (v7.1.1 entry ID prefixes, v7.1.2 shared settings / project kept, v7.1.3 go to an input error); the Store
 release is v7.1.7 (v7.1.3, v7.1.4 no project selected on open / after closing, v7.1.5 POW workbook disposed-tabs crash fix,
 v7.1.6 no default pipe size, v7.1.7 chosen pipe size kept), the same way after its Windows CI passes. Every later change gets its own version number, released or not.
+Result 23 November 2026: v7.1.7 merged to main (PR #15); GitHub release run 45098961581 OK on attempt 2 (one re-run after the
+EarthworkFootingTests exit code). Store run 45098975713 failed twice on the same exit code (all 124 checks passed) before any upload;
+nothing was uploaded and nothing changed in Partner Center.
+New owner request (23 November 2026, "yan na ang iupload mo sa microsoft store"): publish v7.1.15 (User and Admin) instead of v7.1.7,
+the same way after its Windows CI passes (merge the development branch to main, then publish_microsoft_store=true;
+replace_pending_store_submission stays false unless the owner asks). Later versions again need a new explicit request.
+Owner (23 November 2026, chose "Upload v7.1.16" and added "kapag nagdouble click sa saved project information magclose na din yung
+window"): the Store release is v7.1.17 (v7.1.15, v7.1.16 FY / ABC kept when opening older Bill of Quantities files, v7.1.17
+double-click a saved project to use it and close), the same way after its Windows CI passes.
 
 ## Shared settings and the open project (23 November 2026)
 
@@ -211,6 +220,26 @@ saved projects live in Documents\DTCE Tool Kit (src/SharedData.cs), shared by th
 AppData / Store-private copies are brought over once. Owner (23 November 2026, "kapag bagong open or naka close huwag mag select ng
 project information"): no project is selected when the app opens or after the Bill of Quantities closes (v7.1.4); projects are
 picked from the saved list (shared) or loaded with a Bill of Quantities file.
+
+## The app's quantities go to BACKUP (23 November 2026)
+
+Owner: "yung quantities na nasa app ang mapupunta sa pow backup" (not the other way around). Quantities already in the linked
+BACKUP (.xlsm) are never shown or used as app quantities (BackupBillItem.WorkbookQuantity is not a fallback); the app writes its
+computed / typed quantities to the mapped BACKUP items. BACKUP!BC of items without an app quantity is emptied, typed or formula, also
+while rows have input issues (owner: "pati yung mga may type values sa excel ioverride niya din"; "bakit di pa din naalis yung mga
+quantities sa xlsm yung wala sa boq", v7.1.15); the built-in POW does the same and keeps the template formula aside for New / Open. Progress Photographs follow the Bill of
+Quantities Contract Duration (owner: "progress photo graph naka link sa contract duration ng boq"): months from the start to the end
+date as the owner's BACKUP!N64 (DATEDIF whole months + remaining days / days of that month, 2 decimals); typed app value wins; the
+BACKUP value is kept only while there is no contract duration. The Contract Duration start date follows FRONT PAGE!CB7 by default
+(MAX(date prepared + 90 days, or 75 when ABC >= PHP 50 M; first Monday on or after May 1 of the FY)) (v7.1.13, owner: "yung sa
+formula sa excel na ginawa ko"). FY and ABC are Project Information fields (v7.1.14, owner: "sa project setting maglagay ng year doon
+at ABC").
+Sheets the app did not make are still not overwritten (v7.1.8 reverted).
+
+## Staircase Design page (23 November 2026)
+
+Owner: "pagsamasamahin yung stair type at yung staircase design" / "stair type and geometry at model": the stair type and geometry
+inputs and the four Model views (section, 3D, plan, load / shear / moment) are one tab, "Stair type, geometry and model" (v7.1.12).
 
 ## Complete rows only (23 November 2026)
 

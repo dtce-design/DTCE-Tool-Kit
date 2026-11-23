@@ -1,0 +1,16 @@
+DTCE Tool Kit v7.1.15 (23 November 2026) - test build; not uploaded to the Microsoft Store (v7.1.7 is the requested Store release).
+
+PATCH - BACKUP quantities of items that are not in the Bill of Quantities (owner: "bakit di pa din naalis yung mga quantities sa xlsm
+yung wala sa boq"):
+- Linked Excel workbook (.xlsm): v7.1.11 cleared only typed BACKUP!BC values and only when no row had an input issue. Most BACKUP
+  item quantities are formulas (the workbook's own takeoff, e.g. =SUM(T198:X201)), so they stayed. Now the BACKUP!BC cell of every
+  item without a Bill of Quantities quantity is emptied, typed or formula, also while some rows still have input issues (not before
+  the project's quantities are known). Progress Photographs are not cleared. The app does not save the workbook: close it without
+  saving to get the formulas back.
+- Built-in POW workbook: the BACKUP quantity cells that are formulas in the template (59 items, e.g. 803(1)a 58.01, 900(1)c 33.6,
+  902(1)a1 3,363.3 of the sample project) now take the Bill of Quantities quantity or are cleared, as the typed cells already were;
+  the formula is kept aside and comes back with New POW / Open POW.
+Not verified here: the Excel (COM) clearing runs only on Windows with Excel; check it on a copy of your workbook.
+Tests: PowWorkbookEngineTests 47, PowWorkbookCopiesTests 8, PowLargeWorkbookTests 13, AdditionalWorksTests 99,
+WorksWorkbookWriterTests 14.
+Includes everything of v7.1.14.
