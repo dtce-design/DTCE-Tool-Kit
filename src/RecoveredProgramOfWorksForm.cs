@@ -9685,7 +9685,7 @@ void SetupBackupBillEditing(){boqGrid.ReadOnly=false;foreach(DataGridViewColumn 
 						})
 						where BackupMapping.Unit(d.Unit) == BackupMapping.Unit(item.Unit)
 						select d).ToList();
-					double? num = item.ManualQuantity ?? (((BackupMapping.Unit(item.Unit) != "ls" && list.Count > 0) || list.Any((BackupDemand d) => d.ManualPriority >= 1)) ? new double?(BackupMapping.FinalQuantity(list, item.Unit)) : (double?)null) /* the BACKUP value is not used (23 November 2026) */;
+					double? num = item.ManualQuantity ?? (((BackupMapping.Unit(item.Unit) != "ls" && list.Count > 0) || list.Any((BackupDemand d) => d.ManualPriority >= 1)) ? new double?(BackupMapping.FinalQuantity(list, item.Unit)) : item.WorkbookFallback) /* only Progress Photographs from BACKUP (23 November 2026) */;
 					b.AppendLine(item.Code + " | " + PayItemText.Display(item.Description) + " | " + (num.HasValue ? num.Value.ToString("0.########", CultureInfo.InvariantCulture) : "not entered") + " " + item.Unit);
 				}
 			}

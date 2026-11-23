@@ -21,7 +21,7 @@ partial class ProgramOfWorksForm {
  static string GeneralKey(string code){return new string((code??"").ToUpperInvariant().Where(c=>char.IsLetterOrDigit(c)||c=='(').ToArray());}
  static bool GeneralIs(BackupBillItem item,string key){string k=GeneralKey(item.Code);return k==key||k.StartsWith(key+"(",StringComparison.Ordinal)||key.EndsWith("(")&&k.StartsWith(key,StringComparison.Ordinal);}
  /* typed or workbook quantity of the first item with this code */
- double GeneralEntered(string key){foreach(var item in backupBill)if(GeneralKey(item.Code)==key){double? q=item.ManualQuantity;/* typed in the app only (23 November 2026) */if(q.HasValue&&q.Value>0)return q.Value;}return 0;}
+ double GeneralEntered(string key){foreach(var item in backupBill)if(GeneralKey(item.Code)==key){double? q=item.ManualQuantity??item.WorkbookFallback;/* typed in the app; Progress Photographs from BACKUP (23 November 2026) */if(q.HasValue&&q.Value>0)return q.Value;}return 0;}
  /* the app's Part A / B quantities; months only when withMonths (the schedule itself is built without them) */
  List<BackupDemand> GeneralRequirementSuggestions(IEnumerable<BackupDemand> computed,bool withMonths){var result=new List<BackupDemand>();if(backupBill==null||backupBill.Count==0)return result;
   int months=0;string basis="";if(withMonths&&!suggestingGeneral){int days=ScheduleDaysForSuggestions(computed);if(days>0){months=(int)Math.Ceiling(days/30.0-1e-9);basis="construction schedule "+days+" calendar days / 30 = "+months+" month(s)";}}
