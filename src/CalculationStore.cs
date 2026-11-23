@@ -1,7 +1,7 @@
 using System;using System.IO;using System.Linq;using System.Xml;using System.Globalization;using System.Collections.Generic;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 static class CalculationStore {
- public static string StorageDirectory=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"BeamTools");public static event Action Changed;
+ public static string StorageDirectory=SharedData.Folder("Settings","BeamTools","SpliceDevelopmentHookConfigurations.xml");public static event Action Changed;
  static string Key(LengthConfiguration c){return c.Input.Fc.ToString("R",CultureInfo.InvariantCulture)+"/"+c.GradeSmall+"/"+c.FySmall.ToString("R",CultureInfo.InvariantCulture)+"/"+c.GradeLarge+"/"+c.FyLarge.ToString("R",CultureInfo.InvariantCulture);}
  public static LengthConfiguration Clone(LengthConfiguration c){var d=new XmlDocument();var e=d.CreateElement("Configuration");c.Write(e);return LengthConfiguration.Read(e);}
  public static List<LengthConfiguration> All(){var list=new List<LengthConfiguration>();foreach(int fc in new[]{21,28,35})foreach(int small in new[]{40,60})foreach(int large in new[]{40,60})list.Add(new LengthConfiguration{Name="Built-in FC"+fc+" G"+small+"/G"+large,GradeSmall=small,GradeLarge=large,FySmall=small==40?275:420,FyLarge=large==40?275:420,Input=new LengthInput{Fc=fc,Round=25,Simplified=true}});list.Add(new LengthConfiguration{Name="Sample 27.6MPa / 414MPa",GradeSmall=60,GradeLarge=60,FySmall=414,FyLarge=414,Input=new LengthInput{Fc=27.6,Round=25,Simplified=true}});var saved=Saved();var hidden=Hidden();return list.Where(c=>!hidden.Contains(c.Name)&&!saved.Any(item=>item.Name.Equals(c.Name,StringComparison.OrdinalIgnoreCase))).Concat(saved).ToList();}

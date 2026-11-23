@@ -361,8 +361,7 @@ partial class MainForm:Form {
 static class Program {
  [STAThread]static int Main(string[] args){
   Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);ModernUi.Install();HorizontalWheel.Install();
-  /* Owner (18 November 2026): project information starts blank each session; opening a POW file loads its own. */
-  if(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI")))ProjectInfoStore.ClearProject();
+  /* Owner (23 November 2026, superseding 18 November): the saved project stays open after a restart. */
   try{
    #if TEST_BUILD
    if(args.Length>0&&args[0]=="--self-test")return SelfTest(args);

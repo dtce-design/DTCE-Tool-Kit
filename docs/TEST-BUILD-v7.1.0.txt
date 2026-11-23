@@ -27,6 +27,14 @@ PATCH - fixes and adjustments:
   Cabinets ALC, Roof Frame RFF, Floor Frame FLF, Fascia Board FB, Laminated Phenolic Board LPB (Column Estimate keeps C); Pavement
   Construction - Roadway Excavation REX, Subgrade Preparation SGP, Aggregate Base / Subbase ABS, PCCP 150 mm PC150, PCCP 230 mm
   PC230, Sidewalk SW. IDs already in a project are kept; new rows take the new prefix.
+- Saved settings and projects open in the Microsoft Store app and in the downloaded .exe alike (owner: "kahit sana app from store or
+  downloaded lang exe file sana naoopen pa din yung saved settings and project"): the Store app kept AppData in its own private copy,
+  so the two did not see each other's files. Project Information, the saved projects list, splice / development / hook
+  configurations, the appearance (Light / Dark), rainy days and POW workbook data are now in Documents\DTCE Tool Kit (Settings, POW),
+  like the roof profiles; the first time, the newest copy from the old AppData folder or the Store copy is brought over (a file
+  already there is never replaced). Access codes, admin approvals and map caches stay in AppData.
+- The project stays open: it is no longer cleared when the app starts or when the Bill of Quantities closes (supersedes the
+  18 November "blank each session" rule). Opening a Bill of Quantities file still loads that file's project.
 Includes everything of v7.0.5 (Lintel Beam equal split, lintels in the Miscellaneous Structures rebar summary) and v7.0.0-v7.0.4.
 Tests: ProjectLibraryTests 11, OpeningLintelTests 25, MemberSchedulesTests 32, UpdateAndQuantityTests 31 (moulding quantity) and the
 full local test list (Mono UI tests that fail on the earlier code too are left to the Windows CI).

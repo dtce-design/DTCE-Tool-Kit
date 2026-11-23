@@ -200,6 +200,13 @@ lintels in the Miscellaneous Structures rebar summary), the same way after its W
 Owner (23 November 2026, chose "Upload v7.1.0"): the Store release is v7.1.0 (v7.0.5 plus the project title in every window, the works
 tabs in construction sequence, manual canopy schedules, rows estimated only with description / deduction, editable moulding quantity).
 
+## Shared settings and the open project (23 November 2026)
+
+Owner: "kahit sana app from store or downloaded lang exe file sana naoopen pa din yung saved settings and project". User settings and
+saved projects live in Documents\DTCE Tool Kit (src/SharedData.cs), shared by the Store (MSIX, AppData virtualized) and the .exe; old
+AppData / Store-private copies are brought over once. The project is no longer cleared on app start or when the Bill of Quantities
+closes (supersedes the 18 November "starts blank each session" rule).
+
 ## Complete rows only (23 November 2026)
 
 Owner: "naeestimate pa din kahit di kumpleto"; "pati yung sa deduction dapat may input". A Bill of Quantities row with a blank

@@ -8,7 +8,7 @@ namespace BeamScheduleFormatter {
    template's values stay as they are until the owner types a new value; the typed values are the POW project, saved as a .pow.xml file
    (root <PowWorkbook>). "Use another POW workbook" can still replace the built-in template with a newer DPWH version. */
 sealed partial class PowWorkbookForm : Form {
- internal static string DataFolder{get{var dir=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"DTCE Tool Kit","POW");Directory.CreateDirectory(dir);return dir;}}
+ internal static string DataFolder{get{return SharedData.Folder("POW",Path.Combine("DTCE Tool Kit","POW"));}}
  /* a workbook chosen with "Use another POW workbook" wins over the built-in template */
  internal static string CustomTemplatePath{get{foreach(var n in new[]{"PowWorkbook.xlsm","PowWorkbook.xlsx"}){var p=Path.Combine(DataFolder,n);if(File.Exists(p))return p;}return null;}}
  static string LastProjectPath{get{return Path.Combine(DataFolder,"LastProject.txt");}}
