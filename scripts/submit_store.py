@@ -93,6 +93,16 @@ def prepare(submission, filename, version, notes):
     for package in old: package['fileStatus'] = 'PendingDelete'
     submission['applicationPackages'] = old + [{'fileName': filename, 'fileStatus': 'PendingUpload'}]
     submission['notesForCertification'] = notes
+    # Store visibility only when the workflow asks for it (owner, 23 November 2026: "user app available or searchable in store");
+    # otherwise the submission keeps the Partner Center setting.
+    wanted = os.environ.get('STORE_VISIBILITY', '').strip()
+    if wanted:
+        if wanted not in ('Public', 'Private', 'Hidden'):
+            raise ValueError('STORE_VISIBILITY must be Public, Private or Hidden')
+        print('Store visibility: ' + str(submission.get('visibility')) + ' -> ' + wanted)
+        submission['visibility'] = wanted
+    else:
+        print('Store visibility kept: ' + str(submission.get('visibility')))
     for locale, listing in submission.get('listings', {}).items():
         # Do not replace localized text with English or modify images/product settings.
         if locale.lower() in content['locales']:

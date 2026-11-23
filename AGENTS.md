@@ -244,7 +244,8 @@ New owner request (23 November 2026, "upload to microsoft store"; chose "Replace
 Windows CI passes (PR to main for the GitHub release, then publish_microsoft_store=true with replace_pending_store_submission=true for
 this release only - a v7.1.24 submission still in certification is cancelled and replaced). The owner has not yet deleted the
 Partner Center User draft 1152921505702479990, so the User upload may be refused again until it is deleted. Later versions again need a
-new explicit request.
+new explicit request. Owner then: "deleted all submission" (Partner Center drafts deleted); "user app available or searchable in store":
+the User upload sets visibility Public (STORE_VISIBILITY, User job only). The release is v7.2.4 (v7.2.3 plus the Windows tab fix).
 
 ## Shared settings and the open project (23 November 2026)
 

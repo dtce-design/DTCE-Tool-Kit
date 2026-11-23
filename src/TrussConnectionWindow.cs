@@ -25,8 +25,9 @@ class TrussConnectionForm:DesignSheetForm {
    /* Calculate / Open select the last tab to show the report: stay on the open design and show its Report instead */if(!user){e.Cancel=true;if(IsHandleCreated)BeginInvoke(new Action(ShowReport));}};
   Pages.SelectedIndexChanged+=(s,e)=>{if(switching)return;OpenDesign(Pages.SelectedTab==boltMain);};
   foreach(var tabs in new[]{weldTabs,boltTabs})tabs.SelectedIndexChanged+=(s,e)=>{var t=(TabControl)s;if(t.SelectedTab==reportPage)RefreshReport();};}
+ /* the sub tabs are rebuilt in order with Add only: TabPages.Insert does nothing on Windows before the tab control has its handle */
  void Place(NavigationTabs tabs){int keep=0;foreach(var other in new[]{weldTabs,boltTabs})if(other!=tabs&&other.TabPages.Contains(memberPage)){keep=other.SelectedIndex;foreach(var pg in new[]{memberPage,blockPage,staadPage,reportPage})other.TabPages.Remove(pg);}
-  if(tabs.TabPages.Contains(memberPage))return;tabs.TabPages.Insert(0,memberPage);tabs.TabPages.Add(blockPage);tabs.TabPages.Add(staadPage);tabs.TabPages.Add(reportPage);tabs.SelectedIndex=Math.Max(0,Math.Min(keep,tabs.TabCount-1));}
+  if(tabs.TabPages.Contains(memberPage))return;var detail=tabs.TabPages.Cast<TabPage>().First(p=>p!=memberPage&&p!=blockPage&&p!=staadPage&&p!=reportPage);tabs.TabPages.Clear();foreach(var pg in new[]{memberPage,detail,blockPage,staadPage,reportPage})tabs.TabPages.Add(pg);tabs.SelectedIndex=Math.Max(0,Math.Min(keep,tabs.TabCount-1));}
  void OpenDesign(bool bolted){switching=true;try{if(Pages.SelectedTab!=(bolted?boltMain:weldMain))Pages.SelectedTab=bolted?boltMain:weldMain;Place(bolted?boltTabs:weldTabs);}finally{switching=false;}
   if(!Restoring)connection.SelectedItem=bolted?"Bolts":"Weld";var tabs=bolted?boltTabs:weldTabs;if(tabs.SelectedTab==reportPage)RefreshReport();}
  void ShowReport(){var tabs=connection.Text=="Bolts"?boltTabs:weldTabs;OpenDesign(tabs==boltTabs);if(tabs.SelectedTab!=reportPage)tabs.SelectedTab=reportPage;else RefreshReport();}
