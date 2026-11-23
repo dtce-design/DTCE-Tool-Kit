@@ -1,0 +1,16 @@
+DTCE Tool Kit v7.1.19 (23 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Dropdown cells and truss schedules (owner: "sa mga drop down box ... kapag copy paste ko tapos down arrow bababa yung size";
+"kapag sinelect ko lang yung cell pero hindi yung drop down, dapat i-avoid ang scroll down"; "add button para assign schedule of trusses
+tapos yung schedule na lang input"):
+- Dropdown cells (sizes, profiles, materials ...) in every Bill of Quantities sheet: while the list is closed, Up / Down (and Page Up /
+  Page Down) move to the row above / below instead of changing the value, and the mouse wheel no longer changes it. Alt+Down or F4 opens
+  the list; inside an open list the arrows choose as before.
+- Angle Bars: "Truss schedules" button. Each truss type (T-1, T-2, ...) is entered once: mark, description, number of trusses, sets
+  and its members (member name, handbook angle profile, material, cut length, quantity per truss). Angle Bars then gets one row per
+  member (QTY per truss, Units = trusses, Sets), with its own ID, computed with the 6 m stock, offcut sharing, painting and BOQ as
+  typed rows. These rows are locked and show the truss mark; editing a truss updates them, deleting it removes them. Saved in the
+  Bill of Quantities file; older files open unchanged.
+Not verified here: the arrow-key / mouse-wheel behaviour needs Windows (the Mono test runtime does not open dropdown editors).
+Tests: TrussScheduleTests 7 (new), SteelPaintingTests 248, DoorHardwareTests 11.
+Includes everything of v7.1.18.

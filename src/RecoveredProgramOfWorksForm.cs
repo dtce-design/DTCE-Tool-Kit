@@ -3750,7 +3750,7 @@ namespace BeamScheduleFormatter
 					item2.Tag = null;
 					for (int i = num; i <= num2; i++)
 					{
-						if (!IsSteelSetColumn(value.Columns[i]) && value.Columns[i].Name != SteelPaintOnlyColumn) item2.Cells[i].Value = "";
+						if (!IsSteelSetColumn(value.Columns[i]) && value.Columns[i].Name != SteelPaintOnlyColumn && value.Columns[i].Name != TrussMarkColumn) item2.Cells[i].Value = "";
 					}
 					if (Empty(item2))
 					{
@@ -7571,6 +7571,7 @@ worksExcelTimer.Tick += async delegate
 						}
 						WriteSteelSets(item.Key, item2, xmlElement3);
 						WriteSteelPaintOnly(item2, xmlElement3);
+						WriteTrussMark(item2, xmlElement3);
 						WriteOpeningPaint(item.Key, item2, xmlElement3);
 						WriteDoorHardware(item2, xmlElement3);
 						WriteRowExcluded(item2, xmlElement3);
@@ -7891,6 +7892,7 @@ worksExcelTimer.Tick += async delegate
 						}
 						ReadSteelSets(item3.Key, item3.Value.Rows[index], item4);
 						ReadSteelPaintOnly(item3.Value.Rows[index], item4);
+						ReadTrussMark(item3.Value.Rows[index], item4);
 						ReadOpeningPaint(item3.Key, item3.Value.Rows[index], item4);
 						ReadDoorHardware(item3.Value.Rows[index], item4);
 						if ((item3.Key == "Wood" || item3.Key == "Aluminum") && !item4.HasAttribute("c" + OpeningMaterialColumn)) item3.Value.Rows[index].Cells[OpeningMaterialColumn].Value = (item3.Key == "Wood") ? "Wood" : "Aluminum";
@@ -7934,6 +7936,7 @@ worksExcelTimer.Tick += async delegate
             projectSourceFiles.Replace(savedSourceFiles);
             if(savedProjectInformation==null&&!Automated)ProjectInfoStore.ClearProject();
             if(savedProjectInformation!=null)ProjectInfoStore.Save(savedProjectInformation.Name,savedProjectInformation.Location,savedProjectInformation.Office,savedProjectInformation.OfficeAddress,savedProjectInformation.DatePrepared??"",PowProjectInformation.FiscalYearFor(savedProjectInformation),PowProjectInformation.AbcFor(savedProjectInformation));
+			StyleTrussRows(); /* rows made from a truss schedule stay locked */
 			PowTiming.Mark("project info / sources");
 			Recalculate();
 			PowTiming.Mark("recalculation");
