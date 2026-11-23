@@ -1,0 +1,9 @@
+DTCE Tool Kit v7.1.1 (23 November 2026) - not uploaded; included in the Store release v7.1.3.
+
+PATCH - Bill of Quantities:
+- Entry IDs: every estimate has its own prefix (owner: "unique entry id per works or per estimate"; chose per estimate), so an
+  automatic ID is not repeated in the project: Carpentry and Joinery - Modular Base Cabinets MBC, Modular Wall Cabinets MWC, Aluminum
+  Cabinets ALC, Roof Frame RFF, Floor Frame FLF, Fascia Board FB, Laminated Phenolic Board LPB (Column Estimate keeps C); Pavement
+  Construction - Roadway Excavation REX, Subgrade Preparation SGP, Aggregate Base / Subbase ABS, PCCP 150 mm PC150, PCCP 230 mm
+  PC230, Sidewalk SW. IDs already in a project are kept; new rows take the new prefix.
+Includes everything of v7.1.0.

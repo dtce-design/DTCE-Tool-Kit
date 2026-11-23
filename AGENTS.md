@@ -199,6 +199,9 @@ Owner (23 November 2026, chose "Include: upload v7.0.5"): the Store release is v
 lintels in the Miscellaneous Structures rebar summary), the same way after its Windows CI passes.
 Owner (23 November 2026, chose "Upload v7.1.0"): the Store release is v7.1.0 (v7.0.5 plus the project title in every window, the works
 tabs in construction sequence, manual canopy schedules, rows estimated only with description / deduction, editable moulding quantity).
+Owner (23 November 2026, "PAKI PUSH NA AFTER SA MICROSOFT STORE"; "bakit same pa din version no?"): the fixes added after v7.1.0 got
+their own PATCH numbers (v7.1.1 entry ID prefixes, v7.1.2 shared settings / project kept, v7.1.3 go to an input error); the Store
+release is v7.1.3, the same way after its Windows CI passes. Every later change gets its own version number, released or not.
 
 ## Shared settings and the open project (23 November 2026)
 
