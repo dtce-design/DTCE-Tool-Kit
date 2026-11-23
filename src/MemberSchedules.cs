@@ -32,7 +32,15 @@ partial class ProgramOfWorksForm {
   ScheduleButton("Footing Estimate","Manual footing schedules",fs,"Enter each footing type once (mark, L x B x D, cover and bars). On Footing Estimate choose the type in Schedule mark: the row then takes its size and bars from here, and a change here updates every row of that type. Quantity, excavation depth, side forms and materials stay on each row. For each bar group enter spacing or number of bars, as chosen in the footing settings. Rows without a mark keep their own values.");
   memberSchedules.Add(new MemberSchedule{Kind="Footing",Schedule=fs,Estimate=footings,Targets=footingTargets});
   /* the schedules are edited through the manager window (Add / Edit / Delete), not typed in place */
-  foreach(var g in new[]{cs,fs}){g.AllowUserToAddRows=false;g.AllowUserToDeleteRows=false;g.ReadOnly=true;}
+  /* canopies / ledges (owner, 23 November 2026: "option to input schedule or button for manual schedule"): projection, thickness, cover,
+     both bar layers, the wall anchorage, the extra ends and the bottom mat; length along the wall and quantity stay on each row */
+  var canopyTypes=(DataGridView)null;if(canopies!=null){int[] canopyTargets={3,4,6,7,8,9,10,11,12,13,14,15};
+   canopyTypes=Grid(new[]{"Mark","Description"}.Concat(canopyTargets.Select(i=>canopies.Columns[i].HeaderText)).Concat(new[]{"Used by"}).ToArray(),2+canopyTargets.Length);
+   AddCombo(canopyTypes,13,canopies.Columns[15].HeaderText,new[]{"No","Yes"});
+   SetDefaults(canopyTypes,new Dictionary<int,string>{{2,"1.0"},{3,"150"},{4,"25"},{5,"10"},{6,"150"},{8,"10"},{9,"150"},{12,"0"},{13,"No"}});
+   ScheduleButton("Canopy / Ledge Estimate","Manual canopy schedules",canopyTypes,"Enter each canopy / ledge type once (mark, projection, thickness, cover and bars). On Canopy / Ledge Estimate choose the type in Schedule mark: the row then takes its projection, thickness and bars from here, and a change here updates every row of that type. Length along the wall and quantity stay on each row. For each bar layer enter spacing or count per unit.");
+   memberSchedules.Add(new MemberSchedule{Kind="Canopy",Schedule=canopyTypes,Estimate=canopies,Targets=canopyTargets});}
+  foreach(var g in new[]{cs,fs,canopyTypes}){if(g==null)continue;g.AllowUserToAddRows=false;g.AllowUserToDeleteRows=false;g.ReadOnly=true;}
   foreach(var m in memberSchedules){var s=m;var g=s.Estimate;var mark=new DataGridViewComboBoxColumn{Name=ScheduleMarkColumn,HeaderText="Schedule mark",Width=120,FlatStyle=FlatStyle.Flat,DisplayStyle=DataGridViewComboBoxDisplayStyle.DropDownButton,ToolTipText="Choose a type from the "+s.Kind+" Schedule; blank = this row's own values.",SortMode=DataGridViewColumnSortMode.NotSortable};mark.DefaultCellStyle.BackColor=ModernUi.Input;mark.Items.Add("");int at=g.Columns.Add(mark);g.Columns[at].DisplayIndex=Math.Min(2,g.Columns.Count-1);
    g.CurrentCellDirtyStateChanged+=(x,e)=>{if(g.IsCurrentCellDirty&&g.CurrentCell!=null&&g.CurrentCell.OwningColumn.Name==ScheduleMarkColumn)g.CommitEdit(DataGridViewDataErrorContexts.Commit);};
    g.CellValueChanged+=(x,e)=>{if(!filling&&e.RowIndex>=0&&e.ColumnIndex>=0&&g.Columns[e.ColumnIndex].Name==ScheduleMarkColumn)Recalculate();};
@@ -40,7 +48,7 @@ partial class ProgramOfWorksForm {
  }
  /* a command-bar button like the beam and slab "manual schedule" buttons (owner: "hindi siya tab button siya kagaya sa beam at
     slab"); the schedule table opens in its own window and stays in the project when the window closes */
- void ScheduleButton(string page,string caption,DataGridView schedule,string guide){var tab=tabs.TabPages.Cast<TabPage>().First(p=>p.Text==page);var bar=tab.Controls.OfType<FlowLayoutPanel>().First();
+ void ScheduleButton(string page,string caption,DataGridView schedule,string guide){/* a main sheet, or a sub sheet such as Canopy / Ledge Estimate under Miscellaneous Structures */var tab=tabs.TabPages.Cast<TabPage>().FirstOrDefault(p=>p.Text==page)??AllControls(tabs).OfType<TabPage>().First(p=>p.Text==page);var bar=tab.Controls.OfType<FlowLayoutPanel>().First();
   Button(bar,caption,()=>ShowSchedule(caption,schedule,guide));bar.Visible=true;}
  /* the manager (owner: "tapos may manage para pwede mag edit and delete"): a read-only list of the types with Add, Edit and Delete;
     Add / Edit open an entry form. Renaming a mark renames it on the estimate rows; deleting a type unlinks its rows, which keep
@@ -131,7 +139,7 @@ partial class ProgramOfWorksForm {
    var used=new Dictionary<string,List<string>>(StringComparer.OrdinalIgnoreCase);int markIndex=s.Estimate.Columns[ScheduleMarkColumn].Index;
    foreach(DataGridViewRow row in s.Estimate.Rows){if(row.IsNewRow||IsExcludedRow(row))continue;var markCell=row.Cells[markIndex];string k=MarkKey(markCell.Value);markCell.ErrorText="";DataGridViewRow type=null;
     if(k!=""&&!types.TryGetValue(k,out type))markCell.ErrorText="Mark "+k+" is not on the "+s.Kind+" Schedule; the row keeps its own values.";
-    for(int i=0;i<s.Targets.Length;i++){var cell=row.Cells[s.Targets[i]];if(type!=null){object v=type.Cells[s.First+i].Value;string text=v is bool?v.ToString():Convert.ToString(v);if(cell is DataGridViewCheckBoxCell)cell.Value=text!=""&&bool.Parse(text);else cell.Value=text;GridFormulas.Set(cell,null);cell.ReadOnly=true;cell.Style.BackColor=DesktopAppearance.Palette.Soft;cell.ToolTipText="From "+s.Kind+" Schedule "+k;}
+    for(int i=0;i<s.Targets.Length;i++){var cell=row.Cells[s.Targets[i]];if(type!=null){object v=type.Cells[s.First+i].Value;string text=v is bool?v.ToString():Convert.ToString(v);if(cell is DataGridViewCheckBoxCell)cell.Value=text.Equals("Yes",StringComparison.OrdinalIgnoreCase)||text.Equals("True",StringComparison.OrdinalIgnoreCase);else cell.Value=text;GridFormulas.Set(cell,null);cell.ReadOnly=true;cell.Style.BackColor=DesktopAppearance.Palette.Soft;cell.ToolTipText="From "+s.Kind+" Schedule "+k;}
      else if(cell.ReadOnly&&cell.ToolTipText.StartsWith("From ")){cell.ReadOnly=false;cell.Style.BackColor=Color.Empty;cell.ToolTipText="";}}
     if(type!=null&&s.Extra>0){var ranges=LevelRanges(s,k);var h=row.Cells[2];if(ranges.Count>0){h.Value=(ranges[ranges.Count-1].To-ranges[0].From).ToString("0.###",System.Globalization.CultureInfo.InvariantCulture);h.ReadOnly=true;h.Style.BackColor=DesktopAppearance.Palette.Soft;h.ToolTipText="From "+s.Kind+" Schedule "+k+": "+ranges.Count+" level range"+(ranges.Count==1?"":"s")+" ("+ranges[0].From.ToString("0.00",System.Globalization.CultureInfo.InvariantCulture)+" to "+ranges[ranges.Count-1].To.ToString("0.00",System.Globalization.CultureInfo.InvariantCulture)+" m)";}else if(h.ReadOnly&&h.ToolTipText.StartsWith("From ")){h.ReadOnly=false;h.Style.BackColor=Color.Empty;h.ToolTipText="";}}
     if(type!=null){List<string> list;if(!used.TryGetValue(k,out list))used[k]=list=new List<string>();list.Add(Convert.ToString(row.Cells[0].Value));}}

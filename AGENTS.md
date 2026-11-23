@@ -197,6 +197,14 @@ replace_pending_store_submission stays false unless the owner asks). The Admin e
 explicit request.
 Owner (23 November 2026, chose "Include: upload v7.0.5"): the Store release is v7.0.5 (v7.0.4 plus the Lintel Beam equal split and the
 lintels in the Miscellaneous Structures rebar summary), the same way after its Windows CI passes.
+Owner (23 November 2026, chose "Upload v7.1.0"): the Store release is v7.1.0 (v7.0.5 plus the project title in every window, the works
+tabs in construction sequence, manual canopy schedules, rows estimated only with description / deduction, editable moulding quantity).
+
+## Complete rows only (23 November 2026)
+
+Owner: "naeestimate pa din kahit di kumpleto"; "pati yung sa deduction dapat may input". A Bill of Quantities row with a blank
+Description / location, or a blank deduction where the deduction is used, is not estimated (src/RequiredDescription.cs); 0 is typed
+when there is nothing to deduct.
 
 ## Program of Works name (20 November 2026)
 

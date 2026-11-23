@@ -6609,6 +6609,7 @@ worksExcelTimer.Tick += async delegate
 						};
 						if (!flag || !(finishItem.Basis == "Whole wall (auto)"))
 						{
+							RequireDeduction(item, flag ? 10 : 6);
 							string typed = TypedFinishArea(item);
 							if (typed != "") finishItem.TypedArea = Number(item, item.DataGridView.Columns[FinishTypedAreaColumn].Index);
 							if (typed == "" || Cell(item, flag ? 7 : 3) != "" || Cell(item, flag ? 8 : 4) != "")

@@ -46,4 +46,13 @@ class MemberSchedulesTests {
   bool refused=false;try{est.ReplaceManual("B1A",Beam("B2","300","550"));}catch(Exception){refused=true;}Check(refused,"rename to an existing mark is refused");
   est.DeleteManual("B2");var items=((DataGridViewComboBoxColumn)beams.Columns[1]).Items.Cast<object>().Select(Convert.ToString).ToList();Check(!items.Contains("B2")&&items.Contains("B1A")&&beams.Rows.Cast<DataGridViewRow>().Count(x=>!x.IsNewRow)==1,"deleting an unused beam schedule keeps the other rows");
   est.DeleteManual("B1A");Check(beams.Rows.Cast<DataGridViewRow>().Count(x=>!x.IsNewRow)==0,"deleting a used beam schedule removes its takeoff rows");
+  /* manual canopy / ledge schedule (23 November 2026) */
+  {var cp=new ProgramOfWorksForm();var canopy=(DataGridView)typeof(ProgramOfWorksForm).GetField("canopies",F).GetValue(cp);var list=(System.Collections.IList)typeof(ProgramOfWorksForm).GetField("memberSchedules",F).GetValue(cp);
+   object entry=list.Cast<object>().Single(m=>(string)m.GetType().GetField("Kind").GetValue(m)=="Canopy");var types=(DataGridView)entry.GetType().GetField("Schedule").GetValue(entry);
+   Check(types.Columns.Count==15&&types.Columns[13].HeaderText==canopy.Columns[15].HeaderText,"canopy schedule: mark, description, 12 inputs, used by");
+   types.Rows.Add("C1","Door canopy","1.2","120","25","12","150","","10","200","","300","0","Yes");
+   int cr=canopy.Rows.Add();foreach(var d in new[]{new[]{"16","21"},new[]{"17","40"},new[]{"18","60"}})canopy.Rows[cr].Cells[int.Parse(d[0])].Value=d[1];canopy.Rows[cr].Cells[0].Value="CN-1";canopy.Rows[cr].Cells[1].Value="Front door";canopy.Rows[cr].Cells[2].Value="3";canopy.Rows[cr].Cells[5].Value="2";canopy.Rows[cr].Cells[ProgramOfWorksForm.ScheduleMarkColumn].Value="C1";
+   cp.Recalculate();var crow=canopy.Rows[cr];
+   Check(Convert.ToString(crow.Cells[3].Value)=="1.2"&&Convert.ToString(crow.Cells[4].Value)=="120"&&Convert.ToString(crow.Cells[7].Value)=="12"&&Equals(crow.Cells[15].Value,true)&&crow.Cells[4].ReadOnly,"canopy row takes projection, thickness, bars and bottom mat from type C1");
+   Check(Convert.ToString(crow.Cells[25].Value)=="Estimated"&&Math.Abs(Convert.ToDouble(crow.Cells[19].Value)-3*1.2*0.12*2)<1e-6,"canopy from the schedule is estimated: "+crow.Cells[25].Value+" "+crow.Cells[19].Value);}
   Console.WriteLine("PASS: "+checks+" manual column / footing schedule, old-format, save/open and beam schedule manager checks.");Environment.Exit(0);}}

@@ -48,5 +48,10 @@ class OpeningLintelTests {
    var vb=diff.Steel.Result.Lines.Single(l=>l.Part=="VERTICAL / side B");Check(vb.Diameter==16&&vb.PiecesPerBeam==(int)Math.Ceiling((5-0.05-0.016)/0.15-1e-10)+1,"side B vertical bars with their own diameter and spacing");
    Check(diff.Steel.Result.Lines.Single(l=>l.Part=="HORIZONTAL / side B").Diameter==12,"side B horizontal blank = as side A");
    var ins=(DataGridView)t.GetField("insulationRolls",F).GetValue(pow);Check(ins.Rows.Cast<DataGridViewRow>().All(ir=>Convert.ToString(ir.Cells[1].Value)=="1"&&Convert.ToString(ir.Cells[2].Value)=="50"),"insulation rolls 1 m x 50 m by default");}
+  /* a row is estimated only when its description and deduction are entered (23 November 2026) */
+  {var grids=(System.Collections.IDictionary)typeof(ProgramOfWorksForm).GetField("extraGrids",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(pow);var item=grids["Carpentry6"];var board=(DataGridView)item.GetType().GetField("Grid").GetValue(item);
+   int br=board.Rows.Add("C-001","","0.85","1.9","3");pow.Recalculate();Check(Convert.ToString(board.Rows[br].Cells[8].Value)==ProgramOfWorksForm.DescriptionMissing,"no description: not estimated ("+board.Rows[br].Cells[8].Value+")");
+   board.Rows[br].Cells[1].Value="Female Toilet - Shower";pow.Recalculate();Check(Convert.ToString(board.Rows[br].Cells[8].Value)==ProgramOfWorksForm.DeductionMissing,"no deduction: not estimated ("+board.Rows[br].Cells[8].Value+")");
+   board.Rows[br].Cells[5].Value="0";pow.Recalculate();Check(Convert.ToString(board.Rows[br].Cells[8].Value)=="Estimated"&&Math.Abs(Convert.ToDouble(board.Rows[br].Cells[6].Value)-0.85*1.9*3)<1e-9,"description and deduction 0: estimated");board.Rows.RemoveAt(br);pow.Recalculate();}
   Console.WriteLine("PASS: "+checks+" automatic lintel checks");pow.Dispose();}
 }
