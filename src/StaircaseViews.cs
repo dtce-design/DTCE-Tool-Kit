@@ -28,13 +28,16 @@ class StairSectionView:StairZoomView {
   int n=Member==1?i.N2:Member==2?i.N3:i.N1;if(i.Flights==1)n=i.N1;double R=i.Riser,T=i.Tread,t=i.Waist,tl=i.LandingT;double before=Member==0?i.BottomLanding:(i.Flights==3&&Member==2?i.Width:i.Flights==3?i.Width*.5:i.Landing.StartsWith("Landing spans")?i.MidLanding:0);
   double after=Member==0&&i.Flights>1?(i.Flights==3?i.Width:i.Landing.StartsWith("Landing spans")?i.MidLanding:0):Member==1&&i.Flights==3?i.Width*.5:i.TopLanding;if(i.Flights==1)after=i.TopLanding;
   double going=(n-1)*T,L=before+going+after,H=n*R;bool fitBeams=i.OnBeams&&!i.Slabless;double padL=fitBeams?(before<=0?i.BeamB+350:0):0,padR=fitBeams?(after<=0?i.BeamB+350:0):0,padZ=fitBeams?i.BeamH:0;
-  float s=(float)Math.Min((r.Width-140)/Math.Max(L+600+padL+padR,1),(r.Height-150)/Math.Max(H+t+300+padZ,1));float ox=70+(float)(padL*s),oy=r.Height-100-(float)(padZ*s)+(float)(300*s);Func<double,double,PointF> P=(px,pz)=>new PointF(ox+(float)((px+300)*s),oy-(float)((pz+300)*s));
+  float s=(float)Math.Min((r.Width-140)/Math.Max(L+600+padL+padR,1),(r.Height-175)/Math.Max(H+t+300+padZ,1));float ox=70+(float)(padL*s),oy=r.Height-125-(float)(padZ*s)+(float)(300*s);Func<double,double,PointF> P=(px,pz)=>new PointF(ox+(float)((px+300)*s),oy-(float)((pz+300)*s));
+  bool topFull=i.TopFull&&!i.Slabless;/* top bars along the whole flight (default) or only at the supports, L/4 */
   double k=Math.Sqrt(R*R+T*T)/T,ts=i.Slabless?0:t*k;Func<double,double> ext0=gg=>gg*0.25+300;var outline=new List<PointF>();/* top profile */outline.Add(P(0,0));outline.Add(P(before,0));double x=before;for(int j=0;j<n-1;j++){outline.Add(P(x,(j+1)*R));x+=T;outline.Add(P(x,(j+1)*R));}outline.Add(P(x,H));outline.Add(P(L,H));
   /* soffit: the waist runs straight at the slope until it meets the underside of each landing (owner, 23 November 2026: "di pa maayos
      yung section ng stairs rebar") - no wedge under the landing */
   Func<double,double> slope=xx=>(xx-before)*R/T-ts;Func<double,double> bot=xx=>{double z=slope(xx);if(before>0&&z<-tl)z=-tl;if(after>0&&z>H-tl)z=H-tl;return z;};
   double xTop=before+(H-tl+ts)*T/R,xBot=before+(ts-tl)*T/R;
-  var soff=new List<PointF>();if(i.Slabless){soff.Add(P(L,H-tl));x=before+going;for(int j=n-1;j>=1;j--){soff.Add(P(x,j*R+(j==n-1?R-tl:0)-t));x-=T;soff.Add(P(x+T-t,j*R-t));}soff.Add(P(before,-tl));soff.Add(P(0,-tl));}
+  var soff=new List<PointF>();if(i.Slabless){/* the underside of the folded plate: every tread and riser plate t thick */if(after>0){soff.Add(P(L,H-tl));soff.Add(P(before+going+t,H-tl));}else soff.Add(P(L+t,H));
+   for(int j=n-1;j>=0;j--){double xj=before+j*T;if(j<n-1)soff.Add(P(xj+T+t,(j+1)*R-t));soff.Add(P(xj+t,(j+1)*R-t));soff.Add(P(xj+t,Math.Max(j*R-t,before>0||j>0?j*R-t:-tl)));}
+   soff.Add(P(before+t,-tl));soff.Add(P(0,-tl));}
   else{foreach(var xx in new[]{L,xTop,xBot,0.0}.Where(v=>v>=0&&v<=L).Distinct().OrderByDescending(v=>v))soff.Add(P(xx,bot(xx)));}
   /* support beams where they are (owner, 23 November 2026: "pwede mag assign ng beam as support tapos sa location niya sa landing"):
      a landing beam at its distance from the flight, a floor beam (with the floor slab) where the flight has no landing */
@@ -58,33 +61,53 @@ class StairSectionView:StairZoomView {
   /* bars following the slab: bottom bars along the soffit, top bars over the supports and through the kinks (sampled along the profile) */
   double c=i.Cover+i.MainDia/2,tsl=i.Slabless?t:ts;Func<double,double> topLine=xx=>i.Slabless?(xx<before?-c:xx>before+going?H-c:(xx-before)*R/T-c):Math.Min(H-c,Math.Max(-c,(xx-before)*R/T-c));/* the top face of the waist runs on at the slope until it meets the landing top (no step up the last riser) */Func<double,double> botLine=xx=>i.Slabless?(xx<before?-tl+c:xx>before+going?H-tl+c:(xx-before)*R/T-tsl+c):bot(xx)+c;
   Func<double,double,Func<double,double>,PointF[]> run=(a,b2,fz)=>{var pts=new List<PointF>();int nn=60;for(int q=0;q<=nn;q++){double xx=a+(b2-a)*q/nn;pts.Add(P(xx,fz(xx)));}return pts.ToArray();};
-  using(var bar=new Pen(Steel,2.2f/Zoom)){
-   if(i.Slabless)g.DrawLines(bar,run(150,L-150,botLine));
+  /* drawn to scale (owner, 23 November 2026: "di pa naka drawn to scale"): bar lines and dots are their real diameters at the drawing
+     scale (never thinner than a hairline), the same scale across and up */
+  float barW=Math.Max(1.2f/Zoom,(float)(i.MainDia*s)),distR=Math.Max(1.6f/Zoom,(float)(i.DistDia*s/2));double dOff=(i.MainDia+i.DistDia)/2;
+  Action<Brush,PointF,float> dotAt=(br,q,rad)=>g.FillEllipse(br,q.X-rad,q.Y-rad,2*rad,2*rad);
+  using(var bar=new Pen(Steel,barW){LineJoin=LineJoin.Round}){
+   if(i.Slabless){/* folded plate (owner, 23 November 2026: "fix"): both bar layers follow the treads and risers - the top layer at the cover
+       below each tread / inside each riser, the bottom layer at the cover above the soffit - with distribution bars at every fold */
+    Func<double,List<PointF>> zig=o=>{var pts=new List<PointF>();if(before>0)pts.Add(P(c,o==c?-c:-tl+c));for(int j=0;j<n;j++){double xj=before+j*T;pts.Add(P(xj+o,j*R-(o==c?c:t-c)));pts.Add(P(xj+o,(j+1)*R-(o==c?c:t-c)));}
+     if(after>0)pts.Add(P(L-c,o==c?H-c:H-tl+c));return pts;};
+    g.DrawLines(bar,zig(c).ToArray());g.DrawLines(bar,zig(t-c).ToArray());
+    using(var dot=new SolidBrush(Steel))for(int j=0;j<n-1;j++){double xm=before+j*T+T/2;foreach(var q in new[]{P(xm,(j+1)*R-c-dOff),P(xm+t-2*c,(j+1)*R-t+c+dOff)})dotAt(dot,q,distR);}}
    else{/* bottom bars: the flight bar bends round the lower (convex) corner; at the upper landing, where the soffit turns inward, the
            flight bar runs straight on into the landing to its top cover and the landing bar runs on into the flight - the bars cross */
     Func<double,double> flight=xx=>{double z=slope(xx);if(before>0&&z<-tl)z=-tl;return z+c;};
     double xEnd=after>0?Math.Min(L-c,before+(H-2*c+ts)*T/R):L-c;g.DrawLines(bar,run(c,xEnd,flight));
     /* at a flight end on a floor beam the bottom bars run on into the beam */if(beams&&after<=0)g.DrawLines(bar,new[]{P(L-c,flight(L-c)),P(L+i.BeamB-c,flight(L-c))});if(beams&&before<=0)g.DrawLines(bar,new[]{P(c,flight(c)),P(-i.BeamB+c,flight(c))});
-    if(after>0){double xCross=Math.Max(c,before+(H-tl+2*c)*T/R);g.DrawLines(bar,new[]{P(L-c,H-tl+c),P(xCross,H-tl+c)});}}double ext=going*0.25+300;
+    if(after>0){double xCross=Math.Max(c,before+(H-tl+2*c)*T/R);g.DrawLines(bar,new[]{P(L-c,H-tl+c),P(xCross,H-tl+c)});
+     /* standard detail at a re-entrant corner (ACI SP-66 / NSCP 425): each crossing bar runs ld past the crossing; where the concrete is
+        shorter the bar is bent along the opposite face for the rest of ld */
+     double ldm=Staircase.DevLength(i),kk=Math.Sqrt(R*R+T*T)/T,xi=before+(H-tl+ts)*T/R;double rem1=ldm-(xEnd-xi)*kk;if(rem1>1)g.DrawLines(bar,new[]{P(xEnd,H-c),P(Math.Min(L-c,xEnd+rem1),H-c)});
+     double rem2=ldm-(xi-xCross);if(rem2>1){double xl=Math.Max(c,xCross-rem2/kk);g.DrawLines(bar,new[]{P(xCross,H-tl+c),P(xl,(xl-before)*R/T-c)});}
+     var lp=P(xi,H-tl+c);Text(g,"ld "+Staircase.F(ldm,"0"),lp.X+28,lp.Y+12,7f,false,Brushes.DimGray);}}double ext=topFull?L:going*0.25+300;
    /* top bars: the end legs always bend down into the support; where a lower landing meets the flight the top face turns inward, so
       the landing top bar runs straight on into the flight to its bottom cover and the flight top bar runs on into the landing - they
       cross (as the bottom bars at the upper landing) */
    if(!i.Slabless&&before>0){double xa=Math.Min(L-c,before+(ts-2*c)*T/R);g.DrawLines(bar,new[]{P(c,-c-tl*0.6),P(c,-c),P(Math.Max(c,xa),-c)});
-    double xb=Math.Max(c,before+(2*c-tl)*T/R);g.DrawLines(bar,run(xb,Math.Min(L-c,before+ext),xx=>(xx-before)*R/T-c));}
-   else{var left=beams&&before<=0?new List<PointF>{P(-i.BeamB+c,topLine(c)-i.BeamH*0.6),P(-i.BeamB+c,topLine(c))}:new List<PointF>{P(c,topLine(c)-tl*0.6)};left.AddRange(run(c,Math.Min(L-c,before+ext),topLine));g.DrawLines(bar,left.ToArray());}
-   var right=run(Math.Max(c,L-after-ext),L-c,topLine).ToList();if(beams&&after<=0){/* into the floor beam, hooked down at its far face */right.Add(P(L+i.BeamB-c,topLine(L-c)));right.Add(P(L+i.BeamB-c,topLine(L-c)-i.BeamH*0.6));}else right.Add(P(L-c,topLine(L-c)-tl*0.6));g.DrawLines(bar,right.ToArray());}
-  /* distribution bars under the top bars too */if(!i.Slabless)using(var dot=new SolidBrush(Steel)){double ext=going*0.25+300,sp=Math.Max(150,i.DistDia*20)*1.5;foreach(var seg in new[]{new[]{c+100,Math.Min(L-c,before+ext)},new[]{Math.Max(c,L-after-ext),L-c-100}})for(double xx=seg[0];xx<seg[1];xx+=sp){var q=P(xx,topLine(xx)-i.MainDia);g.FillEllipse(dot,q.X-2.2f,q.Y-2.2f,4.4f,4.4f);}}
-  using(var dot=new SolidBrush(Steel)){double sp=Math.Max(150,i.DistDia*20);for(double xx=200;xx<L-100;xx+=sp*1.5){var q=P(xx,botLine(xx)+i.MainDia);g.FillEllipse(dot,q.X-2.2f,q.Y-2.2f,4.4f,4.4f);}}
-  /* nosing bars (one at each step nosing, tied to the waist with a link), chair bars holding the top bars, and the anchorage lengths
-     (owner, 23 November 2026: "proper anchoring ... walang detail ng chair bar and nosing bar") */
+    double xb=Math.Max(c,before+(2*c-tl)*T/R);g.DrawLines(bar,run(xb,Math.Min(L-c,before+ext),xx=>(xx-before)*R/T-c));
+    /* ld past the crossing at the lower re-entrant corner (top face), bent along the opposite face where needed */
+    double ldm=Staircase.DevLength(i),kk=Math.Sqrt(R*R+T*T)/T;double rem1=ldm-(xa-before);if(rem1>1){double xe=Math.Min(L-c,xa+rem1/kk);g.DrawLines(bar,new[]{P(xa,-c),P(xe,slope(xe)+c)});}
+    double rem2=ldm-(before-xb)*kk;if(rem2>1)g.DrawLines(bar,new[]{P(xb,-tl+c),P(Math.Max(c,xb-rem2),-tl+c)});
+    var lp=P(before,-c);Text(g,"ld "+Staircase.F(ldm,"0"),lp.X-30,lp.Y-12,7f,false,Brushes.DimGray);}
+   else if(!i.Slabless){var left=beams&&before<=0?new List<PointF>{P(-i.BeamB+c,topLine(c)-i.BeamH*0.6),P(-i.BeamB+c,topLine(c))}:new List<PointF>{P(c,topLine(c)-tl*0.6)};left.AddRange(run(c,Math.Min(L-c,before+ext),topLine));g.DrawLines(bar,left.ToArray());}
+   if(!i.Slabless){var right=run(topFull?(before>0?Math.Max(c,before+(2*c-tl)*T/R):c):Math.Max(c,L-after-ext),L-c,topLine).ToList();if(beams&&after<=0){/* into the floor beam, hooked down at its far face */right.Add(P(L+i.BeamB-c,topLine(L-c)));right.Add(P(L+i.BeamB-c,topLine(L-c)-i.BeamH*0.6));}else right.Add(P(L-c,topLine(L-c)-tl*0.6));g.DrawLines(bar,right.ToArray());}}
+  /* distribution bars under the top bars too */if(!i.Slabless)using(var dot=new SolidBrush(Steel)){double ext=topFull?L:going*0.25+300,sp=Math.Max(150,i.DistDia*20)*1.5;foreach(var seg in new[]{new[]{c+100,Math.Min(L-c,before+ext)},new[]{Math.Max(c,L-after-ext),L-c-100}})for(double xx=seg[0];xx<seg[1];xx+=sp){var q=P(xx,topLine(xx)-dOff);dotAt(dot,q,distR);}}
+  if(!i.Slabless)using(var dot=new SolidBrush(Steel)){double sp=Math.Max(150,i.DistDia*20);for(double xx=200;xx<L-100;xx+=sp*1.5){var q=P(xx,botLine(xx)+dOff);dotAt(dot,q,distR);}}
+  /* step bars and nosing bars (owner, 23 November 2026: "proper anchoring ... walang detail ng chair bar and nosing bar") */
   PointF noseAt=PointF.Empty,chairAt=PointF.Empty;
-  if(!i.Slabless){double cn=i.Cover+i.DistDia/2;using(var link=new Pen(Steel,1.2f/Zoom))using(var dot=new SolidBrush(Steel))for(int j=0;j<n-1;j++){double nx=before+j*T+cn,nz=(j+1)*R-cn;var q=P(nx,nz);g.FillEllipse(dot,q.X-3f,q.Y-3f,6f,6f);
-     var down=P(nx,topLine(nx));g.DrawLine(link,q,down);/* the link ties the nosing bar to the waist top layer */if(j==Math.Min(n-2,Math.Max(1,n/2)))noseAt=q;}
-   /* chairs every 1000 mm under the top bars */double ext1=going*0.25+300;var spans=new List<double[]>{new[]{c+150,Math.Min(L-c,before+ext1)},new[]{Math.Max(c,L-after-ext1),L-c-150}};
-   using(var cp=new Pen(Color.FromArgb(120,60,60),1.3f/Zoom))foreach(var sg in spans)for(double xx=sg[0]+200;xx<sg[1]-100;xx+=1000){double zt=topLine(xx)-i.MainDia,zb=botLine(xx)+i.MainDia;if(zt-zb<20)continue;
-     g.DrawLines(cp,new[]{P(xx-90,zb),P(xx-45,zt),P(xx+45,zt),P(xx+90,zb)});if(chairAt.IsEmpty)chairAt=P(xx,zt);}
-   /* anchorage: hook ldh at the top-bar ends in a beam, 150 mm minimum for the bottom bars */
-}
+  if(!i.Slabless){/* step bars (the "chair bars" of a stair, owner, 23 November 2026: "reinforcement ng steps kako"): in every step a bar
+      bent to the step - up the riser at the cover, round the nosing, along the tread at the cover - with both legs lapped onto the waist
+      top bars; a nosing bar runs the full width in its bend. Drawn to scale. */
+   double cn=i.Cover+i.DistDia/2,lap=Math.Max(150,12*i.DistDia);float sw=Math.Max(1.2f/Zoom,(float)(i.DistDia*s));
+   using(var sb=new Pen(Color.FromArgb(160,30,30),sw){LineJoin=LineJoin.Round})using(var dot=new SolidBrush(Steel))for(int j=0;j<n-1;j++){
+     double xr=before+j*T+cn,zt=(j+1)*R-cn,xb=before+(j+1)*T-cn;if(xb-xr<50)continue;
+     /* riser leg: down past the waist top bars by the lap; tread leg: on to the next riser, then down onto the top bars by the lap */
+     double z0=topLine(xr)-lap*0.5,zb=Math.Min(zt,topLine(xb))-lap*0.5;
+     g.DrawLines(sb,new[]{P(xr,z0),P(xr,zt),P(xb,zt),P(xb,zb)});
+     var q=P(xr+dOff,zt-dOff);dotAt(dot,q,distR);if(j==Math.Min(n-2,Math.Max(1,n/2))){noseAt=q;chairAt=P((xr+xb)/2,zt);}}}
   /* bar callouts A / B / C, the same marks as the reinforcement table (owner, 23 November 2026: "sa reports yung section plus yung
      reinforcement kung saan yung tinutukoy") */
   if(Result!=null&&!i.Slabless){string name=Result.Members.Count>0?Result.Members[Math.Min(Member,Result.Members.Count-1)].Name:"";
@@ -94,11 +117,14 @@ class StairSectionView:StairZoomView {
    /* A and C stacked to the lower right of the flight, clear of the steps */float colX=P(before+going*0.72,0).X,rowY=P(0,H*0.22).Y;
    double xm=before+going*0.5;var bottomAt=P(xm,slope(xm)+c);callAt("A",bottomAt,new PointF(colX,rowY),provide("Main bottom"));
    double xt=before+Math.Min(going*0.18,ext0(going));var topAt=P(xt,topLine(xt));call("B",topAt,-18,-46,provide("Top bars"));
-   double spd=Math.Max(150,i.DistDia*20)*1.5,xd=200;while(xd<before+going*0.62&&xd+spd<L-100)xd+=spd;var distAt=P(xd,botLine(xd)+i.MainDia);callAt("C",distAt,new PointF(colX,rowY+18),provide("Distribution"));
-   if(!chairAt.IsEmpty)callAt("D",chairAt,new PointF(colX,rowY+36),"Chair bars "+provide("Chair"));if(!noseAt.IsEmpty){string nb=provide("Nosing");int cut=nb.IndexOf(", full width",StringComparison.Ordinal);callAt("E",noseAt,new PointF(colX,rowY+54),"Nosing bars "+(cut>0?nb.Substring(0,cut):nb)+" + links");}}
+   double spd=Math.Max(150,i.DistDia*20)*1.5,xd=200;while(xd<before+going*0.62&&xd+spd<L-100)xd+=spd;var distAt=P(xd,botLine(xd)+dOff);callAt("C",distAt,new PointF(colX,rowY+18),provide("Distribution"));
+   if(!chairAt.IsEmpty){string st=provide("Step bars");int cs=st.IndexOf(", at the cover",StringComparison.Ordinal);callAt("D",chairAt,new PointF(colX,rowY+36),"Step bars (chair bars) "+(cs>0?st.Substring(0,cs):st));}if(!noseAt.IsEmpty){string nb=provide("Nosing");int cut=nb.IndexOf(", full width",StringComparison.Ordinal);callAt("E",noseAt,new PointF(colX,rowY+54),"Nosing bars "+(cut>0?nb.Substring(0,cut):nb)+", in the bend");}}
   /* dimensions: spaced on the screen, not in mm, so the two lines never overlap at a small scale (owner screenshot, 23 November 2026) */
   using(var dp=new Pen(Dim,1/Zoom)){float y0=P(0,-tl).Y+20;var c1=new PointF(P(before,0).X,y0);var c2=new PointF(P(before+going,0).X,y0);g.DrawLine(dp,c1,c2);g.DrawLine(dp,c1.X,y0-4,c1.X,y0+4);g.DrawLine(dp,c2.X,y0-4,c2.X,y0+4);Text(g,(n-1)+" treads x "+Staircase.F(T,"0")+" = "+Staircase.F(going,"0"),(c1.X+c2.X)/2,y0+10);
    float y1=y0+26;var a=new PointF(P(0,0).X,y1);var b=new PointF(P(L,0).X,y1);g.DrawLine(dp,a,b);g.DrawLine(dp,a.X,y1-4,a.X,y1+4);g.DrawLine(dp,b.X,y1-4,b.X,y1+4);Text(g,"L = "+Staircase.F(L,"0")+" mm (plan)",(a.X+b.X)/2,y1+10,8.5f,true);}
+  /* graphic scale: true at any zoom or print size */
+  using(var sp=new Pen(Ink,1/Zoom))using(var fill=new SolidBrush(Ink)){float sx0=P(0,0).X,sy=14,unit=(float)(500*s);for(int q=0;q<2;q++){var cell=new RectangleF(sx0+q*unit,sy,unit,4);if(q==0)g.FillRectangle(fill,cell);g.DrawRectangle(sp,cell.X,cell.Y,cell.Width,cell.Height);}
+   Text(g,"0",sx0,sy+12,7f);Text(g,"500",sx0+unit,sy+12,7f);Text(g,"1000 mm",sx0+2*unit,sy+12,7f);Text(g,"Drawn to scale, horizontal = vertical; bars at their diameters",sx0+2*unit+40,sy+2,7f,false,Brushes.DimGray,StringAlignment.Near);}
   Text(g,"Riser "+Staircase.F(R,"0")+" / tread "+Staircase.F(T,"0")+" / "+(i.Slabless?"plate ":"waist ")+Staircase.F(t,"0")+" mm",P(L/2,H).X,P(0,H+250).Y,9,true);}
  /* across the width: one step between walls / on stringers / cantilever, or a spiral tread */
  void Across(Graphics g,RectangleF r){var i=Input;double W=i.Spiral?i.OuterRadius-i.ColumnDia/2:i.Width,h=i.Waist+i.Riser;float s=(float)Math.Min((r.Width-200)/(W+800),(r.Height-140)/(h+900));float ox=120,oy=r.Height/2+40;Func<double,double,PointF> P=(x,z)=>new PointF(ox+(float)(x*s),oy-(float)(z*s));
@@ -113,12 +139,20 @@ class StairSectionView:StairZoomView {
 }
 /* the plan of the stair with the flights, landings, tread lines and the UP arrow */
 class StairPlanView:StairZoomView {
- protected override void Draw(Graphics g,RectangleF r){var i=Input;var boxes=Plan(i);if(i.Spiral){Spiral(g,r);return;}double minX=boxes.Min(b=>b.X0),maxX=boxes.Max(b=>b.X1),minY=boxes.Min(b=>b.Y0),maxY=boxes.Max(b=>b.Y1);float s=(float)Math.Min((r.Width-80)/(maxX-minX),(r.Height-80)/(maxY-minY));
-  Func<double,double,PointF> P=(x,y)=>new PointF(40+(float)((x-minX)*s),r.Height-40-(float)((y-minY)*s));
+ protected override void Draw(Graphics g,RectangleF r){var i=Input;var boxes=Plan(i);if(i.Spiral){Spiral(g,r);return;}double minX=boxes.Min(b=>b.X0),maxX=boxes.Max(b=>b.X1),minY=boxes.Min(b=>b.Y0),maxY=boxes.Max(b=>b.Y1);float s=(float)Math.Min((r.Width-150)/(maxX-minX),(r.Height-150)/(maxY-minY));
+  Func<double,double,PointF> P=(x,y)=>new PointF(100+(float)((x-minX)*s),r.Height-95-(float)((y-minY)*s));
   foreach(var b in boxes){var a=P(b.X0,b.Y1);var c=P(b.X1,b.Y0);var rc=new RectangleF(a.X,a.Y,c.X-a.X,c.Y-a.Y);using(var br=new SolidBrush(b.Landing?Color.FromArgb(240,240,236):Color.FromArgb(226,232,238)))g.FillRectangle(br,rc);g.DrawRectangle(Pens.Black,rc.X,rc.Y,rc.Width,rc.Height);
    if(!b.Landing){for(int k=1;k<b.Treads;k++){double f=(double)k/b.Treads;if(b.Dx!=0){double x=b.Dx>0?b.X0+(b.X1-b.X0)*f:b.X1-(b.X1-b.X0)*f;g.DrawLine(Pens.Gray,P(x,b.Y0),P(x,b.Y1));}else{double y=b.Dy>0?b.Y0+(b.Y1-b.Y0)*f:b.Y1-(b.Y1-b.Y0)*f;g.DrawLine(Pens.Gray,P(b.X0,y),P(b.X1,y));}}
     PointF from=b.Dx!=0?P(b.Dx>0?b.X0:b.X1,(b.Y0+b.Y1)/2):P((b.X0+b.X1)/2,b.Dy>0?b.Y0:b.Y1),to=b.Dx!=0?P(b.Dx>0?b.X1:b.X0,(b.Y0+b.Y1)/2):P((b.X0+b.X1)/2,b.Dy>0?b.Y1:b.Y0);using(var ar=new Pen(Color.FromArgb(28,100,160),1.6f/Zoom){CustomEndCap=new AdjustableArrowCap(4,5)})g.DrawLine(ar,from,to);Text(g,"UP",from.X+(to.X-from.X)*.15f,from.Y+(to.Y-from.Y)*.15f-10,8,true,Brushes.SteelBlue);
     Text(g,b.Name,(rc.Left+rc.Right)/2,(rc.Top+rc.Bottom)/2+12,8);}else Text(g,b.Name,(rc.Left+rc.Right)/2,(rc.Top+rc.Bottom)/2,8,false,Brushes.DimGray);}
+  /* dimensions (owner, 23 November 2026: "reflect din yung dimensions"): a chain of the flights, landings and gap along the bottom and the
+     left side, and the overall length and width, in mm */
+  using(var dp=new Pen(Dim,1f/Zoom)){Func<IEnumerable<double>,List<double>> marks=v=>v.Select(q=>Math.Round(q,3)).Distinct().OrderBy(q=>q).ToList();var xs=marks(boxes.SelectMany(b=>new[]{b.X0,b.X1}));var ys=marks(boxes.SelectMany(b=>new[]{b.Y0,b.Y1}));
+   Action<double,double,float,bool,bool> along=(a0,a1,off,horizontal,bold)=>{if(a1-a0<1)return;PointF p0,p1;if(horizontal){float y=P(0,minY).Y+off;p0=new PointF(P(a0,0).X,y);p1=new PointF(P(a1,0).X,y);g.DrawLine(dp,p0,p1);foreach(var q in new[]{p0,p1})g.DrawLine(dp,q.X,q.Y-4,q.X,q.Y+4);Text(g,Staircase.F(a1-a0,"0"),(p0.X+p1.X)/2,y+9,bold?8.5f:7.5f,bold);}
+    else{float x=P(minX,0).X-off;p0=new PointF(x,P(0,a0).Y);p1=new PointF(x,P(0,a1).Y);g.DrawLine(dp,p0,p1);foreach(var q in new[]{p0,p1})g.DrawLine(dp,q.X-4,q.Y,q.X+4,q.Y);var st=g.Save();g.TranslateTransform(x-10,(p0.Y+p1.Y)/2);g.RotateTransform(-90);Text(g,Staircase.F(a1-a0,"0"),0,0,bold?8.5f:7.5f,bold);g.Restore(st);}};
+   for(int k=0;k+1<xs.Count;k++)along(xs[k],xs[k+1],22,true,false);along(minX,maxX,48,true,true);
+   for(int k=0;k+1<ys.Count;k++)along(ys[k],ys[k+1],22,false,false);along(minY,maxY,48,false,true);
+   /* tread count and going on each flight */foreach(var b in boxes.Where(q=>!q.Landing)){var c0=P((b.X0+b.X1)/2,(b.Y0+b.Y1)/2);Text(g,b.Treads+" treads x "+Staircase.F(i.Tread,"0")+" = "+Staircase.F(b.Treads*i.Tread,"0"),c0.X,c0.Y+26,7.5f,false,Brushes.DimGray);}}
   Text(g,"PLAN - "+i.Type,r.Width/2,14,9.5f,true);}
  void Spiral(Graphics g,RectangleF r){var i=Input;float s=(float)((Math.Min(r.Width,r.Height)-80)/(2*i.OuterRadius));var c=new PointF(r.Width/2,r.Height/2);float Ro=(float)(i.OuterRadius*s),rc=(float)(i.ColumnDia/2*s);int n=(int)i.TreadsPerTurn;
   using(var br=new SolidBrush(Color.FromArgb(226,232,238)))g.FillEllipse(br,c.X-Ro,c.Y-Ro,2*Ro,2*Ro);g.DrawEllipse(Pens.Black,c.X-Ro,c.Y-Ro,2*Ro,2*Ro);for(int k=0;k<n;k++){double a=2*Math.PI*k/n;g.DrawLine(Pens.Gray,c.X+(float)(rc*Math.Cos(a)),c.Y-(float)(rc*Math.Sin(a)),c.X+(float)(Ro*Math.Cos(a)),c.Y-(float)(Ro*Math.Sin(a)));if(k<n)Text(g,(k+1).ToString(),c.X+(float)(Ro*.8*Math.Cos(a+Math.PI/n)),c.Y-(float)(Ro*.8*Math.Sin(a+Math.PI/n)),7.5f);}
@@ -149,12 +183,14 @@ class Stair3DView:StairZoomView {
    int n=b.Treads+1;double k=Math.Sqrt(R*R+T*T)/T,ts=i.Slabless?t:t*k;
    /* waist-slab flights: one solid with the steps on top and a straight sloped underside (owner, 23 November 2026: "yung 3d view
       dapat deretso lang yung underside") */
-   if(!i.Slabless&&!i.Cantilever&&!i.Transverse&&!i.Spiral){var prof=new List<double[]>{new[]{0.0,b.Z-ts}};for(int j=0;j<b.Treads;j++){prof.Add(new[]{j*T,b.Z+(j+1)*R});prof.Add(new[]{(j+1)*T,b.Z+(j+1)*R});}
-    prof.Add(new[]{b.Treads*T,b.Z+b.Treads*R-ts});
-    Func<double,double,double[]> at=(sAlong,across)=>b.Dx!=0?new[]{b.Dx>0?b.X0+sAlong:b.X1-sAlong,b.Y0+across,0.0}:new[]{b.X0+across,b.Dy>0?b.Y0+sAlong:b.Y1-sAlong,0.0};
-    double wid=b.Dx!=0?b.Y1-b.Y0:b.X1-b.X0;Func<double[],double,double[]> pt=(q,across)=>{var v=at(q[0],across);v[2]=q[1];return v;};
-    f.Add(new Face{P=prof.Select(q=>pt(q,0)).ToArray(),C=step});f.Add(new Face{P=prof.Select(q=>pt(q,wid)).Reverse().ToArray(),C=step});
-    for(int e=0;e<prof.Count;e++){var q0=prof[e];var q1=prof[(e+1)%prof.Count];f.Add(new Face{P=new[]{pt(q0,0),pt(q1,0),pt(q1,wid),pt(q0,wid)},C=q0[1]==q1[1]&&q0[0]!=q1[0]?step:Color.FromArgb(178,182,188)});}}
+   if(!i.Slabless&&!i.Cantilever&&!i.Transverse&&!i.Spiral){
+    /* one convex block per step - tread on top, the straight sloped soffit underneath - so the faces sort correctly (owner, 23 November
+       2026, open-well view: "ayusin") */
+    Func<double,double,double,double[]> at=(sAlong,across,z)=>b.Dx!=0?new[]{b.Dx>0?b.X0+sAlong:b.X1-sAlong,b.Y0+across,z}:new[]{b.X0+across,b.Dy>0?b.Y0+sAlong:b.Y1-sAlong,z};
+    double wid=b.Dx!=0?b.Y1-b.Y0:b.X1-b.X0;Func<double,double> soffit=sAlong=>b.Z+sAlong*R/T-ts;
+    for(int j=0;j<b.Treads;j++){double s0=j*T,s1=(j+1)*T,zt=b.Z+(j+1)*R;var q=new[]{new[]{s0,soffit(s0)},new[]{s0,zt},new[]{s1,zt},new[]{s1,soffit(s1)}};
+     f.Add(new Face{P=q.Select(p=>at(p[0],0,p[1])).ToArray(),C=step});f.Add(new Face{P=q.Select(p=>at(p[0],wid,p[1])).Reverse().ToArray(),C=step});
+     for(int e=0;e<4;e++){var p0=q[e];var p1=q[(e+1)%4];bool tread=p0[1]==zt&&p1[1]==zt;f.Add(new Face{P=new[]{at(p0[0],0,p0[1]),at(p1[0],0,p1[1]),at(p1[0],wid,p1[1]),at(p0[0],wid,p0[1])},C=tread?step:Color.FromArgb(178,182,188)});}}}
    else
    for(int j=0;j<b.Treads;j++){double s0=j*T,s1=(j+1)*T,z=b.Z+(j+1)*R;double xa,xb,ya,yb;if(b.Dx!=0){xa=b.Dx>0?b.X0+s0:b.X1-s1;xb=b.Dx>0?b.X0+s1:b.X1-s0;ya=b.Y0;yb=b.Y1;}else{ya=b.Dy>0?b.Y0+s0:b.Y1-s1;yb=b.Dy>0?b.Y0+s1:b.Y1-s0;xa=b.X0;xb=b.X1;}
     double zb=i.Slabless?z-R-t:b.Z+(j*T)*R/T-ts;if(i.Cantilever||i.Transverse)zb=z-R-t*0.6;Box(f,xa,xb,ya,yb,zb,z,step);}
@@ -176,10 +212,16 @@ class StairDiagramView:StairZoomView {
   /* two lines so the title fits the narrower view beside the inputs */Text(g,m.Name,r.Width/2,8,9f,true);Text(g,"factored 1.2D + 1.6L, span "+Staircase.F(L,"0.00")+" m"+(m.Support=="Cantilever"?", cantilever from x = 0":", "+m.Support.ToLowerInvariant()),r.Width/2,21,8f);
   /* loads */float y0=30;g.DrawLine(Pens.Black,left,y0+band*.7f,left+w,y0+band*.7f);double wmax=m.Segs.Max(s=>1.2*s.Wd+1.6*s.Wl);if(wmax<=0)wmax=1;
   foreach(var s in m.Segs){double a=m.X0(s);float xa=left+(float)(a/L*w),xb=left+(float)((a+s.Length)/L*w);double q=1.2*s.Wd+1.6*s.Wl;float hgt=(float)(band*.5*q/wmax);using(var br=new SolidBrush(Color.FromArgb(s.Flight?70:40,30,100,170)))g.FillRectangle(br,xa,y0+band*.7f-hgt,xb-xa,hgt);g.DrawRectangle(Pens.SteelBlue,xa,y0+band*.7f-hgt,xb-xa,hgt);Text(g,Staircase.F(q,"0.00")+" kN/m",(xa+xb)/2,y0+band*.7f-hgt-8,8);Text(g,s.Name,(xa+xb)/2,y0+band*.7f+10,7.5f,false,Brushes.DimGray);}
-  Curve(g,xs,d[1],left,w,y0+band,band,"V (kN"+(Input.Cantilever||Input.Spiral||Input.Transverse||Input.Stringer?"":"/m")+")",Color.FromArgb(28,122,84));Curve(g,xs,d[2],left,w,y0+2*band,band,"M (kN·m"+(Input.Cantilever||Input.Spiral||Input.Transverse||Input.Stringer?"":"/m")+")",Color.FromArgb(190,60,40));}
- static void Curve(Graphics g,double[] xs,double[] ys,float left,float w,float top,float band,string name,Color c){double L=xs[xs.Length-1],m=Math.Max(1e-9,ys.Max(v=>Math.Abs(v)));float mid=top+band/2;g.DrawLine(Pens.Black,left,mid,left+w,mid);
-  var pts=new List<PointF>{new PointF(left,mid)};for(int k=0;k<xs.Length;k++)pts.Add(new PointF(left+(float)(xs[k]/L*w),mid+(float)(ys[k]/m*band*.42)));pts.Add(new PointF(left+w,mid));using(var b=new SolidBrush(Color.FromArgb(55,c)))g.FillPolygon(b,pts.ToArray());using(var p=new Pen(c,1.6f))g.DrawLines(p,pts.ToArray());
-  int imax=Array.IndexOf(ys,ys.Max()),imin=Array.IndexOf(ys,ys.Min());foreach(int k in new[]{imax,imin}.Distinct()){if(Math.Abs(ys[k])<1e-6)continue;var p=new PointF(left+(float)(xs[k]/L*w)+(k==0?48:k==xs.Length-1?-48:0),mid+(float)(ys[k]/m*band*.42));bool end=k==0||k==xs.Length-1;Text(g,Staircase.F(ys[k],"0.00")+" @ "+Staircase.F(xs[k],"0.00")+" m",p.X,end?p.Y:p.Y+(ys[k]>0?10:-10),8,true);}
+  var joints=m.Segs.Select(q=>m.X0(q)).Where(q=>q>1e-6).ToList();
+  Curve(g,xs,d[1],left,w,y0+band,band,"V (kN"+(Input.Cantilever||Input.Spiral||Input.Transverse||Input.Stringer?"":"/m")+")",Color.FromArgb(28,122,84),true,joints.ToArray());Curve(g,xs,d[2],left,w,y0+2*band,band,"M (kN·m"+(Input.Cantilever||Input.Spiral||Input.Transverse||Input.Stringer?"":"/m")+")",Color.FromArgb(190,60,40),false,joints.ToArray());
+  Text(g,"V: + above the axis   ·   M: drawn on the tension side (sagging below, hogging above)",left+w/2,y0+3*band+8,7f,false,Brushes.DimGray);}
+ /* sign: positive shear is drawn above the axis (owner, 23 November 2026: "sure ka dito na drawn correctly?" - it was drawn below);
+    the moment is drawn on the tension side (sagging below, hogging above) */
+ static void Curve(Graphics g,double[] xs,double[] ys,float left,float w,float top,float band,string name,Color c,bool positiveUp=false,double[] marks=null){double L=xs[xs.Length-1],m=Math.Max(1e-9,ys.Max(v=>Math.Abs(v)));float mid=top+band/2;g.DrawLine(Pens.Black,left,mid,left+w,mid);float sg=positiveUp?-1f:1f;
+  var pts=new List<PointF>{new PointF(left,mid)};for(int k=0;k<xs.Length;k++)pts.Add(new PointF(left+(float)(xs[k]/L*w),mid+sg*(float)(ys[k]/m*band*.42)));pts.Add(new PointF(left+w,mid));using(var b=new SolidBrush(Color.FromArgb(55,c)))g.FillPolygon(b,pts.ToArray());using(var p=new Pen(c,1.6f))g.DrawLines(p,pts.ToArray());
+  int imax=Array.IndexOf(ys,ys.Max()),imin=Array.IndexOf(ys,ys.Min());foreach(int k in new[]{imax,imin}.Distinct()){if(Math.Abs(ys[k])<1e-6)continue;var p=new PointF(left+(float)(xs[k]/L*w)+(k==0?48:k==xs.Length-1?-48:0),mid+sg*(float)(ys[k]/m*band*.42));bool end=k==0||k==xs.Length-1;Text(g,Staircase.F(ys[k],"0.00")+" @ "+Staircase.F(xs[k],"0.00")+" m",p.X,end?p.Y:p.Y+(sg*ys[k]>0?10:-10),8,true);}
+  /* values at the segment ends (landing / flight junctions) and where the shear is zero */
+  if(marks!=null)foreach(var xm in marks){if(xm<=1e-6||xm>=L-1e-6)continue;int k=0;while(k<xs.Length-1&&xs[k]<xm)k++;var p=new PointF(left+(float)(xs[k]/L*w),mid+sg*(float)(ys[k]/m*band*.42));using(var dot=new SolidBrush(c))g.FillEllipse(dot,p.X-2.5f,p.Y-2.5f,5,5);Text(g,Staircase.F(ys[k],"0.00")+" @ "+Staircase.F(xs[k],"0.00")+" m",p.X+4,p.Y+(sg*ys[k]>=0?11:-11),7.5f,false,null,StringAlignment.Near);}
   Text(g,name,left-36,mid,8.5f,true);}
 }
 }

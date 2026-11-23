@@ -24,12 +24,23 @@ partial class ProgramOfWorksForm {
      return new{key=s.Specification+" / "+M(s.Length)+" m\u0001"+text(groups.First(x=>x.Key==opener))+"\u0001"+string.Join("\n",groups.Where(x=>x.Key!=opener).Select(text))+"\u0001"+M(s.Remaining)};})
     .GroupBy(x=>x.key).OrderBy(g=>g.Key,StringComparer.Ordinal)){var p=g.Key.Split('\u0001');rows.Add(new[]{p[0],g.Count().ToString(Ci),p[1],p[2],p[3]});}
   return rows;}
+ /* steel plates: the mark of a sheet (PL thickness - number), counted per thickness in the order of the plan */
+ internal static string PlateMark(List<PlateSheet> all,PlateSheet s){int k=all.Where(x=>x.ThicknessMm==s.ThicknessMm).ToList().IndexOf(s)+1;return "PL"+M(s.ThicknessMm)+"-"+k;}
+ internal static string PlateSheetText(List<PlateSheet> all,List<PlateSheet> used,PlateDemand demand){return string.Join("; ",used.Select(s=>{var others=s.Cuts.Where(c=>c.Demand!=demand).GroupBy(c=>c.Demand).Select(g=>(string.IsNullOrWhiteSpace(g.Key.Member)?"another row":g.Key.Member)+" "+g.Count()+" pc(s)").ToList();
+   return PlateMark(all,s)+" "+s.Format.Name+(others.Count>0?" shared with "+string.Join(", ",others):"");}));}
+ /* plates: one row per handbook sheet cut for more than one row - the row it was opened for and the rows cut from its offcut */
+ internal static List<string[]> PlateOffcutRows(List<PlateSheet> sheets){var rows=new List<string[]>();if(sheets==null)return rows;
+  Func<IGrouping<PlateDemand,PlatePlacement>,string> text=g=>(string.IsNullOrWhiteSpace(g.Key.Member)?"(no description)":g.Key.Member)+" — "+g.Count()+" pc(s) x "+M(g.Key.Length)+" x "+M(g.Key.Width)+" m";
+  foreach(var s in sheets){var groups=s.Cuts.GroupBy(c=>c.Demand).ToList();if(groups.Count<2)continue;
+   rows.Add(new[]{PlateMark(sheets,s)+" / "+M(s.ThicknessMm)+" mm / "+s.Format.Name,"1",text(groups[0]),string.Join("\n",groups.Skip(1).Select(text)),M(Math.Round(s.WasteKg,2))+" kg"});}
+  return rows;}
  static readonly string[] OffcutHeaders={"Material / commercial length","Stocks","Opened for (first cut)","Offcut reused by","Final offcut per stock (m)"};
  /* member label: ID and description of its row on the steel sheets */
  string SteelMemberName(string id){if(string.IsNullOrWhiteSpace(id))return "(no ID)";foreach(var g in SteelTables().Values)foreach(DataGridViewRow r in g.Rows){if(r.IsNewRow)continue;if(string.Equals(Cell(r,0),id,StringComparison.OrdinalIgnoreCase)){string d=Cell(r,1);return d==""?id:id+" "+d;}}return id;}
  void AddOffcutReuse(EngineeringReport report,string scope,bool overall,IEnumerable<StockAllocation> reinforcement){
   if(overall||scope=="Reinforced Concrete Works"||scope=="Slope Protection Works"){var rows=RebarOffcutRows(reinforcement);if(rows.Count>0){var s=report.Section("Reinforcing steel — offcut reuse");s.Note("Each commercial bar shared by more than one bar mark: the bar it was bought for and the bars cut from its offcut. Weights are already in the purchase totals above.");s.Table(OffcutHeaders,rows);}}
   if(overall||scope=="Structural Steel Works"){var rows=SteelOffcutRows(steelStocks,SteelMemberName).Concat(SteelOffcutRows(sagRodStocks,x=>x)).ToList();if(rows.Count>0){var s=report.Section("Structural steel — offcut reuse (6 m stock)");s.Note("Each 6 m purlin / angle bar / fascia / sag rod stock shared by more than one member: the member it was opened for and the members cut from its offcut.");s.Table(OffcutHeaders,rows);}}
+  if(overall||scope=="Structural Steel Works"){var rows=PlateOffcutRows(plateStocks);if(rows.Count>0){var s=report.Section("Steel plates — offcut reuse (handbook sheets)");s.Note("Each sheet cut for more than one plate row: the row it was opened for and the rows cut from its offcut. Plates of one thickness share sheets; the last column is the offcut left on that sheet (kg).");s.Table(OffcutHeaders,rows);}}
   if(overall||scope=="Finishing Works"){var rows=SteelOffcutRows(railingStocks,x=>x);if(rows.Count>0){var s=report.Section("Railings — offcut reuse (6 m stock)");s.Note("Each 6 m railing stock shared by more than one member: the member it was opened for and the members cut from its offcut.");s.Table(OffcutHeaders,rows);}}}
 }
 }

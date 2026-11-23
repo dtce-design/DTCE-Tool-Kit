@@ -1,0 +1,16 @@
+DTCE Tool Kit v7.2.1 (23 November 2026) - source checkpoint; not uploaded to the Microsoft Store.
+
+PATCH - Report binding margin and the complete earthquake report (owner: "lagyan mo pala ng 1inch margin sa left for binding";
+"include mo din naman yung complete report sa earthquake"; "complete calculation lahat sa design sheets reports, including diagrams,
+illustrations, everything"):
+- Every calculation report page has a 1 inch (72 pt) left margin for binding and 0.5 inch on the right: the design-sheet reports
+  (rich, wind, beam deflection, text reports), the engineering quantity PDF and the HTML report (25.4 mm). Tables made for the old
+  width are scaled to the new line; text stays at least 7 pt. The A3 construction schedule drawings keep their frame.
+- Earthquake Load & RSA Curve Builder report rebuilt as an illustrated document: design basis; site table and Figure 1 map (site,
+  fault traces with the site's fault, historical earthquakes by magnitude and depth); seismic source - Wells and Coppersmith Mmax with
+  the values, Table 208-3 with the chosen type highlighted, the 15 largest historical earthquakes and Figure 2 magnitude against
+  distance; seismic coefficients - Na / Nv table rows with the interpolation written out and Figure 3, Ca / Cv for every soil profile
+  with the used row highlighted; spectrum formulas and Figure 4; STAAD scale factor; the ordinates in four columns; the STAAD input;
+  notes.
+Not verified here: the report text on Windows (the Linux test renderer draws figures only).
+Includes everything of v7.2.0.

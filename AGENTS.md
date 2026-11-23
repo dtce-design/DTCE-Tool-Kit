@@ -207,6 +207,13 @@ New owner request (23 November 2026, "upload mo na din sa Microsoft Store yung b
 and Admin) to the Microsoft Store after its Windows CI passes (PR #17 to main), with publish_microsoft_store=true and
 replace_pending_store_submission=true for this release only - the v7.1.17 submissions still in certification are cancelled and
 replaced. Later versions again need a new explicit request.
+Result 23 November 2026: PR #17 merged to main (GitHub release v7.1.24 OK, run 45138604556). Upload run 45138610075 (first attempt):
+- TestFlight: DTCE Access Admin 1.1.2 build 272.1 uploaded; Apple processing VALID. Not submitted for App Store review.
+- Store Admin: no submission was pending; new submission 1152921505702480415 created and committed, "accepted for processing"
+  (PreProcessing). Certification is not guaranteed.
+- Store User: refused. An in-progress User submission 1152921505702479990 (PendingCommit) was created in Partner Center, not through
+  the API, so the API may not update or delete it. The owner must delete that in-progress User submission in Partner Center; then
+  re-run the failed store-user-upload job of run 45138610075. Nothing was changed in Partner Center.
 New owner request (23 November 2026, "Pakipublish sa microsoft store"): publish v7.0.4 (User and Admin) the same way after its Windows
 CI passes (merge the development branch to main for the GitHub release, then publish_microsoft_store=true;
 replace_pending_store_submission stays false unless the owner asks). The Admin edition includes the PHIVOLCS active fault lines
@@ -233,6 +240,12 @@ Done 23 November 2026: v7.1.17 merged to main (PR #16; GitHub release OK, run 45
 (first attempt, no re-run needed): new User (1152921505702478667) and Admin (1152921505702478466) submissions were created and
 committed; Partner Center reported "accepted for processing" (PreProcessing). Certification is not guaranteed. v7.1.18 and later
 need a new explicit request.
+New owner request (23 November 2026, "upload to microsoft store"; chose "Replace pending"): publish v7.2.3 (User and Admin) after its
+Windows CI passes (PR to main for the GitHub release, then publish_microsoft_store=true with replace_pending_store_submission=true for
+this release only - a v7.1.24 submission still in certification is cancelled and replaced). The owner has not yet deleted the
+Partner Center User draft 1152921505702479990, so the User upload may be refused again until it is deleted. Later versions again need a
+new explicit request. Owner then: "deleted all submission" (Partner Center drafts deleted); "user app available or searchable in store":
+the User upload sets visibility Public (STORE_VISIBILITY, User job only). The release is v7.2.4 (v7.2.3 plus the Windows tab fix).
 
 ## Shared settings and the open project (23 November 2026)
 
@@ -261,6 +274,11 @@ Sheets the app did not make are still not overwritten (v7.1.8 reverted).
 
 Owner: "pagsamasamahin yung stair type at yung staircase design" / "stair type and geometry at model": the stair type and geometry
 inputs and the four Model views (section, 3D, plan, load / shear / moment) are one tab, "Stair type, geometry and model" (v7.1.12).
+Owner ("i drawing ng tama yung reinforcement ng stairs as to standard"; "di pa naka drawn to scale", v7.1.26): the section is drawn to
+scale (bars at their diameters, graphic scale bar), chairs stand square to the slab between the mats, crossing bars at re-entrant
+corners run ld past the crossing, and the shear diagram is positive above the axis.
+Owner ("reinforcement ng steps kako", v7.1.27): "chair bars" of a stair means the step bars bent to each riser and tread (legs lapped
+onto the waist top bars, nosing bar in the bend), not support chairs; do not draw support chairs in the section.
 
 ## Door hardware (23 November 2026)
 
@@ -331,3 +349,22 @@ owner types Part A / B quantities in the app's Bill of Quantities and they are c
 fill them (ProgramOfWorksForm.FillGeneralRequirements stays false).
 Workspaces (owner, 19 November 2026): each workspace (Formatters, Program of Works, Design Sheets, Project Information, Access
 Code Generator) opens in its own window; the Workspaces window stays open.
+
+## Truss Connections, plate reuse and view-only apps (23 November 2026)
+
+Owner: Truss Connections has two main tabs, Weld design and Bolt design, each with Member and demand / detail / Block shear / STAAD
+forces / Report sub tabs (shared inputs move to the open design; the open tab sets weld or bolts). Interactive bolt layout
+(src/TrussBoltDrawing.cs); slotted HSS / pipe weld detail; double-angle back-to-back spacing = gusset thickness; block shear computed
+automatically (bolts: member and gusset paths; welded angles: gusset around the welds); illustrated report (src/TrussConnectionReport.cs)
+- owner: "mas magagandang report at detalyado as may diagrams as much as possible ... maganda sa mata" applies to reports generally
+(v7.1.28). Steel plate sheets are marked PL<t>-<n> and their shared use is shown in the grid and the BOQ reports (v7.1.29). User edition:
+apps without access open view only (src/ViewOnly.cs; tabs and scrolling, no input or commands, "Enter access code" banner) (v7.2.0).
+
+## Complete reports (23 November 2026)
+
+Owner: "complete calculation lahat sa design sheets reports, including diagrams, illustrations, everything"; "lagyan mo pala ng 1inch
+margin sa left for binding"; "sa calculation reports naman ng boq ... ilagay lahat ng calculation". Report pages keep a 1 inch left
+margin (CalculationDocument.L / CW, EngineeringQuantityPdf.Left, HTML @page). Design-sheet reports are illustrated documents with the
+complete step-by-step calculation (RichText for text calculations, RichReport.Raster for figures): Earthquake (v7.2.1), Purlin and
+Splice / Development / Hooks (v7.2.2), Truss Connections (v7.1.28). Every Bill of Quantities source line carries its calculation
+(src/BoqComputations.cs; SourceQuantity with computation; MergeSources keeps them) and every section table has a Basis column (v7.2.3).

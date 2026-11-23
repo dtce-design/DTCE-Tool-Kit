@@ -24,6 +24,7 @@ class StairInput {
  public double ColumnDia=300,OuterRadius=1200,TreadsPerTurn=16;
  /* supports (owner, 23 November 2026: "pwede mag assign ng beam as support tapos sa location niya sa landing"): beams b x h, and the
     landing beam at a distance from the flight (0 = at the landing end); the part of a landing beyond its beam is an overhang */
+ /* top bars along the whole flight (owner, 23 November 2026: "wala na talagang straight bar yung top bars?") or at the supports only */public string TopBars="Full length";public bool TopFull{get{return !(TopBars??"").StartsWith("At the supports");}}
  public string Supports="Beams";public double BeamB=250,BeamH=400,LandingBeamAt=0;
  public bool OnBeams{get{return (Supports??"").StartsWith("Beams");}}
  /* the span part of a landing of the given depth (mm) and its overhang beyond the beam */
@@ -47,7 +48,8 @@ class StairResult {
  public StairInput In;public List<StairMember> Members=new List<StairMember>();public List<StairCheck> Checks=new List<StairCheck>();public List<string> Notes=new List<string>();
  public List<string[]> Steel=new List<string[]>();/* member, location, bars */
  public double Wd,Wl,WdLanding,WlLanding;/* kPa on plan */
- public Dictionary<StairMember,double[][]> Diagrams=new Dictionary<StairMember,double[][]>();/* x, V, M (factored) */
+ public Dictionary<StairMember,double[][]> Diagrams=new Dictionary<StairMember,double[][]>();
+ /* the step-by-step calculation of each member for the report: member, step, formula with values, result */public List<string[]> Calc=new List<string[]>();/* x, V, M (factored) */
 }
 static class Staircase {
  static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
@@ -110,17 +112,38 @@ static class Staircase {
   double sp=Spacing(Math.Max(As,Amin),i.MainDia,h),Aprov=Ab(i.MainDia)*1000/sp;double phiMn=PhiMn(Aprov,b,d,i.Fc,i.Fy);
   r.Checks.Add(new StairCheck{Name="Flexure - midspan (bottom bars)",Clause="422.2 / 407.5",Member=m.Name,Demand=mp,Capacity=phiMn,Unit="kN·m/m",Detail="d = "+F(d,"0")+" mm, As req = "+F(Math.Max(As,Amin),"0")+" mm²/m, Ø"+F(i.MainDia,"0")+" @ "+F(sp,"0")+" = "+F(Aprov,"0")+" mm²/m"});
   r.Steel.Add(new[]{m.Name,"Main bottom bars along the flight","Ø"+F(i.MainDia,"0")+" @ "+F(sp,"0")+" mm"});
-  if(mn>0){double An=AsRequired(mn,b,d,i.Fc,i.Fy,out rho);double sn=Spacing(Math.Max(double.IsNaN(An)?1e9:An,Amin),i.MainDia,h);double An2=Ab(i.MainDia)*1000/sn;r.Checks.Add(new StairCheck{Name="Flexure - support (top bars)",Clause="422.2 / 407.5",Member=m.Name,Demand=mn,Capacity=PhiMn(An2,b,d,i.Fc,i.Fy),Unit="kN·m/m",Detail="Ø"+F(i.MainDia,"0")+" @ "+F(sn,"0")+" top, extend L/4 past the support face"});r.Steel.Add(new[]{m.Name,"Top bars over the continuous support(s), L/4","Ø"+F(i.MainDia,"0")+" @ "+F(sn,"0")+" mm"});}
-  else r.Steel.Add(new[]{m.Name,"Top bars at the supports and at the kinks (nominal, 0.0018bh)","Ø"+F(i.MainDia,"0")+" @ "+F(Spacing(Amin,i.MainDia,h),"0")+" mm, L/5 from the support"});
+  if(mn>0){double An=AsRequired(mn,b,d,i.Fc,i.Fy,out rho);double sn=Spacing(Math.Max(double.IsNaN(An)?1e9:An,Amin),i.MainDia,h);double An2=Ab(i.MainDia)*1000/sn;r.Checks.Add(new StairCheck{Name="Flexure - support (top bars)",Clause="422.2 / 407.5",Member=m.Name,Demand=mn,Capacity=PhiMn(An2,b,d,i.Fc,i.Fy),Unit="kN·m/m",Detail="Ø"+F(i.MainDia,"0")+" @ "+F(sn,"0")+" top, extend L/4 past the support face"});r.Steel.Add(new[]{m.Name,i.TopFull&&!i.Slabless?"Top bars, full length (over the continuous supports)":"Top bars over the continuous support(s), L/4","Ø"+F(i.MainDia,"0")+" @ "+F(sn,"0")+" mm"+(i.TopFull&&!i.Slabless?", full length":"")});}
+  else r.Steel.Add(new[]{m.Name,i.TopFull&&!i.Slabless?"Top bars, full length (nominal, 0.0018bh)":"Top bars at the supports and at the kinks (nominal, 0.0018bh)","Ø"+F(i.MainDia,"0")+" @ "+F(Spacing(Amin,i.MainDia,h),"0")+" mm"+(i.TopFull&&!i.Slabless?", full length":", L/5 from the support")});
   /* anchorage, nosing bars and chair bars (owner, 23 November 2026: "proper anchoring ... walang detail ng chair bar and nosing bar") */
   r.Steel.Add(new[]{m.Name,"Anchorage of the bottom bars","into the support beam / landing at least 150 mm past the support face (407.7.3.8.1)"});
   r.Steel.Add(new[]{m.Name,"Anchorage of the top bars","90° hook into the support beam, ldh = "+F(HookLength(i),"0")+" mm with a 12db = "+F(12*i.MainDia,"0")+" mm leg (425.4.3); straight ld = "+F(DevLength(i),"0")+" mm where there is no hook (425.4.2)"});
-  if(!i.Slabless&&m.Segs.Any(q=>q.Flight)){r.Steel.Add(new[]{m.Name,"Nosing bars, one at each step nosing","1 - Ø"+F(i.DistDia,"0")+" per step, full width, tied to the waist with Ø"+F(i.DistDia,"0")+" links @ 300 mm"});}
-  r.Steel.Add(new[]{m.Name,"Chair bars holding the top bars","Ø"+F(i.MainDia,"0")+" @ 1000 mm each way"});
+  if(!i.Slabless&&m.Segs.Any(q=>q.Flight)){r.Steel.Add(new[]{m.Name,"Step bars (chair bars), bent to the riser and tread of every step","Ø"+F(i.DistDia,"0")+" @ 300 mm across the width, at the cover inside the riser and under the tread, both legs lapped onto the waist top bars"});
+   r.Steel.Add(new[]{m.Name,"Nosing bars, one at each step nosing","1 - Ø"+F(i.DistDia,"0")+" per step, full width, in the bend of the step bars"});}
+  r.Steel.Add(new[]{m.Name,"Bar supports (spacers) under the top bars","Ø"+F(i.MainDia,"0")+" @ 1000 mm each way"});
   double phiVc=0.75*0.17*Math.Sqrt(i.Fc)*b*d/1000;r.Checks.Add(new StairCheck{Name="One-way shear",Clause="422.5.5.1",Member=m.Name,Demand=v,Capacity=phiVc,Unit="kN/m",Detail="φVc = 0.75 × 0.17 √f'c b d"});
   double hmin=MinThickness(m.Support,L)*(0.4+i.Fy/700);r.Checks.Add(new StairCheck{Name="Minimum thickness (deflection)",Clause="Table 407.3.1.1",Member=m.Name,Demand=hmin,Capacity=h,Unit="mm",Detail="L = "+F(L*1000,"0")+" mm, "+m.Support.ToLowerInvariant()+(i.Fy!=420?", × (0.4 + fy/700)":"")});
   double sd=Math.Min(Math.Floor(Math.Min(Ab(i.DistDia)*1000/(0.0018*b*h),Math.Min(5*h,450))/25)*25,450);r.Steel.Add(new[]{m.Name,"Distribution bars across the flight","Ø"+F(i.DistDia,"0")+" @ "+F(sd,"0")+" mm"});
-  r.Checks.Add(new StairCheck{Name="Main bar spacing",Clause="407.7.2.3",Member=m.Name,Demand=sp,Capacity=Math.Min(3*h,450),Unit="mm"});}
+  r.Checks.Add(new StairCheck{Name="Main bar spacing",Clause="407.7.2.3",Member=m.Name,Demand=sp,Capacity=Math.Min(3*h,450),Unit="mm"});
+  /* complete calculation for the report (owner, 23 November 2026: "complete detailed calculation report") */
+  Action<string,string,string> c=(step,formula,result)=>r.Calc.Add(new[]{m.Name,step,formula,result});
+  foreach(var sg in m.Segs)c("Load - "+sg.Name.ToLowerInvariant(),"wu = 1.2 wD + 1.6 wL = 1.2 × "+F(sg.Wd,"0.00")+" + 1.6 × "+F(sg.Wl,"0.00")+" (length "+F(sg.Length,"0.000")+" m)",F(1.2*sg.Wd+1.6*sg.Wl,"0.00")+" kN/m per m width");
+  if(m.OverStart>0||m.OverEnd>0)c("Landing overhang beyond the beam","Mu,over = wu a² / 2, a = "+F(Math.Max(m.OverStart,m.OverEnd),"0.000")+" m",F((1.2*m.OverWd+1.6*m.OverWl)*Math.Pow(Math.Max(m.OverStart,m.OverEnd),2)/2,"0.00")+" kN·m/m");
+  {double W=m.Segs.Sum(q=>(1.2*q.Wd+1.6*q.Wl)*q.Length),Mo=0;foreach(var q in m.Segs)Mo+=(1.2*q.Wd+1.6*q.Wl)*q.Length*(m.X0(q)+q.Length/2);c("Reactions (simple span)","W = Σ wu l = "+F(W,"0.00")+" kN; Rb = Σ wu l x / L = "+F(Mo,"0.00")+" / "+F(L,"0.000"),"Ra = "+F(W-Mo/L,"0.00")+", Rb = "+F(Mo/L,"0.00")+" kN/m");}
+  c("Design moments and shear","from the load, shear and moment diagram (span "+F(L,"0.000")+" m, "+m.Support.ToLowerInvariant()+")","Mu+ = "+F(mp,"0.00")+" kN·m/m, Mu- = "+F(mn,"0.00")+" kN·m/m, Vu = "+F(v,"0.00")+" kN/m");
+  c("Effective depth","d = h - cover - db/2 = "+F(h,"0")+" - "+F(i.Cover,"0")+" - "+F(i.MainDia/2,"0.#"),F(d,"0")+" mm");
+  {double Rn=mp*1e6/(0.9*b*d*d);c("Bottom bars - Rn","Rn = Mu / (φ b d²) = "+F(mp,"0.00")+"×10⁶ / (0.9 × 1000 × "+F(d,"0")+"²)",F(Rn,"0.000")+" MPa");
+   c("Bottom bars - ρ","ρ = 0.85 f'c / fy [1 - √(1 - 2Rn / (0.85 f'c))]",F(rho0(i,Rn),"0.00000"));}
+  c("Bottom bars - As required","As = ρ b d = "+F(As,"0")+" mm²/m; As,min = "+(i.Fy<420?"0.0020":"0.0018 × 420 / fy")+" b h = "+F(Amin,"0")+" mm²/m",F(Math.Max(As,Amin),"0")+" mm²/m");
+  c("Bottom bars - spacing","s = Ab × 1000 / As = "+F(Ab(i.MainDia),"0.0")+" × 1000 / "+F(Math.Max(As,Amin),"0")+", ≤ 3h and 450 mm, rounded down to 25 mm","Ø"+F(i.MainDia,"0")+" @ "+F(sp,"0")+" mm, As,prov = "+F(Aprov,"0")+" mm²/m");
+  {double a=Aprov*i.Fy/(0.85*i.Fc*b);c("Bottom bars - capacity","a = As fy / (0.85 f'c b) = "+F(a,"0.0")+" mm; φMn = φ As fy (d - a/2)","φMn = "+F(phiMn,"0.00")+" ≥ Mu+ = "+F(mp,"0.00")+" kN·m/m "+(phiMn>=mp?"OK":"NG"));}
+  if(mn>0){double An=AsRequired(mn,b,d,i.Fc,i.Fy,out rho);double sn=Spacing(Math.Max(double.IsNaN(An)?1e9:An,Amin),i.MainDia,h);double An2=Ab(i.MainDia)*1000/sn;double pn=PhiMn(An2,b,d,i.Fc,i.Fy);
+   c("Top bars","Mu- = "+F(mn,"0.00")+" kN·m/m; As = "+(double.IsNaN(An)?"(section too small)":F(An,"0"))+" mm²/m, As,min = "+F(Amin,"0"),"Ø"+F(i.MainDia,"0")+" @ "+F(sn,"0")+" mm, φMn = "+F(pn,"0.00")+" kN·m/m "+(pn>=mn?"OK":"NG"));}
+  else c("Top bars (nominal)","no hogging moment: As,min = "+F(Amin,"0")+" mm²/m","Ø"+F(i.MainDia,"0")+" @ "+F(Spacing(Amin,i.MainDia,h),"0")+" mm");
+  c("One-way shear","φVc = 0.75 × 0.17 √f'c b d = 0.75 × 0.17 × √"+F(i.Fc,"0.#")+" × 1000 × "+F(d,"0")+" / 1000","φVc = "+F(phiVc,"0.00")+" ≥ Vu = "+F(v,"0.00")+" kN/m "+(phiVc>=v?"OK":"NG"));
+  c("Minimum thickness","h,min = L / "+(m.Support.StartsWith("Both")?"28":m.Support.StartsWith("One")?"24":"20")+(i.Fy!=420?" × (0.4 + fy/700)":"")+" = "+F(L*1000,"0")+" / ...",F(hmin,"0")+" mm ≤ h = "+F(h,"0")+" mm "+(h>=hmin?"OK":"NG"));
+  c("Distribution bars","As = 0.0018 b h = "+F(0.0018*b*h,"0")+" mm²/m; s ≤ 5h and 450 mm","Ø"+F(i.DistDia,"0")+" @ "+F(sd,"0")+" mm");
+  c("Anchorage of the top bars","ldh = 0.24 fy / √f'c × db = 0.24 × "+F(i.Fy,"0")+" / √"+F(i.Fc,"0.#")+" × "+F(i.MainDia,"0")+" (≥ 8db, 150 mm); ld = fy / (2.1 √f'c) db",F(HookLength(i),"0")+" mm hook, "+F(DevLength(i),"0")+" mm straight");}
+ static double rho0(StairInput i,double Rn){double q=1-2*Rn/(0.85*i.Fc);return q<0?double.NaN:0.85*i.Fc/i.Fy*(1-Math.Sqrt(q));}
  /* each step spans the width between walls / beams, or the waist spans between two stringer beams */
  static void DesignTransverse(StairInput i,StairResult r,bool stringer){double R=i.Riser,T=i.Tread,L=i.Width/1000;double heff=i.Waist+R/2;/* step and waist acting together (mean depth) */
   double w=(r.Wd*1.2+r.Wl*1.6)*T/1000;/* kN/m along the step (per step) */double Mu=Math.Max(w*L*L/8,(r.Wd*1.2*T/1000)*L*L/8+1.6*i.Point*L/4),Vu=Math.Max(w*L/2,(r.Wd*1.2*T/1000)*L/2+1.6*i.Point);

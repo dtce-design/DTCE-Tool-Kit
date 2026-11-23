@@ -26,6 +26,6 @@ class StaircaseTests {
    Check(Math.Abs(dd[2][0])<1e-9&&Math.Abs(dd[2][dd[2].Length-1]-expect)<1e-6,"one end continuous: 0 at the free end, wL²/10 hogging at the continuous end ("+dd[2][dd[2].Length-1]+" vs "+expect+")");}
   /* anchorage, nosing and chair bars (owner, 23 November 2026) */
   {var d0=new StairInput();Check(Staircase.HookLength(d0)==275&&Staircase.DevLength(d0)==525,"Ø12, f'c 21, fy 414: ldh 0.24 fy/√f'c db = 260 -> 275 mm; ld fy/(2.1√f'c) db = 516 -> 525 mm");
-   var rs=Staircase.Design(d0);Check(rs.Steel.Any(q=>q[1].StartsWith("Nosing bars"))&&rs.Steel.Any(q=>q[1].StartsWith("Chair bars"))&&rs.Steel.Any(q=>q[1].StartsWith("Anchorage of the top bars")&&q[2].Contains("ldh = 275")),"nosing bars, chair bars and anchorage are listed");}
+   var rs=Staircase.Design(d0);Check(rs.Steel.Any(q=>q[1].StartsWith("Nosing bars"))&&rs.Steel.Any(q=>q[1].StartsWith("Step bars (chair bars)"))&&rs.Steel.Any(q=>q[1].StartsWith("Anchorage of the top bars")&&q[2].Contains("ldh = 275")),"nosing bars, step (chair) bars and anchorage are listed");}
   Console.WriteLine("PASS: "+checks+" staircase design checks");}
 }

@@ -1,0 +1,20 @@
+DTCE Tool Kit v7.1.25 (23 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Staircase Design drawings and report (owner: "wala na talagang straight bar yung top bars?"; "ayusin din sa reports, mas malaki
+para makita lahat ng details"; "complete detailed calculation report"; open-well 3D "ayusin"; slabless section "fix"; plan "reflect din
+yung dimensions"):
+- New input Top bars: Full length (default - straight along the whole flight into the supports, crossing at the lower landing) or At
+  the supports (L/4). The reinforcement table and the B callout follow the choice.
+- Report figures are drawn at screen size and scaled into the page (no overlapping labels); the sections are larger (380 pt).
+- New report section 4A DETAILED CALCULATION for every member: factored loads per segment, overhang, reactions, Mu+ / Mu- / Vu, d,
+  Rn, rho, As required / minimum, bar spacing, a and phiMn, top bars, one-way shear phiVc, minimum thickness, distribution bars, hook
+  and development lengths - each with the formula, the values and the result (OK / NG).
+- 3D: each step of a waist-slab flight is its own block with the straight sloped soffit, so open-well and dog-legged flights no longer
+  draw over each other.
+- Slabless / folded plate section: both bar layers follow the treads and risers (zigzag) with distribution bars at every fold, and
+  the plate underside follows the profile.
+- Plan: dimension chains of the flights, landings and gap along the bottom and the left side, the overall length and width, and
+  "n treads x tread = going" on each flight.
+Not verified here: the PDF output (needs the bundled qpdf tools on Windows).
+Tests: StaircaseTests 35.
+Includes everything of v7.1.24.

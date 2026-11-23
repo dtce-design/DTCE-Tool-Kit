@@ -20,6 +20,8 @@ class SpectrumChart:Control {
  internal List<double[]> Points=new List<double[]>();internal double T0,Ts;
  public SpectrumChart(){DoubleBuffered=true;ResizeRedraw=true;Height=340;Width=1000;Tag="FullWidth";BackColor=Color.White;}
  protected override void OnPaint(PaintEventArgs e){/* drawings stay paper-white with dark ink in dark mode (owner, 21 November 2026: "pangit ng dark mode") */if(DesktopAppearance.Palette.Dark)e.Graphics.Clear(Color.White);using(new ReportPaperScope())PaintPaper(e);}
+ internal static void Render(List<double[]> points,double t0,double ts,Graphics g,RectangleF rc){if(rc.Width<=1||rc.Height<=1)return;int w=1400,h=Math.Max(200,(int)(w*rc.Height/rc.Width));
+  using(var c=new SpectrumChart{Width=w,Height=h,Points=points,T0=t0,Ts=ts})using(var bmp=new Bitmap(w,h)){using(var bg=Graphics.FromImage(bmp)){bg.Clear(Color.White);c.PaintPaper(new PaintEventArgs(bg,new Rectangle(0,0,w,h)));}var st=g.Save();g.InterpolationMode=InterpolationMode.HighQualityBicubic;g.DrawImage(bmp,rc);g.Restore(st);}}
  void PaintPaper(PaintEventArgs e){base.OnPaint(e);var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;var font=ModernUi.Body;
   using(var ink=new SolidBrush(PowTheme.Ink))g.DrawString("DESIGN RESPONSE SPECTRUM (NSCP 2015 Figure 208-3)",ModernUi.Strong,ink,12,8);
   if(Points.Count<2)return;var plot=new RectangleF(70,44,Math.Max(50,Width-100),Math.Max(50,Height-96));double tMax=Points.Max(p=>p[0]),sMax=Points.Max(p=>p[1])*1.1;
@@ -32,7 +34,7 @@ class SpectrumChart:Control {
   using(var pen=new Pen(PowTheme.Teal,2.2f))g.DrawLines(pen,Points.Select(p=>new PointF(X(p[0]),Y(p[1]))).ToArray());
  }
 }
-class RsaCurveForm:DesignSheetForm {
+partial class RsaCurveForm:DesignSheetForm {
  static readonly string[] SoilNames={"SA - Hard rock","SB - Rock","SC - Very dense soil and soft rock","SD - Stiff soil profile","SE - Soft soil profile"};
  static readonly string[] Importance={"Essential facilities (I = 1.50)","Hazardous facilities (I = 1.25)","Special occupancy (I = 1.00)","Standard occupancy (I = 1.00)","Miscellaneous (I = 1.00)"};
  readonly SpectrumChart chart=new SpectrumChart();readonly TextBox staad=new TextBox{Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Both,WordWrap=false,Height=560,Width=1000,Tag="FullWidth",Font=new Font("Consolas",9.5f)};readonly Label summary=new Label{Width=1000,Height=64,Tag="FullWidth",Font=ModernUi.Strong,ForeColor=PowTheme.Teal};

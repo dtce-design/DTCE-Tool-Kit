@@ -1,0 +1,27 @@
+DTCE Tool Kit v7.1.28 (23 November 2026) - not built separately; included in the v7.2.0 test build. Not uploaded to the Microsoft Store.
+
+PATCH - Truss Connections (owner: "each design weld and bolt may sub tab for member and demand tapos yung report. hindi ba yung block
+shear e sa bolt yun?"; "asan den yung interactive niya?"; "maglagay ng input ng spacing ng back to back yung thickness ng gusset plate";
+"syempre yung detail ng hss or circular din magiiba"; "mas magagandang report at detalyado as may diagrams as much as possible, para
+maiintindihan ... at maganda sa mata"):
+- Two main tabs, Weld design and Bolt design, each with the sub tabs Member and demand, Weld / Bolt detail, Block shear, STAAD forces
+  and Report. The member, block-shear and STAAD inputs are shared and move to the open design; the open tab sets weld or bolts (the
+  Connection dropdown is gone; saved files keep opening on the design they were saved with). Calculate shows the Report of the open
+  design.
+- Bolt detail: interactive bolt layout drawn to scale (end distance, spacing, gauge from the heel, edge to the toe and to the gusset
+  edge; click a dimension to edit it) with the member and gusset block-shear tear lines, and the section through a bolt (single angle
+  in single shear, or two angles back to back with the gusset between them in double shear). New inputs: bolt gauge from the heel
+  (0 = about 0.55 x leg) and bolt line to the gusset edge (0 = half the gusset width).
+- Weld detail: a slotted HSS / pipe has its own detail - plan with the slot and the weld lines LL1 / LL2 at the two walls, and the
+  section through the slot with the plate and the four fillet welds. Angles keep the member-over-gusset reference.
+- Double angles: the gusset plate thickness is the back-to-back spacing; the section preview draws the two angles that far apart with
+  the plate between them. Choosing Double angle sets the bolts to 2 shear planes (Angle to 1).
+- Block shear (AISC 360-16 J4.3 / NSCP 510.4.3) is computed automatically: bolted - member leg (along the bolt line to the member end,
+  across to the toe) and gusset (along the bolt line, across to its edge); welded angles - the gusset around the weld outline (no
+  holes, Anv = Agv); a slotted HSS / pipe has no block-shear path (noted). Entered verified areas still replace the member path.
+- Report: an illustrated document - design basis, member and demand table, Figure 1 section, Figure 2 load path, Figure 3 weld / bolt
+  detail, Figure 4 shear lag, block-shear table (and Figure 5 for welds), every limit state as a check card with its clause
+  (AISC / NSCP), a summary table, Figure 6 utilisation chart, the full step-by-step calculation and the demand source.
+Not verified here: the report page text and the PDF on Windows (the Linux test renderer draws the figures only).
+Tests: TrussConnectionLayoutTests 16 (block-shear areas and Rn by hand, tabs, report pages, view only).
+Includes everything of v7.1.27.

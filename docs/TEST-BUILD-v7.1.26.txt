@@ -1,0 +1,18 @@
+DTCE Tool Kit v7.1.26 (23 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Staircase Design drawings (owner: "sure ka dito na drawn correctly?"; "i drawing ng tama yung reinforcement ng stairs as to
+standard"; "yung chair bar ng stairs parang mali pa"; "di pa naka drawn to scale"):
+- Load / shear / moment diagram: shear is plotted positive above the axis, with values at the junctions; moment stays on the
+  tension side (sagging below, hogging above). A note on the diagram states the convention.
+- Re-entrant corners (bottom bars at the upper landing, top bars at the lower landing): each crossing bar runs the development length
+  ld past the crossing; where the concrete is shorter it is bent along the opposite face for the rest of ld. Labelled "ld ...".
+- Chair bars to the standard detail: feet on the bottom mat, legs at right angles to the slab (not plumb), top leg under the top mat,
+  at their real height (thickness - covers - bars), every 1000 mm where the faces are parallel (none at a kink); one set when the top
+  bars run full length (no doubled chairs).
+- Drawn to scale: bar lines, distribution / nosing bar dots and links are their real diameters at the drawing scale (never thinner
+  than a hairline), the same scale across and up, with a graphic scale bar (0 - 500 - 1000 mm) that stays true at any zoom or print
+  size.
+- The folded-plate section keeps its overall-length dimension inside the figure.
+Not verified here: the PDF output (needs the bundled qpdf tools on Windows).
+Tests: StaircaseTests 35.
+Includes everything of v7.1.25.

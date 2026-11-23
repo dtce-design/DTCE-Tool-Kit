@@ -18,6 +18,13 @@ class StoreTests(unittest.TestCase):
         self.assertEqual([{'id': 'logo'}], result['listings']['en-us']['baseListing']['images'])
         self.assertEqual('Reviewer instructions', result['notesForCertification'])
 
+    def test_visibility_only_when_asked(self):
+        original = {'visibility': 'Private', 'applicationPackages': [], 'listings': {}}
+        with patch.dict('os.environ', {'STORE_VISIBILITY': 'Public'}):
+            self.assertEqual('Public', store.prepare(copy.deepcopy(original), 'u.msix', '7.2.3.0', 'n')['visibility'])
+        with patch.dict('os.environ', {'STORE_VISIBILITY': 'Everyone'}):
+            with self.assertRaises(ValueError): store.prepare(copy.deepcopy(original), 'u.msix', '7.2.3.0', 'n')
+
     def test_same_or_older_version_refused(self):
         for version in ('1.4.23.0', '1.4.22.0'):
             with self.assertRaises(ValueError):

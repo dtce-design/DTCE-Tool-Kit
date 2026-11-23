@@ -73,7 +73,7 @@ class TemplateLayout {
  public string LegText(string value){string raw=Leg.Get(1);return raw.StartsWith("{")&&raw.Contains(";")?raw.Substring(0,raw.LastIndexOf(';')+1)+value+"}":value;}
 }
 class Engine {
- public const string Version="7.1.24";
+ public const string Version="7.2.4";
  public static string Normal(string s){return Regex.Replace(s.ToUpperInvariant().Replace("%%C","Ø").Replace("\\U+2205","Ø").Replace("--","-"),@"\s+","");}
  public static string Format(string s){if(s=="-"||s=="--")return "--";s=s.Replace("#","%%C").Replace("\\U+2205","%%C").Replace("%%c","%%C");s=Regex.Replace(s,@"^(\d+)-","$1 - ");return Regex.Replace(s,@"(%%C\d+)(EF)$","$1 EF");}
  const string BeamToken=@"\d*[A-Z]+\d+";
@@ -255,7 +255,7 @@ partial class MainForm:Form {
  protected FlowLayoutPanel ActionPanel;
  Color Navy=Color.FromArgb(20,33,51),Accent=Color.FromArgb(0,139,139),Muted=Color.FromArgb(91,107,125);
  TextBox sourceBox,prefixBox,floorBox,detail;Button browse,process,export;CheckBox merge;DataGridView grid;Label summary,status;PictureBox picture;TabControl tabs;Panel previewHost;Analysis analysis;Result result;bool busy;
- public MainForm(){AppBrand.Apply(this);if(!AccessCodes.CanUseApp(1))throw new Exception("Beam Formatter is not included in your current access.");
+ public MainForm(){AppBrand.Apply(this);if(!ViewOnly.Opening&&!AccessCodes.CanUseApp(1))throw new Exception("Beam Formatter is not included in your current access.");
   Text="Beam Schedule Formatter v"+Engine.Version;Icon=Icon.ExtractAssociatedIcon(Application.ExecutablePath);Width=1280;Height=820;MinimumSize=new Size(1120,700);StartPosition=FormStartPosition.CenterScreen;Font=new Font("Segoe UI",9.5f);BackColor=Color.FromArgb(243,246,250);AutoScaleMode=AutoScaleMode.Dpi;AllowDrop=true;
   var header=new Panel{Dock=DockStyle.Top,Height=82,BackColor=Navy,Padding=new Padding(24,12,24,10)};var title=new Label{Text="BEAM SCHEDULE FORMATTER  v"+Engine.Version,Font=new Font("Segoe UI Semibold",18),ForeColor=Color.White,Dock=DockStyle.Top,Height=34};var sub=new Label{Text="Standard Drawing1 template  •  Developed by Engr. Daryl O. Tomaneng",ForeColor=Color.FromArgb(165,190,211),Dock=DockStyle.Bottom,Height=22};header.Controls.Add(title);header.Controls.Add(sub);
   status=new Label{Dock=DockStyle.Bottom,Height=34,Padding=new Padding(18,8,8,0),BackColor=Color.White,ForeColor=Muted,Text="Ready. Load or drop the original beam schedule DXF."};
