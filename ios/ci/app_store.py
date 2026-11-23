@@ -119,7 +119,14 @@ def api_send(method, resource, body=None, params=None):
     except urllib.error.HTTPError as error:
         try:
             errors = json.loads(error.read() or b'{}').get('errors', [])
-            text = '; '.join((e.get('title') or '') + ': ' + (e.get('detail') or '') for e in errors)[:1500]
+            parts = []
+            for e in errors:
+                parts.append((e.get('title') or '') + ': ' + (e.get('detail') or ''))
+                # the reasons Apple lists for an invalid resource (missing metadata, screenshots ...)
+                for key, items in ((e.get('meta') or {}).get('associatedErrors') or {}).items():
+                    for item in items or []:
+                        parts.append('  - ' + (item.get('code') or '') + ' ' + (item.get('detail') or item.get('title') or ''))
+            text = '; '.join(parts)[:4000]
         except ValueError:
             text = ''
         raise RuntimeError('Apple API %s %s failed (HTTP %d). %s' % (method, resource.split('?')[0], error.code, text)) from None
