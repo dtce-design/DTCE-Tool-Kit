@@ -207,6 +207,13 @@ New owner request (23 November 2026, "upload mo na din sa Microsoft Store yung b
 and Admin) to the Microsoft Store after its Windows CI passes (PR #17 to main), with publish_microsoft_store=true and
 replace_pending_store_submission=true for this release only - the v7.1.17 submissions still in certification are cancelled and
 replaced. Later versions again need a new explicit request.
+Result 23 November 2026: PR #17 merged to main (GitHub release v7.1.24 OK, run 45138604556). Upload run 45138610075 (first attempt):
+- TestFlight: DTCE Access Admin 1.1.2 build 272.1 uploaded; Apple processing VALID. Not submitted for App Store review.
+- Store Admin: no submission was pending; new submission 1152921505702480415 created and committed, "accepted for processing"
+  (PreProcessing). Certification is not guaranteed.
+- Store User: refused. An in-progress User submission 1152921505702479990 (PendingCommit) was created in Partner Center, not through
+  the API, so the API may not update or delete it. The owner must delete that in-progress User submission in Partner Center; then
+  re-run the failed store-user-upload job of run 45138610075. Nothing was changed in Partner Center.
 New owner request (23 November 2026, "Pakipublish sa microsoft store"): publish v7.0.4 (User and Admin) the same way after its Windows
 CI passes (merge the development branch to main for the GitHub release, then publish_microsoft_store=true;
 replace_pending_store_submission stays false unless the owner asks). The Admin edition includes the PHIVOLCS active fault lines
