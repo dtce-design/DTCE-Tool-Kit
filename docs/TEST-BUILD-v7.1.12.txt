@@ -1,0 +1,10 @@
+DTCE Tool Kit v7.1.12 (23 November 2026) - test build; not uploaded to the Microsoft Store (v7.1.7 is the requested Store release).
+
+PATCH - Staircase Design (owner: "pagsamasamahin yung stair type at yung staircase design"; "stair type and geometry at model"):
+- The "Stair type and geometry" inputs and the Model views are one tab, "Stair type, geometry and model": inputs on the left, the
+  section with reinforcement, 3D model, plan and load / shear / moment diagrams on the right, redrawn as the inputs change. The
+  separate Model tab is removed. Saved sheet files open as before (same input names).
+- Section view: the "treads x tread = going" and "L = ... mm (plan)" dimensions no longer overlap at a small scale.
+- Load / shear / moment view: the title is on two lines so it is not cut off.
+Tests: StaircaseTests 29.
+Includes everything of v7.1.11.

@@ -222,6 +222,11 @@ Quantities Contract Duration (owner: "progress photo graph naka link sa contract
 rounded up; typed app value wins; the BACKUP value is kept only while there is no contract duration). v7.1.11.
 Sheets the app did not make are still not overwritten (v7.1.8 reverted).
 
+## Staircase Design page (23 November 2026)
+
+Owner: "pagsamasamahin yung stair type at yung staircase design" / "stair type and geometry at model": the stair type and geometry
+inputs and the four Model views (section, 3D, plan, load / shear / moment) are one tab, "Stair type, geometry and model" (v7.1.12).
+
 ## Complete rows only (23 November 2026)
 
 Owner: "naeestimate pa din kahit di kumpleto"; "pati yung sa deduction dapat may input". A Bill of Quantities row with a blank
