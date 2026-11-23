@@ -47,6 +47,11 @@ sealed class RichReport {
  /* ---- authoring ---- */
  public RichReport Heading(string text){blocks.Add(new HeadingBlock{Text=text});return this;}
  public RichReport Paragraph(string text,bool muted=false,bool strong=false){blocks.Add(new ParagraphBlock{Text=text,Muted=muted,Strong=strong});return this;}
+ /* a figure drawn in report points on a 72 dpi bitmap 1400 px wide and placed on the page: fonts keep their point size and the result is
+    the same on screen, in print and in the PDF */
+ internal static Action<Graphics,RectangleF> Raster(Action<Graphics,RectangleF> draw){return (g,rc)=>{if(rc.Width<=1||rc.Height<=1)return;int w=1400;float k=w/rc.Width;int h=Math.Max(1,(int)(rc.Height*k));
+  using(var bmp=new Bitmap(w,h)){bmp.SetResolution(72,72);using(var bg=Graphics.FromImage(bmp)){bg.Clear(Color.White);bg.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;bg.TextRenderingHint=System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;bg.ScaleTransform(k,k);draw(bg,new RectangleF(0,0,rc.Width,rc.Height));}
+   var st=g.Save();g.InterpolationMode=System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;g.DrawImage(bmp,rc);g.Restore(st);}};}
  public RichReport Figure(float height,Action<Graphics,RectangleF> paint,string caption=null){blocks.Add(new FigureBlock{H=height,Paint=paint,Caption=caption});return this;}
  public RichReport Table(string[] headers,IEnumerable<string[]> rows,float[] widths,Func<string[],Color?> rowColor=null){float sum=widths.Sum();var w=widths.Select(x=>x/sum*Width).ToArray();blocks.Add(new TableBlock{Headers=headers,Rows=rows.ToList(),Widths=w,RowColor=rowColor});return this;}
  /* a table with one drawn column (a bar sketch in each row of a bar bending schedule) */

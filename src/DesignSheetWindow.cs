@@ -121,6 +121,8 @@ class PurlinDesignForm:DesignSheetForm {
  /* files saved before v6.0.13 kept a Section properties tab */
  protected override bool RetiredInput(string key){return new[]{"Verified","Ix","Iy","Ixy","Sx","Sy"}.Contains(key);}
  protected override string BuildReport(){var input=Input();return PurlinDesigner.Report(input,PurlinDesigner.Calculate(input));}
+ /* the illustrated report: section, load resolution, moment diagrams, utilisation, then the complete calculation */
+ protected override CalculationDocument BuildDocument(){var input=Input();return PurlinReport.Build(input,PurlinDesigner.Calculate(input));}
 }
 }
 

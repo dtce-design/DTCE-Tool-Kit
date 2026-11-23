@@ -18,7 +18,7 @@ static class TrussConnectionReport {
   rep.Heading("2  MEMBER, MATERIALS AND DEMAND").KeyValues(new[]{new[]{"Member",p.Name+(pair?" - two angles back to back":"")+" ("+p.Source+")"},new[]{"Area Ag",N(i.Area,"0")+" mm² per "+(pair?"angle × 2 = "+N(gross,"0")+" mm²":"member")},new[]{"Thickness t / centroid x̄",N(i.Thickness,"0.#")+" mm / "+N(i.Offset,"0.#")+" mm"},new[]{"Member steel Fy / Fu",N(i.Fy,"0")+" / "+N(i.Fu,"0")+" MPa"},
    new[]{"Gusset plate",N(i.GussetThickness,"0.#")+" mm thick"+(pair?" (= back-to-back spacing)":"")+", effective width "+N(i.GussetWidth,"0")+" mm, Fy / Fu "+N(i.GussetFy,"0")+" / "+N(i.GussetFu,"0")+" MPa"},new[]{"Design axial force P",N(i.Demand)+" kN ("+i.Method+")"}});
   rep.Figure(175,(g,rc)=>SteelSectionPreview.Render(p,pair,pair?i.GussetThickness:0,g,rc),"Figure 1 - member section"+(pair?", the two angles spaced by the gusset plate":""));
-  rep.Figure(170,(g,rc)=>LoadPath(g,rc,i),"Figure 2 - load path: member force P → "+(weld?"welds":"bolts")+" → gusset plate");
+  rep.Figure(170,RichReport.Raster((g,rc)=>LoadPath(g,rc,i)),"Figure 2 - load path: member force P → "+(weld?"welds":"bolts")+" → gusset plate");
   rep.Heading("3  CONNECTION DETAIL");
   if(weld)rep.KeyValues(new[]{new[]{"Fillet weld",N(i.Weld,"0.#")+" mm leg, throat 0.707w = "+N(.707*i.Weld,"0.##")+" mm, FEXX "+N(i.Fexx,"0.##")+" MPa"},new[]{"Weld lengths",i.Family.StartsWith("HSS")?"LL1 = "+N(i.LL1,"0")+" / LL2 = "+N(i.LL2,"0")+" mm along the slot, LT = "+N(i.LT,"0")+" mm":"LL1 (heel) = "+N(i.LL1,"0")+", LL2 (toe) = "+N(i.LL2,"0")+", LT (end) = "+N(i.LT,"0")+" mm"+(pair?", each angle":"")}});
   else rep.KeyValues(new[]{new[]{"Bolts",i.Bolts+" × Ø"+N(i.BoltDiameter,"0")+" "+i.Grade+", threads "+(i.Fnv>=457?"excluded":"included")+", Fnv = "+N(i.Fnv,"0")+" MPa"},new[]{"Holes / layout","hole "+N(i.HoleDiameter,"0")+" mm; end distance "+N(i.EdgeDistance,"0")+" mm; spacing "+N(i.Spacing,"0")+" mm; one row"+(r.Gauge>0?" at g = "+N(r.Gauge,"0")+" mm from the heel":"")},new[]{"Shear planes",i.ShearPlanes+(i.ShearPlanes==2?" (double shear: angles on both faces of the gusset)":" (single shear)")}});
@@ -26,14 +26,14 @@ static class TrussConnectionReport {
   /* shear lag */
   double L=weld?(i.LL1+i.LL2)/2:(i.Bolts-1)*i.Spacing;
   rep.Heading("4  SHEAR LAG").Paragraph(i.AllElementsConnected?"All elements of the section are connected: U = 1.0.":i.VerifiedU>0?"Shear-lag factor U = "+N(r.U,"0.###")+" (verified input).":"U = 1 - x̄ / L = 1 - "+N(i.Offset,"0.#")+" / "+N(L,"0.#")+" = "+N(r.U,"0.###")+"   (L = "+(weld?"(LL1 + LL2) / 2":"(n - 1) s")+" = "+N(L,"0.#")+" mm; AISC Table D3.1 case 2).");
-  rep.Figure(120,(g,rc)=>ShearLag(g,rc,i,r,L),"Figure 4 - shear lag: only the connected leg is loaded at the joint; U reduces the effective net area");
+  rep.Figure(120,RichReport.Raster((g,rc)=>ShearLag(g,rc,i,r,L)),"Figure 4 - shear lag: only the connected leg is loaded at the joint; U reduces the effective net area");
   /* block shear */
   rep.Heading("5  BLOCK SHEAR");
   rep.Paragraph("Block shear is the tearing out of a block of steel along the "+(weld?"weld outline":"line of bolt holes")+": shear on the planes along the force (Agv gross, Anv net of holes) plus tension on the plane across it (Ant). Rn = min(0.6Fu Anv + Ubs Fu Ant, 0.6Fy Agv + Ubs Fu Ant), Ubs = 1.");
   var paths=r.BlockPaths.ToList();if(i.Agv>0)paths.Add(new BlockShearPath{Name="Verified member path (entered)",Basis="entered areas",Agv=i.Agv,Anv=i.Anv,Ant=i.Ant,Fy=i.Fy,Fu=i.Fu});
   if(paths.Count>0){rep.Table(new[]{"Path","Agv mm²","Anv mm²","Ant mm²","0.6FuAnv+FuAnt","0.6FyAgv+FuAnt","Rn kN"},paths.Select(q=>new[]{q.Name,N(q.Agv,"0"),N(q.Anv,"0"),N(q.Ant,"0"),N((.6*q.Fu*q.Anv+q.Fu*q.Ant)/1000,"0.0"),N((.6*q.Fy*q.Agv+q.Fu*q.Ant)/1000,"0.0"),N(q.Nominal,"0.0")}).ToList(),new[]{2.4f,.9f,.9f,.9f,1.2f,1.2f,.8f});
    foreach(var q in paths)rep.Paragraph(q.Name+": "+q.Basis+".",true);
-   if(weld&&!i.Family.StartsWith("HSS"))rep.Figure(170,(g,rc)=>WeldBlock(g,rc,i),"Figure 5 - gusset block shear around the welds (no holes: Anv = Agv)");}
+   if(weld&&!i.Family.StartsWith("HSS"))rep.Figure(170,RichReport.Raster((g,rc)=>WeldBlock(g,rc,i)),"Figure 5 - gusset block shear around the welds (no holes: Anv = Agv)");}
   else rep.Paragraph(i.Family.StartsWith("HSS")?"A gusset slotted into an HSS / pipe has no block-shear path; check the wall and gusset shear along the welds separately.":"No block-shear path could be formed from the inputs.",true);
   /* limit states */
   rep.Heading("6  LIMIT STATES");
@@ -43,7 +43,7 @@ static class TrussConnectionReport {
   /* summary and chart */
   rep.Heading("7  SUMMARY");var ordered=r.Checks.OrderByDescending(c=>c.Demand/c.Capacity).ToList();
   rep.Table(new[]{"Limit state","Available kN","P kN","Ratio","Result"},ordered.Select(c=>new[]{c.Name,N(c.Capacity,"0.0"),N(c.Demand,"0.0"),N(c.Demand/c.Capacity,"0.00"),c.Pass?"OK":"NOT OK"}).ToList(),new[]{3f,1f,.8f,.7f,.8f},row=>row[4]=="OK"?(Color?)null:Color.FromArgb(252,232,232));
-  rep.Figure(Math.Max(120,24+18*ordered.Count),(g,rc)=>Utilisation(g,rc,ordered),"Figure 6 - utilisation of every limit state (P / available strength); 1.00 is the limit");
+  rep.Figure(Math.Max(120,24+18*ordered.Count),RichReport.Raster((g,rc)=>Utilisation(g,rc,ordered)),"Figure 6 - utilisation of every limit state (P / available strength); 1.00 is the limit");
   var gov=ordered.FirstOrDefault();rep.Paragraph(r.ListedChecksPass?"All listed limit states pass. Governing: "+(gov==null?"-":gov.Name+", ratio "+N(gov.Demand/gov.Capacity,"0.00"))+".":"The connection does NOT pass: "+string.Join("; ",ordered.Where(c=>!c.Pass).Select(c=>c.Name).Concat(r.DetailErrors.Count>0?new[]{"detail limits"}:new string[0]))+".",false,true);
   /* the complete calculation with the values */
   rep.Heading("8  DETAILED CALCULATION");

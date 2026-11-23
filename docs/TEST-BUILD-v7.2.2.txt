@@ -1,0 +1,17 @@
+DTCE Tool Kit v7.2.2 (23 November 2026) - source checkpoint; not uploaded to the Microsoft Store.
+
+PATCH - Complete illustrated reports for Purlin Design and Splice, Development & Hooks (owner: "complete calculation lahat sa design
+sheets reports, including diagrams, illustrations, everything"):
+- Purlin Design: summary table, Figure 1 section, Figure 2 loads on the sloping roof resolved into wx / wy (and wind normal to the
+  roof), Figure 3 span with supports and sag rods and the moment diagrams about both axes for the governing case (weak axis continuous
+  over the sag rods), Figure 4 utilisation of every load case and both deflections; then the complete step-by-step calculation as
+  tables (step | formula, values and result).
+- Splice, Development & Hooks (Print preview and Export PDF): summary of the adopted lengths of all eight diameters (Ld top / other,
+  lap A / B, Ldh, Ldc, compression lap, hook cutting lengths) with a chart, the configuration review, then for each diameter the
+  development / lap splice / hooked development diagram and the 90°, 180° and 135° hooks drawn to scale with inside bend diameter,
+  tail and cutting length, followed by its complete calculation.
+- New shared pieces: RichText (text calculations as numbered sections and step tables, page breaks kept) and RichReport.Raster
+  (figures drawn in report points on a 72 dpi bitmap so labels keep their size on screen, in print and in the PDF; also used by the
+  truss connection and earthquake figures).
+Not verified here: the report text on Windows.
+Includes everything of v7.2.1.
