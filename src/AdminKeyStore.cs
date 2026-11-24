@@ -9,6 +9,10 @@ static class AdminKeyStore {
   finally{Array.Clear(plain,0,plain.Length);}
  }
  public static string Load(){string path=File.Exists(LocalPath)?LocalPath:Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"AdminPrivateKey.dat");return Decode(File.ReadAllBytes(path));}
+ /* a private key opened from a password-protected key file, stored for this Windows account only (DPAPI) */
+ public static void ImportKey(string privateKeyXml){byte[] plain=Encoding.UTF8.GetBytes(privateKeyXml);byte[] encrypted;try{encrypted=ProtectedData.Protect(plain,null,DataProtectionScope.CurrentUser);}finally{Array.Clear(plain,0,plain.Length);}
+  Decode(encrypted);string target=LocalPath;Directory.CreateDirectory(Path.GetDirectoryName(target));string temp=target+"."+Guid.NewGuid().ToString("N")+".tmp";
+  try{File.WriteAllBytes(temp,encrypted);if(File.Exists(target))File.Replace(temp,target,null);else File.Move(temp,target);}finally{Array.Clear(encrypted,0,encrypted.Length);if(File.Exists(temp))File.Delete(temp);}}
  public static void Import(string source){
   byte[] encrypted=File.ReadAllBytes(source);Decode(encrypted);
   string target=LocalPath;Directory.CreateDirectory(Path.GetDirectoryName(target));string temp=target+"."+Guid.NewGuid().ToString("N")+".tmp";
