@@ -1,0 +1,17 @@
+DTCE Tool Kit v7.2.12 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Bill of Quantities reports restructured (owner: "palitan yung presentation ng calculation ng BOQ REPORT sa v7.2.11";
+"lahat irestructure mo, hindi lang rebar table"; "masmaayos na presentation"; "pangit siguro yung table form"):
+- Title "Bill of Quantities ... - Summary / Detailed / Extensive calculation record"; REPORT and CONTENTS tables; Bill of Quantities.
+- Each work section: k.1 Quantities (table; the Basis column says where the calculation is: "Σ 40 source lines in 2.2 = 180 m3"),
+  then k.2, k.3 ... one calculation per quantity written as a calculation sheet (no grid): numbered lines, the members in bold,
+  the calculation with its values under them, the result on the right, the total under a rule.
+- Sources with the same calculation are one line: members listed once and compressed ("Beam B-1 to B-40 (Level 0, Level 1, ...)",
+  "Footing F-001 to F-060 / F"), result "40 × 4.5 = 180 m3".
+- Reinforcing steel calculation record per member as a calculation sheet: each bar "G40 Ø16: how the bar is cut", then
+  "pieces × cut × kg/m = net + laps + offcut", purchase kg on the right, member total; members with the same bars written once
+  ("B-1 to B-40 (40 members, each)", "Member total × 40").
+- Measurement inputs moved to Appendix A as column tables (one column per input).
+- Bold titles and headings stay with the start of what follows them (no heading left alone at a page bottom).
+Totals and quantities are unchanged. Sample project: Detailed 120 -> 23 pages, Extensive 150 -> 70 pages.
+Includes everything of v7.2.11.

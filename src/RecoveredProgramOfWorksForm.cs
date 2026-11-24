@@ -1923,8 +1923,10 @@ namespace BeamScheduleFormatter
 		{
 			var list = parts.ToList();
 			/* one line per part, the total on its own line (owner, 24 November 2026: "di ko gusto yung ganyan layout") */
-			var texts = list.Where(p => !string.IsNullOrWhiteSpace(p.Computation)).GroupBy(p => p.Computation).Select(g => (g.Count() > 1 ? g.Count() + " × " + g.Key : g.Key)).ToList();
-			merged.Computation = texts.Count == 0 ? null : texts.Count == 1 && list.Count == 1 ? texts[0] : string.Join("\n", texts.Select(t => "• " + t)) + (list.Count > 1 ? "\n= total " + BoqComputations.N(merged.Quantity) + " " + merged.Unit : "");
+			var texts = list.Where(p => !string.IsNullOrWhiteSpace(p.Computation)).GroupBy(p => p.Computation).Select(g => (g.Count() > 1 ? g.Count() + " × (" + g.Key + ")" : g.Key)).ToList();
+			string total = BoqComputations.N(merged.Quantity) + " " + merged.Unit;
+			/* identical parts read "3 × (b × d × L × n = ... = 1.5 m³) = 4.5 m3" (owner: "palitan yung presentation ng calculation") */
+			merged.Computation = texts.Count == 0 ? null : texts.Count == 1 ? (list.Count == 1 ? texts[0] : texts[0] + " = " + total) : string.Join("\n", texts.Select(t => "• " + t)) + "\n= total " + total;
 			return merged;
 		}
 

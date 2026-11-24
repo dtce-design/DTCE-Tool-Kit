@@ -409,3 +409,6 @@ Extensive reports use the design-sheet layout (src/QuantityReportLayout.cs, Rich
 a structured reinforcing steel record, and no repeated total breakdowns (v7.2.9). Automatic hinge size follows the door material (PVC
 3.0x3.0 / 3.5x3.5 over 0.80 m, steel 4.0x4.0, others by width / exterior; v7.2.10). Owner: "alisin mo yung handbook profile na wording
 regan etc": no supplier or handbook names in user-visible text (v7.2.11); internal comments and test labels may keep the data source.
+Owner (24 November 2026, "lahat irestructure mo"; "pangit siguro yung table form"): BOQ calculation reports are numbered sections with a
+k.1 Quantities table and the calculations as calculation-sheet lines (RichReport.Calc: members bold, formula under, result right, no grid),
+identical sources / members merged ("40 × 4.5"), inputs in Appendix A as column tables (v7.2.12). Keep tables for summaries only.
