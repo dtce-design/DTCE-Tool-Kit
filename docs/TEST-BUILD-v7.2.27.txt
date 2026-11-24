@@ -1,0 +1,8 @@
+DTCE Tool Kit v7.2.27 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - STAAD input line width (owner: "fix input width 72col para pwede din sa 79"): every generated STAAD line is at most 72 columns
+(src/StaadLines.cs): a long command (INT ... HEIG ...) is split at a space and continued with " -" at the end of the line; a long
+comment wraps onto further "*" lines. Applies to the wind DEFINE WIND LOAD (STAAD Wind Input and the report) and the earthquake
+response-spectrum STAAD input.
+Tests: RsaCurveTests 21, WindAuditTests 77, EarthquakeSiteTests 26.
+Includes everything of v7.2.26.

@@ -468,3 +468,5 @@ STAAD output gives each load case its WIND LOAD axis / sign and each face its GX
 Owner ("define windload lang ... windward, leeward and sidewall"; "WW+X LW+X SW+X"; "dapat hiwalay sila"): STAAD output is DEFINE WIND LOAD
 only, one type per face (WW / LW / SW) per direction, named by the model direction (WW+X ...), never WW and LW combined
 (WindStaadInput.FaceCommands, v7.2.25); names follow STAAD's "TYPE n WIND ..." format (TYPE 1 WIND WW+X, v7.2.26).
+Owner ("fix input width 72col para pwede din sa 79"): generated STAAD input lines are at most 72 columns (StaadLines.Wrap: " -" continuation,
+wrapped "*" comments) (v7.2.27).

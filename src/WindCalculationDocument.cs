@@ -47,7 +47,7 @@ partial class WindDesignForm {
     CalculationDocument.Section(g,"TERRAIN PROFILES / "+string.Join(" & ",pair.Select(d=>d.Name)),130);
     for(int n=0;n<pair.Length;n++)WindProfileDrawing.Draw(g,new RectangleF(CalculationDocument.L,172+n*305,CalculationDocument.CW,295),pair[n]);
    });}
-   {List<WindStaadBand> staadBands=null;string staadText="";if(BuildingEnabled&&terrain!=null){var sb=Building();var sd=WindAssessment.Calculate(terrain,sb.Height,wind.V,sb.Kd,sb.Height);staadBands=WindStaadInput.WallBands(sb,wind.V,sd);staadText=WindStaadInput.FaceCommands(sb,wind.V,sd,StaadBearing());}WindAuditPages.Add(doc,directions,staadBands,staadText,terrain);}
+   {List<WindStaadBand> staadBands=null;string staadText="";if(BuildingEnabled&&terrain!=null){var sb=Building();var sd=WindAssessment.Calculate(terrain,sb.Height,wind.V,sb.Kd,sb.Height);staadBands=WindStaadInput.WallBands(sb,wind.V,sd);staadText=StaadLines.Wrap(WindStaadInput.FaceCommands(sb,wind.V,sd,StaadBearing()));}WindAuditPages.Add(doc,directions,staadBands,staadText,terrain);}
    if(BuildingEnabled){var b=Building();string ridge=Value("RidgeDirection");var pressure=PressureRows(b);var grouped=pressure.GroupBy(r=>r.Direction).ToArray();
     doc.Sheets.Add(g=>{
      CalculationDocument.Section(g,"BUILDING PRESSURE BASIS",130);
