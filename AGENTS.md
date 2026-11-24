@@ -465,4 +465,4 @@ Owner ("ilagay yung x z dimension ... WW+X LW+X"): the Wind sheet takes the STAA
 STAAD output gives each load case its WIND LOAD axis / sign and each face its GX / GZ direction (WindStaadInput.AxisOf, v7.2.24).
 Owner ("define windload lang ... windward, leeward and sidewall"; "WW+X LW+X SW+X"; "dapat hiwalay sila"): STAAD output is DEFINE WIND LOAD
 only, one type per face (WW / LW / SW) per direction, named by the model direction (WW+X ...), never WW and LW combined
-(WindStaadInput.FaceCommands, v7.2.25).
+(WindStaadInput.FaceCommands, v7.2.25); names follow STAAD's "TYPE n WIND ..." format (TYPE 1 WIND WW+X, v7.2.26).

@@ -1,0 +1,8 @@
+DTCE Tool Kit v7.2.26 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load report (owner screenshot of "Pressure substitution": "di naka align sa margin"): the equation p = q G Cp − qi (GCpi)
+with its substitution now starts at the 1 inch binding margin like the table above it (it was drawn at a fixed x = 48 pt). All other
+report text was checked for fixed positions left of the margin; the terrain-profile labels are relative to their figure and are fine.
+PATCH - STAAD wind type names follow STAAD's own format "TYPE n WIND ..." (owner: "Type 1 Wind ____ ganyan ang format ata"): TYPE 1
+WIND WW+X, TYPE 2 WIND LW+X, TYPE 3 WIND SW+X ... (without the model orientation: TYPE 1 WIND W1 WW FROM SW).
+Includes everything of v7.2.25.

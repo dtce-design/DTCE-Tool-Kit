@@ -78,7 +78,7 @@ static class WindStaadInput {
    var ww=axis.Where(r=>r.Surface=="Windward wall"&&r.Z>1e-9).OrderBy(r=>r.Z).ToList();var lw=axis.FirstOrDefault(r=>r.Surface=="Leeward wall");var sw=axis.FirstOrDefault(r=>r.Surface=="Side walls");if(ww.Count==0||lw==null||sw==null)continue;
    string travel=AxisOf(idx*45+180,xBearing),wwN=AxisOf(idx*45,xBearing),lwN=AxisOf(idx*45+180,xBearing),s1=AxisOf(idx*45+90,xBearing),s2=AxisOf(idx*45+270,xBearing);
    string wwFace=dir[idx]+(normal?" long wall":" gable end"),lwFace=dir[(idx+4)%8]+(normal?" long wall":" gable end"),swFace=dir[(idx+2)%8]+" and "+dir[(idx+6)%8]+(normal?" gable ends":" long walls");
-   string tag=travel!=""?travel:"";Func<string,string> name=face=>tag!=""?face+tag:"W"+n.ToString(ci)+" "+face+" FROM "+dir[idx];
+   string tag=travel!=""?travel:"";/* "TYPE 1 WIND WW+X": STAAD's own format is TYPE n WIND ... (owner: "Type 1 Wind ____ ganyan ang format") */Func<string,string> name=face=>"WIND "+(tag!=""?face+tag:"W"+n.ToString(ci)+" "+face+" FROM "+dir[idx]);
    b.Append("\n*\n* ").Append(tag!=""?"WIND TOWARD "+tag+" = WIND FROM "+dir[idx]:"W"+n.ToString(ci)+" - WIND FROM "+dir[idx]).Append(normal?" (across the ridge)":" (along the ridge)").Append("; internal pressure +/-").Append(f(first.Qi*Math.Abs(first.GCpi))).Append(" kN/m2 on every wall (add to each wall load if your case needs it)");
    b.Append("\nTYPE ").Append(++type).Append(" ").Append(name("WW"));
    b.Append("\n* windward: ").Append(wwFace).Append(travel!=""?" ("+FaceAt(wwN)+"), load "+LoadDir(wwN,1):"").Append(", Cp +0.8");

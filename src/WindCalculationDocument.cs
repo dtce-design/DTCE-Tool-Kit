@@ -65,7 +65,7 @@ partial class WindDesignForm {
      CalculationDocument.Section(g,"PRESSURE SUBSTITUTION / "+group.Key,130);
      CalculationDocument.Text(g,"Windward wall example at z = "+F(sample.Z)+" m",CalculationDocument.L,176,CalculationDocument.CW,30,13,true);
      CalculationDocument.Table(g,new[]{"Coefficient / pressure","Value"},new List<string[]>{new[]{"Exposure / Kz",sample.Exposure+" / "+F(sample.Kz)},new[]{"Kzt at z / Kd",F(sample.Kzt)+" / "+F(b.Kd)},new[]{"V / qz",F(wind.V)+" km/h / "+F(sample.Q)+" kPa"},new[]{"G / Cp / GCpi",F(sample.G)+" / "+F(sample.Cp)+" / "+F(sample.GCpi)},new[]{"qh / qi",F(sample.Qh)+" / "+F(sample.Qi)+" kPa"}},218,new float[]{240,283},32);
-     CalculationDocument.Text(g,"p = q G Cp − qi (GCpi)\r\n  = ("+F(sample.Q)+") ("+F(sample.G)+") ("+F(sample.Cp)+")\r\n    − ("+F(sample.Qi)+") ("+F(sample.GCpi)+")\r\n  = "+F(sample.P)+" kPa",48,449,490,140,13,true);
+     CalculationDocument.Text(g,"p = q G Cp − qi (GCpi)\r\n  = ("+F(sample.Q)+") ("+F(sample.G)+") ("+F(sample.Cp)+")\r\n    − ("+F(sample.Qi)+") ("+F(sample.GCpi)+")\r\n  = "+F(sample.P)+" kPa",CalculationDocument.L,449,CalculationDocument.CW,140,13,true);
      CalculationDocument.Text(g,"Basis: NSCP 2015 directional procedure, RCB Wind workbook Calculation sheet. qz = 0.613 Kz Kzt Kd V². Gust factor follows D31:D69. Wall Cp follows I93:I97 with L/B interpolation. Roof Cp follows Figure 207B.4-1 tables. Both internal-pressure signs and both roof Cp branches are retained as separate cases.\r\n\r\nFull numerical substitutions and profile samples are retained in Export report to Excel.",CalculationDocument.L,625,CalculationDocument.CW,154,9);
     });}
    }
