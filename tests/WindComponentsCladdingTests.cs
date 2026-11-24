@@ -19,5 +19,7 @@ static class WindComponentsCladdingTests {
   Check(s.Rows.Count(r=>r.Element=="Girt")==2&&s.Rows.Where(r=>r.Element=="Girt").All(r=>r.Zone.StartsWith("Wall")),"girt: wall zones 4-5");
   var corner=s.Rows.First(r=>r.Zone.StartsWith("Roof zone 3"));Near(corner.PNeg,s.Qh*(-2.6-0.18),0.01,"corner uplift p = qh (GCp - GCpi)");Near(corner.PPos,s.Qh*(0.5+0.18),0.01,"positive p = qh (GCp + GCpi)");
   bool threw=false;try{WindComponentsCladding.Calculate(new WindBuildingInput{Width=20,Length=30,Eave=20,Apex=22,System="MRF Concrete"},rows,"Roof @ 1");}catch(Exception){threw=true;}Check(threw,"h > 18 m is refused (Part 1)");
+  /* purlin link: A = span x max(spacing, span / 3), zone 3, signed pressure / suction */
+  {double area,gp,gn;var w=new WindLinkData{Qh=4.685,GCpi=0.18,Angle=18.435};var pr=WindLink.PurlinPressures(w,3,5,1,out area,out gp,out gn);Near(area,5*5/3.0,1e-9,"purlin effective area");Near(gn,-2.6+0.6*Math.Log10(area/0.9290304),1e-9,"zone 3 GCp at the purlin area");Near(pr[1],4.685*(gn-0.18),1e-9,"purlin suction");Check(pr[0]>=0.77&&pr[1]<=-0.77,"minimum 0.77 kPa");}
   Console.WriteLine("PASS: "+checks+" components and cladding checks");}
 }

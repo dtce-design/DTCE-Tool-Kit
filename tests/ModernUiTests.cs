@@ -44,7 +44,7 @@ class ModernUiTests {
    wind.Show();Application.DoEvents();var flags=BindingFlags.Instance|BindingFlags.NonPublic;
    var pages=(TabControl)typeof(DesignSheetForm).GetField("Pages",flags).GetValue(wind);
    Check(pages.TabCount==8,"All eight wind input/results/map/profile/STAAD/report tabs must survive handle creation (STAAD wind input added in v1.4.63)");
-   Check(pages.TabPages.Cast<TabPage>().Any(p=>p.Text=="Wind-load calculations")&&pages.TabPages.Cast<TabPage>().Any(p=>p.Text=="Terrain profiles"),"Wind calculation and terrain tabs missing");
+   Check(pages.TabPages.Cast<TabPage>().Any(p=>p.Text=="Main Wind Force Resisting System (MWFRS)")&&pages.TabPages.Cast<TabPage>().Any(p=>p.Text=="Terrain profiles"),"Wind calculation and terrain tabs missing");
    string old="<DesignSheet type=\"Wind-Design\" version=\"1\"><Input key=\"Latitude\">14.5995</Input><Input key=\"Longitude\">120.9842</Input><Input key=\"Category\">III-V</Input><Input key=\"Height\">10</Input><Input key=\"Kd\">0.85</Input><Input key=\"Reviewed\">False</Input></DesignSheet>";
    wind.Restore(old);Check(wind.CurrentReport().StartsWith("DTCE | NSCP 2015 WIND"),"v1.4.40 site sheets must restore with building fields optional");
    wind.Close();

@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.Linq;
+﻿using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.Linq;
 namespace BeamScheduleFormatter {
 /* Wind load cases on the building for the report (owner, 24 November 2026: "dapat ipakita ito sa report. pero diba if wind galing sa NE,
    may windward load, leeward load, tapos sidewall pa"): the four principal wind directions W1-W4, each with +GCpi (a) and -GCpi (b);
@@ -30,7 +30,7 @@ static class WindLoadCasesReport {
   return list;}
  internal static void AddPages(CalculationDocument doc,WindBuildingInput b,List<WindPressureRow> rows,string ridge){var cases=Cases(b,rows);if(cases.Count==0)return;
   doc.Sheets.Add(g=>{
-   CalculationDocument.Section(g,"WIND LOAD CASES ON THE BUILDING",130);
+   CalculationDocument.Section(g,"MWFRS WIND LOAD CASES ON THE BUILDING",130);
    CalculationDocument.Text(g,"Ridge "+ridge+". Each wind direction is one load case in which every face is loaded at the same time: the windward wall is pushed in (pressure growing with height), the leeward wall and both side walls are pulled out (uniform, at the mean roof height), and the roof takes its Cp; the internal pressure ±GCpi acts on all inside faces together, so each case is used twice: (a) with +GCpi and (b) with −GCpi. p = q G Cp − qi (GCpi); positive toward the surface, negative away (suction). Use all eight cases (W1a … W4b) in every load combination with wind.",CalculationDocument.L,170,CalculationDocument.CW,84,8);
    var table=new List<string[]>();foreach(var c in cases){table.Add(new[]{c.Id+"a / "+c.Id+"b\nSTAAD TYPE "+c.Id.Substring(1),"from "+c.From,c.Relation,c.Windward,c.Leeward,c.Side1+", "+c.Side2});}
    CalculationDocument.Table(g,new[]{"Load case","Wind","Direction","Windward face","Leeward face","Side walls"},table,262,new float[]{66,52,74,96,96,103},34);

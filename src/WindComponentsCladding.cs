@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.Linq;
+﻿using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.Linq;
 namespace BeamScheduleFormatter {
 /* Components and cladding (owner, 24 November 2026: "diba yung existing is for MWFRS, gawa ka naman ng for C&C"): NSCP 2015 Section 207E
    Part 1, low-rise enclosed / partially enclosed buildings, h <= 18 m (same method as ASCE 7-10 Chapter 30 Part 1):
@@ -45,7 +45,7 @@ static class WindComponentsCladding {
  /* report pages */
  internal static void AddPages(CalculationDocument doc,WindBuildingInput b,CcSummary s){
   doc.Sheets.Add(g=>{
-   CalculationDocument.Section(g,"COMPONENTS AND CLADDING (SECTION 207E, PART 1)",130);
+   CalculationDocument.Section(g,"COMPONENTS AND CLADDING (C&C) - SECTION 207E, PART 1",130);
    CalculationDocument.Text(g,"Pressures for the roof and wall sheets, fasteners, purlins, girts and their connections: p = qh [(GCp) − (GCpi)], qh at the mean roof height with the exposure giving the highest load of any wind direction. GCp by zone and by the element's effective wind area A (span × the larger of the tributary width and span / 3). These values are for components and cladding only; the main frame uses the MWFRS pressures.",CalculationDocument.L,168,CalculationDocument.CW,60,8);
    CalculationDocument.Table(g,new[]{"Quantity","Value"},new List<string[]>{
     new[]{"Velocity pressure qh (governing: wind from "+s.Direction+", exposure "+s.Exposure+")",F(s.Qh,"0.000")+" kPa"},

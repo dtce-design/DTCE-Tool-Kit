@@ -474,3 +474,5 @@ Owner ("fix input width 72col para pwede din sa 79"): generated STAAD input line
 wrapped "*" comments) (v7.2.27).
 Owner ("gawa ka naman ng for C&C"): the Wind sheet computes components and cladding by NSCP 2015 207E Part 1 (src/WindComponentsCladding.cs;
 qh from the worst of the 8 directions, zones 1-5, GCp by effective area, minimum 0.77 kPa), with its own tab and report pages (v7.2.28).
+Owner ("automatic link ng loads sa purlin design"): Purlin Design takes its wind pressure / suction from the Wind Load sheet's C&C (chosen roof
+zone, purlin effective area) through the shared link file (src/WindLink.cs); the Wind sheet groups results as MWFRS and C&C (v7.2.29).
