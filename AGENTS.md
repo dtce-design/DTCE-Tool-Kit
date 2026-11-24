@@ -326,6 +326,11 @@ Owner (24 November 2026, v7.2.8): top bars always full length (no L/4 choice); f
 drawn mirrored; inputs shown follow the stair type; 3D shows the support beams; step bars end in 90° hooks tied to the top mat.
 Owner ("reinforcement ng steps kako", v7.1.27): "chair bars" of a stair means the step bars bent to each riser and tread (legs lapped
 onto the waist top bars, nosing bar in the bend), not support chairs; do not draw support chairs in the section.
+Owner (24 November 2026, v7.2.33, supersedes the v7.2.8 "top bars always full length"): top bars are a choice - "At the supports and
+kinks, L/4 (Philippine practice)" is the default, "Full length" optional. Each flight may have its own width (Width2 / Width3, 0 = flight 1);
+landing beams at a landing end are monolithic with the slab and anchor the bars; wall supports are drawn as walls (WallT). Chair bars follow
+the owner's detail: riser leg down through the waist and tread leg back into the waist, both bent along the bottom bars and lapped 300 mm
+(30db), nosing bar in the bend - not hooked into the waist top mat.
 
 ## Door hardware (23 November 2026)
 

@@ -1,0 +1,20 @@
+DTCE Tool Kit v7.2.33 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Staircase Design (owner: "bat ngayon full length na top bars sa stairs"; "if ano ang practce sa ph"; "what if magkaiba yung stair
+width ng flight?"; "paki ayos din yung beam, tapos if wall yung supports"; "saka yung step bars ganyan ba talaga itsura niyan?"; "di ba
+ganyan ang chair bar"):
+- Top bars: new input "Top bars" - "At the supports and kinks, L/4 (Philippine practice)" (default) or "Full length". With L/4 the top
+  bars stop L/4 of the span from each support and at least ld past a landing kink; the section draws and labels the cut-off
+  ("B: L/4 = ..."), and the bars list / calculation give the L/4 length.
+- Flight widths: "Flight 2 width" and "Flight 3 width" (0 = same as flight 1). The plan, 3D model and open-well landings follow each
+  flight's width; the bars list gives the number of bars across each flight; the minimum width is checked per flight, and the half
+  landing of a dog-legged stair must be at least as deep as the widest flight.
+- Beams: a beam at the end of a landing is cast with the slab (its top is the slab top) and the bars anchor in it - top bars hooked
+  down (ldh), bottom bars at least 150 mm in; "continuous over the beam" is shown only where the landing overhangs beyond the beam.
+- Walls: with Supports = Walls, the section and 3D model draw the walls (new input "Support wall thickness", default 150 mm) under the
+  landing ends / flight ends; the landing support distance applies to walls too; anchorage reads "at least 150 mm onto the support
+  wall" and "90 degree hook down at the slab end over the wall"; a note gives the 100 mm minimum bearing.
+- Chair bars (step bars), the owner's detail: from the nosing the riser leg runs straight down through the waist and the tread leg runs
+  back along the tread into the waist; each leg is bent along the bottom bars and lapped 300 mm (or 30db); the nosing bar is in the bend.
+Tests: StaircaseTests 44.
+Includes everything of v7.2.32.
