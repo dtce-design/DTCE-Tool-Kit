@@ -472,3 +472,5 @@ only, one type per face (WW / LW / SW) per direction, named by the model directi
 (WindStaadInput.FaceCommands, v7.2.25); names follow STAAD's "TYPE n WIND ..." format (TYPE 1 WIND WW+X, v7.2.26).
 Owner ("fix input width 72col para pwede din sa 79"): generated STAAD input lines are at most 72 columns (StaadLines.Wrap: " -" continuation,
 wrapped "*" comments) (v7.2.27).
+Owner ("gawa ka naman ng for C&C"): the Wind sheet computes components and cladding by NSCP 2015 207E Part 1 (src/WindComponentsCladding.cs;
+qh from the worst of the 8 directions, zones 1-5, GCp by effective area, minimum 0.77 kPa), with its own tab and report pages (v7.2.28).

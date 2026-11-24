@@ -1,0 +1,17 @@
+DTCE Tool Kit v7.2.28 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load components and cladding (owner: "diba yung existing is for MWFRS, gawa ka naman ng for C&C"):
+- NSCP 2015 Section 207E Part 1 (low-rise, h <= 18 m, gable / flat roofs; same method as ASCE 7-10 Chapter 30 Part 1),
+  src/WindComponentsCladding.cs: p = qh [(GCp) - (GCpi)], qh at the mean roof height with the exposure giving the highest load of
+  any of the eight wind directions; edge / corner width a = min(0.1 least dimension, 0.4 h) >= max(0.04 least dimension, 0.9 m);
+  GCp of walls (zones 4, 5; Figure 207E.4-1, x 0.9 for roof slopes <= 10°) and gable roofs (zones 1, 2, 3; Figures 207E.4-2A/B/C for
+  <= 7°, 7-27°, 27-45°) interpolated on log(A) between 0.93 m² and 9.3 m² (roofs) / 46.5 m² (walls); both GCpi signs; minimum
+  ±0.77 kPa.
+- Building inputs: "C&C elements: name @ effective wind area m²" (default Roof sheet / fastener @ 0.93, Purlin @ 9.3, Wall sheet /
+  fastener @ 0.93, Girt @ 9.3); roof elements (roof, purlin, rafter, truss ...) get roof zones, wall elements (wall, girt, siding,
+  column) wall zones, others both.
+- New tab "Components and cladding (C&C)" with every element / zone (GCp +/-, p +/-), and report pages: parameters (qh, h, slope, a,
+  GCpi, minimum), the zone diagram (roof zones 1 / 2 / 3 incl. the ridge strip and ridge ends for slopes > 7°, wall zones 4 / 5), and
+  the design pressure table with a worked example.
+Tests: WindComponentsCladdingTests 18 (new), WindBuildingLoadsTests 28, WindAuditTests 77.
+Includes everything of v7.2.27.
