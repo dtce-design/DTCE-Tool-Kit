@@ -277,6 +277,8 @@ The check now allows that one file (development branch, v7.2.24); a Store retry 
 Owner (24 November 2026, chose "Upload v7.2.24"): publish v7.2.24 (User and Admin) instead, after its Windows CI passes (PR to main, then
 publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User visibility stays Public). Later versions
 again need a new explicit request.
+Owner (24 November 2026, chose "Upload v7.2.25 instead"): the Store release is v7.2.25 (v7.2.24 plus separate WW / LW / SW STAAD wind types),
+the same way (PR #23, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only).
 
 ## Shared settings and the open project (23 November 2026)
 
