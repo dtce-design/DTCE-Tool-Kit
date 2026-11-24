@@ -1,0 +1,11 @@
+DTCE Tool Kit v7.2.19 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load report, surface roughness on the circle (owner: "siguro sa circle or sa map"):
+- New page "Surface roughness around the site" (after the site summary): the mapped roughness cells inside the assessment radius
+  drawn as a circle in clear colours (B green, C gold, D blue, no data gray), the eight 45° sectors labelled with the wind direction
+  and its suggested exposure, dashed rings at the B fetch and the D fetch + transition, a scale bar and the legend
+  (src/WindRoughnessCircle.cs). Without saved cells, the ray samples are drawn as wedges.
+- Each "Exposure and Kzt basis / wind from ..." page shows the same circle beside the ray bands, with that direction's two upwind
+  sectors (−45° to +45°) bright, the rest faded, and its five rays drawn.
+Exposure results unchanged. Tests: WindAuditTests 77, WindRecoveryTests 40, WindBuildingLoadsTests 28.
+Includes everything of v7.2.18.

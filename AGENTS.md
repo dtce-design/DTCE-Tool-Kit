@@ -443,3 +443,5 @@ Owner (24 November 2026, "yung ridge alignment dapat mag suggest"): the Wind bui
 NW–SE) with the largest design pressure (WindBuildingLoads.RidgePeaks); it is a suggestion only, the user picks it (v7.2.17).
 Owner (24 November 2026, "ipakita din yung diagram for surface roughness"): every wind-direction exposure page of the Wind report draws the
 five upwind rays coloured by roughness with the fetch limits (WindAuditPages.RoughnessRays, v7.2.18).
+Owner ("siguro sa circle or sa map"): the Wind report also draws the roughness as a circle (src/WindRoughnessCircle.cs): a full page with
+the 8 sectors and exposures, and a small circle with the upwind sectors highlighted on every direction page (v7.2.19).

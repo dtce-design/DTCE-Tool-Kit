@@ -7,9 +7,11 @@ static class WindAuditPages {
  class Block {public string Title,Text;public string[] Headers;public float[] Widths;public List<string[]> Rows;public float FigureHeight;public Action<Graphics,RectangleF> Figure;}
  const float Left=CalculationDocument.L,Width=CalculationDocument.CW,Top=130,Bottom=790;
  /* each upwind ray from the site as a band coloured by the mapped surface roughness, with the B fetch, D fetch and D fetch + transition */
- static void RoughnessRays(Graphics g,RectangleF rc,List<List<WindSample>> rays,WindExposureAudit audit,string name,double bearing){
+ static void RoughnessRays(Graphics g,RectangleF rc,List<List<WindSample>> rays,WindExposureAudit audit,string name,double bearing,WindTerrain terrain=null,int dirIndex=-1){
+  /* the roughness circle with this direction's upwind sectors highlighted (owner: "siguro sa circle or sa map") */
+  if(terrain!=null){float cs=Math.Min(rc.Height,172);WindRoughnessCircle.Draw(g,new RectangleF(rc.Left,rc.Top+(rc.Height-cs)/2,cs,cs),terrain,null,dirIndex,audit.Height,false);rc=new RectangleF(rc.Left+cs+12,rc.Top,rc.Width-cs-12,rc.Height);}
   using(var f=new Font("Segoe UI",7f,FontStyle.Regular,GraphicsUnit.Point))using(var b=new Font("Segoe UI",7f,FontStyle.Bold,GraphicsUnit.Point))using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted))using(var frame=new Pen(Color.FromArgb(150,160,170),.6f)){
-   g.DrawString("Surface roughness along the upwind rays - wind from "+name,b,ink,rc.Left,rc.Top);
+   g.DrawString("Upwind rays - wind from "+name,b,ink,rc.Left,rc.Top);
    float labelW=62,top=rc.Top+32,bandH=13,gap=5,plotL=rc.Left+labelW,plotW=rc.Width-labelW-8;
    double far=Math.Max(rays.Count==0?0:rays.Max(r=>r.Count==0?0:r.Last().D),Math.Max(WindTin.Finite(audit.BFetch)?audit.BFetch:0,WindTin.Finite(audit.DFetch)?audit.DFetch+audit.Transition:0));if(far<=0)far=1000;
    Func<double,float> X=dist=>plotL+(float)(dist/far)*plotW;string[] offsets={"−45°","−22.5°","0°","+22.5°","+45°"};
@@ -24,8 +26,8 @@ static class WindAuditPages {
    var marks=new List<KeyValuePair<double,string>>();if(WindTin.Finite(audit.Transition)&&audit.Transition>0)marks.Add(new KeyValuePair<double,string>(audit.Transition,"D transition "+audit.Transition.ToString("0")+" m"));if(WindTin.Finite(audit.BFetch)&&audit.BFetch>0)marks.Add(new KeyValuePair<double,string>(audit.BFetch,"B fetch "+audit.BFetch.ToString("0")+" m"));if(WindTin.Finite(audit.DFetch)&&audit.DFetch>0)marks.Add(new KeyValuePair<double,string>(audit.DFetch,"D fetch "+audit.DFetch.ToString("0")+" m"));
    using(var dash=new Pen(Color.FromArgb(40,52,64),.9f){DashStyle=System.Drawing.Drawing2D.DashStyle.Dash})for(int m=0;m<marks.Count;m++){float x=X(marks[m].Key);g.DrawLine(dash,x,top-3,x,bottom+3);var sz=g.MeasureString(marks[m].Value,f);float lx=Math.Min(x+2,rc.Right-sz.Width);g.DrawString(marks[m].Value,f,ink,lx,rc.Top+11+(m%2)*9);}
    /* legend */
-   float lgx=plotL,lgy=bottom+28;foreach(var item in new[]{new KeyValuePair<string,string>("B","B - trees / built-up"),new KeyValuePair<string,string>("C","C - open terrain"),new KeyValuePair<string,string>("D","D - water"),new KeyValuePair<string,string>("?","? - no data")}){using(var fill=new SolidBrush(WindColors.Roughness(item.Key)))g.FillRectangle(fill,lgx,lgy+1,12,8);g.DrawRectangle(frame,lgx,lgy+1,12,8);g.DrawString(item.Value,f,ink,lgx+15,lgy-1);lgx+=g.MeasureString(item.Value,f).Width+32;}
-   g.DrawString("Suggested exposure "+audit.Exposure,b,ink,rc.Right-120,lgy-1);}}
+   float lgx=plotL,lgy=bottom+28;foreach(var item in new[]{new KeyValuePair<string,string>("B","B built-up / trees"),new KeyValuePair<string,string>("C","C open"),new KeyValuePair<string,string>("D","D water"),new KeyValuePair<string,string>("?","no data")}){using(var fill=new SolidBrush(WindColors.Roughness(item.Key)))g.FillRectangle(fill,lgx,lgy+1,12,8);g.DrawRectangle(frame,lgx,lgy+1,12,8);g.DrawString(item.Value,f,ink,lgx+15,lgy-1);lgx+=g.MeasureString(item.Value,f).Width+26;}
+   {var se="Suggested exposure "+audit.Exposure;g.DrawString(se,b,ink,rc.Right-g.MeasureString(se,b).Width,rc.Top);}}}
  static float Measure(string text,float width,float size,bool bold){using(var bmp=new Bitmap(1,1))using(var g=Graphics.FromImage(bmp)){g.PageUnit=GraphicsUnit.Point;using(var font=new Font("Segoe UI",size,bold?FontStyle.Bold:FontStyle.Regular,GraphicsUnit.Point))return g.MeasureString(text??"",font,(int)Math.Max(10,width)).Height;}}
  static float RowHeight(string[] row,float[] widths,bool bold){float h=0;for(int c=0;c<widths.Length;c++)h=Math.Max(h,Measure(c<row.Length?row[c]:"",widths[c]-8,7f,bold));return h+6;}
  internal static void Add(CalculationDocument doc,List<WindDirection> directions,List<WindStaadBand> bands,string commands,WindTerrain terrain=null){
@@ -33,7 +35,7 @@ static class WindAuditPages {
   foreach(var d in directions){if(d.ExposureAudit==null&&d.TopographicChecks.Count==0)continue;blocks.Add(new Block{Title="EXPOSURE AND Kzt BASIS / WIND FROM "+d.Name,Text="Exposure "+d.Exposure+"; Kzt = "+(WindTin.Finite(d.Kzt)?d.Kzt.ToString("0.###",System.Globalization.CultureInfo.InvariantCulture):"unresolved")+". "+(d.ExposureAudit==null?"":d.ExposureAudit.Reason)});
    /* surface roughness diagram of the five upwind rays (owner, 24 November 2026: "ipakita din yung diagram for surface roughness") */
    int dirIndex=Array.IndexOf(WindAssessment.Directions,d.Name);if(terrain!=null&&dirIndex>=0&&d.ExposureAudit!=null){var rays=WindAssessment.UpwindSector(terrain,dirIndex).ToList();var audit=d.ExposureAudit;string name=d.Name;double bearing=dirIndex*45;
-    blocks.Add(new Block{FigureHeight=178,Figure=(g,rc)=>RoughnessRays(g,rc,rays,audit,name,bearing)});}
+    blocks.Add(new Block{FigureHeight=178,Figure=(g,rc)=>RoughnessRays(g,rc,rays,audit,name,bearing,terrain,dirIndex)});}
    if(d.ExposureAudit!=null)blocks.Add(new Block{Headers=new[]{"Exposure check","Value","Basis / decision"},Widths=Fit(130,120,273),Rows=d.ExposureAudit.Checks.Select(r=>r.ToArray()).ToList()});
    if(d.TopographicChecks.Count>0)blocks.Add(new Block{Headers=new[]{"Kzt check (207A.8)","Value","Basis / decision"},Widths=Fit(130,150,243),Rows=d.TopographicChecks.Select(r=>r.ToArray()).ToList()});}
   if(bands!=null&&bands.Count>0){blocks.Add(new Block{Title="STAAD WIND INPUT / WALL INTENSITIES",Text="INT = windward qz·G·Cp at the band top + |leeward qh·G·Cp| (kN/m²). Internal pressure cancels across opposite walls. Roof pressures are applied separately. Do not apply G and Cp again in STAAD."});

@@ -18,6 +18,14 @@ partial class WindDesignForm {
     CalculationDocument.Text(g,(wind.Coastal?"Nearest-contour continuation outside TIN hull. ":"Delaunay TIN interpolation. ")+"Source raster digitization is approximate; terrain/exposure are preliminary candidates requiring site review.",CalculationDocument.L,751,CalculationDocument.CW,40,8,false,PowTheme.Muted);
    });
    double fetchHeight=ExposureHeight();var directions=terrain==null?new List<WindDirection>():WindAssessment.Calculate(terrain,z,wind.V,kd,WindTin.Finite(fetchHeight)?(double?)fetchHeight:null);
+   /* the surface roughness map as a circle (owner, 24 November 2026: "ipakita din yung diagram for surface roughness"; "siguro sa circle
+      or sa map") */
+   if(terrain!=null){var circleTerrain=terrain;var circleDirections=directions;double circleHeight=fetchHeight;doc.Sheets.Add(g=>{
+    CalculationDocument.Section(g,"SURFACE ROUGHNESS AROUND THE SITE",130);
+    CalculationDocument.Text(g,"Mapped surface roughness inside the assessment radius of "+F(circleTerrain.Radius)+" m (NSCP 2015 Section 207A.7.2): B trees / built-up (green), C open terrain (gold), D water (blue), no data (gray). Each 45° sector is labelled with its wind direction and the suggested exposure; dashed circles are the B fetch and the D fetch + transition for the fetch height.",CalculationDocument.L,168,CalculationDocument.CW,44,8);
+    WindRoughnessCircle.Draw(g,new RectangleF(CalculationDocument.L,220,CalculationDocument.CW,CalculationDocument.CW),circleTerrain,circleDirections,-1,circleHeight,true);
+    float ly=230+CalculationDocument.CW;float lx=CalculationDocument.L;foreach(var item in new[]{new[]{"B","B - trees / built-up"},new[]{"C","C - open terrain"},new[]{"D","D - water"},new[]{"?","? - no data"}}){using(var fill=new SolidBrush(WindColors.Roughness(item[0])))g.FillRectangle(fill,lx,ly+2,14,9);CalculationDocument.Text(g,item[1],lx+18,ly,110,14,8);lx+=120;}
+    CalculationDocument.Text(g,"Land cover from the mapped data; it cannot prove obstruction heights. Confirm the roughness and the exposure on site.",CalculationDocument.L,ly+22,CalculationDocument.CW,30,8,false,PowTheme.Muted);});}
    doc.Sheets.Add(g=>{
     CalculationDocument.Section(g,"02 / EIGHT-DIRECTION VELOCITY-PRESSURE CALCULATIONS",130);
     var rows=directions.Select(d=>new[]{d.Name,d.Exposure,F(d.H),F(d.Lh),F(d.Kzt),F(d.Kz),F(d.Qz),d.Shape}).ToList();
