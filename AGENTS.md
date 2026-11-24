@@ -343,6 +343,12 @@ and one 4" Chrome Plated Foot Bolt; optional Deadbolt (Double Cylinder / Single 
 different widths are typed in Leaf widths (e.g. 0.90+0.30) and each leaf gets its own hinges (src/DoorHardware.cs, v7.1.18). All go to
 1004(2) Finishing Hardware.
 
+## ACI beam schedule cases (24 November 2026)
+
+Owner: "lahat ng pwedeng mangyari sa schedule ilagay mo". The ACI beam schedule (src/AciBeamSchedule.cs) has a G column (added bottom
+bars at the supports; not a letter of ACI MNL-66 BM-1_1 - say so) and, besides TYPE 1, a placing diagram for G and one for cantilevers,
+drawn only when the schedule has them. The hidden row data that the BBS / BOQ read back stays unchanged (v7.2.35).
+
 ## Dropdowns, truss schedules and offcut sources (23 November 2026)
 
 Owner: dropdown cells must not change under the arrow keys or the mouse wheel while the list is closed (src/ComboKeyGuard.cs, every grid
