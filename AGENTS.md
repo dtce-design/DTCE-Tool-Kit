@@ -441,3 +441,5 @@ hook / anchor grade / chord, earthquake Mmax); add such rules for new toggles. R
 margin (CalculationDocument.L / CW, no fixed x positions) (v7.2.16).
 Owner (24 November 2026, "yung ridge alignment dapat mag suggest"): the Wind building inputs suggest the ridge alignment (N–S, NE–SW, E–W,
 NW–SE) with the largest design pressure (WindBuildingLoads.RidgePeaks); it is a suggestion only, the user picks it (v7.2.17).
+Owner (24 November 2026, "ipakita din yung diagram for surface roughness"): every wind-direction exposure page of the Wind report draws the
+five upwind rays coloured by roughness with the fetch limits (WindAuditPages.RoughnessRays, v7.2.18).

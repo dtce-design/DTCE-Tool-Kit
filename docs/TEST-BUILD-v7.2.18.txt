@@ -1,0 +1,9 @@
+DTCE Tool Kit v7.2.18 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load report (owner: "ipakita din yung diagram for surface roughness"):
+- Each "Exposure and Kzt basis / wind from ..." page has a surface roughness diagram: the five upwind rays (−45°, −22.5°, 0°, +22.5°,
+  +45° about the wind direction, with their bearings) drawn from the site outward as bands coloured by the mapped roughness (B trees /
+  built-up green, C open terrain gold, D water blue, ? no data gray), the distance scale in m, dashed lines at the D transition,
+  B fetch and D fetch distances, the legend and the suggested exposure. It shows at a glance why the exposure was chosen.
+Exposure results unchanged.
+Includes everything of v7.2.17.
