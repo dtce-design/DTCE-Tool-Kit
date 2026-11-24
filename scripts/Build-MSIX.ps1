@@ -1,4 +1,4 @@
-param([switch]$LayoutOnly,[ValidateSet('User','Admin')][string]$Edition='User')
+﻿param([switch]$LayoutOnly,[ValidateSet('User','Admin')][string]$Edition='User')
 $ErrorActionPreference='Stop'
 $repo=Split-Path -Parent $PSScriptRoot
 $dist=Join-Path $repo 'dist'
@@ -12,6 +12,11 @@ if(!(Test-Path -LiteralPath (Join-Path $user $exeName))){& (Join-Path $PSScriptR
 $stage=Join-Path $dist ("MSIX-Layout-"+$Edition)
 New-Item -ItemType Directory -Force $stage,(Join-Path $stage 'Assets') | Out-Null
 Copy-Item (Join-Path $user $exeName),(Join-Path $user "$exeName.config") $stage -Force
+# the PDF export needs tools/qpdf beside the exe (owner, 24 November 2026: "PDF security components are missing" in the Store app)
+$qpdf=Join-Path $user 'tools\qpdf'
+if(!(Test-Path -LiteralPath (Join-Path $qpdf 'qpdf.exe'))){throw 'tools/qpdf is missing from the edition build'}
+New-Item -ItemType Directory -Force (Join-Path $stage 'tools') | Out-Null
+Copy-Item -LiteralPath $qpdf -Destination (Join-Path $stage 'tools') -Recurse -Force
 [xml]$manifest=Get-Content -LiteralPath (Join-Path (Join-Path $repo 'packaging') $manifestName) -Raw
 $version=[Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $user $exeName)).FileVersion
 $parts=$version.Split('.')
@@ -26,7 +31,8 @@ try{foreach($item in @(@('StoreLogo.png',50),@('Square44x44Logo.png',44),@('Squa
 }}finally{$logo.Dispose()}
 $allowed=@($exeName,"$exeName.config",'AppxManifest.xml','Assets\StoreLogo.png','Assets\Square44x44Logo.png','Assets\Square150x150Logo.png')
 $actual=Get-ChildItem $stage -Recurse -File | ForEach-Object {$_.FullName.Substring($stage.Length+1)}
-if(@($actual | Where-Object {$_ -notin $allowed}).Count){throw 'Unexpected content in MSIX layout'}
+if(@($actual | Where-Object {$_ -notin $allowed -and $_ -notlike 'tools\qpdf\*'}).Count){throw 'Unexpected content in MSIX layout'}
+foreach($name in @('qpdf.exe','qpdf30.dll','libgcc_s_seh-1.dll','libstdc++-6.dll','libwinpthread-1.dll')){if(!(Test-Path -LiteralPath (Join-Path $stage ('tools\qpdf\'+$name)))){throw "MSIX layout is missing tools\qpdf\$name"}}
 if($LayoutOnly){Write-Output "Validated $Edition MSIX layout: $stage";return}
 $sdk=Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
 $makeappx=Get-ChildItem $sdk -Recurse -Filter makeappx.exe | Where-Object {$_.FullName -match '\\x64\\makeappx.exe$'} | Sort-Object FullName -Descending | Select-Object -First 1

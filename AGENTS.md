@@ -266,6 +266,11 @@ Partner Center reported "accepted for processing" (PreProcessing). Certification
 New owner request (24 November 2026, "iupload sa store"; chose "Replace v7.2.6"): publish v7.2.13 (User and Admin) after its Windows CI passes
 (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User visibility stays
 Public). Later versions again need a new explicit request.
+Result 24 November 2026: v7.2.13 merged to main (PR #21; GitHub release OK, run 45324634624). Its Store run 45324670010 was cancelled
+before it started (nothing changed in Partner Center): every Store MSIX so far lacked tools/qpdf, so PDF export failed in the Store app.
+Owner (24 November 2026, chose "Upload v7.2.14 instead"): publish v7.2.14 (PDF tools in the MSIX, Earthquake lateral force procedure,
+geotechnical Mmax) instead, the same way (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for
+this release only). Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
@@ -420,3 +425,11 @@ k.1 Quantities table and the calculations as calculation-sheet lines (RichReport
 identical sources / members merged ("40 × 4.5"), inputs in Appendix A as column tables (v7.2.12). Keep tables for summaries only.
 Owner (24 November 2026, "yung sa bbs maglagyan din ng calculation sheet kagaya niyan"): the BBS report has a calculation sheet
 (cut length from the shape dimensions, pieces, weight per bar mark, member totals) in the same style (v7.2.13).
+
+## Earthquake lateral force procedure and geotechnical Mmax (24 November 2026)
+
+Owner: "sa earthquake load dapat lahat ng parameters sa Lateral Force Procedure ibigay din sa report"; "override Mmax based on
+Geotechnical Report". The Earthquake sheet computes the NSCP 2015 208.5.2 static lateral force procedure (src/StaticLateralForce.cs:
+T by Method A, V with 208-8 to 208-11, Ft, Fx, storey shears / moments, E / Em, RSA scaling) and reports every parameter (section 6).
+A Mmax typed from the geotechnical report overrides every automatic Mmax estimate and is cited in the report (v7.2.14).
+The Store MSIX must carry tools/qpdf (scripts/Build-MSIX.ps1); without it PDF export fails in the Store app (fixed v7.2.14).

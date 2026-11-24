@@ -1,0 +1,22 @@
+DTCE Tool Kit v7.2.14 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Earthquake Load & RSA Curve Builder (owner: "sa earthquake load dapat lahat ng parameters sa Lateral Force Procedure ibigay
+din sa report"; "override Mmax based on Geotechnical Report"):
+- New input section "Static lateral force procedure" (NSCP 2015 Section 208.5.2): structural system for Ct (steel MRF 0.0853, RC MRF /
+  EBF 0.0731, others 0.0488), storey levels "height m @ seismic weight kN", Ω0, ρ, regularity, optional dynamic base shear from STAAD.
+  The summary under the inputs shows T, W, V (and V/W), Ft and the dynamic scale factor.
+- Report section 6 "Static lateral force procedure" (src/StaticLateralForce.cs): parameter table (Z, source / distance, Na / Nv,
+  Ca / Cv, I, R, Ω0, ρ, Ct, hn, W, regularity) and the calculation sheet: T = Ct hn^(3/4) (208-12); V = Cv I W / (R T) (208-8);
+  limits 2.5 Ca I W / R (208-9), 0.11 Ca I W (208-10), 0.8 Z Nv I W / R in Zone 4 (208-11) with the governing equation named;
+  Ft = 0.07 T V <= 0.25 V (0 for T <= 0.7 s); Σ wi hi; Fx = (V - Ft) wx hx / Σ wi hi (Section 208.5.5); table of storey forces,
+  storey shears and overturning moments; Figure 5 storey forces and shear diagram; Eh, Ev = 0.5 Ca I D, E = ρ Eh + Ev (208-1),
+  Em = Ω0 Eh (208-2); minimum dynamic base shear (90% regular / 100% irregular, 208.5.4.5) and the STAAD scale factor.
+  Later sections renumbered (7 STAAD scale ... 10 notes).
+- Mmax from the geotechnical report: new inputs "Mmax from the geotechnical report" and the report reference. When entered, it
+  overrides the automatic Mmax (fault data, picked fault, rupture length) and sets the source type; the report cites it.
+Store package fix (owner screenshot: "PDF security components are missing. Extract the complete versioned app folder, including
+tools/qpdf."): the Microsoft Store MSIX now carries tools/qpdf beside the exe (scripts/Build-MSIX.ps1 copies it and checks the five
+files); before, every Store version could not export PDF. The ZIP builds already had it.
+
+Older sheet files open with the default values for the new inputs. Tests: StaticLateralForceTests 27 (hand-checked example).
+Includes everything of v7.2.13.
