@@ -263,6 +263,9 @@ stays Public). Later versions again need a new explicit request.
 Done 24 November 2026: v7.2.6 merged to main (PR #20; GitHub release OK, run 45303839797). Store run 45303878664 (first attempt): new User
 (1152921505702487508; visibility Public) and Admin (1152921505702488152; visibility Private) submissions were created and committed;
 Partner Center reported "accepted for processing" (PreProcessing). Certification is not guaranteed. v7.2.7 and later need a new explicit request.
+New owner request (24 November 2026, "iupload sa store"; chose "Replace v7.2.6"): publish v7.2.13 (User and Admin) after its Windows CI passes
+(PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User visibility stays
+Public). Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
