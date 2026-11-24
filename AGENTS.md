@@ -435,3 +435,7 @@ A Mmax typed from the geotechnical report overrides every automatic Mmax estimat
 The Store MSIX must carry tools/qpdf (scripts/Build-MSIX.ps1); without it PDF export fails in the Store app (fixed v7.2.14).
 Owner (24 November 2026, "hindi makita yung color"): the Wind site map draws the roughness cells at about 30% opacity (not covering the map; owner "huwag naman OA takpan"), nearest-neighbour
 (src/WindSiteMap.cs RoughnessAlpha), so B / C / D colours are visible (v7.2.15).
+Owner (24 November 2026, "if naka check dapat di na pwede maginput, gawin din ito sa iba"): design-sheet inputs that a checkbox or choice
+makes unused are locked through DesignSheetForm.EnableWhen (wind gust G, truss connection U / STAAD / verified values, truss support
+hook / anchor grade / chord, earthquake Mmax); add such rules for new toggles. Report text and tables stay inside the 1 inch left
+margin (CalculationDocument.L / CW, no fixed x positions) (v7.2.16).

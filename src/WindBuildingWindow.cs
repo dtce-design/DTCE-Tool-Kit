@@ -1,4 +1,4 @@
-using System;using System.Linq;using System.Collections.Generic;using System.Drawing;using System.Windows.Forms;
+﻿using System;using System.Linq;using System.Collections.Generic;using System.Drawing;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 partial class WindDesignForm {
  readonly HashSet<string> buildingKeys=new HashSet<string>();
@@ -9,7 +9,7 @@ partial class WindDesignForm {
   Toggle(panel,"BuildingEnabled","Include building wind pressures",false);
   NumberField(panel,"BuildingWidth","Building width across ridge (m)","");NumberField(panel,"BuildingLength","Building length along ridge (m)","");NumberField(panel,"Eave","Eave height (m)","");NumberField(panel,"Apex","Apex height (m); equal eave for flat roof","");
   Choice(panel,"RidgeDirection","Ridge alignment",new[]{"N–S","NE–SW","E–W","NW–SE"});Choice(panel,"BuildingSystem","Structural system",new[]{"MRF Steel","MRF Concrete","Other system"});Choice(panel,"Enclosure","Enclosure classification",new[]{"Enclosed","Partially enclosed"});
-  Toggle(panel,"AutoG","Calculate gust effect factor G",true);NumberField(panel,"UserG","G when automatic gust is unchecked","0.85");NumberField(panel,"Damping","Damping ratio for flexible response","0.02");NumberField(panel,"FrequencyN","Natural frequency normal (Hz); 0 = estimate","0");NumberField(panel,"FrequencyP","Natural frequency parallel (Hz); 0 = estimate","0");NumberField(panel,"OpeningHeight","Positive internal qi height (m); 0 = mean roof","0");
+  Toggle(panel,"AutoG","Calculate gust effect factor G",true);NumberField(panel,"UserG","G when automatic gust is unchecked","0.85");NumberField(panel,"Damping","Damping ratio for flexible response","0.02");NumberField(panel,"FrequencyN","Natural frequency normal (Hz); 0 = estimate","0");NumberField(panel,"FrequencyP","Natural frequency parallel (Hz); 0 = estimate","0");NumberField(panel,"OpeningHeight","Positive internal qi height (m); 0 = mean roof","0");EnableWhen(()=>On("BuildingEnabled"),"BuildingWidth","BuildingLength","Eave","Apex","RidgeDirection","BuildingSystem","Enclosure","AutoG");EnableWhen(()=>On("BuildingEnabled")&&!On("AutoG"),"UserG");EnableWhen(()=>On("BuildingEnabled")&&On("AutoG"),"Damping","FrequencyN","FrequencyP");EnableWhen(()=>On("BuildingEnabled")&&Value("Enclosure")=="Partially enclosed","OpeningHeight");
   foreach(string key in Inputs.Keys.Where(x=>!new[]{"Latitude","Longitude","Category","Height","Kd","Reviewed"}.Contains(x)).ToArray()){
    buildingKeys.Add(key);var check=Inputs[key] as CheckBox;var combo=Inputs[key] as ComboBox;
    if(check!=null)check.CheckedChanged+=(s,e)=>{if(!Restoring)UpdatePressureResults();};else if(combo!=null)combo.SelectedIndexChanged+=(s,e)=>{if(!Restoring)UpdatePressureResults();};else Inputs[key].TextChanged+=(s,e)=>{if(!Restoring)UpdatePressureResults();};

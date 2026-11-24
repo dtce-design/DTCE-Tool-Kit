@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.Linq;
+﻿using System;using System.Collections.Generic;using System.Drawing;using System.Drawing.Drawing2D;using System.Globalization;using System.Linq;
 namespace BeamScheduleFormatter {
 partial class WindDesignForm {
  protected override CalculationDocument BuildDocument(){
@@ -9,9 +9,9 @@ partial class WindDesignForm {
    doc.Sheets.Add(g=>{
     CalculationDocument.Section(g,"01 / SITE & WIND-SPEED SUMMARY",130);
     using(var fill=new SolidBrush(ModernUi.Selection))g.FillRectangle(fill,CalculationDocument.L,170,CalculationDocument.CW,74);
-    CalculationDocument.Text(g,"BASIC WIND SPEED",50,181,260,20,8,true,PowTheme.Teal);
-    CalculationDocument.Text(g,wind.V.ToString("0.0",CultureInfo.InvariantCulture)+" km/h",50,202,300,35,23,true,PowTheme.Teal);
-    CalculationDocument.Text(g,(wind.V/3.6).ToString("0.00",CultureInfo.InvariantCulture)+" m/s",365,203,170,30,17,true);
+    CalculationDocument.Text(g,"BASIC WIND SPEED",CalculationDocument.L+14,181,260,20,8,true,PowTheme.Teal);
+    CalculationDocument.Text(g,wind.V.ToString("0.0",CultureInfo.InvariantCulture)+" km/h",CalculationDocument.L+14,202,300,35,23,true,PowTheme.Teal);
+    CalculationDocument.Text(g,(wind.V/3.6).ToString("0.00",CultureInfo.InvariantCulture)+" m/s",CalculationDocument.L+CalculationDocument.CW*.58f,203,170,30,17,true);
     CalculationDocument.Table(g,new[]{"Parameter","Value"},new List<string[]>{new[]{"Coordinates",lat.ToString("0.######",CultureInfo.InvariantCulture)+" N, "+lon.ToString("0.######",CultureInfo.InvariantCulture)+" E"},new[]{"Occupancy / reference height","Category "+category+" / z = "+F(z)+" m"},new[]{"Kd / terrain evidence",F(kd)+" / "+(reviewed?"Reviewed by user":"Pending review")}},260,new float[]{175,348},26);
     CalculationDocument.Text(g,"PROJECT SITE MAP",CalculationDocument.L,386,CalculationDocument.CW,20,9,true);float fit=Math.Min(523f/site.Width,295f/site.Height);g.DrawImage(site,new RectangleF(CalculationDocument.L+(CalculationDocument.CW-site.Width*fit)/2,412,site.Width*fit,site.Height*fit));
     CalculationDocument.Text(g,WindColors.Legend,CalculationDocument.L,716,CalculationDocument.CW,28,7);
@@ -24,12 +24,12 @@ partial class WindDesignForm {
     CalculationDocument.Table(g,new[]{"From","Exposure","H (m)","Lh (m)","Kzt","Kz","qz kPa","Feature"},rows,172,new float[]{40,60,60,65,70,70,80,78},40);
     CalculationDocument.Text(g,terrain==null?"Site terrain has not been loaded. Kzt, exposure and qz are unresolved.":"Terrain snapshot: "+terrain.Acquired.ToUniversalTime().ToString("yyyy-MM-dd HH:mm 'UTC'")+" / radius "+F(terrain.Radius)+" m",CalculationDocument.L,548,CalculationDocument.CW,40,8,false,PowTheme.Muted);
     CalculationDocument.Section(g,"EQUATIONS & UNITS",602);
-    CalculationDocument.Text(g,"Kzt = (1 + K1 K2 K3)²\r\nKz = 2.01 [max(z, 4.57) / zg]^(2/α)\r\nqz = 0.613 Kz Kzt Kd (V / 3.6)² / 1000   [kPa]\r\n\r\nqz is velocity pressure. Building pressures also require G, Cp and GCpi. A missing terrain/exposure value remains unresolved.",46,642,503,138,10);
+    CalculationDocument.Text(g,"Kzt = (1 + K1 K2 K3)²\r\nKz = 2.01 [max(z, 4.57) / zg]^(2/α)\r\nqz = 0.613 Kz Kzt Kd (V / 3.6)² / 1000   [kPa]\r\n\r\nqz is velocity pressure. Building pressures also require G, Cp and GCpi. A missing terrain/exposure value remains unresolved.",CalculationDocument.L,642,CalculationDocument.CW,138,10);
    });
    var stream=typeof(WindTin).Assembly.GetManifestResourceStream("WindMap"+wind.Map+".jpg");using(stream)using(var original=Image.FromStream(stream)){
     var source=doc.Own(new Bitmap(original));doc.Sheets.Add(g=>{
      CalculationDocument.Section(g,"03 / NSCP WIND-SPEED SOURCE MAP & PROJECT LOCATION",130);
-     float h=610,w=h*source.Width/source.Height,x=(595.28f-w)/2,y=171;g.DrawImage(source,x,y,w,h);
+     /* inside the binding margins (1 inch left) */float h=610,w=h*source.Width/source.Height;if(w>CalculationDocument.CW){h*=CalculationDocument.CW/w;w=CalculationDocument.CW;}float x=CalculationDocument.L+(CalculationDocument.CW-w)/2,y=171;g.DrawImage(source,x,y,w,h);
      float px=x+(float)wind.X*w/3179,py=y+(float)wind.Y*h/4801;
      using(var pen=new Pen(Color.Magenta,1.5f)){g.DrawEllipse(pen,px-4,py-4,8,8);g.DrawLine(pen,px-10,py,px+10,py);g.DrawLine(pen,px,py-10,px,py+10);}
      CalculationDocument.Text(g,"Category "+category+" · source image "+wind.Map+" · magenta marker = project",CalculationDocument.L,784,CalculationDocument.CW,15,7);

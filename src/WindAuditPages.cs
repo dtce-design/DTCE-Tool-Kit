@@ -1,7 +1,9 @@
-using System;using System.Collections.Generic;using System.Drawing;using System.Linq;
+﻿using System;using System.Collections.Generic;using System.Drawing;using System.Linq;
 namespace BeamScheduleFormatter {
 // Drawn PDF/print pages for the exposure/Kzt explanation and STAAD wind data. Rows grow to fit wrapped text.
 static class WindAuditPages {
+ /* column widths scaled to the content width inside the 1 inch binding margin (owner screenshot: tables ran past the right margin) */
+ static float[] Fit(params float[] w){float sum=w.Sum();return w.Select(x=>x/sum*CalculationDocument.CW).ToArray();}
  class Block {public string Title,Text;public string[] Headers;public float[] Widths;public List<string[]> Rows;}
  const float Left=CalculationDocument.L,Width=CalculationDocument.CW,Top=130,Bottom=790;
  static float Measure(string text,float width,float size,bool bold){using(var bmp=new Bitmap(1,1))using(var g=Graphics.FromImage(bmp)){g.PageUnit=GraphicsUnit.Point;using(var font=new Font("Segoe UI",size,bold?FontStyle.Bold:FontStyle.Regular,GraphicsUnit.Point))return g.MeasureString(text??"",font,(int)Math.Max(10,width)).Height;}}
@@ -9,10 +11,10 @@ static class WindAuditPages {
  internal static void Add(CalculationDocument doc,List<WindDirection> directions,List<WindStaadBand> bands,string commands){
   var blocks=new List<Block>();
   foreach(var d in directions){if(d.ExposureAudit==null&&d.TopographicChecks.Count==0)continue;blocks.Add(new Block{Title="EXPOSURE AND Kzt BASIS / WIND FROM "+d.Name,Text="Exposure "+d.Exposure+"; Kzt = "+(WindTin.Finite(d.Kzt)?d.Kzt.ToString("0.###",System.Globalization.CultureInfo.InvariantCulture):"unresolved")+". "+(d.ExposureAudit==null?"":d.ExposureAudit.Reason)});
-   if(d.ExposureAudit!=null)blocks.Add(new Block{Headers=new[]{"Exposure check","Value","Basis / decision"},Widths=new float[]{130,120,273},Rows=d.ExposureAudit.Checks.Select(r=>r.ToArray()).ToList()});
-   if(d.TopographicChecks.Count>0)blocks.Add(new Block{Headers=new[]{"Kzt check (207A.8)","Value","Basis / decision"},Widths=new float[]{130,150,243},Rows=d.TopographicChecks.Select(r=>r.ToArray()).ToList()});}
+   if(d.ExposureAudit!=null)blocks.Add(new Block{Headers=new[]{"Exposure check","Value","Basis / decision"},Widths=Fit(130,120,273),Rows=d.ExposureAudit.Checks.Select(r=>r.ToArray()).ToList()});
+   if(d.TopographicChecks.Count>0)blocks.Add(new Block{Headers=new[]{"Kzt check (207A.8)","Value","Basis / decision"},Widths=Fit(130,150,243),Rows=d.TopographicChecks.Select(r=>r.ToArray()).ToList()});}
   if(bands!=null&&bands.Count>0){blocks.Add(new Block{Title="STAAD WIND INPUT / WALL INTENSITIES",Text="INT = windward qz·G·Cp at the band top + |leeward qh·G·Cp| (kN/m²). Internal pressure cancels across opposite walls. Roof pressures are applied separately. Do not apply G and Cp again in STAAD."});
-   blocks.Add(new Block{Headers=new[]{"Wind from / axis","Band top z m","Windward kPa","Leeward kPa","INT kPa"},Widths=new float[]{160,85,95,90,93},Rows=bands.Select(b=>new[]{b.Axis,b.Top.ToString("0.###"),b.Windward.ToString("0.###"),b.Leeward.ToString("0.###"),b.Combined.ToString("0.###")}).ToList()});
+   blocks.Add(new Block{Headers=new[]{"Wind from / axis","Band top z m","Windward kPa","Leeward kPa","INT kPa"},Widths=Fit(160,85,95,90,93),Rows=bands.Select(b=>new[]{b.Axis,b.Top.ToString("0.###"),b.Windward.ToString("0.###"),b.Leeward.ToString("0.###"),b.Combined.ToString("0.###")}).ToList()});
    blocks.Add(new Block{Headers=new[]{"STAAD commands (UNIT METER KN)"},Widths=new float[]{CalculationDocument.CW},Rows=commands.Split('\n').Select(l=>new[]{l}).ToList()});}
   // Paginate blocks into sheets; table rows never split.
   var pages=new List<List<Action<Graphics,float>>>();var current=new List<Action<Graphics,float>>();float y=Top;var offsets=new List<List<float>>();var currentOffsets=new List<float>();
