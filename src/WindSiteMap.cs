@@ -29,20 +29,21 @@ partial class WindSiteMap:Control {
     2026: "magulo yung ridge alignment? pano ang way para maorient yung building sa windload") */
  double buildingWidth,buildingLength;int ridgeIndex=-1;
  public void SetBuilding(double width,double length,int ridge){if(buildingWidth==width&&buildingLength==length&&ridgeIndex==ridge)return;buildingWidth=width;buildingLength=length;ridgeIndex=ridge;Invalidate();}
- void DrawBuilding(Graphics g){if(ridgeIndex<0||!(buildingWidth>0)||!(buildingLength>0))return;var c=Pixel(siteLat,siteLon);double mpp=156543.03392*Math.Cos(siteLat*Math.PI/180)/Math.Pow(2,zoom);
+ void DrawBuilding(Graphics g){if(ridgeIndex<0||!(buildingWidth>0)||!(buildingLength>0))return;var c=Pixel(siteLat,siteLon);double mpp=156543.03392*Math.Cos(siteLat*Math.PI/180)/Math.Pow(2,zoom)/mapScale;
   double k=Math.Max(1/mpp,46/Math.Max(buildingLength,buildingWidth));bool enlarged=k>1/mpp+1e-12;double th=ridgeIndex*Math.PI/4;
   Func<double,double,PointF> P=(x,y)=>new PointF(c.X+(float)((x*Math.Cos(th)+y*Math.Sin(th))*k),c.Y-(float)((-x*Math.Sin(th)+y*Math.Cos(th))*k));
   double w=buildingWidth/2,l=buildingLength/2;var outline=new[]{P(-w,-l),P(w,-l),P(w,l),P(-w,l)};
   using(var fill=new SolidBrush(Color.FromArgb(150,255,255,255)))g.FillPolygon(fill,outline);using(var edge=new Pen(Color.FromArgb(32,43,53),2f))g.DrawPolygon(edge,outline);
   using(var ridge=new Pen(Color.FromArgb(200,40,40),2.4f){DashStyle=System.Drawing.Drawing2D.DashStyle.Dash})g.DrawLine(ridge,P(0,-l*1.25),P(0,l*1.25));
-  string[] names={"N–S","NE–SW","E–W","NW–SE"};var tip=P(0,l*1.25);TextRenderer.DrawText(g,"Ridge "+names[ridgeIndex]+(enlarged?" (outline enlarged)":""),ModernUi.Strong,new Point((int)tip.X+6,(int)tip.Y-8),Color.FromArgb(150,30,30),Color.White);}
+  string[] names={"N–S","NE–SW","E–W","NW–SE"};var tip=P(0,l*1.25);string label="Ridge "+names[ridgeIndex]+(enlarged?" (outline enlarged)":"");var size=TextRenderer.MeasureText(label,ModernUi.Strong);/* on the outer side of the ridge end, clear of the ring labels */TextRenderer.DrawText(g,label,ModernUi.Strong,new Point(tip.X<c.X?(int)tip.X-size.Width-4:(int)tip.X+6,(int)tip.Y-size.Height-2),Color.FromArgb(150,30,30),Color.White);}
  public void SetTerrain(WindTerrain value,double height=10){referenceHeight=height;if(!object.ReferenceEquals(terrain,value)){terrain=value;if(roughness!=null){roughness.Dispose();roughness=null;}if(value!=null&&value.CoverGrid!=null){var grid=value.CoverGrid;roughness=new Bitmap(grid.Size,grid.Size);for(int row=0;row<grid.Size;row++)for(int col=0;col<grid.Size;col++)roughness.SetPixel(col,row,Color.FromArgb(RoughnessAlpha,WindColors.Cover(grid.Codes[row*grid.Size+col])));latitude=value.Lat;longitude=value.Lon;zoom=Math.Max(3,Math.Min(16,(int)Math.Floor(Math.Log(Math.Max(250,Math.Min(VW,VH))*156543.03392*Math.Cos(latitude*Math.PI/180)/(2.2*value.Radius),2))));Queue();}}Invalidate();}
  public void Recenter(){if(double.IsNaN(siteLat))return;latitude=siteLat;longitude=siteLon;zoom=14;Queue();}
  void Queue(){if(IsDisposed)return;Invalidate();refresh.Stop();refresh.Start();}
- PointF Pixel(double lat,double lon){return new PointF((float)(X(lon,zoom)-X(longitude,zoom)+VW/2.0),(float)(Y(lat,zoom)-Y(latitude,zoom)+VH/2.0));}
+ /* mapScale: 1 on screen; the report draws the tiles of a whole zoom level enlarged by 1-2 so the circle fills the view */double mapScale=1;
+ PointF Pixel(double lat,double lon){return new PointF((float)((X(lon,zoom)-X(longitude,zoom))*mapScale+VW/2.0),(float)((Y(lat,zoom)-Y(latitude,zoom))*mapScale+VH/2.0));}
  string Key(int z,int x,int y){return (imagery?"imagery/":"street/")+z+"/"+x+"/"+y;}
- void RequestTiles(){if(IsDisposed||!IsHandleCreated)return;double left=X(longitude,zoom)-VW/2.0,top=Y(latitude,zoom)-VH/2.0;int max=1<<zoom;
-  for(int row=(int)Math.Floor(top/256);row<=Math.Floor((top+VH)/256);row++)for(int col=(int)Math.Floor(left/256);col<=Math.Floor((left+VW)/256);col++){
+ void RequestTiles(){if(IsDisposed||!IsHandleCreated)return;double left=X(longitude,zoom)-VW/2.0/mapScale,top=Y(latitude,zoom)-VH/2.0/mapScale;int max=1<<zoom;
+  for(int row=(int)Math.Floor(top/256);row<=Math.Floor((top+VH/mapScale)/256);row++)for(int col=(int)Math.Floor(left/256);col<=Math.Floor((left+VW/mapScale)/256);col++){
    if(row<0||row>=max)continue;int x=((col%max)+max)%max,y=row;string key=Key(zoom,x,y);if(tiles.ContainsKey(key)||loading.Contains(key))continue;loading.Add(key);LoadTile(key,zoom,x,y,imagery);
   }
  }
@@ -66,8 +67,8 @@ partial class WindSiteMap:Control {
  }
  protected override void OnPaint(PaintEventArgs e){/* drawings stay paper-white with dark ink in dark mode (owner, 21 November 2026: "pangit ng dark mode") */if(DesktopAppearance.Palette.Dark)e.Graphics.Clear(Color.White);using(new ReportPaperScope())PaintPaper(e);}
  void PaintPaper(PaintEventArgs e){base.OnPaint(e);DrawMap(e.Graphics,new Rectangle(0,0,VW,VH),true);}
- void DrawMap(Graphics g,Rectangle bounds,bool controls,bool requireComplete=false){bool complete=!requireComplete||CompleteVisibleTiles();g.SmoothingMode=SmoothingMode.AntiAlias;double left=X(longitude,zoom)-VW/2.0,top=Y(latitude,zoom)-VH/2.0;int max=1<<zoom,drawn=0;
-  for(int row=(int)Math.Floor(top/256);row<=Math.Floor((top+VH)/256);row++)for(int col=(int)Math.Floor(left/256);col<=Math.Floor((left+VW)/256);col++){Bitmap tile;int x=((col%max)+max)%max;if(tiles.TryGetValue(Key(zoom,x,row),out tile)){g.DrawImage(tile,(float)(col*256-left),(float)(row*256-top),256,256);drawn++;}}
+ void DrawMap(Graphics g,Rectangle bounds,bool controls,bool requireComplete=false){bool complete=!requireComplete||CompleteVisibleTiles();g.SmoothingMode=SmoothingMode.AntiAlias;double left=X(longitude,zoom)-VW/2.0/mapScale,top=Y(latitude,zoom)-VH/2.0/mapScale;int max=1<<zoom,drawn=0;
+  for(int row=(int)Math.Floor(top/256);row<=Math.Floor((top+VH/mapScale)/256);row++)for(int col=(int)Math.Floor(left/256);col<=Math.Floor((left+VW/mapScale)/256);col++){Bitmap tile;int x=((col%max)+max)%max;if(tiles.TryGetValue(Key(zoom,x,row),out tile)){g.DrawImage(tile,(float)((col*256-left)*mapScale),(float)((row*256-top)*mapScale),(float)(256*mapScale),(float)(256*mapScale));drawn++;}}
   DrawWindOverlay(g);
   if(!complete)TextRenderer.DrawText(g,"Basemap partly loaded (offline or slow connection) - missing map tiles are blank",ModernUi.Strong,new Rectangle(8,56,Math.Max(120,VW-16),22),Color.FromArgb(150,40,40),Color.White,TextFormatFlags.WordBreak);
   if(!double.IsNaN(siteLat))DrawBuilding(g);if(!double.IsNaN(siteLat)){var p=Pixel(siteLat,siteLon);using(var pen=new Pen(Color.White,5))g.DrawEllipse(pen,p.X-7,p.Y-7,14,14);using(var brush=new SolidBrush(PowTheme.Teal))g.FillEllipse(brush,p.X-6,p.Y-6,12,12);TextRenderer.DrawText(g,"PROJECT SITE",ModernUi.Strong,new Point((int)p.X+12,(int)p.Y-12),Color.FromArgb(32,43,53),Color.White);}

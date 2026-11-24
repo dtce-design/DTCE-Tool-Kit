@@ -271,6 +271,9 @@ before it started (nothing changed in Partner Center): every Store MSIX so far l
 Owner (24 November 2026, chose "Upload v7.2.14 instead"): publish v7.2.14 (PDF tools in the MSIX, Earthquake lateral force procedure,
 geotechnical Mmax) instead, the same way (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for
 this release only). Later versions again need a new explicit request.
+Result 24 November 2026: v7.2.14 merged to main (PR #22; GitHub release OK, run 45329154479). Store run 45329200717 failed in both upload jobs
+before any upload: scripts/submit_store.py refused tools/qpdf/qpdf.exe ("Unexpected executable in package"). Nothing changed in Partner Center.
+The check now allows that one file (development branch, v7.2.24); a Store retry needs main updated and the owner's go-ahead for the version.
 
 ## Shared settings and the open project (23 November 2026)
 
@@ -453,3 +456,5 @@ Owner ("nawala yung map at yung contour"): the wind report map is a fixed 1046 x
 for tiles, draws the tiles it has and states the nearest wind contours (v7.2.22).
 Owner ("bakit di nagpapakita sa STAAD Wind Input"): the STAAD Wind Input has "Pressures on every face" (every face of W1a-W4b) and load
 case templates with the side-wall and roof member loads (WindStaadInput.FacePressures / LoadCaseTemplates, v7.2.23).
+Owner ("ilagay yung x z dimension ... WW+X LW+X"): the Wind sheet takes the STAAD +X bearing, the ridge axis and the X / Z dimensions; the
+STAAD output gives each load case its WIND LOAD axis / sign and each face its GX / GZ direction (WindStaadInput.AxisOf, v7.2.24).

@@ -125,7 +125,9 @@ def main():
             raise ValueError('Private/Admin content found in User MSIX')
         executable = 'DTCE-Tool-Kit-Admin.exe' if edition == 'Admin' else 'DTCE-Tool-Kit.exe'
         if executable not in z.namelist(): raise ValueError('Missing edition executable')
-        if any(n.lower().endswith('.exe') and n != executable for n in z.namelist()): raise ValueError('Unexpected executable in package')
+        # the PDF export's qpdf tool is the only other executable allowed (v7.2.14 added tools/qpdf to the MSIX)
+        allowed_tools = {'tools/qpdf/qpdf.exe'}
+        if any(n.lower().endswith('.exe') and n != executable and n.replace('\\', '/') not in allowed_tools for n in z.namelist()): raise ValueError('Unexpected executable in package')
         identity = ET.fromstring(z.read('AppxManifest.xml')).find('{*}Identity')
         if identity.get('Name') != identity_name or identity.get('Publisher') != 'CN=DBEDF414-F57B-457B-A9EC-C38F24535F31':
             raise ValueError('Unexpected User identity')

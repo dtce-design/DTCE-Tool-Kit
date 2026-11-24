@@ -1,0 +1,19 @@
+DTCE Tool Kit v7.2.24 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load STAAD orientation (owner: "pero yung model ko is modeled along X yung longer side"; "ilagay yung x z dimension na
+pinaginput ko sa staad saka mamimili ng orientation tapos saka mo aayusin yung loads at yung copy paste ko para alam kong WW+X LW+X"):
+- Building inputs, "STAAD model orientation": +X axis of the STAAD model points to (N ... NW, or Not used), Ridge runs along STAAD X / Z,
+  building dimension along STAAD X and along Z. When set, the building width, length and ridge alignment follow from them and are locked
+  (+Z = +X turned 90° clockwise on plan, Y up).
+- STAAD Wind Input > Pressures on every face: new column "STAAD face and load direction" (e.g. windward "X min face: GX +", leeward
+  "X max face: GX +", side walls "Z min face: GZ -; Z max face: GZ +", roof normal to the roof).
+- STAAD commands: with the orientation set, each case is written ready to paste: LOAD n LOADTYPE WIND TITLE W4A WIND FROM NW +GCPI,
+  WIND LOAD X 1 TYPE 4 (axis and sign from the orientation), and comment lines with WW / LW / side walls / roof: face, net pressure and
+  GX / GZ direction. Without the orientation the template stays commented as before.
+
+PATCH - Wind report map zoom (owner: "mas zoomed in"): the report map draws the tiles of the whole zoom level enlarged by 1-2 x so the
+assessment circle fills about 86 % of the map height; labels stay at their normal size. The ridge label sits on the outer side.
+
+FIX - Microsoft Store upload: scripts/submit_store.py refused the v7.2.14 MSIX ("Unexpected executable in package") because of the PDF
+tool tools/qpdf/qpdf.exe added in v7.2.14; that one file is now allowed. Nothing had been uploaded; Partner Center unchanged.
+Includes everything of v7.2.23.
