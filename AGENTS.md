@@ -451,3 +451,5 @@ Owner (24 November 2026): the Wind report lists the load cases W1-W4 (a = +GCpi,
 leeward, both side walls, roof - with a plan per case (src/WindLoadCasesReport.cs); STAAD wind types are named "TYPE n Wn FROM dir" (v7.2.21).
 Owner ("nawala yung map at yung contour"): the wind report map is a fixed 1046 x 590 view (WindSiteMap.ReportSize, VW / VH), waits up to 20 s
 for tiles, draws the tiles it has and states the nearest wind contours (v7.2.22).
+Owner ("bakit di nagpapakita sa STAAD Wind Input"): the STAAD Wind Input has "Pressures on every face" (every face of W1a-W4b) and load
+case templates with the side-wall and roof member loads (WindStaadInput.FacePressures / LoadCaseTemplates, v7.2.23).
