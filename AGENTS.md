@@ -290,6 +290,7 @@ v7.2.28 and later need a new explicit request.
 New owner request (24 November 2026, "upload to microsoft office" = Microsoft Store; chose "Replace v7.2.27"): publish v7.2.32 (User and
 Admin) after its Windows CI passes (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release
 only; User visibility stays Public). Later versions again need a new explicit request.
+Owner (24 November 2026, "Hold it"): the v7.2.32 Store upload is on hold while the stair top bars are reviewed; PR #24 is not merged.
 
 ## Shared settings and the open project (23 November 2026)
 
