@@ -70,7 +70,7 @@ partial class CodeGeneratorForm:Form {
  internal static int SelectedPrograms(CheckedListBox apps){int selected=0;for(int n=0;n<ProgramAccess.Ids.Length;n++)if(apps.GetItemChecked(n))selected|=ProgramAccess.Ids[n];return selected;}
  TextBox request,output;Label message;string privateKey;
  public CodeGeneratorForm(){AppBrand.Apply(this);
-  Text="DTCE Tool Kit Admin - Code Generator";ClientSize=new Size(940,600);/* one screen, no scrolling (owner, 20 November 2026: "gawin 1 screen kasya sa lahat") */StartPosition=FormStartPosition.CenterScreen;FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;Font=new Font("Segoe UI",9.25f);BackColor=Color.FromArgb(245,248,251);
+  Text="DTCE Tool Kit Admin - Code Generator";ClientSize=new Size(940,640);/* one screen, no scrolling (owner, 20 November 2026: "gawin 1 screen kasya sa lahat") */StartPosition=FormStartPosition.CenterScreen;FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;Font=new Font("Segoe UI",9.25f);BackColor=Color.FromArgb(245,248,251);
   Controls.Add(new Label{Text="DTCE TOOL KIT - ACCESS ADMIN",Location=new Point(25,12),Size=new Size(890,34),Font=new Font("Segoe UI",16,FontStyle.Bold)});
   Controls.Add(new Label{Text="Paste the request from the user's currently open app.",Location=new Point(345,58),Size=new Size(565,24)});
   request=new TextBox{Location=new Point(345,84),Size=new Size(565,60),Multiline=true,MaxLength=200};Controls.Add(request);

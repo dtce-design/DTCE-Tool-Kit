@@ -12,7 +12,9 @@ partial class CodeGeneratorForm {
    var heading=Controls.OfType<Label>().First(l=>l.Text.StartsWith("DTCE TOOL KIT"));heading.Font=new Font("Segoe UI",15,FontStyle.Bold);heading.SetBounds(x,10,width,34);
    var appsTitle=Controls.OfType<Label>().First(l=>l.Text=="APPS ALLOWED");appsTitle.SetBounds(x,52,left,24);apps.SetBounds(x,78,left,apps.Items.Count*Math.Max(18,apps.ItemHeight)+8);
    var included=Controls.OfType<Label>().First(l=>l.Text.StartsWith("Project Information is included"));included.SetBounds(x,apps.Bottom+4,left,36);
-   generate.SetBounds(x,included.Bottom+4,left,40);import.SetBounds(x,generate.Bottom+6,left,32);mobile.SetBounds(x,import.Bottom+6,left,32);message.SetBounds(x,mobile.Bottom+6,left,66);
+   generate.SetBounds(x,included.Bottom+4,left,40);import.SetBounds(x,generate.Bottom+6,left,32);
+   /* the key file from another computer gets its own row (owner, 24 November 2026: it covered "Export key for iPhone") */var importFile=Controls.OfType<Button>().FirstOrDefault(b=>b.Text.StartsWith("Import key file"));
+   Control above=import;if(importFile!=null){importFile.SetBounds(x,import.Bottom+6,left,32);above=importFile;}mobile.SetBounds(x,above.Bottom+6,left,32);message.SetBounds(x,mobile.Bottom+6,left,66);
    var requestLabel=Controls.OfType<Label>().First(l=>l.Text.StartsWith("Paste the request"));requestLabel.SetBounds(rightX,52,right,24);request.SetBounds(rightX,78,right,62);
    var generated=Controls.OfType<Label>().First(l=>l.Text=="GENERATED ACCESS CODE");generated.SetBounds(rightX,request.Bottom+10,right,24);
    output.SetBounds(rightX,generated.Bottom+4,right,Math.Max(120,Math.Min(420,ClientSize.Height-430)));copy.SetBounds(rightX,output.Bottom+8,(right-12)/2,36);clear.SetBounds(copy.Right+12,output.Bottom+8,(right-12)/2,36);
