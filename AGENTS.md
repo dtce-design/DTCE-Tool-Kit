@@ -461,3 +461,6 @@ Owner ("bakit di nagpapakita sa STAAD Wind Input"): the STAAD Wind Input has "Pr
 case templates with the side-wall and roof member loads (WindStaadInput.FacePressures / LoadCaseTemplates, v7.2.23).
 Owner ("ilagay yung x z dimension ... WW+X LW+X"): the Wind sheet takes the STAAD +X bearing, the ridge axis and the X / Z dimensions; the
 STAAD output gives each load case its WIND LOAD axis / sign and each face its GX / GZ direction (WindStaadInput.AxisOf, v7.2.24).
+Owner ("define windload lang ... windward, leeward and sidewall"; "WW+X LW+X SW+X"; "dapat hiwalay sila"): STAAD output is DEFINE WIND LOAD
+only, one type per face (WW / LW / SW) per direction, named by the model direction (WW+X ...), never WW and LW combined
+(WindStaadInput.FaceCommands, v7.2.25).

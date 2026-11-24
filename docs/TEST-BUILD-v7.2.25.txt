@@ -1,0 +1,15 @@
+DTCE Tool Kit v7.2.25 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load STAAD DEFINE WIND LOAD per face (owner: "ako na bahala sa wind load cases yung define windload lang ang need ko for
+wind ward, leeward and sidewall"; "yung loading ko sa +x -x +z -z"; "WW+X LW+X SW+X etc."; "magkasama na ang WW at LW, dapat hiwalay
+sila"):
+- The STAAD commands are DEFINE WIND LOAD only, with one type per face for each wind direction: WW (windward wall, q·G·Cp by height
+  band), LW (leeward wall, uniform qh·G·Cp) and SW (side walls, uniform qh·G·(-0.7)). Windward and leeward are no longer combined.
+- With the STAAD model orientation set, the types are named and ordered by the direction the wind blows in the model: TYPE 1 WW+X,
+  2 LW+X, 3 SW+X, 4 WW-X ... 12 SW-Z; each has a comment with the compass direction, the face (X min / X max / Z min / Z max) and its
+  GX / GZ load direction. Without the orientation they are named W1 WW FROM SW etc.
+- INT is the external q·G·Cp as a positive magnitude (WW pushes on the wall, LW and SW are suction); the internal pressure ±qi·GCpi of
+  each direction is listed in its comment for the user's own load cases. The load case templates are removed (the user makes the cases).
+- The report's STAAD page shows the same commands.
+Tests: WindAuditTests 77, WindBuildingLoadsTests 28, WindRecoveryTests 40.
+Includes everything of v7.2.24.
