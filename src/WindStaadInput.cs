@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Globalization;using System.Linq;using System.Text;
+﻿using System;using System.Collections.Generic;using System.Globalization;using System.Linq;using System.Text;
 namespace BeamScheduleFormatter {
 class WindStaadHeightRow {public string Direction,Exposure;public double Height,Kz,Kzt,Qz;}
 class WindStaadBand {public string Axis;public int Type;public double Top,Windward,Leeward,Combined;}
@@ -16,6 +16,11 @@ static class WindStaadInput {
   foreach(var axis in rows.GroupBy(r=>r.Direction)){type++;var lee=axis.FirstOrDefault(r=>r.Surface=="Leeward wall");if(lee==null)continue;double leeward=lee.Qh*lee.G*lee.Cp;
    foreach(var w in axis.Where(r=>r.Surface=="Windward wall"&&r.Z>1e-9).OrderBy(r=>r.Z)){double windward=w.Q*w.G*w.Cp;bands.Add(new WindStaadBand{Axis=axis.Key,Type=type,Top=w.Z,Windward=windward,Leeward=leeward,Combined=windward+Math.Abs(leeward)});}}
   return bands;}
- internal static string Commands(IEnumerable<WindStaadBand> bands){var b=new StringBuilder("UNIT METER KN\nDEFINE WIND LOAD");foreach(var axis in bands.GroupBy(x=>x.Type)){var list=axis.OrderBy(x=>x.Top).ToList();b.Append("\nTYPE ").Append(axis.Key).Append("\n* ").Append(list[0].Axis).Append(": windward + leeward walls, kN/m2, heights from ground\nINT ").Append(string.Join(" ",list.Select(x=>F(x.Combined)))).Append(" HEIG ").Append(string.Join(" ",list.Select(x=>F(x.Top))));}return b.ToString();}
+ /* each wind type is named like the report's load cases (owner, 24 November 2026: "pati yung input sa staad dapat may name din hindi
+    type 1 lang"): "W1 FROM SW" */
+ /* "TYPE 1 W1 FROM SW" like STAAD's own "TYPE 5 WIND 5" (owner: "ganyan ang naming niya"); short so STAAD keeps the whole name */
+ internal static string TypeName(int type,string axis){string from=(axis??"").Split('/')[0].Trim();return "W"+type.ToString(System.Globalization.CultureInfo.InvariantCulture)+" FROM "+from;}
+ internal static string Relation(string axis){var parts=(axis??"").Split('/');return parts.Length>1&&parts[1].Trim()=="normal"?"wind across the ridge":"wind along the ridge";}
+ internal static string Commands(IEnumerable<WindStaadBand> bands){var b=new StringBuilder("UNIT METER KN\nDEFINE WIND LOAD");foreach(var axis in bands.GroupBy(x=>x.Type)){var list=axis.OrderBy(x=>x.Top).ToList();b.Append("\nTYPE ").Append(axis.Key).Append(" ").Append(TypeName(axis.Key,list[0].Axis)).Append("\n* ").Append(TypeName(axis.Key,list[0].Axis)).Append(", ").Append(Relation(list[0].Axis)).Append(": windward + leeward walls, kN/m2, heights from ground\nINT ").Append(string.Join(" ",list.Select(x=>F(x.Combined)))).Append(" HEIG ").Append(string.Join(" ",list.Select(x=>F(x.Top))));}return b.ToString();}
 }
 }

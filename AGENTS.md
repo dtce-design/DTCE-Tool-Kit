@@ -447,3 +447,5 @@ Owner ("siguro sa circle or sa map"): the Wind report also draws the roughness a
 the 8 sectors and exposures, and a small circle with the upwind sectors highlighted on every direction page (v7.2.19).
 Owner ("pano ang way para maorient yung building sa windload"): the building outline is drawn on the wind site map turned to the ridge
 alignment (WindSiteMap.SetBuilding), so the orientation is matched against the satellite image (v7.2.20).
+Owner (24 November 2026): the Wind report lists the load cases W1-W4 (a = +GCpi, b = -GCpi) with every face loaded at once - windward,
+leeward, both side walls, roof - with a plan per case (src/WindLoadCasesReport.cs); STAAD wind types are named "TYPE n Wn FROM dir" (v7.2.21).
