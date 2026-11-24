@@ -257,6 +257,9 @@ still pending are cancelled and replaced; User visibility stays Public). Later v
 Done 23 November 2026: v7.2.5 merged to main (PR #19; GitHub release v7.2.5-build-282). Store run 45284210023 (first attempt, no re-run):
 new User (1152921505702487129; visibility Public) and Admin (1152921505702487130; visibility Private) submissions were created and
 committed; Partner Center reported "accepted for processing". Certification is not guaranteed. v7.2.6 and later need a new explicit request.
+New owner request (24 November 2026, "push sa microsoft store"; chose "Replace v7.2.5"): publish v7.2.6 (User and Admin) after its Windows CI
+passes (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User visibility
+stays Public). Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
