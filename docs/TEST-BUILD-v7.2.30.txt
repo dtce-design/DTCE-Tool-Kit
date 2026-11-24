@@ -1,0 +1,14 @@
+DTCE Tool Kit v7.2.30 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load topographic factor Kzt (owner: "pakicheck yung Determination niya ng Hill kasi flat lang naman itsura"):
+- Why a flat site showed a "Hill": elevations come from the global Terrarium tiles (mostly SRTM, ~38 m cells at the zoom used), a surface
+  model that includes trees and buildings with several metres of vertical error; on flat coastal ground 8 m of "relief" is noise. The
+  sheet labelled any profile with 4.57 m relief as Hill / Ridge / Escarpment even when Kzt stayed 1.00, and never checked condition 2.
+- Condition 2 of NSCP 2015 Section 207A.8.1 is now checked from the profile: the feature must be at least twice the height of the
+  upwind terrain within 3.22 km (beyond its own flank, 2 Lh); otherwise Kzt = 1.00. Condition 1 (isolation) stays a site review item.
+- A shape that does not qualify is shown as "No qualifying hill / ridge / escarpment (Kzt = 1)", and when H < 10 m an "Elevation data
+  accuracy - CHECK" row explains that H is within the elevation model's accuracy.
+- New input "Site topography (Kzt)": Automatic from elevation data, or Flat - no hill, ridge or escarpment (Kzt = 1.00) when the
+  engineer has confirmed a flat site; every direction then uses Kzt = 1.00 with that note in the report.
+Tests: WindAuditTests 79.
+Includes everything of v7.2.29.

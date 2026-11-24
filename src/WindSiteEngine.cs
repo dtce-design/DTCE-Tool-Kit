@@ -1,4 +1,4 @@
-using System;using System.IO;using System.Linq;using System.Collections.Generic;using System.Globalization;using System.Text;using System.Xml;
+﻿using System;using System.IO;using System.Linq;using System.Collections.Generic;using System.Globalization;using System.Text;using System.Xml;
 namespace BeamScheduleFormatter {
 class WindNode {public double X,Y,V;}
 class WindLookup {public double V,X,Y,Distance;public int Map,Triangle;public double[] Weights;public WindNode[] Nodes;public bool Coastal;}
@@ -14,7 +14,7 @@ static partial class WindTin {
 }
 class WindSample {public double Lat,Lon,D,Z;public int Cover;}
 class WindCoverGrid {public int Size;public double North,South,West,East;public byte[] Codes;}
-class WindTerrain {public WindCoverGrid CoverGrid;public double Lat,Lon,Radius;public DateTime Acquired;public readonly List<WindSample>[] Rays=Enumerable.Range(0,24).Select(i=>new List<WindSample>()).ToArray();public readonly List<WindSample>[] Cross=Enumerable.Range(0,8).Select(i=>new List<WindSample>()).ToArray();}
+class WindTerrain {/* the engineer confirmed a flat site: no hill, ridge or escarpment, Kzt = 1 (owner: "flat lang naman itsura") */public bool UserFlat;public WindCoverGrid CoverGrid;public double Lat,Lon,Radius;public DateTime Acquired;public readonly List<WindSample>[] Rays=Enumerable.Range(0,24).Select(i=>new List<WindSample>()).ToArray();public readonly List<WindSample>[] Cross=Enumerable.Range(0,8).Select(i=>new List<WindSample>()).ToArray();}
 class WindDirection {public string Name,Exposure,Shape,Status;public double H=double.NaN,Lh=double.NaN,X=double.NaN,K1=double.NaN,K2=double.NaN,K3=double.NaN,Kzt=double.NaN,Kz=double.NaN,Qz=double.NaN;public List<WindSample> Profile;public WindExposureAudit ExposureAudit;public readonly List<string[]> TopographicChecks=new List<string[]>();public string TopographicReason="";}
 static partial class WindAssessment {
  public static readonly string[] Directions={"N","NE","E","SE","S","SW","W","NW"};

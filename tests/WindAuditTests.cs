@@ -1,4 +1,4 @@
-using System;using System.Linq;using System.Collections.Generic;using BeamScheduleFormatter;
+﻿using System;using System.Linq;using System.Collections.Generic;using BeamScheduleFormatter;
 class WindAuditTests {
  static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}static void Near(double a,double b,string why,double tol=1e-9){Check(Math.Abs(a-b)<tol,why+" (got "+a+", expected "+b+")");}
  // Flat terrain of one land cover; each ray samples every 100 m to 3.2 km.
@@ -19,8 +19,10 @@ class WindAuditTests {
   dirs=WindAssessment.Calculate(Flat(30),10,250,.85);Check(dirs.All(x=>x.Kzt==1&&x.Shape=="Low relief"),"flat terrain Kzt 1");Check(dirs[0].TopographicChecks.Any(r=>r[0].StartsWith("Condition 5")&&r[1]=="NOT MET"),"condition 5 explained");Check(dirs[0].TopographicChecks.Any(r=>r[1].Contains("(1 + 0)² = 1.00")),"unity substitution shown");
   // Hill: site on top of a 60 m hill (Exposure C), wind from N uses up ray index 1 and down ray index 13.
   Func<int,double,double> hill=(r,dist)=>r==1||r==13?Math.Max(0,60-dist*60/600.0):0;var h=Flat(30,hill);dirs=WindAssessment.Calculate(h,10,250,.85);var n=dirs[0];
-  Check(n.Exposure=="C","grass gives C");Near(n.H,60,"hill height from upwind base");Near(n.Lh,300,"Lh to half height",1e-6);Check(n.Shape=="Hill"||n.Shape=="Ridge","feature identified: "+n.Shape);Check(n.TopographicChecks.Any(r=>r[0].StartsWith("Condition 4")&&r[1]=="MET"),"slope condition met");Check(n.TopographicChecks.Any(r=>r[0].StartsWith("Condition 3")&&r[1]=="MET"),"upper half met");Check(n.TopographicChecks.Any(r=>r[0].StartsWith("Conditions 1 and 2")&&r[1]=="REVIEW"),"isolation listed for review");
+  Check(n.Exposure=="C","grass gives C");Near(n.H,60,"hill height from upwind base");Near(n.Lh,300,"Lh to half height",1e-6);Check(n.Shape=="Hill"||n.Shape=="Ridge","feature identified: "+n.Shape);Check(n.TopographicChecks.Any(r=>r[0].StartsWith("Condition 4")&&r[1]=="MET"),"slope condition met");Check(n.TopographicChecks.Any(r=>r[0].StartsWith("Condition 3")&&r[1]=="MET"),"upper half met");Check(n.TopographicChecks.Any(r=>r[0].StartsWith("Condition 1")&&r[1]=="REVIEW"),"isolation listed for review");Check(n.TopographicChecks.Any(r=>r[0].StartsWith("Condition 2")&&r[1]=="MET"),"a hill on flat ground is twice the upwind terrain");
   var k=WindAssessment.Factors(60,300,0,10,"C",n.Shape);Near(n.Kzt,k[3],"Kzt equals factor formula");Check(n.Kzt>1.3,"speed-up applied at crest: "+n.Kzt);Check(n.TopographicChecks.Any(r=>r[0]=="Substitution"&&r[1].Contains("Kzt = (1 + ")),"Kzt substitution shown");Near(n.Qz,.613*n.Kz*n.Kzt*.85*Math.Pow(250/3.6,2)/1000,"qz uses Kzt");
+  /* the engineer confirms a flat site: Kzt = 1 even on the hill profile */
+  h.UserFlat=true;var fl=WindAssessment.Calculate(h,10,250,.85)[0];Check(fl.Kzt==1&&fl.Shape.StartsWith("Flat"),"confirmed flat site gives Kzt 1");h.UserFlat=false;
   // Site in the lower half of the hill: Kzt = 1 with condition 3 not met.
   Func<int,double,double> below=(r,dist)=>r==1?(dist<500?Math.Min(60,10+dist*0.2):Math.Max(0,60-(dist-500)*60/600.0)):r==13?Math.Max(0,10-dist*10/200.0):0;var lower=Flat(30,below);var ln=WindAssessment.Calculate(lower,10,250,.85)[0];Check(ln.Kzt==1,"site below upper half is not amplified");Check(ln.TopographicChecks.Any(r=>r[0].StartsWith("Condition 3")&&r[1]=="NOT MET")&&ln.TopographicReason.Contains("upper half"),"lower-half reason explained");
   // STAAD wind input.

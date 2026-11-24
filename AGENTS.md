@@ -480,3 +480,6 @@ Owner ("gawa ka naman ng for C&C"): the Wind sheet computes components and cladd
 qh from the worst of the 8 directions, zones 1-5, GCp by effective area, minimum 0.77 kPa), with its own tab and report pages (v7.2.28).
 Owner ("automatic link ng loads sa purlin design"): Purlin Design takes its wind pressure / suction from the Wind Load sheet's C&C (chosen roof
 zone, purlin effective area) through the shared link file (src/WindLink.cs); the Wind sheet groups results as MWFRS and C&C (v7.2.29).
+Owner ("pakicheck yung Determination niya ng Hill kasi flat lang naman itsura"): Kzt checks condition 2 from the profile, labels a
+non-qualifying shape "No qualifying hill (Kzt = 1)", warns when H < 10 m (DEM accuracy), and "Site topography = Flat" forces Kzt = 1
+(WindTerrain.UserFlat, v7.2.30).
