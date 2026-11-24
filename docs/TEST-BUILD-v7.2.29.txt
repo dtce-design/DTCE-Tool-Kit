@@ -1,0 +1,15 @@
+DTCE Tool Kit v7.2.29 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Purlin Design wind loads linked to the Wind Load sheet (owner: "automatic link ng loads sa purlin design"):
+- The Wind Load sheet saves its components-and-cladding basis (qh with the governing exposure / direction, GCpi, roof slope, site) to
+  Documents\DTCE Tool Kit\Links\wind-cc-link.xml whenever it calculates C&C (src/WindLink.cs).
+- Purlin Design: new "Wind loads from" choice - Typed values, or Wind Load sheet: Components and Cladding - roof zone 1 (interior) /
+  2 (edges) / 3 (corners). When linked, the purlin's own effective wind area A = span x max(spacing, span / 3) gives GCp for that
+  zone and the wind pressure / suction (signed, normal to the roof) are filled in and locked: p = qh (GCp+ + GCpi), suction =
+  qh (GCp- - GCpi), at least ±0.77 kPa. A note shows the source, A, GCp and p, and warns when the purlin roof angle differs from the
+  wind sheet's. The values refresh when the span / spacing / angle change and when the window is brought back.
+
+PATCH - Wind sheet names (owner: "Components and Cladding tapos yung isa is Main Wind ..."): the building pressure tab is "Main Wind Force
+Resisting System (MWFRS)" beside "Components and Cladding (C&C)"; report sections are labelled MWFRS / C&C the same way.
+Tests: WindComponentsCladdingTests 22.
+Includes everything of v7.2.28.

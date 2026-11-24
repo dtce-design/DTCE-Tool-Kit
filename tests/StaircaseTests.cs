@@ -1,4 +1,4 @@
-using System;using System.Linq;using BeamScheduleFormatter;
+﻿using System;using System.Linq;using BeamScheduleFormatter;
 /* Staircase design sheet: every stair type designs; loads, moment, steel and checks against hand calculations */
 class StaircaseTests {
  static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}
@@ -27,5 +27,16 @@ class StaircaseTests {
   /* anchorage, nosing and chair bars (owner, 23 November 2026) */
   {var d0=new StairInput();Check(Staircase.HookLength(d0)==275&&Staircase.DevLength(d0)==525,"Ø12, f'c 21, fy 414: ldh 0.24 fy/√f'c db = 260 -> 275 mm; ld fy/(2.1√f'c) db = 516 -> 525 mm");
    var rs=Staircase.Design(d0);Check(rs.Steel.Any(q=>q[1].StartsWith("Nosing bars"))&&rs.Steel.Any(q=>q[1].StartsWith("Step bars (chair bars)"))&&rs.Steel.Any(q=>q[1].StartsWith("Anchorage of the top bars")&&q[2].Contains("ldh = 275")),"nosing bars, step (chair) bars and anchorage are listed");}
+  /* top bars L/4 by default, full length when chosen; flight widths; wall supports (owner, 24 November 2026) */
+  {var d0=new StairInput();Check(!d0.TopFull&&new StairInput{TopBars="Full length"}.TopFull,"top bars: L/4 is the default, full length is a choice");
+   var rs=Staircase.Design(d0);double L0=rs.Members[0].Length*1000;Check(rs.Steel.Any(q=>q[0]==rs.Members[0].Name&&q[1].Contains("L/4 = "+Staircase.F(Math.Ceiling(L0/4/25)*25,"0")+" mm")),"top bars cut off at L/4 of the span");
+   Check(rs.Steel.Any(q=>q[1].StartsWith("Main bottom")&&q[2].Contains("bars across 1200 mm")),"bar count across the flight width");
+   var fw=new StairInput{Width=1200,Width2=1000,MidLanding=1300};var rf=Staircase.Design(fw);Check(fw.W(1)==1200&&fw.W(2)==1000&&fw.W(3)==1200&&fw.MinFlightWidth==1000,"flight widths, 0 = flight 1");
+   Check(rf.Checks.Any(q=>q.Name.StartsWith("Stair width")&&q.Member=="Flight 2"&&!q.Ok),"flight 2 narrower than the 1100 minimum fails");
+   var rl=Staircase.Design(new StairInput{Width=1200,Width2=1500,MidLanding=1300});Check(rl.Checks.Any(q=>q.Name.StartsWith("Half landing depth")&&!q.Ok),"half landing shallower than the widest flight fails");
+   var ow=new StairInput{Type="Open-well (three flights, two landings)",Width=1200,Width2=1500,Width3=1000};var ro=Staircase.Design(ow);
+   Check(Math.Abs(ro.Members[0].Length-(8*275+1500)/1000.0)<1e-9&&Math.Abs(ro.Members[1].Length-(600+8*275+500)/1000.0)<1e-9,"open-well landings follow the flight widths");
+   var wl=Staircase.Design(new StairInput{Supports="Walls / simple supports"});Check(wl.Steel.Any(q=>q[1].StartsWith("Anchorage of the bottom")&&q[2].Contains("onto the support wall"))&&wl.Notes.Any(n=>n.StartsWith("Supports: walls")),"wall supports: anchorage onto the wall, note");
+   Check(rs.Steel.Any(q=>q[1].StartsWith("Step bars")&&q[2].Contains("bent along the bottom bars, lapped 300 mm")),"chair bars lapped along the bottom bars");}
   Console.WriteLine("PASS: "+checks+" staircase design checks");}
 }

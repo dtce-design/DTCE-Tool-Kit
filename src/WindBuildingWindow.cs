@@ -12,6 +12,8 @@ partial class WindDesignForm {
   Toggle(panel,"AutoG","Calculate gust effect factor G",true);NumberField(panel,"UserG","G when automatic gust is unchecked","0.85");NumberField(panel,"Damping","Damping ratio for flexible response","0.02");NumberField(panel,"FrequencyN","Natural frequency normal (Hz); 0 = estimate","0");NumberField(panel,"FrequencyP","Natural frequency parallel (Hz); 0 = estimate","0");NumberField(panel,"OpeningHeight","Positive internal qi height (m); 0 = mean roof","0");/* the STAAD model (owner, 24 November 2026: "ilagay yung x z dimension na pinaginput ko sa staad saka mamimili ng orientation tapos
      saka mo aayusin yung loads at yung copy paste ko para alam kong WW+X LW+X"): +X bearing, ridge axis and the X / Z dimensions set the
      building width, length and ridge alignment and give every load its STAAD axis and sign */
+   /* components and cladding elements (owner: "gawa ka naman ng for C&C") */
+   NumberField(panel,"CCElements","C&C elements: name @ effective wind area m² (span × max(width, span/3))","Roof sheet / fastener @ 0.93, Purlin @ 9.3, Wall sheet / fastener @ 0.93, Girt @ 9.3");EnableWhen(()=>On("BuildingEnabled"),"CCElements");
    panel.Controls.Add(new Label{Text="STAAD model orientation",Width=420,Height=26,Font=ModernUi.Strong,ForeColor=PowTheme.Ink,Padding=new Padding(0,8,0,0)});
    Choice(panel,"StaadXDir","+X axis of the STAAD model points to",new[]{"Not used","N","NE","E","SE","S","SW","W","NW"});Choice(panel,"StaadRidgeAxis","Ridge runs along STAAD",new[]{"X","Z"});
    NumberField(panel,"StaadX","Building dimension along STAAD X (m)","");NumberField(panel,"StaadZ","Building dimension along STAAD Z (m)","");panel.Controls.Add(staadAxisHint);
@@ -22,7 +24,7 @@ partial class WindDesignForm {
    if(check!=null)check.CheckedChanged+=(s,e)=>{if(!Restoring)UpdatePressureResults();};else if(combo!=null)combo.SelectedIndexChanged+=(s,e)=>{if(!Restoring)UpdatePressureResults();};else Inputs[key].TextChanged+=(s,e)=>{if(!Restoring)UpdatePressureResults();};
   }
   AddBuildingModel(panel);
-  var page=new TabPage("Wind-load calculations");foreach(string column in new[]{"Wind from / axis","Surface","Load case","Exposure","z (m)","Kz","Kzt","q (kPa)","qh (kPa)","qi (kPa)","G","Cp","GCpi","p (kPa)"})pressureGrid.Columns.Add(column,column);
+  var page=new TabPage("Main Wind Force Resisting System (MWFRS)");foreach(string column in new[]{"Wind from / axis","Surface","Load case","Exposure","z (m)","Kz","Kzt","q (kPa)","qh (kPa)","qi (kPa)","G","Cp","GCpi","p (kPa)"})pressureGrid.Columns.Add(column,column);
   pressureGrid.Columns[0].MinimumWidth=150;pressureGrid.Columns[1].MinimumWidth=150;pressureGrid.Columns[2].MinimumWidth=260;
   page.Controls.Add(pressureGrid);page.Controls.Add(pressureStatus);AddResultPage(page);pressureStatus.Text="Enter building geometry and enable building wind pressures. p = q G Cp − qi (GCpi).";
  }
@@ -49,9 +51,15 @@ partial class WindDesignForm {
  /* the building outline on the site map follows the width, length and ridge alignment */
  void ShowBuildingOnMap(){double w=0,l=0;bool ok=BuildingEnabled&&double.TryParse(Value("BuildingWidth"),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out w)&&double.TryParse(Value("BuildingLength"),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out l)&&w>0&&l>0;
   if(!ok){siteMap.SetBuilding(0,0,-1);return;}siteMap.SetBuilding(w,l,((ComboBox)Inputs["RidgeDirection"]).SelectedIndex);}
- void UpdatePressureResults(){RefreshStaadWind();ShowBuildingOnMap();SuggestRidge();pressureGrid.Rows.Clear();if(buildingModel!=null){buildingModel.Pressures=null;buildingModel.Invalidate();}if(!BuildingEnabled){pressureStatus.Text="Building wind pressures are off. Enter dimensions and enable them in Building inputs.";return;}try{var b=Building();var rows=PressureRows(b);if(buildingModel!=null){buildingModel.Pressures=rows;buildingModel.Invalidate();}foreach(var r in rows){int n=pressureGrid.Rows.Add(r.Direction,r.Surface,r.Case,r.Exposure,F(r.Z),F(r.Kz),F(r.Kzt),F(r.Q),F(r.Qh),F(r.Qi),F(r.G),F(r.Cp),F(r.GCpi),F(r.P));pressureGrid.Rows[n].Cells[3].Style.ForeColor=WindColors.Roughness(r.Exposure);}
+ DataGridView ccGrid;Label ccStatus;
+ void AddCcPage(){var page=new TabPage("Components and Cladding (C&C)");ccGrid=ReadOnlyGrid("Element","A (m²)","Zone","GCp +","GCp −","p + (kPa)","p − (kPa)");ccStatus=new Label{Dock=DockStyle.Top,Height=64,Padding=new Padding(8),ForeColor=PowTheme.Muted};page.Controls.Add(ccGrid);page.Controls.Add(ccStatus);AddResultPage(page);}
+ void UpdateCc(List<WindPressureRow> rows,WindBuildingInput b){if(ccGrid==null)return;ccGrid.Rows.Clear();if(rows==null){ccStatus.Text="Enable building wind pressures and load the site terrain to get the C&C pressures.";return;}
+  try{double v=WindTin.At(Number("Latitude"),Number("Longitude"),Value("Category")).V;var s=WindComponentsCladding.Calculate(b,rows,Value("CCElements"),WindAssessment.Calculate(terrain,b.Height,v,b.Kd),v);foreach(var r in s.Rows)ccGrid.Rows.Add(r.Element,F(r.Area),r.Zone,F(r.GCpPos),F(r.GCpNeg),"+"+F(r.PPos),F(r.PNeg));WindLink.Save(s,Value("Latitude")+" N, "+Value("Longitude")+" E");/* the Purlin Design sheet reads this (owner: "automatic link ng loads sa purlin design") */
+   ccStatus.ForeColor=PowTheme.Teal;ccStatus.Text="NSCP 2015 Section 207E Part 1: p = qh [(GCp) − (GCpi)], qh = "+F(s.Qh)+" kPa (wind from "+s.Direction+", exposure "+s.Exposure+"), a = "+F(s.A)+" m, roof "+s.RoofRange+", GCpi ±"+F(s.GCpi)+". Zones: roof 1 interior / 2 edges / 3 corners, walls 4 interior / 5 corners. Minimum ±0.77 kPa. "+s.Note;}
+  catch(Exception ex){ccStatus.ForeColor=Color.Firebrick;ccStatus.Text="C&C: "+ex.Message;}}
+ void UpdatePressureResults(){RefreshStaadWind();ShowBuildingOnMap();SuggestRidge();pressureGrid.Rows.Clear();if(buildingModel!=null){buildingModel.Pressures=null;buildingModel.Invalidate();}if(!BuildingEnabled){pressureStatus.Text="Building wind pressures are off. Enter dimensions and enable them in Building inputs.";UpdateCc(null,null);return;}try{var b=Building();var rows=PressureRows(b);UpdateCc(rows,b);if(buildingModel!=null){buildingModel.Pressures=rows;buildingModel.Invalidate();}foreach(var r in rows){int n=pressureGrid.Rows.Add(r.Direction,r.Surface,r.Case,r.Exposure,F(r.Z),F(r.Kz),F(r.Kzt),F(r.Q),F(r.Qh),F(r.Qi),F(r.G),F(r.Cp),F(r.GCpi),F(r.P));pressureGrid.Rows[n].Cells[3].Style.ForeColor=WindColors.Roughness(r.Exposure);}
    int axes=rows.Select(r=>r.Direction).Distinct().Count();pressureStatus.Text="p = q G Cp − qi (GCpi) | "+axes+" of 4 principal axes resolved | h="+F(b.Height)+"m; roof slope="+F(b.Angle)+"° | Positive toward surface; negative away. Gross pressures; apply MWFRS minimums / load patterns separately.";
-  }catch(Exception ex){pressureStatus.Text=ex.Message;}}
+  }catch(Exception ex){pressureStatus.Text=ex.Message;UpdateCc(null,null);}}
  protected override bool OptionalSavedInput(string key){return buildingKeys.Contains(key);}
 }
 }

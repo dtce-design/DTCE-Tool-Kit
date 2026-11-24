@@ -283,6 +283,17 @@ Owner (24 November 2026, chose "Upload v7.2.26"): the Store release is v7.2.26 (
 the same way. Later versions again need a new explicit request.
 Owner (24 November 2026, chose "Upload v7.2.27"): the Store release is v7.2.27 (v7.2.26 plus STAAD lines kept to 72 columns), the same way.
 Later versions again need a new explicit request.
+Done 24 November 2026: v7.2.27 merged to main (PR #23; GitHub release OK, run 45339252942). Store run 45339292532 (first attempt): new User
+(1152921505702490583; visibility Public) and Admin (1152921505702490204; visibility Private) submissions were created and committed, replacing
+the pending v7.2.6 submissions; Partner Center reported "accepted for processing" (PreProcessing). Certification is not guaranteed.
+v7.2.28 and later need a new explicit request.
+New owner request (24 November 2026, "upload to microsoft office" = Microsoft Store; chose "Replace v7.2.27"): publish v7.2.32 (User and
+Admin) after its Windows CI passes (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release
+only; User visibility stays Public). Later versions again need a new explicit request.
+Owner (24 November 2026, "Hold it"): the v7.2.32 Store upload is on hold while the stair top bars are reviewed; PR #24 is not merged.
+Owner (24 November 2026, "upload to microsof store"): the Store release is v7.2.34 (v7.2.32 plus the stair changes of v7.2.33 and the key-file
+button row of v7.2.34), the same way (PR #24 to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this
+release only - the pending v7.2.27 submissions are replaced; User visibility stays Public). Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
@@ -318,6 +329,11 @@ Owner (24 November 2026, v7.2.8): top bars always full length (no L/4 choice); f
 drawn mirrored; inputs shown follow the stair type; 3D shows the support beams; step bars end in 90° hooks tied to the top mat.
 Owner ("reinforcement ng steps kako", v7.1.27): "chair bars" of a stair means the step bars bent to each riser and tread (legs lapped
 onto the waist top bars, nosing bar in the bend), not support chairs; do not draw support chairs in the section.
+Owner (24 November 2026, v7.2.33, supersedes the v7.2.8 "top bars always full length"): top bars are a choice - "At the supports and
+kinks, L/4 (Philippine practice)" is the default, "Full length" optional. Each flight may have its own width (Width2 / Width3, 0 = flight 1);
+landing beams at a landing end are monolithic with the slab and anchor the bars; wall supports are drawn as walls (WallT). Chair bars follow
+the owner's detail: riser leg down through the waist and tread leg back into the waist, both bent along the bottom bars and lapped 300 mm
+(30db), nosing bar in the bend - not hooked into the waist top mat.
 
 ## Door hardware (23 November 2026)
 
@@ -472,3 +488,13 @@ only, one type per face (WW / LW / SW) per direction, named by the model directi
 (WindStaadInput.FaceCommands, v7.2.25); names follow STAAD's "TYPE n WIND ..." format (TYPE 1 WIND WW+X, v7.2.26).
 Owner ("fix input width 72col para pwede din sa 79"): generated STAAD input lines are at most 72 columns (StaadLines.Wrap: " -" continuation,
 wrapped "*" comments) (v7.2.27).
+Owner ("gawa ka naman ng for C&C"): the Wind sheet computes components and cladding by NSCP 2015 207E Part 1 (src/WindComponentsCladding.cs;
+qh from the worst of the 8 directions, zones 1-5, GCp by effective area, minimum 0.77 kPa), with its own tab and report pages (v7.2.28).
+Owner ("automatic link ng loads sa purlin design"): Purlin Design takes its wind pressure / suction from the Wind Load sheet's C&C (chosen roof
+zone, purlin effective area) through the shared link file (src/WindLink.cs); the Wind sheet groups results as MWFRS and C&C (v7.2.29).
+Owner ("pakicheck yung Determination niya ng Hill kasi flat lang naman itsura"): Kzt checks condition 2 from the profile, labels a
+non-qualifying shape "No qualifying hill (Kzt = 1)", warns when H < 10 m (DEM accuracy), and "Site topography = Flat" forces Kzt = 1
+(WindTerrain.UserFlat, v7.2.30).
+Owner ("bakit yung upwind base below 0?"): in the Kzt profile, elevations below 0 m (sea floor, shore blending) are taken as
+mean sea level, 0 m, and the checks say so (WindTopographicAudit Ground, v7.2.31). Inland lakes / rivers keep their surface elevation;
+water cover alone never sets 0 m (a lake at 700 m is not an escarpment) (v7.2.32).

@@ -1,0 +1,7 @@
+DTCE Tool Kit v7.2.34 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Access Code Generator (Admin), owner's screenshot: the button "Import key file from another computer (.dtcekey)" covered
+"Export key for iPhone". The window's resize layout did not know the new button; it now has its own row: Generate selected app access,
+Import existing key, Import key file from another computer (.dtcekey), Export key for iPhone, then the key ID. The window opens 40 px
+taller so everything still fits on one screen.
+Includes everything of v7.2.33.

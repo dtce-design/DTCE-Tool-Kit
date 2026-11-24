@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Globalization;using System.Linq;
+﻿using System;using System.Collections.Generic;using System.Globalization;using System.Linq;
 namespace BeamScheduleFormatter {
 /* Staircase design sheet (owner, 22 November 2026: "staircase design, lahat ng possible stairs design option. gawin interactive my
    diagrams models etc"). NSCP 2015 (ACI 318-14) reinforced concrete stairs of every usual arrangement:
@@ -24,8 +24,12 @@ class StairInput {
  public double ColumnDia=300,OuterRadius=1200,TreadsPerTurn=16;
  /* supports (owner, 23 November 2026: "pwede mag assign ng beam as support tapos sa location niya sa landing"): beams b x h, and the
     landing beam at a distance from the flight (0 = at the landing end); the part of a landing beyond its beam is an overhang */
- /* top bars along the whole flight (owner, 23 November 2026: "wala na talagang straight bar yung top bars?") or at the supports only */public string TopBars="Full length";public bool TopFull{get{return !(TopBars??"").StartsWith("At the supports");}}
- public string Supports="Beams";public double BeamB=250,BeamH=400,LandingBeamAt=0;
+ /* top bars at the supports and kinks, L/4 of the span into it and at least ld past a kink - the Philippine practice and the default (owner,
+    24 November 2026: "if ano ang practce sa ph") - or along the whole flight */public string TopBars=TopBarChoices[0];public static readonly string[] TopBarChoices={"At the supports and kinks, L/4 (Philippine practice)","Full length"};public bool TopFull{get{return !(TopBars??"").StartsWith("At the supports");}}
+ public string Supports="Beams";public double BeamB=250,BeamH=400,LandingBeamAt=0,WallT=150;
+ /* each flight at its own width (owner, 24 November 2026: "what if magkaiba yung stair width ng flight?"); 0 = the width of flight 1 */
+ public double Width2,Width3;public double W(int flight){return flight==2&&Width2>0?Width2:flight==3&&Width3>0?Width3:Width;}
+ public double MinFlightWidth{get{double w=Width;if(Flights>=2)w=Math.Min(w,W(2));if(Flights>=3)w=Math.Min(w,W(3));return w;}}
  public bool OnBeams{get{return (Supports??"").StartsWith("Beams");}}
  /* the span part of a landing of the given depth (mm) and its overhang beyond the beam */
  public double LandingSpan(double depth){return LandingBeamAt>0&&LandingBeamAt<depth?LandingBeamAt:depth;}public double LandingOver(double depth){return depth-LandingSpan(depth);}
@@ -41,7 +45,7 @@ class StairInput {
 }
 /* one span along the flight: plan segments with their factored and service loads */
 class StairSegment {public string Name;public double Length,Wd,Wl;/* kN/m per metre width (dead, live) */public bool Flight;}
-class StairMember {public string Name;public List<StairSegment> Segs=new List<StairSegment>();public string Support;/* overhangs beyond the end beams (m) and their loads (kN/m dead, live) */public double OverStart,OverEnd,OverWd,OverWl;public double Length{get{return Segs.Sum(s=>s.Length);}}
+class StairMember {public string Name;public double Width;/* mm across, for the bar counts */public List<StairSegment> Segs=new List<StairSegment>();public string Support;/* overhangs beyond the end beams (m) and their loads (kN/m dead, live) */public double OverStart,OverEnd,OverWd,OverWl;public double Length{get{return Segs.Sum(s=>s.Length);}}
  public double X0(StairSegment s){double x=0;foreach(var q in Segs){if(q==s)return x;x+=q.Length;}return x;}}
 class StairCheck {public string Name,Clause,Member,Unit,Detail="";public double Demand,Capacity;public bool Ok{get{return Demand<=Capacity*1.0000001;}}public double Ratio{get{return Capacity<=0?99:Demand/Capacity;}}}
 class StairResult {
@@ -88,22 +92,26 @@ static class Staircase {
   r.Checks.Add(new StairCheck{Name="Tread (going) - minimum",Clause="Geometry (PD 1096 / RA 9514)",Member="All flights",Demand=i.MinTread,Capacity=T,Unit="mm",Detail="tread "+F(T,"0")+" >= "+F(i.MinTread,"0")});
   r.Checks.Add(new StairCheck{Name="Comfort 2R + T - lower limit",Clause="Blondel rule",Member="All flights",Demand=i.Min2RT,Capacity=2*R+T,Unit="mm",Detail="2R + T = "+F(2*R+T,"0")});
   r.Checks.Add(new StairCheck{Name="Comfort 2R + T - upper limit",Clause="Blondel rule",Member="All flights",Demand=2*R+T,Capacity=i.Max2RT,Unit="mm"});
-  r.Checks.Add(new StairCheck{Name="Stair width - minimum",Clause="Geometry (RA 9514 exits)",Member="All flights",Demand=i.MinWidth,Capacity=i.Width,Unit="mm",Detail="width "+F(i.Width,"0")});
+  bool along=!(i.Cantilever||i.Transverse||i.Stringer||i.Spiral);int fl=along?i.Flights:1;
+  for(int k=1;k<=fl;k++)r.Checks.Add(new StairCheck{Name="Stair width - minimum",Clause="Geometry (RA 9514 exits)",Member=fl==1?"All flights":"Flight "+k,Demand=i.MinWidth,Capacity=i.W(k),Unit="mm",Detail="width "+F(i.W(k),"0")});
+  /* a landing is at least as deep (in the direction of travel) as the flights it serves */
+  if(along&&fl==2){double need=Math.Max(i.W(1),i.W(2));r.Checks.Add(new StairCheck{Name="Half landing depth - at least the flight width",Clause="Geometry (PD 1096 / RA 9514)",Member="Half landing",Demand=need,Capacity=i.MidLanding,Unit="mm",Detail="depth "+F(i.MidLanding,"0")+", widest flight "+F(need,"0")});}
   if(i.Flights>=2&&!i.Spiral){/* headroom under the upper flight of a dog-leg / open-well stair: the floor-to-floor rise less the flight above */double storey=(i.N1+i.N2+(i.Flights>2?i.N3:0))*R,clear=storey-i.Waist/Math.Cos(i.Theta);r.Checks.Add(new StairCheck{Name="Headroom under the flight above",Clause="Geometry",Member="Flight 1 under the next storey",Demand=i.Headroom,Capacity=clear,Unit="mm",Detail="storey rise "+F(storey,"0")+" less the waist on the slope"});}}
  static List<StairSegment> FlightSegs(StairInput i,int risers,double before,double after,double wd,double wl,double wdL,double wlL){var list=new List<StairSegment>();double going=(risers-1)*i.Tread/1000;
   if(before>0)list.Add(new StairSegment{Name="Landing",Length=i.LandingSpan(before)/1000,Wd=wdL,Wl=wlL});list.Add(new StairSegment{Name="Flight ("+risers+" risers)",Length=going,Wd=wd,Wl=wl,Flight=true});if(after>0)list.Add(new StairSegment{Name="Landing",Length=i.LandingSpan(after)/1000,Wd=wdL,Wl=wlL});return list;}
  /* a member along the flight with the landing beams where they are */
- static StairMember Along(StairInput i,string name,int risers,double before,double after,double wd,double wl,double wdL,double wlL){var m=new StairMember{Name=name,Support=i.Support,Segs=FlightSegs(i,risers,before,after,wd,wl,wdL,wlL)};
+ static StairMember Along(StairInput i,string name,int risers,double before,double after,double wd,double wl,double wdL,double wlL,double width){var m=new StairMember{Name=name,Width=width,Support=i.Support,Segs=FlightSegs(i,risers,before,after,wd,wl,wdL,wlL)};
   if(before>0)m.OverStart=i.LandingOver(before)/1000;if(after>0)m.OverEnd=i.LandingOver(after)/1000;m.OverWd=wdL;m.OverWl=wlL;return m;}
  /* waist-slab and slabless stairs spanning along the flight */
  static void DesignAlong(StairInput i,StairResult r){double wd=r.Wd,wl=r.Wl,wdL=r.WdLanding,wlL=r.WlLanding;bool spans=i.Landing.StartsWith("Landing spans");
   if(i.Slabless){double R=i.Riser/1000,T=i.Tread/1000,t=i.Waist/1000;wd=i.Gamma*t*(R+T)/T+i.Finish*(R+T)/T;r.Wd=wd;r.Notes.Add("Slabless stair: the folded plate (riser and tread plates "+F(i.Waist,"0")+" mm thick) spans along the flight; the effective depth is the plate thickness less the cover; bars follow the profile with closed links at the inner corners.");}
   var members=new List<StairMember>();
-  if(i.Flights==1)members.Add(Along(i,"Flight 1",i.N1,i.BottomLanding,i.TopLanding,wd,wl,wdL,wlL));
-  else if(i.Flights==2){members.Add(Along(i,"Flight 1 with the half landing",i.N1,i.BottomLanding,spans?i.MidLanding:0,wd,wl,wdL,wlL));members.Add(Along(i,"Flight 2 with the half landing",i.N2,spans?i.MidLanding:0,i.TopLanding,wd,wl,wdL,wlL));
-   if(!spans){members.Add(new StairMember{Name="Half landing (on its beams / walls)",Support=i.Support,Segs=new List<StairSegment>{new StairSegment{Name="Landing",Length=(2*i.Width+i.Gap)/1000,Wd=wdL+wd*(i.N1-1)*i.Tread/2000/(i.MidLanding/1000),Wl=wlL+wl*(i.N1-1)*i.Tread/2000/(i.MidLanding/1000)}}});r.Notes.Add("The half landing spans across between its own beams or walls and carries the reaction of the flights (half the flight load, spread over the landing depth and added to its design load).");}}
-  else{members.Add(Along(i,"Flight 1 with landing 1",i.N1,i.BottomLanding,i.Width,wd,wl,wdL,wlL));members.Add(Along(i,"Flight 2 between the landings",i.N2,i.Width*0.5,i.Width*0.5,wd,wl,wdL,wlL));members.Add(Along(i,"Flight 3 with landing 2",i.N3,i.Width,i.TopLanding,wd,wl,wdL,wlL));
+  if(i.Flights==1)members.Add(Along(i,"Flight 1",i.N1,i.BottomLanding,i.TopLanding,wd,wl,wdL,wlL,i.W(1)));
+  else if(i.Flights==2){members.Add(Along(i,"Flight 1 with the half landing",i.N1,i.BottomLanding,spans?i.MidLanding:0,wd,wl,wdL,wlL,i.W(1)));members.Add(Along(i,"Flight 2 with the half landing",i.N2,spans?i.MidLanding:0,i.TopLanding,wd,wl,wdL,wlL,i.W(2)));
+   if(!spans){members.Add(new StairMember{Name="Half landing (on its beams / walls)",Support=i.Support,Width=i.MidLanding,Segs=new List<StairSegment>{new StairSegment{Name="Landing",Length=(i.W(1)+i.W(2)+i.Gap)/1000,Wd=wdL+wd*(i.N1-1)*i.Tread/2000/(i.MidLanding/1000),Wl=wlL+wl*(i.N1-1)*i.Tread/2000/(i.MidLanding/1000)}}});r.Notes.Add("The half landing spans across between its own beams or walls and carries the reaction of the flights (half the flight load, spread over the landing depth and added to its design load).");}}
+  else{members.Add(Along(i,"Flight 1 with landing 1",i.N1,i.BottomLanding,i.W(2),wd,wl,wdL,wlL,i.W(1)));members.Add(Along(i,"Flight 2 between the landings",i.N2,i.W(1)*0.5,i.W(3)*0.5,wd,wl,wdL,wlL,i.W(2)));members.Add(Along(i,"Flight 3 with landing 2",i.N3,i.W(2),i.TopLanding,wd,wl,wdL,wlL,i.W(3)));
    r.Notes.Add("Open-well stair: each flight spans along its line with the landing it meets (half of the landing width where two flights share it, the middle flight between the two landings).");}
+  if(!i.Slabless&&!i.OnBeams)r.Notes.Add("Supports: walls "+F(i.WallT,"0")+" mm thick (CHB / concrete) under the slab"+(i.LandingBeamAt>0?"; each landing wall "+F(i.LandingBeamAt,"0")+" mm from the flight, the landing beyond it an overhang (top bars)":" at the landing ends")+". The slab bears at least 100 mm on each wall; spans are measured to the wall lines.");
   if(!i.Slabless&&i.OnBeams)r.Notes.Add("Supports: beams "+F(i.BeamB,"0")+" x "+F(i.BeamH,"0")+" mm"+(i.LandingBeamAt>0?"; each landing beam "+F(i.LandingBeamAt,"0")+" mm from the flight - the landing beyond it is an overhang that hogs the end over the beam (top bars)":" at the landing ends")+". Spans are measured to the beam lines.");
   foreach(var m in members)DesignStrip(i,r,m);}
  static void DesignStrip(StairInput i,StairResult r,StairMember m){double mp,mn,v;var dg=Analyse(m,true,out mp,out mn,out v);r.Members.Add(m);r.Diagrams[m]=dg;double L=m.Length;
@@ -111,13 +119,16 @@ static class Staircase {
   if(double.IsNaN(As)){r.Checks.Add(new StairCheck{Name="Flexure - positive (section too small)",Clause="422.2",Member=m.Name,Demand=mp,Capacity=0,Unit="kN·m/m",Detail="increase the waist"});return;}
   double sp=Spacing(Math.Max(As,Amin),i.MainDia,h),Aprov=Ab(i.MainDia)*1000/sp;double phiMn=PhiMn(Aprov,b,d,i.Fc,i.Fy);
   r.Checks.Add(new StairCheck{Name="Flexure - midspan (bottom bars)",Clause="422.2 / 407.5",Member=m.Name,Demand=mp,Capacity=phiMn,Unit="kN·m/m",Detail="d = "+F(d,"0")+" mm, As req = "+F(Math.Max(As,Amin),"0")+" mm²/m, Ø"+F(i.MainDia,"0")+" @ "+F(sp,"0")+" = "+F(Aprov,"0")+" mm²/m"});
-  r.Steel.Add(new[]{m.Name,"Main bottom bars along the flight","Ø"+F(i.MainDia,"0")+" @ "+F(sp,"0")+" mm"});
-  if(mn>0){double An=AsRequired(mn,b,d,i.Fc,i.Fy,out rho);double sn=Spacing(Math.Max(double.IsNaN(An)?1e9:An,Amin),i.MainDia,h);double An2=Ab(i.MainDia)*1000/sn;r.Checks.Add(new StairCheck{Name="Flexure - support (top bars)",Clause="422.2 / 407.5",Member=m.Name,Demand=mn,Capacity=PhiMn(An2,b,d,i.Fc,i.Fy),Unit="kN·m/m",Detail="Ø"+F(i.MainDia,"0")+" @ "+F(sn,"0")+" top, extend L/4 past the support face"});r.Steel.Add(new[]{m.Name,i.TopFull&&!i.Slabless?"Top bars, full length (over the continuous supports)":"Top bars over the continuous support(s), L/4","Ø"+F(i.MainDia,"0")+" @ "+F(sn,"0")+" mm"+(i.TopFull&&!i.Slabless?", full length":"")});}
-  else r.Steel.Add(new[]{m.Name,i.TopFull&&!i.Slabless?"Top bars, full length (nominal, 0.0018bh)":"Top bars at the supports and at the kinks (nominal, 0.0018bh)","Ø"+F(i.MainDia,"0")+" @ "+F(Spacing(Amin,i.MainDia,h),"0")+" mm"+(i.TopFull&&!i.Slabless?", full length":", L/5 from the support")});
+  Func<double,string> across=spc=>m.Width>0?" ("+(int)(Math.Floor((m.Width-2*i.Cover)/spc)+1)+" bars across "+F(m.Width,"0")+" mm)":"";
+  /* where the top bars stop: L/4 of the span from each support face, not less than ld past a landing kink */double topCut=Math.Ceiling(L*1000/4/25)*25;bool full=i.TopFull||i.Slabless;
+  string topWhere=full?"Top bars, full length":"Top bars at the supports and kinks, L/4 = "+F(topCut,"0")+" mm into the span (not less than ld = "+F(DevLength(i),"0")+" mm past a kink)";
+  r.Steel.Add(new[]{m.Name,"Main bottom bars along the flight","Ø"+F(i.MainDia,"0")+" @ "+F(sp,"0")+" mm"+across(sp)});
+  if(mn>0){double An=AsRequired(mn,b,d,i.Fc,i.Fy,out rho);double sn=Spacing(Math.Max(double.IsNaN(An)?1e9:An,Amin),i.MainDia,h);double An2=Ab(i.MainDia)*1000/sn;r.Checks.Add(new StairCheck{Name="Flexure - support (top bars)",Clause="422.2 / 407.5",Member=m.Name,Demand=mn,Capacity=PhiMn(An2,b,d,i.Fc,i.Fy),Unit="kN·m/m",Detail="Ø"+F(i.MainDia,"0")+" @ "+F(sn,"0")+" top, extend L/4 past the support face"});r.Steel.Add(new[]{m.Name,topWhere,"Ø"+F(i.MainDia,"0")+" @ "+F(sn,"0")+" mm"+across(sn)});}
+  else r.Steel.Add(new[]{m.Name,topWhere+" (nominal, minimum steel)","Ø"+F(i.MainDia,"0")+" @ "+F(Spacing(Amin,i.MainDia,h),"0")+" mm"+across(Spacing(Amin,i.MainDia,h))});
   /* anchorage, nosing bars and chair bars (owner, 23 November 2026: "proper anchoring ... walang detail ng chair bar and nosing bar") */
-  r.Steel.Add(new[]{m.Name,"Anchorage of the bottom bars","into the support beam / landing at least 150 mm past the support face (407.7.3.8.1)"});
-  r.Steel.Add(new[]{m.Name,"Anchorage of the top bars","90° hook into the support beam, ldh = "+F(HookLength(i),"0")+" mm with a 12db = "+F(12*i.MainDia,"0")+" mm leg (425.4.3); straight ld = "+F(DevLength(i),"0")+" mm where there is no hook (425.4.2)"});
-  if(!i.Slabless&&m.Segs.Any(q=>q.Flight)){r.Steel.Add(new[]{m.Name,"Step bars (chair bars), bent to the riser and tread of every step","Ø"+F(i.DistDia,"0")+" @ 300 mm across the width, at the cover inside the riser and under the tread, both legs lapped onto the waist top bars"});
+  r.Steel.Add(new[]{m.Name,"Anchorage of the bottom bars",i.OnBeams||i.Slabless?"into the support beam / landing at least 150 mm past the support face (407.7.3.8.1)":"at least 150 mm onto the support wall (407.7.3.8.1)"});
+  r.Steel.Add(new[]{m.Name,"Anchorage of the top bars",(i.OnBeams||i.Slabless?"90° hook into the support beam":"90° hook down at the slab end over the wall")+", ldh = "+F(HookLength(i),"0")+" mm with a 12db = "+F(12*i.MainDia,"0")+" mm leg (425.4.3); straight ld = "+F(DevLength(i),"0")+" mm where there is no hook (425.4.2)"});
+  if(!i.Slabless&&m.Segs.Any(q=>q.Flight)){r.Steel.Add(new[]{m.Name,"Step bars (chair bars), bent to the riser and tread of every step","Ø"+F(i.DistDia,"0")+" @ 300 mm across the width, at the cover inside the riser and under the tread; both legs run down through the waist and are bent along the bottom bars, lapped "+F(Math.Max(300,30*i.DistDia),"0")+" mm"});
    r.Steel.Add(new[]{m.Name,"Nosing bars, one at each step nosing","1 - Ø"+F(i.DistDia,"0")+" per step, full width, in the bend of the step bars"});}
   r.Steel.Add(new[]{m.Name,"Bar supports (spacers) under the top bars","Ø"+F(i.MainDia,"0")+" @ 1000 mm each way"});
   double phiVc=0.75*0.17*Math.Sqrt(i.Fc)*b*d/1000;r.Checks.Add(new StairCheck{Name="One-way shear",Clause="422.5.5.1",Member=m.Name,Demand=v,Capacity=phiVc,Unit="kN/m",Detail="φVc = 0.75 × 0.17 √f'c b d"});
@@ -137,7 +148,7 @@ static class Staircase {
   c("Bottom bars - spacing","s = Ab × 1000 / As = "+F(Ab(i.MainDia),"0.0")+" × 1000 / "+F(Math.Max(As,Amin),"0")+", ≤ 3h and 450 mm, rounded down to 25 mm","Ø"+F(i.MainDia,"0")+" @ "+F(sp,"0")+" mm, As,prov = "+F(Aprov,"0")+" mm²/m");
   {double a=Aprov*i.Fy/(0.85*i.Fc*b);c("Bottom bars - capacity","a = As fy / (0.85 f'c b) = "+F(a,"0.0")+" mm; φMn = φ As fy (d - a/2)","φMn = "+F(phiMn,"0.00")+" ≥ Mu+ = "+F(mp,"0.00")+" kN·m/m "+(phiMn>=mp?"OK":"NG"));}
   if(mn>0){double An=AsRequired(mn,b,d,i.Fc,i.Fy,out rho);double sn=Spacing(Math.Max(double.IsNaN(An)?1e9:An,Amin),i.MainDia,h);double An2=Ab(i.MainDia)*1000/sn;double pn=PhiMn(An2,b,d,i.Fc,i.Fy);
-   c("Top bars","Mu- = "+F(mn,"0.00")+" kN·m/m; As = "+(double.IsNaN(An)?"(section too small)":F(An,"0"))+" mm²/m, As,min = "+F(Amin,"0"),"Ø"+F(i.MainDia,"0")+" @ "+F(sn,"0")+" mm, φMn = "+F(pn,"0.00")+" kN·m/m "+(pn>=mn?"OK":"NG"));}
+   c(full?"Top bars (full length)":"Top bars (L/4 = "+F(topCut,"0")+" mm from the supports)","Mu- = "+F(mn,"0.00")+" kN·m/m; As = "+(double.IsNaN(An)?"(section too small)":F(An,"0"))+" mm²/m, As,min = "+F(Amin,"0"),"Ø"+F(i.MainDia,"0")+" @ "+F(sn,"0")+" mm, φMn = "+F(pn,"0.00")+" kN·m/m "+(pn>=mn?"OK":"NG"));}
   else c("Top bars (nominal)","no hogging moment: As,min = "+F(Amin,"0")+" mm²/m","Ø"+F(i.MainDia,"0")+" @ "+F(Spacing(Amin,i.MainDia,h),"0")+" mm");
   c("One-way shear","φVc = 0.75 × 0.17 √f'c b d = 0.75 × 0.17 × √"+F(i.Fc,"0.#")+" × 1000 × "+F(d,"0")+" / 1000","φVc = "+F(phiVc,"0.00")+" ≥ Vu = "+F(v,"0.00")+" kN/m "+(phiVc>=v?"OK":"NG"));
   c("Minimum thickness","h,min = L / "+(m.Support.StartsWith("Both")?"28":m.Support.StartsWith("One")?"24":"20")+(i.Fy!=420?" × (0.4 + fy/700)":"")+" = "+F(L*1000,"0")+" / ...",F(hmin,"0")+" mm ≤ h = "+F(h,"0")+" mm "+(h>=hmin?"OK":"NG"));
