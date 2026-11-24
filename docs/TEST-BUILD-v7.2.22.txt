@@ -1,0 +1,12 @@
+DTCE Tool Kit v7.2.22 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load report site map (owner screenshot: "nawala yung map at yung contour"):
+- The report map is rendered at a fixed 1046 x 590 view (twice the report box) centred on the site, not at the window size: fewer
+  tiles to wait for and a bigger assessment circle. Before, a wide window needed many tiles, the 8 s wait ran out and the whole
+  basemap was left out.
+- The wait for map tiles is up to 20 s (tiles requested again while waiting); tiles that did load are drawn even when some are
+  missing, with a short note at the top instead of a note over the legend.
+- The map states the nearest wind-speed contours with distance and direction ("Nearest wind contours: 320 km/h 18.2 km E · 310 km/h
+  19.2 km SW"): around a site the contours are often kilometres away, outside the assessment view.
+- The window view is restored after the report snapshot.
+Includes everything of v7.2.21.
