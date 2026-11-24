@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Globalization;using System.Linq;using System.Text;
+﻿using System;using System.Collections.Generic;using System.Globalization;using System.Linq;using System.Text;
 namespace BeamScheduleFormatter {
 class WindBuildingInput {
  public double Width,Length,Eave,Apex,Kd=.85,Damping=.02,FrequencyNormal,FrequencyParallel,UserG=.85,OpeningHeight;
@@ -37,6 +37,11 @@ static class WindBuildingLoads {
  public static double RoofNormal(double angle,double ratio,bool alternate){var table=alternate?positive:suction;return HeightRatio(ratio,Across(table[0],angle),Across(table[1],angle),Across(table[2],angle));}
  public static double RoofLee(double angle,double ratio){double a=Lerp(Math.Min(20,angle),10,15,-.3,-.5);if(angle>=15)a=Lerp(Math.Min(20,angle),15,20,-.5,-.6);double b=angle<=15?-.5:Lerp(Math.Min(20,angle),15,20,-.5,-.6),c=angle<=15?Lerp(angle,10,15,-.7,-.6):-.6;return HeightRatio(ratio,a,b,c);}
  public static double RoofZone(int zone,double ratio){return Lerp(Math.Max(.5,Math.Min(1,ratio)),.5,1,new[]{-.9,-.9,-.5,-.3}[zone],new[]{-1.3,-.7,-.7,-.7}[zone]);}
+ /* the governing |p| for each ridge alignment N–S, NE–SW, E–W, NW–SE (owner, 24 November 2026: "yung ridge alignment dapat mag suggest");
+    the largest is suggested as the critical orientation when the real one is not fixed */
+ internal static double[] RidgePeaks(WindBuildingInput b,double speed,IList<WindDirection> directions){var peaks=new double[4];int keep=b.RidgeDirection;
+  try{for(int k=0;k<4;k++){b.RidgeDirection=k;var rows=Calculate(b,speed,directions);peaks[k]=rows.Count==0?0:rows.Max(r=>Math.Abs(r.P));}}finally{b.RidgeDirection=keep;}return peaks;}
+ internal static int SuggestedRidge(double[] peaks){int best=0;for(int k=1;k<peaks.Length;k++)if(peaks[k]>peaks[best]+1e-9)best=k;return best;}
  public static List<WindPressureRow> Calculate(WindBuildingInput b,double speed,IList<WindDirection> directions){
   b.Validate();if(!WindTin.Finite(speed)||speed<=0||directions.Count!=8)throw new Exception("Valid wind speed and all eight terrain directions are required.");var rows=new List<WindPressureRow>();
   for(int axis=0;axis<4;axis++){

@@ -1,4 +1,4 @@
-using System;using System.Linq;using System.Collections.Generic;using BeamScheduleFormatter;
+﻿using System;using System.Linq;using System.Collections.Generic;using BeamScheduleFormatter;
 class WindBuildingLoadsTests {
  static int count;static void Check(bool ok,string why){if(!ok)throw new Exception(why);count++;}static void Near(double a,double b,double tolerance,string why){Check(Math.Abs(a-b)<=tolerance,why+": "+a+" vs "+b);}
  static List<WindDirection> Flat(string exposure="B"){return WindAssessment.Directions.Select(n=>new WindDirection{Name=n,Exposure=exposure,Shape="Low relief",K1=0,K2=0,K3=0,Kzt=1}).ToList();}
@@ -24,6 +24,10 @@ class WindBuildingLoadsTests {
   b.Enclosure="Partially enclosed";b.OpeningHeight=2;rows=WindBuildingLoads.Calculate(b,310,Flat());Check(rows.All(r=>Math.Abs(Math.Abs(r.GCpi)-.55)<1e-12),"Partially enclosed internal coefficient");
   b.Eave=35;b.Apex=45;b.AutoG=true;b.FrequencyNormal=.5;b.FrequencyParallel=.7;Check(WindBuildingLoads.Calculate(b,310,Flat("C")).All(r=>WindTin.Finite(r.G)&&r.G>0),"Flexible gust response finite for both axes");
   b.Apex=10;bool rejected=false;try{WindBuildingLoads.Calculate(b,310,Flat());}catch{rejected=true;}Check(rejected,"Apex below eave rejected");
+  /* ridge alignment suggestion: one exposure D direction makes the alignment facing it govern */
+  {var dirs=Flat("B");dirs[2].Exposure="D";var rb=new WindBuildingInput{Width=12,Length=20,Eave=3,Apex=4,System="MRF Concrete",AutoG=false,RidgeDirection=1};var peaks=WindBuildingLoads.RidgePeaks(rb,310,dirs);
+   Check(peaks.Length==4&&peaks.All(x=>x>0),"pressures for all four ridge alignments");Check(rb.RidgeDirection==1,"the entered ridge alignment is kept");int best=WindBuildingLoads.SuggestedRidge(peaks);Check(peaks[best]==peaks.Max(),"suggested alignment has the largest |p|");
+   var flat=WindBuildingLoads.RidgePeaks(rb,310,Flat("B"));Check(Math.Abs(flat.Max()-flat.Min())<1e-9,"uniform exposure: every alignment gives the same peak");}
   Console.WriteLine("PASS: "+count+" wind pressure, workbook fixture, interpolation, sign and unresolved-data checks");
  }
 }

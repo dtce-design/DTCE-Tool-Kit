@@ -439,3 +439,5 @@ Owner (24 November 2026, "if naka check dapat di na pwede maginput, gawin din it
 makes unused are locked through DesignSheetForm.EnableWhen (wind gust G, truss connection U / STAAD / verified values, truss support
 hook / anchor grade / chord, earthquake Mmax); add such rules for new toggles. Report text and tables stay inside the 1 inch left
 margin (CalculationDocument.L / CW, no fixed x positions) (v7.2.16).
+Owner (24 November 2026, "yung ridge alignment dapat mag suggest"): the Wind building inputs suggest the ridge alignment (N–S, NE–SW, E–W,
+NW–SE) with the largest design pressure (WindBuildingLoads.RidgePeaks); it is a suggestion only, the user picks it (v7.2.17).
