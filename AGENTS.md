@@ -445,3 +445,5 @@ Owner (24 November 2026, "ipakita din yung diagram for surface roughness"): ever
 five upwind rays coloured by roughness with the fetch limits (WindAuditPages.RoughnessRays, v7.2.18).
 Owner ("siguro sa circle or sa map"): the Wind report also draws the roughness as a circle (src/WindRoughnessCircle.cs): a full page with
 the 8 sectors and exposures, and a small circle with the upwind sectors highlighted on every direction page (v7.2.19).
+Owner ("pano ang way para maorient yung building sa windload"): the building outline is drawn on the wind site map turned to the ridge
+alignment (WindSiteMap.SetBuilding), so the orientation is matched against the satellite image (v7.2.20).

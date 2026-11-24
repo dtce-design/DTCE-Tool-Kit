@@ -25,6 +25,17 @@ partial class WindSiteMap:Control {
  static double Lat(double y,int z){return Math.Atan(Math.Sinh(Math.PI*(1-2*y/(256*(1<<z)))))*180/Math.PI;}
  void Zoom(int delta){zoom=Math.Max(3,Math.Min(18,zoom+delta));Queue();}
  public void SetSite(double lat,double lon){WindTin.Validate(lat,lon);if(double.IsNaN(siteLat)||Math.Abs(lat-siteLat)>1e-8||Math.Abs(lon-siteLon)>1e-8){latitude=siteLat=lat;longitude=siteLon=lon;zoom=14;terrain=null;message="Loading project-site map…";Queue();}}
+ /* the building outline at the site, turned to the ridge alignment, so it can be matched with the satellite image (owner, 24 November
+    2026: "magulo yung ridge alignment? pano ang way para maorient yung building sa windload") */
+ double buildingWidth,buildingLength;int ridgeIndex=-1;
+ public void SetBuilding(double width,double length,int ridge){if(buildingWidth==width&&buildingLength==length&&ridgeIndex==ridge)return;buildingWidth=width;buildingLength=length;ridgeIndex=ridge;Invalidate();}
+ void DrawBuilding(Graphics g){if(ridgeIndex<0||!(buildingWidth>0)||!(buildingLength>0))return;var c=Pixel(siteLat,siteLon);double mpp=156543.03392*Math.Cos(siteLat*Math.PI/180)/Math.Pow(2,zoom);
+  double k=Math.Max(1/mpp,46/Math.Max(buildingLength,buildingWidth));bool enlarged=k>1/mpp+1e-12;double th=ridgeIndex*Math.PI/4;
+  Func<double,double,PointF> P=(x,y)=>new PointF(c.X+(float)((x*Math.Cos(th)+y*Math.Sin(th))*k),c.Y-(float)((-x*Math.Sin(th)+y*Math.Cos(th))*k));
+  double w=buildingWidth/2,l=buildingLength/2;var outline=new[]{P(-w,-l),P(w,-l),P(w,l),P(-w,l)};
+  using(var fill=new SolidBrush(Color.FromArgb(150,255,255,255)))g.FillPolygon(fill,outline);using(var edge=new Pen(Color.FromArgb(32,43,53),2f))g.DrawPolygon(edge,outline);
+  using(var ridge=new Pen(Color.FromArgb(200,40,40),2.4f){DashStyle=System.Drawing.Drawing2D.DashStyle.Dash})g.DrawLine(ridge,P(0,-l*1.25),P(0,l*1.25));
+  string[] names={"N–S","NE–SW","E–W","NW–SE"};var tip=P(0,l*1.25);TextRenderer.DrawText(g,"Ridge "+names[ridgeIndex]+(enlarged?" (outline enlarged)":""),ModernUi.Strong,new Point((int)tip.X+6,(int)tip.Y-8),Color.FromArgb(150,30,30),Color.White);}
  public void SetTerrain(WindTerrain value,double height=10){referenceHeight=height;if(!object.ReferenceEquals(terrain,value)){terrain=value;if(roughness!=null){roughness.Dispose();roughness=null;}if(value!=null&&value.CoverGrid!=null){var grid=value.CoverGrid;roughness=new Bitmap(grid.Size,grid.Size);for(int row=0;row<grid.Size;row++)for(int col=0;col<grid.Size;col++)roughness.SetPixel(col,row,Color.FromArgb(RoughnessAlpha,WindColors.Cover(grid.Codes[row*grid.Size+col])));latitude=value.Lat;longitude=value.Lon;zoom=Math.Max(3,Math.Min(16,(int)Math.Floor(Math.Log(Math.Max(250,Math.Min(Width,Height))*156543.03392*Math.Cos(latitude*Math.PI/180)/(2.2*value.Radius),2))));Queue();}}Invalidate();}
  public void Recenter(){if(double.IsNaN(siteLat))return;latitude=siteLat;longitude=siteLon;zoom=14;Queue();}
  void Queue(){if(IsDisposed)return;Invalidate();refresh.Stop();refresh.Start();}
@@ -59,7 +70,7 @@ partial class WindSiteMap:Control {
   for(int row=(int)Math.Floor(top/256);row<=Math.Floor((top+Height)/256);row++)for(int col=(int)Math.Floor(left/256);col<=Math.Floor((left+Width)/256);col++){Bitmap tile;int x=((col%max)+max)%max;if(complete&&tiles.TryGetValue(Key(zoom,x,row),out tile)){g.DrawImage(tile,(float)(col*256-left),(float)(row*256-top),256,256);drawn++;}}
   DrawWindOverlay(g);
   if(!complete)TextRenderer.DrawText(g,"Basemap incomplete/offline — saved roughness diagram only",ModernUi.Strong,new Rectangle(55,Height-65,Math.Max(120,Width-65),38),Color.FromArgb(32,43,53),Color.White,TextFormatFlags.WordBreak);
-  if(!double.IsNaN(siteLat)){var p=Pixel(siteLat,siteLon);using(var pen=new Pen(Color.White,5))g.DrawEllipse(pen,p.X-7,p.Y-7,14,14);using(var brush=new SolidBrush(PowTheme.Teal))g.FillEllipse(brush,p.X-6,p.Y-6,12,12);TextRenderer.DrawText(g,"PROJECT SITE",ModernUi.Strong,new Point((int)p.X+12,(int)p.Y-12),Color.FromArgb(32,43,53),Color.White);}
+  if(!double.IsNaN(siteLat))DrawBuilding(g);if(!double.IsNaN(siteLat)){var p=Pixel(siteLat,siteLon);using(var pen=new Pen(Color.White,5))g.DrawEllipse(pen,p.X-7,p.Y-7,14,14);using(var brush=new SolidBrush(PowTheme.Teal))g.FillEllipse(brush,p.X-6,p.Y-6,12,12);TextRenderer.DrawText(g,"PROJECT SITE",ModernUi.Strong,new Point((int)p.X+12,(int)p.Y-12),Color.FromArgb(32,43,53),Color.White);}
   if(!requireComplete&&(drawn==0||message!=""))TextRenderer.DrawText(g,message,ModernUi.Body,new Rectangle(60,18,Math.Max(100,Width-80),70),Color.FromArgb(32,43,53),Color.White,TextFormatFlags.WordBreak);
   if(controls){using(var b=new SolidBrush(Color.White))g.FillRectangle(b,10,10,32,72);TextRenderer.DrawText(g,"+",ModernUi.Heading,new Rectangle(12,10,30,35),Color.FromArgb(32,43,53));TextRenderer.DrawText(g,"−",ModernUi.Heading,new Rectangle(12,46,30,35),Color.FromArgb(32,43,53));TextRenderer.DrawText(g,"Street / Satellite  ·  zoom "+zoom,ModernUi.Body,new Rectangle(8,Height-36,220,26),Color.FromArgb(32,43,53),Color.White);}
   TextRenderer.DrawText(g,imagery?"Imagery © Esri, Maxar, Earthstar Geographics":"© OpenStreetMap contributors",ModernUi.Body,new Rectangle(6,Height-19,Math.Max(150,Width-12),18),Color.Black,Color.White,TextFormatFlags.Right|TextFormatFlags.EndEllipsis);
