@@ -35,6 +35,9 @@ class LauncherForm:Form {
   AddCard(cards,"Program of Works (POW)","DPWH POW workbook: DUPA, Detailed, ABC and BOQ computed and printed in the app.",()=>{try{if(powWorkbook==null||powWorkbook.IsDisposed)powWorkbook=new PowWorkbookForm();ShowTool(powWorkbook,"Program of Works (POW)",null);}catch(Exception ex){MessageBox.Show(this,ex.Message,"Program of Works (POW)");}});
   AddCard(cards,"Bar Bending Schedule","Cutting lists, bar bending and splice details with an interactive model.",()=>UseTool(ref cutting,()=>new CuttingListForm(),"Bar Bending Schedule",null,ProgramAccess.BarBendingSchedule));
   AddCard(cards,"Design Sheets","Rebar, purlins, trusses, strap foundations, wind, earthquake, deflection.",ShowDesignSheets);
+  #if !ADMIN_APP
+  AddCard(cards,"Access Code","Request an access code from the owner, or enter the code you received to use the apps.",EnterAccessCode);((ToolModuleButton)cards.Controls[cards.Controls.Count-1]).Accent=true;
+  #endif
   #if ADMIN_APP
   AddCard(cards,"Access Code Generator","Manage program access and generate activation codes.",()=>UseTool(ref generator,()=>new CodeGeneratorForm(),"Access Code Generator",null,8));
   #endif
@@ -71,6 +74,8 @@ class LauncherForm:Form {
   MessageBox.Show(this,"Fill in the Project Information first (project title, location, implementing office, office address and date prepared), then save it.","Project Information",MessageBoxButtons.OK,MessageBoxIcon.Information);UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8);return false;}
  /* full use, view only (User edition without access for that app: tabs and scrolling only), or not at all */
  enum Use{None,Full,View}
+ /* the Access Code card: copy the request for the owner, paste the code; apps opened view only before are reopened usable */
+ void EnterAccessCode(){using(var login=new LoginForm())if(login.ShowDialog(this)==DialogResult.OK){ViewOnly.LoginDeclined=false;MessageBox.Show(this,"Access code accepted. Apps included in the code can now be used; close and reopen any app that is open view only.","Access code");}}
  Use Authorize(int app){if(!AccessCodes.CanUseFormatter&&!(ViewOnly.Supported&&ViewOnly.LoginDeclined)){using(var login=new LoginForm())if(login.ShowDialog(this)!=DialogResult.OK){if(!ViewOnly.Supported)return Use.None;ViewOnly.LoginDeclined=true;return Use.View;}}
   if(!AccessCodes.CanUseApp(app)){if(ViewOnly.Supported)return Use.View;MessageBox.Show(this,"This workspace is not included in your approved access.","App access");return Use.None;}return Use.Full;}
  /* a view-only copy is replaced once the access code allows the app, and a usable copy once access is gone */
@@ -121,17 +126,20 @@ class WorkspaceWindow:Form {
  internal void Release(){if(bar!=null&&barHome!=null&&!barHome.IsDisposed&&bar.Parent==header){header.Controls.Remove(bar);bar.Dock=DockStyle.Top;bar.AutoSize=true;bar.WrapContents=true;bar.Padding=new Padding(8,5,8,3);barHome.Controls.Add(bar);barHome.Controls.SetChildIndex(bar,barIndex);title.Dock=DockStyle.Fill;}bar=null;foreach(var tabs in content.Controls.OfType<TabControl>().ToList())content.Controls.Remove(tabs);}
 }
 class ToolModuleButton:Button {
- public int ModuleIndex;public string Description;bool hover;static readonly Font SmallBody=new Font("Segoe UI",9f);
+ public int ModuleIndex;public string Description;bool hover;
+ /* a card in its own colour (owner, 24 November 2026: "ibahin mo yung color ng block" - the Access Code card) */public bool Accent;
+ static Color AccentFill(bool hover){return DesktopAppearance.Palette.Dark?(hover?Color.FromArgb(92,74,30):Color.FromArgb(74,60,24)):(hover?Color.FromArgb(255,236,190):Color.FromArgb(255,244,214));}
+ static readonly Color AccentLine=Color.FromArgb(214,160,40);static readonly Font SmallBody=new Font("Segoe UI",9f);
  static readonly string[] descriptions={"Format and review beam schedules from DXF files.","Beam, slab and footing takeoffs, earthworks and project reports.","Development, lap splice and standard hook calculations.","Set the project name and location for your reports.","Generate access codes and manage approved tools.","Group identical slab schedules and export the final DXF layout."};
  public ToolModuleButton(){SetStyle(ControlStyles.UserPaint|ControlStyles.OptimizedDoubleBuffer|ControlStyles.AllPaintingInWmPaint,true);Cursor=Cursors.Hand;FlatStyle=FlatStyle.Flat;TabStop=true;MouseEnter+=(s,e)=>{hover=true;Invalidate();};MouseLeave+=(s,e)=>{hover=false;Invalidate();};GotFocus+=(s,e)=>Invalidate();LostFocus+=(s,e)=>Invalidate();}
  protected override void OnPaint(PaintEventArgs e){
   e.Graphics.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
   e.Graphics.Clear(Parent==null?PowTheme.Background:Parent.BackColor);
   var bounds=new RectangleF(1,1,Width-3,Height-3);
-  using(var path=ModernUi.Rounded(bounds,12))using(var fill=new SolidBrush(hover?ModernUi.Soft:ModernUi.Surface))using(var border=new Pen(hover||Focused?PowTheme.Teal:PowTheme.Line,Focused?2:1)){
+  using(var path=ModernUi.Rounded(bounds,12))using(var fill=new SolidBrush(Accent?AccentFill(hover):hover?ModernUi.Soft:ModernUi.Surface))using(var border=new Pen(Accent?AccentLine:hover||Focused?PowTheme.Teal:PowTheme.Line,Focused||Accent&&hover?2:1)){
    e.Graphics.FillPath(fill,path);e.Graphics.DrawPath(border,path);
   }
-  using(var path=ModernUi.Rounded(new RectangleF(14,14,30,30),8))using(var fill=new SolidBrush(ModernUi.Selection))e.Graphics.FillPath(fill,path);
+  using(var path=ModernUi.Rounded(new RectangleF(14,14,30,30),8))using(var fill=new SolidBrush(Accent?AccentLine:ModernUi.Selection))e.Graphics.FillPath(fill,path);
   DrawGlyph(e.Graphics,new Rectangle(19,19,20,20));
   using(var title=new Font("Segoe UI",10.5f,FontStyle.Bold))TextRenderer.DrawText(e.Graphics,Text,title,new Rectangle(54,12,Width-90,24),PowTheme.Ink,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.NoPrefix);
   TextRenderer.DrawText(e.Graphics,"›",ModernUi.Heading,new Rectangle(Width-32,12,22,28),PowTheme.Teal,TextFormatFlags.VerticalCenter);

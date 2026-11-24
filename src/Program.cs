@@ -73,7 +73,7 @@ class TemplateLayout {
  public string LegText(string value){string raw=Leg.Get(1);return raw.StartsWith("{")&&raw.Contains(";")?raw.Substring(0,raw.LastIndexOf(';')+1)+value+"}":value;}
 }
 class Engine {
- public const string Version="7.2.5";
+ public const string Version="7.2.6";
  public static string Normal(string s){return Regex.Replace(s.ToUpperInvariant().Replace("%%C","Ø").Replace("\\U+2205","Ø").Replace("--","-"),@"\s+","");}
  public static string Format(string s){if(s=="-"||s=="--")return "--";s=s.Replace("#","%%C").Replace("\\U+2205","%%C").Replace("%%c","%%C");s=Regex.Replace(s,@"^(\d+)-","$1 - ");return Regex.Replace(s,@"(%%C\d+)(EF)$","$1 EF");}
  const string BeamToken=@"\d*[A-Z]+\d+";
@@ -373,7 +373,10 @@ static class Program {
    #if ADMIN_APP
    if(!AdminPasswordGate.Unlock())return 0;Application.Run(new LauncherForm());return 0;
    #else
-   if(!AccessCodes.TryRestore()){using(var login=new LoginForm())if(login.ShowDialog()!=DialogResult.OK)return 0;}
+   /* no access code at start: the app opens and its apps can be browsed view only; the code is requested / entered from the Access Code
+      card of the Workspaces window (owner, 24 November 2026: "pwede nila maaccess yung app pero di nila pwede mag input, mag request na
+      lang sila ng code sa workspace") */
+   if(!AccessCodes.TryRestore())ViewOnly.LoginDeclined=true;
    Application.Run(new LauncherForm());return 0;
    #endif
   }catch(Exception ex){if(args.Length>0){File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"test-error.txt"),ex.ToString());return 1;}MessageBox.Show(ex.Message,"Beam Schedule Formatter",MessageBoxButtons.OK,MessageBoxIcon.Error);return 1;}
