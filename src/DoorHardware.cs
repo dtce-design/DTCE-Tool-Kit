@@ -16,6 +16,10 @@ static class DoorHardware {
  internal const string ChainBolt="4\" Chrome Plated Chain Bolt",FootBolt="4\" Chrome Plated Foot Bolt";
  internal static string DeadboltName(string kind){return kind==DoubleCylinder?"Double Cylinder, Satin Stainless Steel Deadbolt":"Single Cylinder with Thumbturn, Satin Stainless Steel Deadbolt";}
  /* automatic hinge size of one leaf */
+ /* the hinge follows the weight of the leaf (owner, 24 November 2026: "bat masmalaki yung hinge ng pvc kesa sa panel door?"): light PVC
+    leaves 3.0x3.0 (3.5x3.5 above 0.80 m), steel leaves the heaviest size, wood by width (exterior wood the heavy size) */
+ internal static string AutoSize(string kind,double leafWidth,bool exterior,string material){if(kind!="Door")return HingeSizes[0];
+  if(string.Equals(material,"PVC",StringComparison.OrdinalIgnoreCase))return leafWidth>.80+1e-9?HingeSizes[1]:HingeSizes[0];if(string.Equals(material,"Steel",StringComparison.OrdinalIgnoreCase))return HingeSizes[3];return AutoSize(kind,leafWidth,exterior);}
  internal static string AutoSize(string kind,double leafWidth,bool exterior){if(kind!="Door")return HingeSizes[0];if(exterior||leafWidth>.90+1e-9)return HingeSizes[3];if(leafWidth>.80+1e-9)return HingeSizes[2];return HingeSizes[1];}
  internal static int Packs(int pieces){return pieces<=0?0:(pieces+1)/2;}
  /* every hardware name this module adds to the Bill of Quantities (all go to 1004(2) Finishing Hardware) */
@@ -34,7 +38,7 @@ partial class OpeningItem {
  /* hinges of one unit by size: each leaf has its own count and (automatic) size */
  public Dictionary<string,int> HingesBySizePerUnit(){var d=new Dictionary<string,int>();if(EffectiveHinges<=0)return d;bool chosen=!string.IsNullOrEmpty(HingeSize)&&DoorHardware.HingeSizes.Contains(HingeSize);
   if(Kind!="Door"){d[chosen?HingeSize:DoorHardware.HingeSizes[0]]=EffectiveHinges;return d;}
-  foreach(var w in DoorLeaves()){string size=chosen?HingeSize:DoorHardware.AutoSize(Kind,w,Exterior);int n=OpeningHardware.PerLeaf(Wood?LeafHeight:Height,w);int prev;d[size]=(d.TryGetValue(size,out prev)?prev:0)+n;}return d;}
+  foreach(var w in DoorLeaves()){string size=chosen?HingeSize:DoorHardware.AutoSize(Kind,w,Exterior,Material);int n=OpeningHardware.PerLeaf(Wood?LeafHeight:Height,w);int prev;d[size]=(d.TryGetValue(size,out prev)?prev:0)+n;}return d;}
  bool DoorHardwareApplies{get{return Kind=="Door"&&EffectiveLocks>0;}}
  /* one chain bolt and one foot bolt for each double (or more) leaf door unit */
  public int ChainBolts{get{return DoorHardwareApplies&&Leaves>=2?Quantity:0;}}public int FootBolts{get{return ChainBolts;}}

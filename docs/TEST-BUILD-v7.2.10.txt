@@ -1,0 +1,9 @@
+DTCE Tool Kit v7.2.10 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Door hardware (owner: "sure ka sa size ng hinges and pieces? bat masmalaki yung hinge ng pvc kesa sa panel door?"):
+- Automatic hinge size now follows the door material: PVC doors 3.0x3.0x2.5mm (3.5x3.5x2.5mm for leaves over 0.80 m); steel doors
+  4.0x4.0x3.0mm; wood / panel and other doors keep the width / exterior rule. Before, an exterior PVC door got the largest size.
+- Pieces unchanged: one hinge per 0.762 m (30 in) of leaf height, plus one for leaves wider than 0.94 m; 2 pcs per pack.
+- A chosen Hinge size still wins over Automatic.
+Tests: DoorHardwareTests 12.
+Includes everything of v7.2.9.

@@ -4,7 +4,7 @@ namespace BeamScheduleFormatter {
 // plain round bar of the chosen diameter, piece length including threaded ends, and the same quantity factors as the
 // other steel sheets (QTY x Units x Sets x Multiplier, all required). Nuts and washers are not included
 // (owner, 18 November 2026). All cuts of the same diameter share 6 m stocks with offcut reuse (SteelCutPlanner); weight from
-// 7850 kg/m3 (plain round bar is not in the Regan handbook); painting uses the installed length.
+// 7850 kg/m3 (plain round bar is not in the steel catalogue); painting uses the installed length.
 class SagRodTakeoff {public string Id,Description,Profile;public double PieceLength,KgM,PaintPerMetre;public int Pieces;public SteelCutDemand Demand;
  public double Installed{get{return PieceLength*Pieces;}}public double InstalledKg{get{return Installed*KgM;}}public double Paint{get{return Installed*PaintPerMetre;}}}
 partial class ProgramOfWorksForm {

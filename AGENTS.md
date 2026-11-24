@@ -401,3 +401,11 @@ Owner: "saka lang iupdate yung ios and web if may bagong dagdag na worksheet or 
 and the web access-code generator (mobile/) only when a new worksheet, design sheet or workspace (a new program in
 src/ProgramAccess.cs) is added - then add its program to both; otherwise leave them as they are. Uploads (TestFlight / App Store / Pages)
 still need their own explicit request.
+
+## BOQ report layout, hinges and wording (24 November 2026)
+
+Owner: "masmaayos na presentation ng boq report" / "di ko gusto yung ganyan layout": the Bill of Quantities Summary / Detailed /
+Extensive reports use the design-sheet layout (src/QuantityReportLayout.cs, RichReport Compact 7 pt) with one calculation line per part,
+a structured reinforcing steel record, and no repeated total breakdowns (v7.2.9). Automatic hinge size follows the door material (PVC
+3.0x3.0 / 3.5x3.5 over 0.80 m, steel 4.0x4.0, others by width / exterior; v7.2.10). Owner: "alisin mo yung handbook profile na wording
+regan etc": no supplier or handbook names in user-visible text (v7.2.11); internal comments and test labels may keep the data source.

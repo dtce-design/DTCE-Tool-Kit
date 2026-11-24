@@ -12,8 +12,10 @@ sealed class RichReport {
  abstract class Block {internal abstract float Height(Graphics g);internal virtual bool Splittable{get{return false;}}internal abstract void Draw(Graphics g,float y);}
  readonly string title;readonly List<Block> blocks=new List<Block>();
  public RichReport(string title,bool a3Landscape=false){this.title=title;a3=a3Landscape;Frame(a3);}
- static Font Body{get{return new Font("Segoe UI",7.5f,FontStyle.Regular,GraphicsUnit.Point);}}
- static Font Bold{get{return new Font("Segoe UI",7.5f,FontStyle.Bold,GraphicsUnit.Point);}}
+ /* compact type for long quantity reports: 7 pt and tighter rows (owner: reports save paper; 7 pt minimum) */
+ internal bool Compact;static bool compactNow;
+ static Font Body{get{return new Font("Segoe UI",compactNow?7f:7.5f,FontStyle.Regular,GraphicsUnit.Point);}}
+ static Font Bold{get{return new Font("Segoe UI",compactNow?7f:7.5f,FontStyle.Bold,GraphicsUnit.Point);}}
  static Font Mono{get{return new Font("Consolas",7.5f,FontStyle.Regular,GraphicsUnit.Point);}}
  static float Measure(Graphics g,string text,Font f,float width){return g.MeasureString(text??"",f,(int)Math.Max(10,width)).Height;}
  /* ---- blocks ---- */
@@ -24,7 +26,7 @@ sealed class RichReport {
    if(Caption!=null)using(var f=new Font("Segoe UI",7.5f,FontStyle.Italic,GraphicsUnit.Point))using(var b=new SolidBrush(PowTheme.Muted))g.DrawString(Caption,f,b,new RectangleF(Left,y+H+3,Width,16));}}
  sealed class TableBlock:Block {internal string[] Headers;internal List<string[]> Rows;internal float[] Widths;internal Func<string[],Color?> RowColor;internal int Start,Count=-1;internal int PaintCol=-1;internal float MinRow;internal Action<Graphics,RectangleF,int> Painter;
   internal override bool Splittable{get{return true;}}
-  float RowHeight(Graphics g,string[] row){float h=0;using(var f=Body)for(int c=0;c<Widths.Length&&c<row.Length;c++)h=Math.Max(h,Measure(g,row[c],f,Widths[c]-6));return Math.Max(h+5,MinRow);}
+  float RowHeight(Graphics g,string[] row){float h=0;using(var f=Body)for(int c=0;c<Widths.Length&&c<row.Length;c++)h=Math.Max(h,Measure(g,row[c],f,Widths[c]-6));return Math.Max(h+(compactNow?2.5f:5),MinRow);}
   float HeaderHeight(Graphics g){float h=0;using(var f=Bold)for(int c=0;c<Widths.Length;c++)h=Math.Max(h,Measure(g,Headers[c],f,Widths[c]-6));return h+6;}
   internal override float Height(Graphics g){float h=HeaderHeight(g);int end=Count<0?Rows.Count:Math.Min(Rows.Count,Start+Count);for(int r=Start;r<end;r++)h+=RowHeight(g,Rows[r]);return h+8;}
   /* how many rows from Start fit in the space */
@@ -61,7 +63,7 @@ sealed class RichReport {
  public RichReport PageBreak(){blocks.Add(new PageBreakBlock());return this;}
  public RichReport Signatures(params string[] roles){blocks.Add(new SignatureBlock{Roles=roles});return this;}
  /* ---- layout into pages ---- */
- public CalculationDocument Build(){Frame(a3);var doc=new CalculationDocument(title);if(a3)doc.UseA3Landscape();var pages=new List<List<KeyValuePair<Block,float>>>();var page=new List<KeyValuePair<Block,float>>();float y=Top;
+ public CalculationDocument Build(){Frame(a3);compactNow=Compact;var doc=new CalculationDocument(title);if(a3)doc.UseA3Landscape();var pages=new List<List<KeyValuePair<Block,float>>>();var page=new List<KeyValuePair<Block,float>>();float y=Top;
   using(var bmp=new Bitmap(10,10))using(var g=Graphics.FromImage(bmp)){g.PageUnit=GraphicsUnit.Point;
    Action newPage=()=>{pages.Add(page);page=new List<KeyValuePair<Block,float>>();y=Top;};
    for(int bi=0;bi<blocks.Count;bi++){var block=blocks[bi];var table=block as TableBlock;if(block is PageBreakBlock){if(page.Count>0)newPage();continue;}
@@ -69,7 +71,7 @@ sealed class RichReport {
     if(table!=null){int start=0;while(start<table.Rows.Count||start==0){var part=new TableBlock{Headers=table.Headers,Rows=table.Rows,Widths=table.Widths,RowColor=table.RowColor,Start=start,PaintCol=table.PaintCol,MinRow=table.MinRow,Painter=table.Painter};int fit=part.Fit(g,Bottom-y);if(fit==0&&page.Count>0){newPage();fit=part.Fit(g,Bottom-y);}fit=Math.Max(1,fit);part.Count=fit;page.Add(new KeyValuePair<Block,float>(part,y));y+=part.Height(g);start+=fit;if(start>=table.Rows.Count)break;newPage();}continue;}
     float h=block.Height(g);if(y+h>Bottom&&page.Count>0){/* signatures take the paragraph before them along */KeyValuePair<Block,float>? carry=null;if(block is SignatureBlock&&page.Count>1&&page[page.Count-1].Key is ParagraphBlock){carry=page[page.Count-1];page.RemoveAt(page.Count-1);}newPage();if(carry.HasValue){page.Add(new KeyValuePair<Block,float>(carry.Value.Key,y));y+=carry.Value.Key.Height(g);}}page.Add(new KeyValuePair<Block,float>(block,y));y+=h;}
    if(page.Count>0)pages.Add(page);}
-  bool big=a3;foreach(var p in pages){var items=p;doc.Sheets.Add(g=>{Frame(big);foreach(var item in items)item.Key.Draw(g,item.Value);});}
+  bool big=a3,cmp=Compact;compactNow=false;foreach(var p in pages){var items=p;doc.Sheets.Add(g=>{Frame(big);compactNow=cmp;foreach(var item in items)item.Key.Draw(g,item.Value);compactNow=false;});}
   if(doc.Sheets.Count==0)doc.Sheets.Add(g=>{});return doc;}
 }
 }
