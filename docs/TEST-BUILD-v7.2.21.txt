@@ -1,0 +1,17 @@
+DTCE Tool Kit v7.2.21 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load report and STAAD input (owner: "dapat ipakita ito sa report. pero diba if wind galing sa NE, may windward load,
+leeward load, tapos sidewall pa"; "e bat kulang? saka ayusin yung report"; "pati yung input sa staad dapat may name din hindi type 1
+lang"; "TYPE 5 WIND 5 - ganyan ang naming niya"):
+- New report section "Wind load cases on the building" (src/WindLoadCasesReport.cs): table of W1-W4 (each (a) +GCpi and (b) -GCpi)
+  with the wind direction, across / along the ridge, the windward face, the leeward face and the two side walls, and the STAAD type.
+- One page per load case: plan (north up, the building turned to its ridge alignment, wind indicator) with an arrow and the external
+  pressure on every face - windward pushed in, leeward and both side walls pulled out - and the roof range; then the table of every
+  face (windward wall over its height, leeward wall, side walls, each roof slope / zone and Cp branch) with Cp, q·G·Cp and the net
+  pressures of (a) and (b).
+- Roof rows of the windward roof (Cp branches) and the roof zones of wind along the ridge were missing from such summaries: the (a) and
+  (b) rows of each face are now paired by their load case text.
+- STAAD DEFINE WIND LOAD: each type is named like STAAD's own "TYPE 5 WIND 5": "TYPE 1 W1 FROM SW", with a comment saying whether the
+  wind is across or along the ridge.
+Pressures unchanged. Tests: WindAuditTests 77, WindBuildingLoadsTests 28.
+Includes everything of v7.2.20.

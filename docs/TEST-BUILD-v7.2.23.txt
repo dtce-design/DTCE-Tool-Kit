@@ -1,0 +1,12 @@
+DTCE Tool Kit v7.2.23 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load, STAAD Wind Input (owner: "hindi ba magkakaiba ang intensity if wind from NW sa WW, LW at SW?"; "bakit di
+nagpapakita sa STAAD Wind Input"):
+- New sub tab "Pressures on every face": for every load case W1a ... W4b ((a) = +GCpi, (b) = −GCpi) the windward wall by height band,
+  the leeward wall, the side walls and each roof slope / zone with Cp, external q·G·Cp, internal −qi·GCpi and the net pressure. Copy
+  table / Export CSV.
+- STAAD commands: after DEFINE WIND LOAD, a load case template per case (comment lines): LOAD n LOADTYPE WIND TITLE W1A WIND FROM SW
+  +GCPI, the WIND LOAD line for the matching TYPE (axis and sign to set for the model), and the side-wall and roof pressures to apply
+  as member loads (net p x tributary width). INT (windward + |leeward|) is unchanged.
+Tests: WindAuditTests 77, WindBuildingLoadsTests 28, WindRecoveryTests 40.
+Includes everything of v7.2.22.

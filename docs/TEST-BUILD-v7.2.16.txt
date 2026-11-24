@@ -1,0 +1,18 @@
+DTCE Tool Kit v7.2.16 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Design sheets: inputs locked when not used (owner: "if naka check dapat di na pwede maginput, gawin din ito sa iba"):
+- Shared rule (DesignSheetForm.EnableWhen): a field the calculation ignores is greyed and cannot be typed in; re-checked on every
+  change and after opening a sheet file. View-only (User edition without a code) stays locked.
+- Wind building: with "Calculate gust effect factor G" ticked, "G when automatic gust is unchecked" is locked; unticked, damping and
+  natural frequencies are locked; the positive internal qi height opens only for Partially enclosed; all building inputs are locked
+  while "Include building wind pressures" is off.
+- Truss Connections: U locked when all elements are connected; manual tension / compression locked while the STAAD table is used
+  (STAAD units, members and load-basis locked when it is not); area / thickness / offset only with verified geometry; Fnv only with
+  verified shear stress.
+- Truss Support: hook length eh only for J / L bolts; futa / fya only for Custom anchor material (otherwise filled from the grade);
+  bottom-chord inputs only when the chord angles are welded to the plate.
+- Earthquake: with a geotechnical Mmax the automatic Mmax and rupture length are locked.
+
+PATCH - Wind report margins (owner screenshots): the basic wind speed banner, the equations text and the source map now sit inside the
+1 inch binding margin; the exposure / Kzt / STAAD audit tables are scaled to the content width (they ran past the right margin).
+Includes everything of v7.2.15.

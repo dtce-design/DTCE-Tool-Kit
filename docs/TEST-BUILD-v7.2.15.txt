@@ -1,0 +1,10 @@
+DTCE Tool Kit v7.2.15 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load site map (owner screenshot: "hindi makita yung color"):
+- The mapped surface roughness inside the assessment circle (B trees / built-up green, C open terrain gold, D water blue, ? gray) was
+  drawn at 13% opacity and smoothed when enlarged, so it showed only as pale tan / blue. It is now drawn at about 30% opacity with crisp
+  cells, so the zones are visible while the street / satellite map stays readable underneath (owner: "huwag naman OA takpan ... basta makita pa don colors"); the legend colours match.
+- Sectors are tinted by their roughness (now visible) only when no cell data is available; the terrain profiles use the same stronger
+  colours. The note under the map says what the coloured cells are.
+Exposure results unchanged.
+Includes everything of v7.2.14.

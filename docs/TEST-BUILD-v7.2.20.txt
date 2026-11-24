@@ -1,0 +1,9 @@
+DTCE Tool Kit v7.2.20 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load building orientation (owner: "magulo yung ridge alignment? pano ang way para maorient yung building sa windload"):
+- The building outline (width x length) is drawn on the site map at the project site, turned to the chosen ridge alignment, with
+  the ridge as a red dashed line and the label "Ridge N–S" (etc.). Zoom into the satellite view and pick the alignment whose outline
+  lies over the real building. Small buildings are drawn enlarged (marked) so the orientation stays visible.
+- The field is labelled "Ridge alignment (compass line of the ridge / long axis; see the outline on the site map)". Older files keep
+  their alignment (the choices are unchanged).
+Includes everything of v7.2.19.

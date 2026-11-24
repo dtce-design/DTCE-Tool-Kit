@@ -1,0 +1,9 @@
+DTCE Tool Kit v7.2.17 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load building inputs (owner: "yung ridge alignment dapat mag suggest"; "N-S, NE-SW etc."):
+- Under Ridge alignment the sheet suggests N–S, NE–SW, E–W or NW–SE: the building pressures are computed for all four alignments
+  with the site's eight-direction exposures and Kzt, and the alignment with the largest design pressure |p| is suggested (the
+  critical orientation when the real one is not fixed). The peak of each alignment is listed; "Use the suggested ridge alignment"
+  selects it. The entered alignment is not changed automatically - use the actual orientation when it is known.
+- Engine: WindBuildingLoads.RidgePeaks / SuggestedRidge. Tests: WindBuildingLoadsTests 28.
+Includes everything of v7.2.16.

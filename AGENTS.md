@@ -271,6 +271,18 @@ before it started (nothing changed in Partner Center): every Store MSIX so far l
 Owner (24 November 2026, chose "Upload v7.2.14 instead"): publish v7.2.14 (PDF tools in the MSIX, Earthquake lateral force procedure,
 geotechnical Mmax) instead, the same way (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for
 this release only). Later versions again need a new explicit request.
+Result 24 November 2026: v7.2.14 merged to main (PR #22; GitHub release OK, run 45329154479). Store run 45329200717 failed in both upload jobs
+before any upload: scripts/submit_store.py refused tools/qpdf/qpdf.exe ("Unexpected executable in package"). Nothing changed in Partner Center.
+The check now allows that one file (development branch, v7.2.24); a Store retry needs main updated and the owner's go-ahead for the version.
+Owner (24 November 2026, chose "Upload v7.2.24"): publish v7.2.24 (User and Admin) instead, after its Windows CI passes (PR to main, then
+publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User visibility stays Public). Later versions
+again need a new explicit request.
+Owner (24 November 2026, chose "Upload v7.2.25 instead"): the Store release is v7.2.25 (v7.2.24 plus separate WW / LW / SW STAAD wind types),
+the same way (PR #23, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only).
+Owner (24 November 2026, chose "Upload v7.2.26"): the Store release is v7.2.26 (v7.2.25 plus TYPE n WIND ... names and the equation margin),
+the same way. Later versions again need a new explicit request.
+Owner (24 November 2026, chose "Upload v7.2.27"): the Store release is v7.2.27 (v7.2.26 plus STAAD lines kept to 72 columns), the same way.
+Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
@@ -433,3 +445,30 @@ Geotechnical Report". The Earthquake sheet computes the NSCP 2015 208.5.2 static
 T by Method A, V with 208-8 to 208-11, Ft, Fx, storey shears / moments, E / Em, RSA scaling) and reports every parameter (section 6).
 A Mmax typed from the geotechnical report overrides every automatic Mmax estimate and is cited in the report (v7.2.14).
 The Store MSIX must carry tools/qpdf (scripts/Build-MSIX.ps1); without it PDF export fails in the Store app (fixed v7.2.14).
+Owner (24 November 2026, "hindi makita yung color"): the Wind site map draws the roughness cells at about 30% opacity (not covering the map; owner "huwag naman OA takpan"), nearest-neighbour
+(src/WindSiteMap.cs RoughnessAlpha), so B / C / D colours are visible (v7.2.15).
+Owner (24 November 2026, "if naka check dapat di na pwede maginput, gawin din ito sa iba"): design-sheet inputs that a checkbox or choice
+makes unused are locked through DesignSheetForm.EnableWhen (wind gust G, truss connection U / STAAD / verified values, truss support
+hook / anchor grade / chord, earthquake Mmax); add such rules for new toggles. Report text and tables stay inside the 1 inch left
+margin (CalculationDocument.L / CW, no fixed x positions) (v7.2.16).
+Owner (24 November 2026, "yung ridge alignment dapat mag suggest"): the Wind building inputs suggest the ridge alignment (N–S, NE–SW, E–W,
+NW–SE) with the largest design pressure (WindBuildingLoads.RidgePeaks); it is a suggestion only, the user picks it (v7.2.17).
+Owner (24 November 2026, "ipakita din yung diagram for surface roughness"): every wind-direction exposure page of the Wind report draws the
+five upwind rays coloured by roughness with the fetch limits (WindAuditPages.RoughnessRays, v7.2.18).
+Owner ("siguro sa circle or sa map"): the Wind report also draws the roughness as a circle (src/WindRoughnessCircle.cs): a full page with
+the 8 sectors and exposures, and a small circle with the upwind sectors highlighted on every direction page (v7.2.19).
+Owner ("pano ang way para maorient yung building sa windload"): the building outline is drawn on the wind site map turned to the ridge
+alignment (WindSiteMap.SetBuilding), so the orientation is matched against the satellite image (v7.2.20).
+Owner (24 November 2026): the Wind report lists the load cases W1-W4 (a = +GCpi, b = -GCpi) with every face loaded at once - windward,
+leeward, both side walls, roof - with a plan per case (src/WindLoadCasesReport.cs); STAAD wind types are named "TYPE n Wn FROM dir" (v7.2.21).
+Owner ("nawala yung map at yung contour"): the wind report map is a fixed 1046 x 590 view (WindSiteMap.ReportSize, VW / VH), waits up to 20 s
+for tiles, draws the tiles it has and states the nearest wind contours (v7.2.22).
+Owner ("bakit di nagpapakita sa STAAD Wind Input"): the STAAD Wind Input has "Pressures on every face" (every face of W1a-W4b) and load
+case templates with the side-wall and roof member loads (WindStaadInput.FacePressures / LoadCaseTemplates, v7.2.23).
+Owner ("ilagay yung x z dimension ... WW+X LW+X"): the Wind sheet takes the STAAD +X bearing, the ridge axis and the X / Z dimensions; the
+STAAD output gives each load case its WIND LOAD axis / sign and each face its GX / GZ direction (WindStaadInput.AxisOf, v7.2.24).
+Owner ("define windload lang ... windward, leeward and sidewall"; "WW+X LW+X SW+X"; "dapat hiwalay sila"): STAAD output is DEFINE WIND LOAD
+only, one type per face (WW / LW / SW) per direction, named by the model direction (WW+X ...), never WW and LW combined
+(WindStaadInput.FaceCommands, v7.2.25); names follow STAAD's "TYPE n WIND ..." format (TYPE 1 WIND WW+X, v7.2.26).
+Owner ("fix input width 72col para pwede din sa 79"): generated STAAD input lines are at most 72 columns (StaadLines.Wrap: " -" continuation,
+wrapped "*" comments) (v7.2.27).
