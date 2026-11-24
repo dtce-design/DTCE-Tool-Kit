@@ -1,0 +1,9 @@
+DTCE Tool Kit v7.2.32 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load topographic factor Kzt, correction of v7.2.31:
+- v7.2.31 set every water cell (land cover D) to 0 m. That is right for the sea but wrong for inland lakes and rivers: a lake at
+  700 m would have become 0 m and looked like a 700 m escarpment.
+- Now only elevations below 0 m (sea floor in the elevation data, values blended at the shore) are taken at mean sea level, 0 m.
+  Inland lakes and rivers keep their surface elevation from the data. The check row is "Sea surface - 0 m at n point(s)".
+Tests: WindAuditTests 79, WindRecoveryTests 40.
+Includes everything of v7.2.31.

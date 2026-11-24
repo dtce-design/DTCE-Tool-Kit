@@ -483,5 +483,6 @@ zone, purlin effective area) through the shared link file (src/WindLink.cs); the
 Owner ("pakicheck yung Determination niya ng Hill kasi flat lang naman itsura"): Kzt checks condition 2 from the profile, labels a
 non-qualifying shape "No qualifying hill (Kzt = 1)", warns when H < 10 m (DEM accuracy), and "Site topography = Flat" forces Kzt = 1
 (WindTerrain.UserFlat, v7.2.30).
-Owner ("bakit yung upwind base below 0?"): in the Kzt profile, water cells (cover 80) and elevations below 0 m are taken as the water
-surface, 0 m, and the checks say so (WindTopographicAudit Ground, v7.2.31).
+Owner ("bakit yung upwind base below 0?"): in the Kzt profile, elevations below 0 m (sea floor, shore blending) are taken as
+mean sea level, 0 m, and the checks say so (WindTopographicAudit Ground, v7.2.31). Inland lakes / rivers keep their surface elevation;
+water cover alone never sets 0 m (a lake at 700 m is not an escarpment) (v7.2.32).
