@@ -281,6 +281,8 @@ Owner (24 November 2026, chose "Upload v7.2.25 instead"): the Store release is v
 the same way (PR #23, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only).
 Owner (24 November 2026, chose "Upload v7.2.26"): the Store release is v7.2.26 (v7.2.25 plus TYPE n WIND ... names and the equation margin),
 the same way. Later versions again need a new explicit request.
+Owner (24 November 2026, chose "Upload v7.2.27"): the Store release is v7.2.27 (v7.2.26 plus STAAD lines kept to 72 columns), the same way.
+Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
