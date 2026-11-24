@@ -39,15 +39,15 @@ sealed class RichReport {
     x=Left;using(var ink=new SolidBrush(PowTheme.Ink))for(int c=0;c<Widths.Length&&c<row.Length;c++){if(c==PaintCol&&Painter!=null){var st=g.Save();try{var cell=new RectangleF(x+2,y+2,Widths[c]-4,rh-4);g.SetClip(cell);Painter(g,cell,r);}finally{g.Restore(st);}}else g.DrawString(row[c],f,ink,new RectangleF(x+3,y+2,Widths[c]-6,rh));x+=Widths[c];}g.DrawLine(line,Left,y+rh,Left+Widths.Sum(),y+rh);y+=rh;}}}
  /* a calculation-sheet line (owner, 24 November 2026: "pangit siguro yung table form"): number, member in bold, the formula with its values
     indented under it and the result on the right; a total has a rule above it. No grid. */
- sealed class CalcBlock:Block {internal string No,Label,Text,Result;internal bool Total;const float NoW=20,ResW=104,Indent=12;
-  float LabelH(Graphics g){if(string.IsNullOrEmpty(Label))return 0;using(var b=Bold)return Measure(g,Label,b,Width-NoW-ResW-6);}
-  float TextH(Graphics g){if(string.IsNullOrEmpty(Text))return 0;using(var f=Total?Bold:Body)return Measure(g,Text,f,Width-NoW-Indent-ResW-6);}
+ sealed class CalcBlock:Block {internal string No,Label,Text,Result;internal bool Total;const float NoW=20,ResW=104,Indent=12;/* on the wide A3 page the line keeps an A4 width so the result stays near its formula */static float W{get{return Math.Min(Width,640);}}
+  float LabelH(Graphics g){if(string.IsNullOrEmpty(Label))return 0;using(var b=Bold)return Measure(g,Label,b,W-NoW-ResW-6);}
+  float TextH(Graphics g){if(string.IsNullOrEmpty(Text))return 0;using(var f=Total?Bold:Body)return Measure(g,Text,f,W-NoW-Indent-ResW-6);}
   internal override float Height(Graphics g){return LabelH(g)+TextH(g)+(Total?7:compactNow?4:6);}
   internal override void Draw(Graphics g,float y){float y0=y+(Total?4:1);using(var ink=new SolidBrush(PowTheme.Ink))using(var muted=new SolidBrush(PowTheme.Muted)){
-   if(Total)using(var pen=new Pen(PowTheme.Ink,.8f))g.DrawLine(pen,Left+NoW,y+1.5f,Left+Width,y+1.5f);
-   using(var b=Bold){if(!string.IsNullOrEmpty(No))g.DrawString(No,b,muted,Left,y0);float lh=LabelH(g);if(lh>0)g.DrawString(Label,b,ink,new RectangleF(Left+NoW,y0,Width-NoW-ResW-6,lh+2));
-    float ty=y0+lh;float th=TextH(g);if(th>0)using(var f=Total?Bold:Body)g.DrawString(Text,f,Total?(Brush)ink:ink,new RectangleF(Left+NoW+(string.IsNullOrEmpty(Label)?0:Indent),ty,Width-NoW-Indent-ResW-6,th+2));
-    if(!string.IsNullOrEmpty(Result)){var fmt=new StringFormat{Alignment=StringAlignment.Far};float ry=th>0?ty+th-Measure(g,Result,b,ResW):y0;g.DrawString(Result,b,ink,new RectangleF(Left+Width-ResW,Math.Max(y0,ry),ResW,40),fmt);}}}}}
+   if(Total)using(var pen=new Pen(PowTheme.Ink,.8f))g.DrawLine(pen,Left+NoW,y+1.5f,Left+W,y+1.5f);
+   using(var b=Bold){if(!string.IsNullOrEmpty(No))g.DrawString(No,b,muted,Left,y0);float lh=LabelH(g);if(lh>0)g.DrawString(Label,b,ink,new RectangleF(Left+NoW,y0,W-NoW-ResW-6,lh+2));
+    float ty=y0+lh;float th=TextH(g);if(th>0)using(var f=Total?Bold:Body)g.DrawString(Text,f,Total?(Brush)ink:ink,new RectangleF(Left+NoW+(string.IsNullOrEmpty(Label)?0:Indent),ty,W-NoW-Indent-ResW-6,th+2));
+    if(!string.IsNullOrEmpty(Result)){var fmt=new StringFormat{Alignment=StringAlignment.Far};float ry=th>0?ty+th-Measure(g,Result,b,ResW):y0;g.DrawString(Result,b,ink,new RectangleF(Left+W-ResW,Math.Max(y0,ry),ResW,40),fmt);}}}}}
  sealed class CheckBlock:Block {internal string Name,Clause,Governing;internal List<string> Lines;internal double Demand,Capacity,Ratio;internal string Unit;internal bool Ok;
   string Result{get{return "Demand "+Fmt(Demand)+" "+Unit+"   ≤   capacity "+Fmt(Capacity)+" "+Unit+"   →   ratio "+(double.IsInfinity(Ratio)?"∞":Ratio.ToString("0.00"));}}
   static string Fmt(double v){return double.IsInfinity(v)||double.IsNaN(v)?"-":Math.Abs(v)>=100?v.ToString("0.0"):v.ToString("0.00");}

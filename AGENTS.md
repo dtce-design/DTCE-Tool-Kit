@@ -260,6 +260,9 @@ committed; Partner Center reported "accepted for processing". Certification is n
 New owner request (24 November 2026, "push sa microsoft store"; chose "Replace v7.2.5"): publish v7.2.6 (User and Admin) after its Windows CI
 passes (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User visibility
 stays Public). Later versions again need a new explicit request.
+Done 24 November 2026: v7.2.6 merged to main (PR #20; GitHub release OK, run 45303839797). Store run 45303878664 (first attempt): new User
+(1152921505702487508; visibility Public) and Admin (1152921505702488152; visibility Private) submissions were created and committed;
+Partner Center reported "accepted for processing" (PreProcessing). Certification is not guaranteed. v7.2.7 and later need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
@@ -412,3 +415,5 @@ regan etc": no supplier or handbook names in user-visible text (v7.2.11); intern
 Owner (24 November 2026, "lahat irestructure mo"; "pangit siguro yung table form"): BOQ calculation reports are numbered sections with a
 k.1 Quantities table and the calculations as calculation-sheet lines (RichReport.Calc: members bold, formula under, result right, no grid),
 identical sources / members merged ("40 × 4.5"), inputs in Appendix A as column tables (v7.2.12). Keep tables for summaries only.
+Owner (24 November 2026, "yung sa bbs maglagyan din ng calculation sheet kagaya niyan"): the BBS report has a calculation sheet
+(cut length from the shape dimensions, pieces, weight per bar mark, member totals) in the same style (v7.2.13).

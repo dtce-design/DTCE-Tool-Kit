@@ -1,0 +1,12 @@
+DTCE Tool Kit v7.2.13 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Bar bending schedule report (owner: "yung sa bbs maglagyan din ng calculation sheet kagaya niyan"):
+- New section "CALCULATION SHEET - CUT LENGTHS AND WEIGHTS" (after the element schedules) in the same calculation-sheet style as the
+  Bill of Quantities reports: per member, each bar mark with grade, size, shape code and location in bold; under it how the cut
+  length is made from the shape dimensions (straight: end - start; L1: A + 90° hook allowance; U2: B + 2 hook allowances; H5:
+  2 × (A + B) + 135° hooks and bends; X3: A + hooks; K4: A lap + B crank + D; K5: A + B + D + hook allowance) and
+  pieces = per line × identical lines, weight = pieces × cut × kg/m; the weight on the right; member totals and the grand total.
+- Later sections renumbered (weight summary, cutting list, checks, estimate, review).
+- Calculation lines keep an A4 width on the A3 page so the result stays near its formula.
+Quantities unchanged. Tests: BeamCuttingListTests 247, MemberBbsTests 12.
+Includes everything of v7.2.12.

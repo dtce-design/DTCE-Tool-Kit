@@ -42,15 +42,16 @@ static partial class BbsReport {
    int rows=BeamDetailPaper.SectionRows(r,geo,width);for(int first=0;first<rows;first+=2){int f=first,n=Math.Min(2,rows-first);rep.Figure(BeamDetailPaper.SectionsHeight(n),(g,rect)=>BeamDetailPaper.DrawSections(g,rect,r,geo,f,n),"Sections of beam line "+geo.Line+(rows>2?" ("+(f/2+1)+")":"")+" named by beam mark at the left face (L), midspan (M) and right face (R) of each span, to the scale shown; identical sections are drawn once (TYP.) with the cuts they stand for.");}}
   AddElementSchedules(rep,r,s,(4-skip).ToString(Inv));
   rep.Paragraph("Lengths in mm. * added on the cutting list, † edited on the cutting list. Cut lengths include the bend allowances; check the bent shape on site against A, B, C.",true);
+  AddCalculationSheet(rep,r,(5-skip).ToString(Inv));
   var weights=r.Pieces.GroupBy(x=>new{x.Grade,x.Diameter}).OrderBy(x=>x.Key.Grade).ThenBy(x=>x.Key.Diameter).Select(x=>new[]{"Grade "+x.Key.Grade,"Ø"+x.Key.Diameter+" mm",EstimatorEngine.UnitMass(x.Key.Diameter).ToString("0.000",Inv),x.Sum(p=>p.Pieces*p.Length).ToString("0.00",Inv),x.Sum(p=>p.Kg).ToString("0.00",Inv)}).ToList();weights.Add(new[]{"TOTAL","","","",r.Pieces.Sum(p=>p.Kg).ToString("0.00",Inv)});
-  rep.Heading((5-skip)+"  WEIGHT SUMMARY").Table(new[]{"Grade","Bar size","Unit mass (kg/m)","Total length (m)","Weight (kg)"},weights,new float[]{18,18,20,22,22},row=>row[0]=="TOTAL"?(Color?)Color.FromArgb(232,236,240):null);
+  rep.Heading((6-skip)+"  WEIGHT SUMMARY").Table(new[]{"Grade","Bar size","Unit mass (kg/m)","Total length (m)","Weight (kg)"},weights,new float[]{18,18,20,22,22},row=>row[0]=="TOTAL"?(Color?)Color.FromArgb(232,236,240):null);
   if(groups.Count>1){var byGroup=new[]{"Beam","Column","Slab","Footing","Wall footing"}.Where(groups.Contains).Select(gn=>{var ps=r.Pieces.Where(p=>p.Group==gn).ToList();return new[]{gn,ps.Count.ToString(Inv),ps.Sum(p=>p.Pieces).ToString(Inv),ps.Sum(p=>p.Pieces*p.Length).ToString("0.00",Inv),ps.Sum(p=>p.Kg).ToString("0.00",Inv)};}).ToList();rep.Table(new[]{"Member type","Bar marks","Pieces","Total length (m)","Weight (kg)"},byGroup,new float[]{24,16,16,22,22});}
-  rep.Heading((6-skip)+"  CUTTING LIST - CUTTING PATTERN PER COMMERCIAL BAR").Table(new[]{"Pattern","Grade / size","Stock (m)","No. of bars","Cuts from each bar","For bar marks (total pieces)","Offcut (m)"},
+  rep.Heading((7-skip)+"  CUTTING LIST - CUTTING PATTERN PER COMMERCIAL BAR").Table(new[]{"Pattern","Grade / size","Stock (m)","No. of bars","Cuts from each bar","For bar marks (total pieces)","Offcut (m)"},
    r.Patterns.Select(p=>new[]{p.Id,"G"+p.Grade+" Ø"+p.Diameter,p.Stock.ToString("0.0#",Inv),p.Bars.ToString(Inv),CuttingPatterns.Describe(p),CuttingPatterns.MarksOf(p),p.Offcut.ToString("0.000",Inv)+(p.Offcut>=CuttingPatterns.ReusableOffcut?" (keep)":"")}),new float[]{8,9,7,7,22,36,11});
   var order=CuttingPatterns.Summary(r.Patterns);
   rep.Table(new[]{"Order","Bars to buy","Bought (m)","Cut (m)","Offcut %","Weight bought (kg)"},order.Select(o=>new[]{"G"+o.Grade+" Ø"+o.Diameter,string.Join(", ",o.BarsByStock.OrderByDescending(k=>k.Key).Select(k=>k.Value+" x "+k.Key.ToString("0.0#",Inv)+" m")),o.Bought.ToString("0.00",Inv),o.Used.ToString("0.00",Inv),o.WastePercent.ToString("0.0",Inv),o.Kg.ToString("0.00",Inv)}),new float[]{12,34,13,13,11,17});
   rep.Paragraph("Patterns by best-fit decreasing: longest pieces first, each into the bar it fills best; each bar bought at the shortest commercial length that holds its cuts. Offcuts of "+CuttingPatterns.ReusableOffcut.ToString("0.0",Inv)+" m or more are marked (keep) for reuse. No saw kerf (sheared).",true);
-  int section=7-skip;
+  int section=8-skip;
   if(s.SpecialMomentFrame&&r.Smf.Count>0){rep.Heading(section+"  SPECIAL MOMENT FRAME DETAILING CHECK (NSCP 2015 418.6 / 418.8)").Table(new[]{"Line","Span","Check","Clause","Required","Provided","Result"},r.Smf.Select(c=>new[]{c.Line,c.Span>0?c.Span.ToString(Inv):"-",c.Item+(c.Note!=""?" - "+c.Note:""),c.Clause,c.Required,c.Provided,c.Ok?"OK":"NOT OK"}),new float[]{6,6,30,13,17,19,9},row=>row[6]=="OK"?null:(Color?)Color.FromArgb(252,232,232));
    rep.Paragraph("Moment strengths are compared through the steel areas of the same section. Not checked here (structural design): beam width against the column width (418.6.2.1(c)), joint shear (418.8.4), strong column - weak beam (418.7.3) and the shear design of the hoops (418.6.5).",true);section++;}
   if(r.Splices.Count>0){rep.Heading(section+"  SPLICE ZONE CHECK").Table(new[]{"Line","Bar","Ø","Span","Lap from - to (m)","Allowed zone (m)","Lap (m)","Result","Note"},r.Splices.Select(c=>new[]{c.Line,c.Shown,c.Diameter.ToString(Inv),c.Span.ToString(Inv),c.From.ToString("0.000",Inv)+" - "+c.To.ToString("0.000",Inv),c.ZoneFrom.ToString("0.000",Inv)+" - "+c.ZoneTo.ToString("0.000",Inv),c.Lap.ToString("0.000",Inv),c.Status,c.Note}),new float[]{7,8,4,5,14,14,7,7,34},row=>row[7]=="OK"?null:(Color?)Color.FromArgb(252,232,232));section++;}
@@ -68,6 +69,26 @@ static partial class BbsReport {
   /* part B: the crew sheets (owner: "Icomvine mo na silang tatlo") */
   rep.PageBreak().Paragraph("PART B - SITE SHEETS FOR THE CREW",false,true);SiteSheets.AddCrew(rep,r,s,info,false);
   return rep.Build();}
+ /* calculation sheet (owner, 24 November 2026: "yung sa bbs maglagyan din ng calculation sheet kagaya niyan"): per member, each bar mark
+    with how its cut length is made from the shape dimensions and its weight written out, the result on the right; member and grand totals */
+ static string M(double mm){return (mm/1000).ToString("0.000",Inv);}
+ internal static string CutFormula(CutPiece p){double L=p.Length*1000;switch(p.ShapeCode){
+  case "HOOK1":return "cut = A + 90° hook allowance = "+M(p.DimA)+" + "+M(L-p.DimA)+" = "+M(L)+" m   (A = "+Dim(p.DimA)+", B = "+Dim(p.DimB)+" mm)";
+  case "HOOK2":return "cut = B + 2 × 90° hook allowance = "+M(p.DimB)+" + 2 × "+M((L-p.DimB)/2)+" = "+M(L)+" m   (A = "+Dim(p.DimA)+", B = "+Dim(p.DimB)+", C = "+Dim(p.DimC)+" mm)";
+  case "HOOP":return "cut = 2 × (A + B) + two 135° hooks and bends = 2 × ("+M(p.DimA)+" + "+M(p.DimB)+") + "+M(L-2*(p.DimA+p.DimB))+" = "+M(L)+" m   (hook extension C = "+Dim(p.DimC)+" mm)";
+  case "CROSSTIE":return "cut = A + 135° hook + 90° hook (with bends) = "+M(p.DimA)+" + "+M(L-p.DimA)+" = "+M(L)+" m   (B = "+Dim(p.DimB)+", C = "+Dim(p.DimC)+" mm)";
+  case "CRANK":return "cut = A lap + B crank (1:6) + D = "+M(p.DimA)+" + "+M(p.DimB)+" + "+M(p.DimD)+" = "+M(L)+" m   (offset C = "+Dim(p.DimC)+" mm)";
+  case "CRANKHOOK":return "cut = A lap + B crank (1:6) + D + 90° hook allowance = "+M(p.DimA)+" + "+M(p.DimB)+" + "+M(p.DimD)+" + "+M(L-p.DimA-p.DimB-p.DimD)+" = "+M(L)+" m   (hook leg E = "+Dim(p.DimE)+" mm)";
+  default:return p.End>p.Start&&Math.Abs((p.End-p.Start)-p.Length)<0.0005?"cut = end - start = "+p.End.ToString("0.000",Inv)+" - "+p.Start.ToString("0.000",Inv)+" = "+M(L)+" m":"cut = A = "+M(L)+" m";}}
+ static void AddCalculationSheet(RichReport rep,CutResult r,string number){var pieces=r.Pieces.Where(p=>p.Pieces>0).ToList();if(pieces.Count==0)return;
+  rep.Heading(number+"  CALCULATION SHEET - CUT LENGTHS AND WEIGHTS");
+  rep.Paragraph("Each bar: cut length from the shape dimensions (A to E outside dimensions; hook and bend allowances from the Splice, Development & Hooks configuration), then pieces = bars per line × identical lines and weight = pieces × cut length × unit mass.",true);
+  double grand=0;foreach(var member in pieces.GroupBy(p=>p.Group+" "+(p.Line??"")).OrderBy(x=>x.Key)){var list=member.ToList();rep.Paragraph(list[0].Group+" "+(list[0].Line??""),false,true);int n=0;double sum=0;
+   foreach(var p in list){double kgm=EstimatorEngine.UnitMass(p.Diameter);sum+=p.Kg;
+    rep.Calc((++n).ToString(Inv),(p.Short??p.BarMark)+"  ·  G"+p.Grade+" Ø"+p.Diameter+"  ·  "+Code(p.ShapeCode)+" "+ShapeName(Code(p.ShapeCode))+(string.IsNullOrWhiteSpace(p.Location)?"":"  ·  "+p.Location),
+     CutFormula(p)+"\npieces = "+p.PerLine.ToString(Inv)+" per line × "+p.Lines.ToString(Inv)+" line(s) = "+p.Pieces.ToString(Inv)+";  weight = "+p.Pieces.ToString(Inv)+" × "+p.Length.ToString("0.000",Inv)+" m × "+kgm.ToString("0.000",Inv)+" kg/m",p.Kg.ToString("0.00",Inv)+" kg");}
+   grand+=sum;if(n>1)rep.Calc("","","Total "+list[0].Group.ToLowerInvariant()+" "+(list[0].Line??""),sum.ToString("0.00",Inv)+" kg",true);}
+  rep.Calc("","","TOTAL reinforcing steel (net cut weight; commercial bars to buy are in the cutting list)",grand.ToString("0.00",Inv)+" kg",true);}
  static string Role(string role,string name){return string.IsNullOrWhiteSpace(name)?role:role+": "+name.Trim();}
 }
 }
