@@ -291,6 +291,8 @@ inputs and the four Model views (section, 3D, plan, load / shear / moment) are o
 Owner ("i drawing ng tama yung reinforcement ng stairs as to standard"; "di pa naka drawn to scale", v7.1.26): the section is drawn to
 scale (bars at their diameters, graphic scale bar), chairs stand square to the slab between the mats, crossing bars at re-entrant
 corners run ld past the crossing, and the shear diagram is positive above the axis.
+Owner (24 November 2026, v7.2.8): top bars always full length (no L/4 choice); flight 2 of a dog-legged stair (flight 3 of open-well)
+drawn mirrored; inputs shown follow the stair type; 3D shows the support beams; step bars end in 90° hooks tied to the top mat.
 Owner ("reinforcement ng steps kako", v7.1.27): "chair bars" of a stair means the step bars bent to each riser and tread (legs lapped
 onto the waist top bars, nosing bar in the bend), not support chairs; do not draw support chairs in the section.
 

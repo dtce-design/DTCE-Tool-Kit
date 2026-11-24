@@ -1,0 +1,19 @@
+DTCE Tool Kit v7.2.8 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Staircase Design (owner: "pakicheck yung bar A and C"; "ayusin din yung chair bars ganiyan ba ang tama?"; "pati yung connection sa
+beam"; "yung input dito nagpapalita depende kung ano ang sineselect sa taas"; "hindi ba dapat yung flight 2 naka mirror?"; "ano ba ang
+tama yung top bars L/4 or full length isa lang ilagay"; "paki ayos lahat ng model"):
+- Section: dog-legged flight 2 (and open-well flight 3), which goes back the other way on plan, is drawn mirrored - seen from the same side
+  as flight 1, half landing on the right; mirrored about its own centre, scale bar on the left.
+- Bar callouts: A points at the main bottom bar and C at a distribution-bar dot of the bottom mat, well apart; the label rows follow the
+  height of their anchors so the leaders do not cross; labels read away from the stair when mirrored.
+- Step bars (chair bars): standard detail - up the riser and along the tread at the cover, each leg 12db past the waist top mat with a
+  90° hook (6db) tied to it, instead of straight legs through the waist.
+- Beam connection: each support beam shows its stirrup and corner bars, so the stair bars are seen anchoring inside the beam core.
+- Top bars: one option only - full length (continuous over the kinks and into the supports; the L/4 choice is removed, older files open).
+- Inputs: only the inputs of the chosen stair type are shown (landing / flights 2-3 / gap for dog-legged and open-well, beam sizes only
+  with Supports = Beams, stringer sizes for stringer stairs, column / radius / treads per turn for spiral).
+- 3D model: default view shows the flights side by side (yaw 0.6, pitch 0.5); support beams drawn - under the outer edge of each landing
+  and at a flight end without a landing (floor beam).
+Tests: StaircaseTests 35.
+Includes everything of v7.2.7.
