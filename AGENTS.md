@@ -283,6 +283,10 @@ Owner (24 November 2026, chose "Upload v7.2.26"): the Store release is v7.2.26 (
 the same way. Later versions again need a new explicit request.
 Owner (24 November 2026, chose "Upload v7.2.27"): the Store release is v7.2.27 (v7.2.26 plus STAAD lines kept to 72 columns), the same way.
 Later versions again need a new explicit request.
+Done 24 November 2026: v7.2.27 merged to main (PR #23; GitHub release OK, run 45339252942). Store run 45339292532 (first attempt): new User
+(1152921505702490583; visibility Public) and Admin (1152921505702490204; visibility Private) submissions were created and committed, replacing
+the pending v7.2.6 submissions; Partner Center reported "accepted for processing" (PreProcessing). Certification is not guaranteed.
+v7.2.28 and later need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
