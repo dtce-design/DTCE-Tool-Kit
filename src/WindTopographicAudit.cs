@@ -4,13 +4,17 @@ namespace BeamScheduleFormatter {
 static partial class WindAssessment {
  static string F(double value){return WindTin.Finite(value)?value.ToString("0.###",CultureInfo.InvariantCulture):"Unresolved";}
  static void Unity(WindDirection value,string reason){value.K1=0;value.K2=value.K3=1;value.Kzt=1;value.TopographicReason=reason;value.TopographicChecks.Add(new[]{"Kzt result","1.00 (not amplified)",reason});value.TopographicChecks.Add(new[]{"Substitution","Kzt = (1 + K1 K2 K3)² = (1 + 0)² = 1.00","K1 = 0 because a required 207A.8.1 condition is not met; K2 and K3 are not needed."});}
+ static List<WindSample> Ground(List<WindSample> ray){return ray.Select(p=>new WindSample{Lat=p.Lat,Lon=p.Lon,D=p.D,Cover=p.Cover,Z=WindTin.Finite(p.Z)&&(p.Cover==80||p.Z<0)?0:p.Z}).ToList();}
  public static List<WindDirection> Calculate(WindTerrain terrain,double height,double velocity,double kd,double? exposureHeight=null){
   if(terrain==null||!WindTin.Finite(height)||height<=0||height>150||!WindTin.Finite(velocity)||velocity<=0||!WindTin.Finite(kd)||kd<=0||kd>1)throw new Exception("Check reference height (0–150m), wind speed and Kd.");
   var results=new List<WindDirection>();
   for(int direction=0;direction<8;direction++){
-   var up=terrain.Rays[direction*3+1];var down=terrain.Rays[((direction+4)%8)*3+1];var profile=down.Skip(1).Reverse().Select(p=>new WindSample{Lat=p.Lat,Lon=p.Lon,D=-p.D,Z=p.Z,Cover=p.Cover}).Concat(up).ToList();
+   /* the ground over water is the water surface: water cells (cover 80) and values below 0 (sea-floor data / blending at the shore) are set to
+      0 m (owner, 24 November 2026: "bakit yung upwind base below 0?") */
+   var up=Ground(terrain.Rays[direction*3+1]);var down=Ground(terrain.Rays[((direction+4)%8)*3+1]);int clamped=terrain.Rays[direction*3+1].Concat(terrain.Rays[((direction+4)%8)*3+1]).Count(p=>WindTin.Finite(p.Z)&&(p.Cover==80||p.Z<0)&&p.Z!=0);var profile=down.Skip(1).Reverse().Select(p=>new WindSample{Lat=p.Lat,Lon=p.Lon,D=-p.D,Z=p.Z,Cover=p.Cover}).Concat(up).ToList();
    var exposure=AssessExposure(terrain,direction,exposureHeight??height);var r=new WindDirection{Name=Directions[direction],Exposure=exposure.Exposure,ExposureAudit=exposure,Shape="Unresolved",Profile=profile};results.Add(r);
    r.TopographicChecks.Add(new[]{"Height z for Kzt",F(height)+" m above local ground","Kzt varies with z through K3; exposure uses the fetch height separately."});
+   if(clamped>0)r.TopographicChecks.Add(new[]{"Water surface","0 m at "+clamped+" point(s)","Points over water (land cover D) or below 0 m in the elevation data are taken at the water surface, 0 m: the data includes the sea floor and blends values at the shore."});
    if(r.Exposure=="Unresolved"||profile.Count<5||profile.Any(p=>!WindTin.Finite(p.Z))){r.Status=r.TopographicReason="Exposure or elevation data is insufficient. Kzt is UNRESOLVED and is not assumed to be 1.00.";r.TopographicChecks.Add(new[]{"Data","UNRESOLVED",r.TopographicReason});continue;}
    r.Kz=Kz(height,r.Exposure);double threshold=r.Exposure=="B"?18.288:4.572,range=profile.Max(p=>p.Z)-profile.Min(p=>p.Z);
    /* owner (24 November 2026, "pakicheck yung Determination niya ng Hill kasi flat lang naman itsura"): the engineer can confirm a flat site */
@@ -19,7 +23,7 @@ static partial class WindAssessment {
    else{
     var crest=profile.OrderByDescending(p=>p.Z).First();var windward=profile.Where(p=>p.D>crest.D).ToList();var leeward=profile.Where(p=>p.D<crest.D).ToList();
     if(windward.Count==0||leeward.Count==0){r.Status=r.TopographicReason="The highest point lies at the end of the sampled profile. Extend the terrain investigation; Kzt is UNRESOLVED.";r.TopographicChecks.Add(new[]{"Crest location","UNRESOLVED",r.TopographicReason});continue;}
-    double baseline=windward.Min(p=>p.Z),lee=leeward.Min(p=>p.Z),site=up[0].Z;r.H=crest.Z-baseline;r.X=-crest.D;r.Shape=crest.Z-lee<.3*r.H?"Escarpment":"Hill";var cross=terrain.Cross[direction];if(r.Shape!="Escarpment"&&cross.Count>0&&cross.All(p=>WindTin.Finite(p.Z))&&cross.Max(p=>p.Z)-cross.Min(p=>p.Z)<.3*r.H)r.Shape="Ridge";
+    double baseline=windward.Min(p=>p.Z),lee=leeward.Min(p=>p.Z),site=up[0].Z;r.H=crest.Z-baseline;r.X=-crest.D;r.Shape=crest.Z-lee<.3*r.H?"Escarpment":"Hill";var cross=Ground(terrain.Cross[direction]);if(r.Shape!="Escarpment"&&cross.Count>0&&cross.All(p=>WindTin.Finite(p.Z))&&cross.Max(p=>p.Z)-cross.Min(p=>p.Z)<.3*r.H)r.Shape="Ridge";
     r.TopographicChecks.Add(new[]{"Feature type",r.Shape,r.Shape=="Escarpment"?"Leeward side drops less than 0.3H: 2-D escarpment.":r.Shape=="Ridge"?"Cross-wind profile varies less than 0.3H: 2-D ridge.":"Falls on both sides along and across the wind: shaped like a 3-D hill (the conditions below decide whether it is one for Kzt)."});
     r.TopographicChecks.Add(new[]{"Crest / upwind base elevation",F(crest.Z)+" m / "+F(baseline)+" m","H is measured from the upwind terrain (NSCP Figure 207A.8-1)."});
     r.TopographicChecks.Add(new[]{"Feature height H",F(r.H)+" m","H = crest − upwind base."});

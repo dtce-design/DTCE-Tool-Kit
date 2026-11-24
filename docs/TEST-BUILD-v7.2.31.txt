@@ -1,0 +1,10 @@
+DTCE Tool Kit v7.2.31 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load topographic factor Kzt (owner: "bakit yung upwind base below 0?"):
+- The elevation tiles include the sea floor (bathymetry) and blend values at the shore, so points over the sea or a river came out
+  slightly below 0 m (e.g. -0.106 m) and H was measured from them.
+- For wind, the ground over water is the water surface: points with water land cover (cover D) and any value below 0 m are now
+  taken as 0 m in the upwind / downwind profile and the cross-wind check before H, Lh and the hill shape are found.
+- When this applies, the Kzt checks list a "Water surface - 0 m at n point(s)" row with the reason.
+Tests: WindAuditTests 79, WindRecoveryTests 40.
+Includes everything of v7.2.30.
