@@ -36,7 +36,7 @@ namespace BeamScheduleFormatter {
     Text(g,"BOLT LAYOUT  |  "+family+(p!=null?"  |  "+p.Name:""),bold,InkC,12,8);
     Text(g,"Click a dimension to edit it. Drawn to scale; dimensions in mm.",font,Color.DimGray,12,30);
     if(family.StartsWith("HSS")){Text(g,"Bolted HSS connections are not covered by this sheet (the source workbooks weld HSS members). Use the Weld design tab.",font,Color.DarkOrange,12,60);return;}
-    if(p==null){Text(g,"Select a handbook angle profile on Member and demand.",font,Color.DarkOrange,12,60);return;}
+    if(p==null){Text(g,"Select an angle profile on Member and demand.",font,Color.DarkOrange,12,60);return;}
     double leg=p.H,t=p.T,n=Read("Bolts"),s=Read("BoltSpacing"),e=Read("Edge"),gg=Read("BoltGauge"),ge=Read("GussetEdge"),db=Read("Diameter"),dh=Read("Hole"),tg=Read("GussetThickness"),wg=Read("GussetWidth");
     if(double.IsNaN(n+s+e+db+dh)||n<1){Text(g,"Enter the number of bolts, spacing, end distance and bolt / hole diameters.",font,Color.DarkOrange,12,60);return;}
     int bolts=(int)Math.Min(30,Math.Max(1,Math.Round(n)));bool autoGauge=double.IsNaN(gg)||gg<=0;double gauge=autoGauge?TrussConnectionDesigner.AutoGauge(leg):gg;

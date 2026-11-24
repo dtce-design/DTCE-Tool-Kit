@@ -53,7 +53,7 @@ partial class ProgramOfWorksForm {
    Action<string,Control,int,int> put=(label,c,col,row)=>{top.Controls.Add(new Label{Text=label,AutoSize=true,Margin=new Padding(0,8,6,0)},col,row);top.Controls.Add(c,col+1,row);};
    put("Mark",mark,0,0);put("Description",desc,2,0);put("Number of trusses (units)",count,0,1);put("Sets",sets,2,1);
    var grid=new DataGridView{Dock=DockStyle.Fill,AllowUserToAddRows=true,AllowUserToDeleteRows=true,RowHeadersVisible=true,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill};
-   grid.Columns.Add("Member","Member (e.g. top chord)");var profile=new DataGridViewComboBoxColumn{Name="Profile",HeaderText="Handbook profile",FlatStyle=FlatStyle.Flat,FillWeight=160};profile.Items.AddRange(AngleProfiles());grid.Columns.Add(profile);
+   grid.Columns.Add("Member","Member (e.g. top chord)");var profile=new DataGridViewComboBoxColumn{Name="Profile",HeaderText="Profile",FlatStyle=FlatStyle.Flat,FillWeight=160};profile.Items.AddRange(AngleProfiles());grid.Columns.Add(profile);
    grid.Columns.Add("Material","Material grade / finish");grid.Columns.Add("Length","Cut length m");grid.Columns.Add("Qty","Qty per truss");GridAppearance.Apply(grid);
    grid.DefaultValuesNeeded+=(x,e)=>{e.Row.Cells[2].Value="Project specification";e.Row.Cells[4].Value="1";};
    grid.CurrentCellDirtyStateChanged+=(x,e)=>{if(grid.IsCurrentCellDirty&&grid.CurrentCell is DataGridViewComboBoxCell)grid.CommitEdit(DataGridViewDataErrorContexts.Commit);};
@@ -64,7 +64,7 @@ partial class ProgramOfWorksForm {
    TrussType result=null;
    ok.Click+=(x,e)=>{grid.EndEdit();try{string m=mark.Text.Trim();if(m=="")throw new Exception("Enter the truss mark.");if(trussTypes.Any(o=>o!=t&&string.Equals(o.Mark,m,StringComparison.OrdinalIgnoreCase)))throw new Exception("Truss "+m+" already exists.");
      var members=new List<TrussMember>();foreach(DataGridViewRow r in grid.Rows){if(r.IsNewRow)continue;Func<int,string> v=c=>Convert.ToString(r.Cells[c].Value).Trim();if(v(0)==""&&v(1)==""&&v(3)=="")continue;
-      string where="Member row "+(r.Index+1)+": ";if(v(0)=="")throw new Exception(where+"enter the member name.");if(!AngleProfiles().Contains(v(1)))throw new Exception(where+"choose the handbook profile.");
+      string where="Member row "+(r.Index+1)+": ";if(v(0)=="")throw new Exception(where+"enter the member name.");if(!AngleProfiles().Contains(v(1)))throw new Exception(where+"choose the profile.");
       double len;if(!double.TryParse(v(3),NumberStyles.Float,CultureInfo.InvariantCulture,out len)||len<=0||len>100)throw new Exception(where+"enter the cut length in m.");int q;if(!int.TryParse(v(4),out q)||q<1||q>100000)throw new Exception(where+"enter a whole quantity per truss.");
       members.Add(new TrussMember{Name=v(0),Profile=v(1),Material=v(2)==""?"Project specification":v(2),Length=len,Qty=q});}
      if(members.Count==0)throw new Exception("Enter at least one member.");

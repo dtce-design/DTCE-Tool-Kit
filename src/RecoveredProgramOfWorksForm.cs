@@ -1922,8 +1922,11 @@ namespace BeamScheduleFormatter
 		private static BillQuantity Keep(BillQuantity merged, IEnumerable<BillQuantity> parts)
 		{
 			var list = parts.ToList();
-			var texts = list.Where(p => !string.IsNullOrWhiteSpace(p.Computation)).GroupBy(p => p.Computation).Select(g => (g.Count() > 1 ? g.Count() + " rows × [" + g.Key + "]" : g.Key)).ToList();
-			merged.Computation = texts.Count == 0 ? null : string.Join("; plus ", texts) + (list.Count > 1 ? " → total " + BoqComputations.N(merged.Quantity) + " " + merged.Unit : "");
+			/* one line per part, the total on its own line (owner, 24 November 2026: "di ko gusto yung ganyan layout") */
+			var texts = list.Where(p => !string.IsNullOrWhiteSpace(p.Computation)).GroupBy(p => p.Computation).Select(g => (g.Count() > 1 ? g.Count() + " × (" + g.Key + ")" : g.Key)).ToList();
+			string total = BoqComputations.N(merged.Quantity) + " " + merged.Unit;
+			/* identical parts read "3 × (b × d × L × n = ... = 1.5 m³) = 4.5 m3" (owner: "palitan yung presentation ng calculation") */
+			merged.Computation = texts.Count == 0 ? null : texts.Count == 1 ? (list.Count == 1 ? texts[0] : texts[0] + " = " + total) : string.Join("\n", texts.Select(t => "• " + t)) + "\n= total " + total;
 			return merged;
 		}
 
@@ -2088,7 +2091,7 @@ namespace BeamScheduleFormatter
 
 		private List<BillQuantity> StockPurchaseSources(IEnumerable<SteelStock> stocks)
 		{
-			return MergeSources(stocks.SelectMany((SteelStock stock) => stock.Cuts.Select((SteelCut cut) => SourceQuantity(cut.Demand.Member + " | " + stock.Specification, 6.0 * stock.KgM * cut.Demand.Length / stock.Net, "kg", "stock #" + stock.Number + ": 6 m × " + BoqComputations.N(stock.KgM) + " kg/m = " + BoqComputations.N(6.0 * stock.KgM) + " kg, shared by the cut length: × " + BoqComputations.N(cut.Demand.Length) + " / " + BoqComputations.N(stock.Net) + " m used = " + BoqComputations.N(6.0 * stock.KgM * cut.Demand.Length / stock.Net) + " kg"))));
+			return MergeSources(stocks.SelectMany((SteelStock stock) => stock.Cuts.Select((SteelCut cut) => SourceQuantity(cut.Demand.Member + " | " + stock.Specification, 6.0 * stock.KgM * cut.Demand.Length / stock.Net, "kg", "6 m stock × " + BoqComputations.N(stock.KgM) + " kg/m = " + BoqComputations.N(6.0 * stock.KgM) + " kg, shared by the cut length: × " + BoqComputations.N(cut.Demand.Length) + " / " + BoqComputations.N(stock.Net) + " m used = " + BoqComputations.N(6.0 * stock.KgM * cut.Demand.Length / stock.Net) + " kg"))));
 		}
 
 		private List<BillQuantity> SteelQuantitySources(string name)
@@ -3607,7 +3610,7 @@ namespace BeamScheduleFormatter
 		{
 			steelPurlins = SteelMemberGrid("Purlin");
 			steelAngles = SteelMemberGrid("Angle bar");
-			AddGrid(SteelPageNames[0], steelPurlins, "Select a handbook profile, enter cut length and quantity. Stock is fixed at 6m. Matching profile/specification offcuts are shared across compatible members automatically. Cuts over 6m require an approved splice detail.");
+			AddGrid(SteelPageNames[0], steelPurlins, "Select a profile, enter cut length and quantity. Stock is fixed at 6m. Matching profile/specification offcuts are shared across compatible members automatically. Cuts over 6m require an approved splice detail.");
 			AddGrid(SteelPageNames[1], steelAngles, "Angle-bar quantities use 6m stock and compatible profile/material offcut sharing. Longer entered lengths are allocated as stock portions for the purchase takeoff. No splice/lap length is added. This is a quantity allocation, not a connection design.");
 			machineBolts = SteelBoltGrid();
 			anchorBolts = SteelBoltGrid();
@@ -3623,7 +3626,7 @@ namespace BeamScheduleFormatter
 				{ 5, "6" },
 				{ 6, "1" }
 			});
-			AddGrid(SteelPageNames[4], steelPlates, "Enter area per plate OR length and width, then thickness in mm and quantity (enter 6 for a 6 mm plate). Weight (kg) = area (m2) x thickness (mm) / 1000 x 7850 (kg/m3) x quantity. For sheet purchasing, enter length and width. Matching-thickness cuts share offcuts; handbook stock sizes are compared with 90-degree rotation. Lowest purchase weight among compared feasible layouts is selected; zero kerf. Area-only entries calculate net weight but need dimensions before purchase quantities can be finalized.");
+			AddGrid(SteelPageNames[4], steelPlates, "Enter area per plate OR length and width, then thickness in mm and quantity (enter 6 for a 6 mm plate). Weight (kg) = area (m2) x thickness (mm) / 1000 x 7850 (kg/m3) x quantity. For sheet purchasing, enter length and width. Matching-thickness cuts share offcuts; standard stock sizes are compared with 90-degree rotation. Lowest purchase weight among compared feasible layouts is selected; zero kerf. Area-only entries calculate net weight but need dimensions before purchase quantities can be finalized.");
 			crossBracing = Grid(new string[13]
 			{
 				"ID", "Description", "X distance m", "Y offset m", "Height m", "Rod dia mm", "Bracing lines", "Diagonal m / line", "Total rod length m", "Rod weight kg",
@@ -3638,11 +3641,11 @@ namespace BeamScheduleFormatter
 			AddGrid(SteelPageNames[5], crossBracing, "Diagonal = sqrt(X^2 + Y^2 + height^2). Use Y=0 for planar bracing. Each line has one turnbuckle of the same nominal diameter. An X pair is TWO lines. Rod weight excludes turnbuckles and connection hardware; no turnbuckle length is deducted.");
 			fasciaFrame = Grid(new string[12]
 			{
-				"ID", "Description", "Member type", "Handbook section", "Material grade / finish", "Cut length m", "Qty", "Flat width mm", "Flat thickness mm", "Unit mass kg/m",
+				"ID", "Description", "Member type", "Section", "Material grade / finish", "Cut length m", "Qty", "Flat width mm", "Flat thickness mm", "Unit mass kg/m",
 				"Required to buy kg", "Status"
 			}, 9);
 			AddCombo(fasciaFrame, 2, "Member type", new string[2] { "Angle bar", "Flat bar" });
-			AddCombo(fasciaFrame, 3, "Handbook section", (from p in SteelCatalog.Profiles
+			AddCombo(fasciaFrame, 3, "Section", (from p in SteelCatalog.Profiles
 				where p.Kind == "Angle bar" || p.Kind == "Flat bar"
 				select p.Name).ToArray());
 			SetDefaults(fasciaFrame, new Dictionary<int, string>
@@ -3655,7 +3658,7 @@ namespace BeamScheduleFormatter
 				{ 4, "Project specification" },
 				{ 6, "1" }
 			});
-			AddGrid(SteelPageNames[6], fasciaFrame, "Angle and flat bars use fixed 6m stock. Select the member type first; only its handbook sections are offered. Flat-bar width and thickness are read from the section. Compatible offcuts can serve other fascia rows and matching angle-bar entries.");
+			AddGrid(SteelPageNames[6], fasciaFrame, "Angle and flat bars use fixed 6m stock. Select the member type first; only its sections are offered. Flat-bar width and thickness are read from the section. Compatible offcuts can serve other fascia rows and matching angle-bar entries.");
 			DataGridViewColumn dataGridViewColumn = fasciaFrame.Columns[7];
 			bool readOnly = (fasciaFrame.Columns[8].ReadOnly = true);
 			dataGridViewColumn.ReadOnly = readOnly;
@@ -3687,8 +3690,8 @@ namespace BeamScheduleFormatter
 
 		private DataGridView SteelMemberGrid(string kind)
 		{
-			DataGridView dataGridView = Grid(new string[9] { "ID", "Description", "Handbook profile", "Material grade / finish", "Cut length m", "Qty", "Unit mass kg/m", "Required to buy kg", "Status" }, 6);
-			AddCombo(dataGridView, 2, "Handbook profile", (from p in SteelCatalog.Profiles
+			DataGridView dataGridView = Grid(new string[9] { "ID", "Description", "Profile", "Material grade / finish", "Cut length m", "Qty", "Unit mass kg/m", "Required to buy kg", "Status" }, 6);
+			AddCombo(dataGridView, 2, "Profile", (from p in SteelCatalog.Profiles
 				where p.Kind == kind
 				select p.Name).ToArray());
 			dataGridView.Columns[2].Width = 260;
@@ -3817,7 +3820,7 @@ namespace BeamScheduleFormatter
 							SteelProfile steelProfile = FindSteelProfile(Cell(item2, 2));
 							if (steelProfile == null || steelProfile.Kind != ((value == steelPurlins) ? "Purlin" : "Angle bar"))
 							{
-								throw new Exception("Select a matching handbook profile.");
+								throw new Exception("Select a matching profile.");
 							}
 							if (IsSteelPaintOnly(item2))
 							{
@@ -3913,7 +3916,7 @@ namespace BeamScheduleFormatter
 							SteelProfile steelProfile2 = FindSteelProfile(Cell(item2, 3));
 							if (steelProfile2 == null || steelProfile2.Kind != (flag2 ? "Flat bar" : "Angle bar"))
 							{
-								throw new Exception("Choose a matching handbook section.");
+								throw new Exception("Choose a matching section.");
 							}
 							string name = steelProfile2.Name;
 							double kgM = steelProfile2.KgM;
@@ -4132,7 +4135,7 @@ namespace BeamScheduleFormatter
 					}
 				}
 			}
-			b.AppendLine("Plates: Regan 2026 handbook PDF pp.36-38, printed pp.25-27; mild steel ASTM A36 / JIS G3101. Thickness input is mm. Purchase masses use nominal sheet dimensions and 7850kg/m3; rounded handbook masses may differ slightly. Cuts rotate 90 degrees; compatible offcuts are reused within each thickness. Lowest kg among compared feasible guillotine layouts, zero kerf; no global optimum guarantee.");
+			b.AppendLine("Plates: mild steel ASTM A36 / JIS G3101. Thickness input is mm. Purchase masses use nominal sheet dimensions and 7850kg/m3; rounded catalogue masses may differ slightly. Cuts rotate 90 degrees; compatible offcuts are reused within each thickness. Lowest kg among compared feasible guillotine layouts, zero kerf; no global optimum guarantee.");
 			foreach (var item5 in from p in plateStocks
 				group p by new
 				{
@@ -4142,7 +4145,7 @@ namespace BeamScheduleFormatter
 			{
 				b.AppendLine(item5.Key.ThicknessMm.ToString("0.###", CultureInfo.InvariantCulture) + " mm | " + item5.Key.Name + " | " + item5.Count() + " whole sheets | buy " + item5.Sum((PlateSheet p) => p.BuyKg).ToString("0.00", CultureInfo.InvariantCulture) + " kg | offcut " + item5.Sum((PlateSheet p) => p.WasteKg).ToString("0.00", CultureInfo.InvariantCulture) + " kg");
 			}
-			b.AppendLine("Density 7850kg/m3. Purlin/angle kg/m from the stated handbook profile; flat bars/plates/rods from dimensions. Hardware weights exclude bolt heads, nuts, washers and turnbuckles. Crossbracing: one same-diameter turnbuckle per line.");
+			b.AppendLine("Density 7850kg/m3. Purlin/angle kg/m from the stated profile; flat bars/plates/rods from dimensions. Hardware weights exclude bolt heads, nuts, washers and turnbuckles. Crossbracing: one same-diameter turnbuckle per line.");
 			b.AppendLine("6m stock: best-fit decreasing, shared compatible offcuts, zero cutting kerf. Final leftover counted once per stock; not an optimality guarantee.");
 		}
 

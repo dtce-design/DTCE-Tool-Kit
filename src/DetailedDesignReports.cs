@@ -13,7 +13,7 @@ static class DetailedDesignReports {
   b.AppendLine("Moments kN.m are multiplied by 1,000,000 for stress calculations in N.mm and MPa.");
   Heading(b,"01  DESIGN INPUTS AND SECTION BASIS");
   Line(b,"Geometry", "L="+N(i.Span)+" m; tributary spacing="+N(i.Spacing)+" m; roof slope="+N(i.Angle)+" deg.");
-  Line(b,"Handbook section", "h="+N(i.Profile.H)+"; b="+N(i.Profile.B)+"; lip="+N(i.Profile.Lip)+"; t="+N(i.Profile.T)+" mm; mass="+N(i.Profile.KgM)+" kg/m.");
+  Line(b,"Section", "h="+N(i.Profile.H)+"; b="+N(i.Profile.B)+"; lip="+N(i.Profile.Lip)+"; t="+N(i.Profile.T)+" mm; mass="+N(i.Profile.KgM)+" kg/m.");
   Line(b,"Materials / restraint", "Fy="+N(i.Fy)+" MPa; E="+N(i.E)+" MPa; effective sag rods="+i.SagRods+"; "+i.Ceiling+".");
   b.AppendLine(p.Verified?"Ix/Iy/Ixy/Sx/Sy are user-verified inputs; area/centroid reference is nominal geometry.":"Gross-section properties use nonoverlapping rectangular plates; bend radii are neglected.");
   b.AppendLine("A=sum(bi*hi); xbar=sum(Ai*xi)/A; ybar=sum(Ai*yi)/A.");

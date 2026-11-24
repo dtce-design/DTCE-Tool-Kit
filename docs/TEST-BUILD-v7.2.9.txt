@@ -1,0 +1,14 @@
+DTCE Tool Kit v7.2.9 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Bill of Quantities calculation reports (owner: "masmaayos na presentation ng boq report"; "di ko gusto yung ganyan layout"):
+- Summary / Detailed / Extensive preview and PDF use the design-sheet report layout (src/QuantityReportLayout.cs): REPORT table
+  (project, location, office, report, status, prepared, highlights), CONTENTS, numbered sections, dark-header tables that continue
+  across pages with their header, column widths by content, TOTAL / TO BUY rows tinted, notes muted, source-breakdown titles bold,
+  blank Prepared by / Checked by lines.
+- Compact mode of RichReport (7 pt body, tighter rows) for quantity reports to save paper.
+- Calculation basis: one line per part ("N × ..." grouped) and "= total" instead of one long run-on line.
+- Reinforcing steel calculation record is a structured table: Source / member, Bar, Pieces, Cut, kg/m, Net, Laps, Offcut, Purchase,
+  Bar formula; source lines carry the numbers only (the bar formula is in the record).
+- A total breakdown already listed is not repeated (a one-line pointer to the rows above), so the report is shorter.
+Nothing is removed from the calculation; quantities are unchanged.
+Includes everything of v7.2.8.

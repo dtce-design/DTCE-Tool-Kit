@@ -27,6 +27,7 @@ static class BoqComputations {
  /* earthworks: bank volume, loose = bank × reusable × (1 + swell), compacted = bank × reusable × (1 - shrink) */
  internal static string Earth(EarthworkMaterial m){return "bank "+N(m.Bank)+" m³; reusable "+N(m.Reusable)+"%, swell "+N(m.Swell)+"%, shrink "+N(m.Shrink)+"% → loose "+N(m.LooseAvailable)+" m³, compacted "+N(m.CompactedAvailable)+" m³";}
  /* rebar: pieces × cut × kg/m = net, + laps, + allocated offcut = purchase */
- internal static string Rebar(StockAllocation a){return (string.IsNullOrWhiteSpace(a.Line.Formula)?"":a.Line.Formula+"; ")+"G"+a.Demand.Grade+" "+RebarDiameterText.Format(a.Demand.Diameter)+": "+a.Demand.Pieces+" pcs × "+N(a.Demand.Cut)+" m × "+N(a.UnitMass)+" kg/m = "+N(a.Net)+" kg net + laps "+N(a.Splice)+" + allocated offcut "+N(a.Waste)+" = "+N(a.Purchase)+" kg";}
+ /* the numbers only; the bar formula (lengths, hooks, laps) is in the reinforcing steel calculation record */
+ internal static string Rebar(StockAllocation a){return "G"+a.Demand.Grade+" "+RebarDiameterText.Format(a.Demand.Diameter)+": "+a.Demand.Pieces+" pcs × "+N(a.Demand.Cut)+" m × "+N(a.UnitMass)+" kg/m = "+N(a.Net)+" kg net + laps "+N(a.Splice)+" + allocated offcut "+N(a.Waste)+" = "+N(a.Purchase)+" kg";}
 }
 }

@@ -1,0 +1,7 @@
+DTCE Tool Kit v7.2.11 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wording (owner: "alisin mo yung handbook profile na wording regan etc"):
+- Supplier / handbook names removed from what the app shows: "Handbook profile" -> "Profile", "Handbook section" -> "Section",
+  "handbook sheets" -> "standard sheets", "Regan ... handbook PDF p.NN" sources -> "commercial standard size", purlin note and
+  plate / truss / bolt hints reworded. Section data, masses and stock sizes are unchanged; older files open as before.
+Includes everything of v7.2.10.

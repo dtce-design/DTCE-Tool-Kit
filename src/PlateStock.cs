@@ -5,7 +5,7 @@ class PlateFormat {
  public double Area{get{return Width*Length;}}
 }
 static class PlateCatalog {
- public const string Source="Regan 2026 handbook PDF pp.36-38, printed pp.25-27; mild steel ASTM A36 / JIS G3101";
+ public const string Source="mild steel ASTM A36 / JIS G3101";
  public static readonly double[] Thicknesses={1.2,1.4,1.5,1.8,1.9,2,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3,3.2,3.4,3.5,3.7,3.8,4,4.2,4.3,4.5,4.7,4.8,5,5.2,5.3,5.5,5.7,5.8,6,6.3,6.5,7,7.5,7.8,8,8.5,8.7,9,9.5,9.7,9.8,10,10.5,10.8,11,11.5,11.8,12,13,14,15,16,17,18,19,20,22,24,25,28,30,32,35,36,38,40,45,50,60,63,75,90,100};
  public static readonly PlateFormat[] Formats={Format(4,8),Format(5,20),Format(6,20),Format(8,20)};
  static PlateFormat Format(int width,int length){return new PlateFormat{Name=width+" ft x "+length+" ft",Width=width*.3048,Length=length*.3048};}
@@ -28,14 +28,14 @@ static class PlateCutPlanner {
  // The best compared feasible layout is an estimate, not proof of a globally optimal nesting.
  public static List<PlateSheet> Allocate(IEnumerable<PlateDemand> source){
   var demands=source.ToList();if(demands.Sum(d=>(long)d.Quantity)>5000)throw new Exception("Plate fitting supports up to 5000 cuts per project.");
-  foreach(var d in demands){SteelWeight.Positive(d.Length,d.Width,d.ThicknessMm);SteelWeight.Count(d.Quantity);if(!PlateCatalog.HasThickness(d.ThicknessMm))throw new Exception("Plate thickness "+d.ThicknessMm.ToString(CultureInfo.InvariantCulture)+" mm is not listed in the handbook.");if(!PlateCatalog.Formats.Any(f=>Fits(f.Width,f.Length,d.Width,d.Length)||Fits(f.Width,f.Length,d.Length,d.Width)))throw new Exception("Plate "+d.Member+" does not fit any handbook sheet, even when rotated.");}
+  foreach(var d in demands){SteelWeight.Positive(d.Length,d.Width,d.ThicknessMm);SteelWeight.Count(d.Quantity);if(!PlateCatalog.HasThickness(d.ThicknessMm))throw new Exception("Plate thickness "+d.ThicknessMm.ToString(CultureInfo.InvariantCulture)+" mm is not a standard plate thickness.");if(!PlateCatalog.Formats.Any(f=>Fits(f.Width,f.Length,d.Width,d.Length)||Fits(f.Width,f.Length,d.Length,d.Width)))throw new Exception("Plate "+d.Member+" does not fit any standard sheet, even when rotated.");}
   var result=new List<PlateSheet>();foreach(var group in demands.GroupBy(d=>d.ThicknessMm)){
    List<PlateSheet> best=null;double bestKg=double.MaxValue;
    for(int ordering=0;ordering<3;ordering++)for(int split=0;split<2;split++)for(int format=-1;format<PlateCatalog.Formats.Length;format++){
     var ordered=ordering==0?group.OrderByDescending(d=>d.Area):ordering==1?group.OrderByDescending(d=>Math.Max(d.Width,d.Length)):group.OrderByDescending(d=>Math.Min(d.Width,d.Length));
     var plan=Pack(ordered.ThenBy(d=>d.Member,StringComparer.Ordinal).ToList(),format,split);if(plan==null)continue;double kg=plan.Sum(s=>s.BuyKg);if(kg<bestKg-Epsilon||(Math.Abs(kg-bestKg)<Epsilon&&(best==null||plan.Count<best.Count))){best=plan;bestKg=kg;}
    }
-   if(best==null)throw new Exception("Unable to fit plate cuts in the handbook sheets.");result.AddRange(best);
+   if(best==null)throw new Exception("Unable to fit plate cuts in the standard sheets.");result.AddRange(best);
   }return result;
  }
  static bool Fits(double width,double length,double cutWidth,double cutLength){return cutWidth<=width+Epsilon&&cutLength<=length+Epsilon;}

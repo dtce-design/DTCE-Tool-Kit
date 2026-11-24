@@ -1,0 +1,10 @@
+DTCE Tool Kit v7.2.7 (24 November 2026) - not built separately; included in the v7.2.8 test build. Not uploaded to the Microsoft Store.
+
+PATCH - Admin edition: the owner key on another computer (owner: "im using another desktop, yung original is laptop ko"; key import
+failed because the key is protected for the laptop's Windows account):
+- Access Code Generator: new button "Import key file from another computer (.dtcekey)". It opens the password-protected file made by
+  "Export key for iPhone" on the original computer, checks its MAC (wrong password or damaged file refused), checks that the key matches
+  this app's public key, and stores it protected for this Windows account (DPAPI). Same key - codes from the laptop, the desktop and the
+  iPhone are interchangeable; nothing is regenerated.
+- The key ID message moved under the buttons.
+Tests: MobileInteropTests (ephemeral keys only): export -> import gives the same key; wrong password refused; another key refused.

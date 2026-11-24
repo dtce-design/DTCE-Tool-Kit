@@ -260,6 +260,12 @@ committed; Partner Center reported "accepted for processing". Certification is n
 New owner request (24 November 2026, "push sa microsoft store"; chose "Replace v7.2.5"): publish v7.2.6 (User and Admin) after its Windows CI
 passes (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User visibility
 stays Public). Later versions again need a new explicit request.
+Done 24 November 2026: v7.2.6 merged to main (PR #20; GitHub release OK, run 45303839797). Store run 45303878664 (first attempt): new User
+(1152921505702487508; visibility Public) and Admin (1152921505702488152; visibility Private) submissions were created and committed;
+Partner Center reported "accepted for processing" (PreProcessing). Certification is not guaranteed. v7.2.7 and later need a new explicit request.
+New owner request (24 November 2026, "iupload sa store"; chose "Replace v7.2.6"): publish v7.2.13 (User and Admin) after its Windows CI passes
+(PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User visibility stays
+Public). Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
@@ -291,6 +297,8 @@ inputs and the four Model views (section, 3D, plan, load / shear / moment) are o
 Owner ("i drawing ng tama yung reinforcement ng stairs as to standard"; "di pa naka drawn to scale", v7.1.26): the section is drawn to
 scale (bars at their diameters, graphic scale bar), chairs stand square to the slab between the mats, crossing bars at re-entrant
 corners run ld past the crossing, and the shear diagram is positive above the axis.
+Owner (24 November 2026, v7.2.8): top bars always full length (no L/4 choice); flight 2 of a dog-legged stair (flight 3 of open-well)
+drawn mirrored; inputs shown follow the stair type; 3D shows the support beams; step bars end in 90° hooks tied to the top mat.
 Owner ("reinforcement ng steps kako", v7.1.27): "chair bars" of a stair means the step bars bent to each riser and tread (legs lapped
 onto the waist top bars, nosing bar in the bend), not support chairs; do not draw support chairs in the section.
 
@@ -399,3 +407,16 @@ Owner: "saka lang iupdate yung ios and web if may bagong dagdag na worksheet or 
 and the web access-code generator (mobile/) only when a new worksheet, design sheet or workspace (a new program in
 src/ProgramAccess.cs) is added - then add its program to both; otherwise leave them as they are. Uploads (TestFlight / App Store / Pages)
 still need their own explicit request.
+
+## BOQ report layout, hinges and wording (24 November 2026)
+
+Owner: "masmaayos na presentation ng boq report" / "di ko gusto yung ganyan layout": the Bill of Quantities Summary / Detailed /
+Extensive reports use the design-sheet layout (src/QuantityReportLayout.cs, RichReport Compact 7 pt) with one calculation line per part,
+a structured reinforcing steel record, and no repeated total breakdowns (v7.2.9). Automatic hinge size follows the door material (PVC
+3.0x3.0 / 3.5x3.5 over 0.80 m, steel 4.0x4.0, others by width / exterior; v7.2.10). Owner: "alisin mo yung handbook profile na wording
+regan etc": no supplier or handbook names in user-visible text (v7.2.11); internal comments and test labels may keep the data source.
+Owner (24 November 2026, "lahat irestructure mo"; "pangit siguro yung table form"): BOQ calculation reports are numbered sections with a
+k.1 Quantities table and the calculations as calculation-sheet lines (RichReport.Calc: members bold, formula under, result right, no grid),
+identical sources / members merged ("40 × 4.5"), inputs in Appendix A as column tables (v7.2.12). Keep tables for summaries only.
+Owner (24 November 2026, "yung sa bbs maglagyan din ng calculation sheet kagaya niyan"): the BBS report has a calculation sheet
+(cut length from the shape dimensions, pieces, weight per bar mark, member totals) in the same style (v7.2.13).

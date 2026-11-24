@@ -12,6 +12,10 @@ class MobileInteropTests {
     File.WriteAllText(Path.Combine(folder,"mobile-public.xml"),pub);
     File.WriteAllText(Path.Combine(folder,"cert-reference.txt"),AccessCodes.GenerateCertificationAt(priv,Engine.Version,DateTime.UtcNow));
     try{MobileKeyExport.Create(priv,"short",pub);throw new Exception("Short password accepted");}catch(ArgumentException){}
+    /* the same key file imported on another computer: round trip, wrong password and another key refused (ephemeral key only) */
+    {string file=MobileKeyExport.Create(priv,Password,pub);string back=KeyFileImport.Open(file,Password,pub);using(var r2=new RSACryptoServiceProvider()){r2.PersistKeyInCsp=false;r2.FromXmlString(back);if(r2.ToXmlString(true)!=priv)throw new Exception("Imported key differs");}
+     bool refused=false;try{KeyFileImport.Open(file,Password+"x",pub);}catch(CryptographicException){refused=true;}if(!refused)throw new Exception("Wrong password accepted");
+     string otherPub;using(var o=new RSACryptoServiceProvider(2048)){o.PersistKeyInCsp=false;otherPub=o.ToXmlString(false);}refused=false;try{KeyFileImport.Open(file,Password,otherPub);}catch(CryptographicException){refused=true;}if(!refused)throw new Exception("Key file of another key accepted");}
    }
    Console.WriteLine("Created ephemeral encrypted mobile fixture. No owner signing key used.");return 0;
   }

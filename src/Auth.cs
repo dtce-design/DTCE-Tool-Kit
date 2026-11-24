@@ -80,7 +80,7 @@ partial class CodeGeneratorForm:Form {
   output=new TextBox{Location=new Point(345,180),Size=new Size(565,150),Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical,Font=new Font("Consolas",10),BackColor=Color.White};Controls.Add(output);
   var copy=new Button{Text="Copy access code",Location=new Point(345,338),Size=new Size(277,36)};copy.Click+=(o,e)=>{if(output.Text!="")LoginForm.Copy(output.Text);};Controls.Add(copy);
   var clear=new Button{Text="Clear",Location=new Point(633,338),Size=new Size(277,36)};clear.Click+=(o,e)=>{request.Clear();output.Clear();};Controls.Add(clear);
-  message=new Label{Location=new Point(25,420),Size=new Size(280,145)};Controls.Add(message);
+  message=new Label{Location=new Point(25,526),Size=new Size(300,70)};Controls.Add(message);
   request.TextChanged+=(o,e)=>output.Clear();
   var import=new Button{Text="Import existing key",Location=new Point(25,446),Size=new Size(146,34)};Controls.Add(import);
   message.Location=new Point(25,488);message.Size=new Size(300,100);
@@ -93,6 +93,11 @@ partial class CodeGeneratorForm:Form {
   certification.CheckedChanged+=(o,e)=>{output.Clear();request.Enabled=!certification.Checked;apps.Enabled=!certification.Checked;certVersion.Enabled=certification.Checked;generate.Text=certification.Checked?"Generate certification code":"Generate selected app access";};
   certVersion.TextChanged+=(o,e)=>output.Clear();
   loadKey();
+  /* the key from another computer: the password-protected key file of "Export key for iPhone" (owner, 24 November 2026) */
+  var importFile=new Button{Text="Import key file from another computer (.dtcekey)",Location=new Point(25,486),Size=new Size(300,34)};Controls.Add(importFile);
+  importFile.Click+=(o,e)=>{string path=null;using(var dialog=new OpenFileDialog{Title="Import password-protected key file",Filter="DTCE key file|*.dtcekey",CheckFileExists=true})if(dialog.ShowDialog(this)==DialogResult.OK)path=dialog.FileName;if(path==null)return;
+   using(var prompt=new KeyFilePasswordForm()){if(prompt.ShowDialog(this)!=DialogResult.OK)return;try{string key=KeyFileImport.Open(File.ReadAllText(path),prompt.Password);AdminKeyStore.ImportKey(key);key=null;loadKey();
+     MessageBox.Show(this,"Key imported for this Windows account. Delete the copied key file from the USB / download folder.","Key imported");}catch(Exception ex){MessageBox.Show(this,"Cannot import the key file: "+ex.Message,"Key import failed");}}};
   var exportMobile=new Button{Text="Export key for iPhone",Location=new Point(179,446),Size=new Size(146,34)};Controls.Add(exportMobile);
   exportMobile.Click+=async(o,e)=>{
    try{
