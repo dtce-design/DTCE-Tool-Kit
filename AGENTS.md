@@ -433,3 +433,5 @@ Geotechnical Report". The Earthquake sheet computes the NSCP 2015 208.5.2 static
 T by Method A, V with 208-8 to 208-11, Ft, Fx, storey shears / moments, E / Em, RSA scaling) and reports every parameter (section 6).
 A Mmax typed from the geotechnical report overrides every automatic Mmax estimate and is cited in the report (v7.2.14).
 The Store MSIX must carry tools/qpdf (scripts/Build-MSIX.ps1); without it PDF export fails in the Store app (fixed v7.2.14).
+Owner (24 November 2026, "hindi makita yung color"): the Wind site map draws the roughness cells at about 30% opacity (not covering the map; owner "huwag naman OA takpan"), nearest-neighbour
+(src/WindSiteMap.cs RoughnessAlpha), so B / C / D colours are visible (v7.2.15).
