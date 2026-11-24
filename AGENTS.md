@@ -274,6 +274,9 @@ this release only). Later versions again need a new explicit request.
 Result 24 November 2026: v7.2.14 merged to main (PR #22; GitHub release OK, run 45329154479). Store run 45329200717 failed in both upload jobs
 before any upload: scripts/submit_store.py refused tools/qpdf/qpdf.exe ("Unexpected executable in package"). Nothing changed in Partner Center.
 The check now allows that one file (development branch, v7.2.24); a Store retry needs main updated and the owner's go-ahead for the version.
+Owner (24 November 2026, chose "Upload v7.2.24"): publish v7.2.24 (User and Admin) instead, after its Windows CI passes (PR to main, then
+publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User visibility stays Public). Later versions
+again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
