@@ -294,6 +294,10 @@ Owner (24 November 2026, "Hold it"): the v7.2.32 Store upload is on hold while t
 Owner (24 November 2026, "upload to microsof store"): the Store release is v7.2.34 (v7.2.32 plus the stair changes of v7.2.33 and the key-file
 button row of v7.2.34), the same way (PR #24 to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this
 release only - the pending v7.2.27 submissions are replaced; User visibility stays Public). Later versions again need a new explicit request.
+Done 24 November 2026: v7.2.34 merged to main (PR #24; GitHub release v7.2.34-build-306, run 45416912305). Store run 45416991179 (first
+attempt): new User (1152921505702494633; visibility Public) and Admin (1152921505702494670; visibility Private) submissions were created and
+committed, replacing the pending v7.2.27 submissions; Partner Center reported "accepted for processing" (PreProcessing). Certification is not
+guaranteed. v7.2.35 and later need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
