@@ -1,0 +1,11 @@
+DTCE Tool Kit v7.2.6 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - User edition opens without an access code (owner: "bakit may access code padin kapag binubuksan?"; "diba sabi ko pwede nila
+maaccess yung app pero di nila pwede mag input, mag request na lang sila ng code sa workspace"):
+- The access-code window no longer appears when the app starts (cancelling it used to close the app). Without a saved code the
+  Workspaces window opens and every app opens view only (tabs and scrolling, no input).
+- New "Access Code" card on the Workspaces window: copy the request for the owner and paste the code received. After a valid code,
+  apps in the code open usable (an app already open view only is reopened usable).
+- Opening an app no longer asks for the code either; the "Enter access code" banner on a view-only app still works.
+- Admin edition unchanged (its password gate stays).
+Includes everything of v7.2.5.

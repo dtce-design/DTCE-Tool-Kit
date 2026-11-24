@@ -35,6 +35,9 @@ class LauncherForm:Form {
   AddCard(cards,"Program of Works (POW)","DPWH POW workbook: DUPA, Detailed, ABC and BOQ computed and printed in the app.",()=>{try{if(powWorkbook==null||powWorkbook.IsDisposed)powWorkbook=new PowWorkbookForm();ShowTool(powWorkbook,"Program of Works (POW)",null);}catch(Exception ex){MessageBox.Show(this,ex.Message,"Program of Works (POW)");}});
   AddCard(cards,"Bar Bending Schedule","Cutting lists, bar bending and splice details with an interactive model.",()=>UseTool(ref cutting,()=>new CuttingListForm(),"Bar Bending Schedule",null,ProgramAccess.BarBendingSchedule));
   AddCard(cards,"Design Sheets","Rebar, purlins, trusses, strap foundations, wind, earthquake, deflection.",ShowDesignSheets);
+  #if !ADMIN_APP
+  AddCard(cards,"Access Code","Request an access code from the owner, or enter the code you received to use the apps.",EnterAccessCode);
+  #endif
   #if ADMIN_APP
   AddCard(cards,"Access Code Generator","Manage program access and generate activation codes.",()=>UseTool(ref generator,()=>new CodeGeneratorForm(),"Access Code Generator",null,8));
   #endif
@@ -71,6 +74,8 @@ class LauncherForm:Form {
   MessageBox.Show(this,"Fill in the Project Information first (project title, location, implementing office, office address and date prepared), then save it.","Project Information",MessageBoxButtons.OK,MessageBoxIcon.Information);UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8);return false;}
  /* full use, view only (User edition without access for that app: tabs and scrolling only), or not at all */
  enum Use{None,Full,View}
+ /* the Access Code card: copy the request for the owner, paste the code; apps opened view only before are reopened usable */
+ void EnterAccessCode(){using(var login=new LoginForm())if(login.ShowDialog(this)==DialogResult.OK){ViewOnly.LoginDeclined=false;MessageBox.Show(this,"Access code accepted. Apps included in the code can now be used; close and reopen any app that is open view only.","Access code");}}
  Use Authorize(int app){if(!AccessCodes.CanUseFormatter&&!(ViewOnly.Supported&&ViewOnly.LoginDeclined)){using(var login=new LoginForm())if(login.ShowDialog(this)!=DialogResult.OK){if(!ViewOnly.Supported)return Use.None;ViewOnly.LoginDeclined=true;return Use.View;}}
   if(!AccessCodes.CanUseApp(app)){if(ViewOnly.Supported)return Use.View;MessageBox.Show(this,"This workspace is not included in your approved access.","App access");return Use.None;}return Use.Full;}
  /* a view-only copy is replaced once the access code allows the app, and a usable copy once access is gone */

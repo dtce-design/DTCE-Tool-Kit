@@ -370,6 +370,9 @@ automatically (bolts: member and gusset paths; welded angles: gusset around the 
 - owner: "mas magagandang report at detalyado as may diagrams as much as possible ... maganda sa mata" applies to reports generally
 (v7.1.28). Steel plate sheets are marked PL<t>-<n> and their shared use is shown in the grid and the BOQ reports (v7.1.29). User edition:
 apps without access open view only (src/ViewOnly.cs; tabs and scrolling, no input or commands, "Enter access code" banner) (v7.2.0).
+Owner (24 November 2026, "pwede nila maaccess yung app pero di nila pwede mag input, mag request na lang sila ng code sa workspace"): the
+User edition never asks for the access code at start or when an app opens; without a code everything is view only, and the code is
+requested / entered from the "Access Code" card of the Workspaces window (or the banner) (v7.2.6).
 
 ## Complete reports (23 November 2026)
 
