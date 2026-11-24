@@ -291,6 +291,9 @@ New owner request (24 November 2026, "upload to microsoft office" = Microsoft St
 Admin) after its Windows CI passes (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release
 only; User visibility stays Public). Later versions again need a new explicit request.
 Owner (24 November 2026, "Hold it"): the v7.2.32 Store upload is on hold while the stair top bars are reviewed; PR #24 is not merged.
+Owner (24 November 2026, "upload to microsof store"): the Store release is v7.2.34 (v7.2.32 plus the stair changes of v7.2.33 and the key-file
+button row of v7.2.34), the same way (PR #24 to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this
+release only - the pending v7.2.27 submissions are replaced; User visibility stays Public). Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
