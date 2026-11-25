@@ -298,6 +298,9 @@ Done 24 November 2026: v7.2.34 merged to main (PR #24; GitHub release v7.2.34-bu
 attempt): new User (1152921505702494633; visibility Public) and Admin (1152921505702494670; visibility Private) submissions were created and
 committed, replacing the pending v7.2.27 submissions; Partner Center reported "accepted for processing" (PreProcessing). Certification is not
 guaranteed. v7.2.35 and later need a new explicit request.
+New owner request (25 November 2026, "publsih to store after nyan"; chose "Replace v7.2.34"): publish v7.2.37 (User and Admin) after its
+Windows CI passes (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User
+visibility stays Public). Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
