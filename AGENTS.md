@@ -345,6 +345,15 @@ landing beams at a landing end are monolithic with the slab and anchor the bars;
 the owner's detail: riser leg down through the waist and tread leg back into the waist, both bent along the bottom bars and lapped 300 mm
 (30db), nosing bar in the bend - not hooked into the waist top mat.
 
+## Load Combinations sheet (25 November 2026)
+
+Owner: "create load combinations for superstructure including orthogonal effect for staad input" - its own design sheet "Load Combinations
+(NSCP 2015)" (program 16384, v8.0.0; src/StaadCombinations.cs, src/LoadCombinationsWindow.cs). Primary loads are pasted as in STAAD and
+the combinations use the same titles (DL, LL1, LL2, LLR, WL+X, EQ+X ...); groups numbered 1000 LRFD gravity, 2000 LRFD wind, 3000 LRFD
+seismic, 4000 ASD gravity, 5000 ASD wind, 6000 ASD seismic, 7000 wind drift, 8000 seismic drift; f1 per live case; seismic cases by the
+owner's STAAD notes - A regular / symmetrical, B regular / unsymmetrical (accidental torsion), C irregular / unsymmetrical (orthogonal
+1.0 + 0.3 as REPEAT LOAD cases, Load Type Seismic, the EQ primaries Load Type None).
+
 ## Door hardware (23 November 2026)
 
 Owner: hinges are "Ball Bearing Stainless Door Hinge" in 2 pcs/pack, sizes 3.0x3.0x2.5mm, 3.5x3.5x2.5mm, 4.0x3.0x3.0mm, 4.0x4.0x3.0mm
