@@ -52,7 +52,7 @@ static class WindBuildingLoads {
  static bool Usable(WindDirection d){return d!=null&&new[]{"B","C","D"}.Contains(d.Exposure)&&WindTin.Finite(d.Kzt);}
  /* the terrain of a wind bearing: the assessed direction itself on a multiple of 45°, otherwise the one of its two neighbouring 45°
     directions with the larger qh (Kz Kzt at h) - the governing, conservative choice */
- internal static WindDirection Pick(IList<WindDirection> directions,double bearing,double h,out int index,out bool exact){double k=Norm(bearing)/45;exact=Math.Abs(k-Math.Round(k))<1e-6;
+ internal static WindDirection Pick(IList<WindDirection> directions,double bearing,double h,out int index,out bool exact){/* the assessed directions may start at a building-aligned bearing */double k=Norm(bearing-directions[0].Bearing)/45;exact=Math.Abs(k-Math.Round(k))<1e-6;
   if(exact){index=(int)Math.Round(k)%8;return Usable(directions[index])?directions[index]:null;}
   int i0=(int)Math.Floor(k)%8,i1=(i0+1)%8;Func<WindDirection,double> q=d=>Usable(d)?Kz(d.Exposure,h)*TopographyAt(d,h):-1;index=q(directions[i0])>=q(directions[i1])?i0:i1;return Usable(directions[index])?directions[index]:null;}
  internal static int SuggestedRidge(double[] peaks){int best=0;for(int k=1;k<peaks.Length;k++)if(peaks[k]>peaks[best]+1e-9)best=k;return best;}

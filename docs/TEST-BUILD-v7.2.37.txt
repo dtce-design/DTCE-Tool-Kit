@@ -1,0 +1,16 @@
+DTCE Tool Kit v7.2.37 (25 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load: exposure and Kzt along the building faces; simpler STAAD +X (owner: "dapat hindi susundan yung general N E W S, dapat
+yung faces ng building, pati yung Topographic factor"; "yung ridge naka align sa x direction ni staad. diko gets yung +x axis"):
+- Load terrain now samples the eight directions from the building's own orientation when building pressures are on: the four faces and
+  the four diagonals (ridge azimuth 30° -> 030°, 075°, 120°, 165°, 210°, 255°, 300°, 345°). Exposure (two 45° upwind sectors), the hill /
+  ridge / escarpment profile and Kzt are found for each of them, so every face uses its own direction - no neighbour substitution.
+  The 8-direction table, the Exposure and Kzt tabs, the roughness map / circle and the report use these bearings.
+- If the ridge azimuth is changed after the terrain was loaded, the MWFRS status says so: press Load terrain again; until then each face
+  uses the governing neighbouring direction (v7.2.36 rule). Saved sheets keep the orientation of their terrain snapshot; older snapshots
+  stay north-based.
+- STAAD +X: new choices relative to the ridge - "Along the ridge, toward the ridge azimuth", "Along the ridge, toward the opposite end
+  (azimuth + 180°)", "Across the ridge (azimuth + 90° / − 90°)". The ridge axis (X / Z) then follows automatically and the ridge azimuth
+  stays editable. The compass choices and "Other bearing" remain. +X is the direction the X coordinates grow in STAAD.
+Tests: WindBuildingLoadsTests 42, WindAuditTests 79, WindRecoveryTests 40, WindComponentsCladdingTests 22; live terrain load at 30°.
+Includes everything of v7.2.36.

@@ -512,3 +512,7 @@ Owner (25 November 2026, "All yung building rotation ialign sa different azimuth
 "Other azimuth" + RidgeAzimuth; STAAD "+X" "Other bearing" + StaadXBearing). WindBuildingInput.Azimuth / Ridge, WindPressureRow.Bearing;
 a face normal between two of the eight assessed directions uses the neighbour with the larger qh (WindBuildingLoads.Pick); names are
 compass points on 45° multiples, otherwise bearings ("120°") (v7.2.36).
+Owner ("dapat yung faces ng building, pati yung Topographic factor"): with building pressures on, Load terrain samples the eight directions
+from the ridge azimuth (WindTerrain.Offset = azimuth mod 45; faces + diagonals), so exposure and Kzt are per face; directions carry Index /
+Bearing and are named by bearing. Owner ("diko gets yung +x axis"): STAAD +X may be chosen along / across the ridge (relative to the azimuth)
+(v7.2.37).
