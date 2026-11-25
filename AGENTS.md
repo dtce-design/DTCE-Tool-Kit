@@ -353,11 +353,12 @@ the owner's detail: riser leg down through the waist and tread leg back into the
 
 Owner: "create load combinations for superstructure including orthogonal effect for staad input" - its own design sheet "Load Combinations
 (NSCP 2015)" (program 16384, v8.0.0; src/StaadCombinations.cs, src/LoadCombinationsWindow.cs). Primary loads are pasted as in STAAD and
-the combinations use the same titles (DL, LL1, LL2, LLR, WL+X, EQ+X ...); groups numbered 1000 LRFD gravity, 2000 LRFD wind, 3000 LRFD
-seismic, 4000 ASD gravity, 5000 ASD wind, 6000 ASD seismic, 7000 wind drift, 8000 seismic drift; f1 per live case; seismic cases by the
+the combinations use the same titles (DL, LL1, LL2, LLR, WL+X, EQ+X ...); one group each (owner, v8.0.2): 1000 LRFD 203-1..7, 2000 basic
+ASD 203-8..15, 3000 alternative basic ASD 203-16..18 (D + L + Lr, D + L + 0.6W, D + L + E/1.4), 4000 special seismic 203.5 (Em = Omega0 Eh),
+5000 wind drift, 6000 seismic drift, each combination labelled with its equation; f1 per live case; seismic cases by the
 owner's STAAD notes - A regular / symmetrical, B regular / unsymmetrical (accidental torsion), C irregular / unsymmetrical (orthogonal
-1.0 + 0.3 as REPEAT LOAD cases, Load Type Seismic, the EQ primaries Load Type None). Owner ("diba may basic at alternative tapos may additional loads sa eq?"):
-9000 alternative basic ASD (203.4.2, omega) and 10000 special seismic Em = Omega0 Eh (203.5) (v8.0.1).
+1.0 + 0.3 as REPEAT LOAD cases, Load Type Seismic, the EQ primaries Load Type None). Owner ("diba may basic at alternative tapos may additional loads sa eq?"): the
+alternative basic ASD and special seismic sets (v8.0.1), regrouped in v8.0.2.
 
 ## Door hardware (23 November 2026)
 
