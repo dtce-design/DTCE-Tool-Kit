@@ -27,6 +27,10 @@ class StaadCombinationsTests {
   var wd=all.Where(c=>c.Group=="Wind drift").ToList();var sd=all.Where(c=>c.Group=="Seismic drift").ToList();
   Check(wd.Count==4&&wd[0].No==7001&&Math.Abs(wd[0].Terms.First(t=>t.Key.Kind=="W").Value-0.6)<1e-9&&Math.Abs(wd[0].Terms.First(t=>t.Key.Title=="LL1").Value-0.5)<1e-9,"wind drift 7001-7004: D + 0.5L + 0.6W");
   Check(sd.Count==8&&sd[0].No==8001&&sd.All(c=>c.Terms.Count==1&&Math.Abs(c.Terms[0].Value-1)<1e-9&&c.Terms[0].Key.Repeat!=null),"seismic drift 8001-8008: 1.0 of each orthogonal case, no gravity, no rho");
+  /* 9000 alternative basic ASD (203.4.2) and 10000 special seismic Em = Omega0 Eh (203.5) (owner: "basic at alternative ... additional loads sa eq") */
+  var alt=all.Where(c=>c.Group=="ASD alternative").ToList();var sp=all.Where(c=>c.Group=="Special seismic (Omega0)").ToList();
+  Check(alt.Count==1+4+16&&alt[0].No==9001&&alt[0].Title=="DL+LL1+LL2+LLR"&&alt.Any(c=>c.Terms.Any(t=>t.Key.Kind=="W"&&Math.Abs(t.Value-0.78)<1e-9)),"ASD alternative 9001...: D + L + Lr, D + L + 0.6 omega W (0.78), seismic D + L + E/1.4 and 0.9D + E/1.4");
+  Check(sp.Count==16&&sp[0].No==10001&&sp[0].Terms.Any(t=>t.Key.Repeat!=null&&Math.Abs(t.Value-2.8)<1e-9)&&Math.Abs(sp[0].Terms.First(t=>t.Key.Title=="DL").Value-1.2)<1e-9&&Math.Abs(sp[1].Terms.First(t=>t.Key.Title=="DL").Value-0.9)<1e-9,"special seismic 10001...: 1.2D + f1L + Omega0 Eh, 0.9D + Omega0 Eh");
   var asdE=all.First(c=>c.No==6001);Check(asdE.Terms.Any(t=>t.Key.Repeat!=null&&Math.Abs(t.Value-1/1.4)<1e-9),"ASD E / 1.4");
   var rr=StaadCombinations.Build(StaadCombinations.Parse("1 DL Dead\n2 EQ Seismic-H"),new StaadCombinationSettings{Rho=1.3,IncludeEv=false,Asd=false});var e1=rr.Where(c=>c.Group=="LRFD seismic").ToList();
   Check(e1.Count==4&&e1.Any(c=>c.Terms.Any(t=>t.Key.Title=="EQ"&&Math.Abs(t.Value+1.3)<1e-9)),"one E case: +E and -E, times rho 1.3");

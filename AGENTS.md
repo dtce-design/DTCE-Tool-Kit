@@ -356,7 +356,8 @@ Owner: "create load combinations for superstructure including orthogonal effect 
 the combinations use the same titles (DL, LL1, LL2, LLR, WL+X, EQ+X ...); groups numbered 1000 LRFD gravity, 2000 LRFD wind, 3000 LRFD
 seismic, 4000 ASD gravity, 5000 ASD wind, 6000 ASD seismic, 7000 wind drift, 8000 seismic drift; f1 per live case; seismic cases by the
 owner's STAAD notes - A regular / symmetrical, B regular / unsymmetrical (accidental torsion), C irregular / unsymmetrical (orthogonal
-1.0 + 0.3 as REPEAT LOAD cases, Load Type Seismic, the EQ primaries Load Type None).
+1.0 + 0.3 as REPEAT LOAD cases, Load Type Seismic, the EQ primaries Load Type None). Owner ("diba may basic at alternative tapos may additional loads sa eq?"):
+9000 alternative basic ASD (203.4.2, omega) and 10000 special seismic Em = Omega0 Eh (203.5) (v8.0.1).
 
 ## Door hardware (23 November 2026)
 

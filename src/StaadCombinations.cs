@@ -24,7 +24,11 @@ sealed class StaadCombo {public int No;public string Title,Group;public List<Key
 sealed class StaadCombinationSettings {public double Rho=1.0,Ca=0.44,I=1.0;public bool IncludeEv=true,Lrfd=true,Asd=true;public string Structure="C";
  /* drift checks (owner, 25 November 2026: "also for drift check wind and seismic"): 7000 wind drift D + 0.5L + kW (k = DriftWind, 0.6 =
     service-level wind of the NSCP 2015 ultimate wind speeds), 8000 seismic drift 1.0 Eh of every seismic case (Section 208.6.4: the
-    design-level displacement of the design seismic forces, then dM = 0.7 R dS against 0.025h / 0.020h) */public bool Drift=true;public double DriftWind=0.6;public HashSet<string> F1One=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    design-level displacement of the design seismic forces, then dM = 0.7 R dS against 0.025h / 0.020h) */public bool Drift=true;public double DriftWind=0.6;
+ /* owner (25 November 2026: "diba may basic at alternative tapos may additional loads sa eq?"): 9000 the alternative basic ASD
+    combinations (NSCP 2015 203.4.2: D + L + Lr; D + L + 0.6 omega W; D + L + E/1.4; 0.9D + E/1.4 - allowable stresses may then be
+    increased by one-third for wind or seismic), 10000 the special seismic combinations (203.5: 1.2D + f1L + 1.0Em; 0.9D + 1.0Em,
+    Em = Omega0 Eh, Section 208.5.1.2) */public bool AltAsd=true,Special=true;public double OmegaW=1.3,Omega0=2.8;public HashSet<string> F1One=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
  public double F1(StaadPrimary p){return F1One.Contains(p.Title)||F1One.Contains(p.Title.Replace(" ",""))?1.0:0.5;}}
 static class StaadCombinations {
  static readonly CultureInfo Ci=CultureInfo.InvariantCulture;
@@ -72,7 +76,7 @@ static class StaadCombinations {
    foreach(var set in Orthogonal(eCases)){var r=new StaadPrimary{No=++no,Kind="E",Repeat=set,Title=string.Join("",set.Select((t,k)=>(t.Value<0?"-":k>0?"+":"")+F1d(Math.Abs(t.Value))+"("+t.Key.Title+")"))};eh.Add(new List<KeyValuePair<StaadPrimary,double>>{new KeyValuePair<StaadPrimary,double>(r,1)});}}
   else foreach(var p in eCases){if(p.Sign!=0||eCases.Any(q=>q.Sign!=0))eh.Add(new List<KeyValuePair<StaadPrimary,double>>{new KeyValuePair<StaadPrimary,double>(p,1)});else{eh.Add(new List<KeyValuePair<StaadPrimary,double>>{new KeyValuePair<StaadPrimary,double>(p,1)});eh.Add(new List<KeyValuePair<StaadPrimary,double>>{new KeyValuePair<StaadPrimary,double>(p,-1)});}}
   double ev0=s.IncludeEv&&ev.Count==0?0.5*s.Ca*s.I:0;/* Ev = 0.5 Ca I D added to the dead load factor when there is no Seismic-V case */
-  int[] next={1000,2000,3000,4000,5000,6000,7000,8000};
+  int[] next={1000,2000,3000,4000,5000,6000,7000,8000,9000,10000};
   Action<int,string,Action<StaadCombo>> add=(g,group,fill)=>{var c=new StaadCombo{Group=group};fill(c);var terms=c.Terms.GroupBy(t=>t.Key).Select(x=>new KeyValuePair<StaadPrimary,double>(x.Key,x.Sum(y=>y.Value))).Where(t=>Math.Abs(t.Value)>1e-9).ToList();c.Terms=terms;if(terms.Count==0)return;
    string key=string.Join(" ",terms.OrderBy(t=>t.Key.No).Select(t=>t.Key.No+":"+F(t.Value)));if(list.Any(o=>o.Group==group&&string.Join(" ",o.Terms.OrderBy(t=>t.Key.No).Select(t=>t.Key.No+":"+F(t.Value)))==key))return;
    c.No=++next[g];c.Title=Title(terms);list.Add(c);};
@@ -101,6 +105,12 @@ static class StaadCombinations {
    foreach(var e in eh){add(5,"ASD seismic",c=>{put(c,d,1.0+ev0/1.4);putE(c,e,1/1.4);put(c,ev,1/1.4);});
     add(5,"ASD seismic",c=>{put(c,d,1.0+0.75*ev0/1.4);put(c,l,0.75);putE(c,e,0.75/1.4);put(c,ev,0.75/1.4);});
     add(5,"ASD seismic",c=>{put(c,d,0.6-ev0/1.4);putE(c,e,1/1.4);put(c,ev,-1/1.4);});}}
+  if(s.AltAsd){add(8,"ASD alternative",c=>{put(c,d,1.0);put(c,l,1.0);put(c,lr,1.0);});
+   foreach(var wi in w){var one=new[]{wi};add(8,"ASD alternative",c=>{put(c,d,1.0);put(c,l,1.0);put(c,one,0.6*s.OmegaW);});}
+   foreach(var e in eh){add(8,"ASD alternative",c=>{put(c,d,1.0+ev0/1.4);put(c,l,1.0);putE(c,e,1/1.4);put(c,ev,1/1.4);});
+    add(8,"ASD alternative",c=>{put(c,d,0.9-ev0/1.4);putE(c,e,1/1.4);put(c,ev,-1/1.4);});}}
+  if(s.Special)foreach(var e in eh){add(9,"Special seismic (Omega0)",c=>{put(c,d,1.2);putL(c,1.0);foreach(var t in e)c.Terms.Add(new KeyValuePair<StaadPrimary,double>(t.Key,s.Omega0*t.Value));});
+   add(9,"Special seismic (Omega0)",c=>{put(c,d,0.9);foreach(var t in e)c.Terms.Add(new KeyValuePair<StaadPrimary,double>(t.Key,s.Omega0*t.Value));});}
   if(s.Drift){foreach(var wi in w){var one=new[]{wi};add(6,"Wind drift",c=>{put(c,d,1.0);put(c,l,0.5);put(c,one,s.DriftWind);});}
    foreach(var e in eh)add(7,"Seismic drift",c=>{foreach(var t in e)c.Terms.Add(new KeyValuePair<StaadPrimary,double>(t.Key,t.Value));});}
   return list;}
@@ -110,7 +120,9 @@ static class StaadCombinations {
  internal static string Staad(List<StaadCombo> combos,List<StaadPrimary> cases,StaadCombinationSettings s){var b=new StringBuilder();
   b.Append("* ---- LOAD COMBINATIONS, NSCP 2015 (superstructure) ----");
   b.Append("\n* 1000 LRFD gravity, 2000 LRFD wind, 3000 LRFD seismic, 4000 ASD gravity,");
-  b.Append("\n* 5000 ASD wind, 6000 ASD seismic, 7000 wind drift, 8000 seismic drift. f1 = 1.0 for ").Append(cases.Any(p=>p.Kind=="L"&&s.F1(p)==1)?string.Join(", ",cases.Where(p=>p.Kind=="L"&&s.F1(p)==1).Select(p=>p.Title)):"no live case").Append(", 0.5 for the others; rho = ").Append(F(s.Rho)).Append(cases.Any(p=>p.Kind=="Ev")?", Ev = the Seismic-V case":s.IncludeEv?", Ev = 0.5 Ca I D = "+F(0.5*s.Ca*s.I)+" D (in the D factor)":", Ev not included").Append(".");
+  b.Append("\n* 5000 ASD wind, 6000 ASD seismic, 7000 wind drift, 8000 seismic drift,\n* 9000 ASD alternative (203.4.2), 10000 special seismic Em = Omega0 Eh (203.5).\n* f1 = 1.0 for ").Append(cases.Any(p=>p.Kind=="L"&&s.F1(p)==1)?string.Join(", ",cases.Where(p=>p.Kind=="L"&&s.F1(p)==1).Select(p=>p.Title)):"no live case").Append(", 0.5 for the others; rho = ").Append(F(s.Rho)).Append(cases.Any(p=>p.Kind=="Ev")?", Ev = the Seismic-V case":s.IncludeEv?", Ev = 0.5 Ca I D = "+F(0.5*s.Ca*s.I)+" D (in the D factor)":", Ev not included").Append(".");
+  if(s.AltAsd)b.Append("\n* ASD alternative: omega = ").Append(F(s.OmegaW)).Append(" (D + L + 0.6 omega W); one-third stress increase allowed for W / E.");
+  if(s.Special)b.Append("\n* Special seismic: Omega0 = ").Append(F(s.Omega0)).Append(", no rho / Ev in Em.");
   if(s.Drift)b.Append("\n* Drift: wind D + 0.5L + ").Append(F(s.DriftWind)).Append("W; seismic 1.0 Eh (dS, Section 208.6.4; dM = 0.7 R dS).");
   b.Append(s.Structure=="C"?"\n* Seismic: irregular and unsymmetrical - orthogonal effects, 100 % of one direction + 30 % of the other.":s.Structure=="B"?"\n* Seismic: regular and unsymmetrical - each EQ case with its accidental torsion (+E / -E).":"\n* Seismic: regular and symmetrical - each EQ direction alone.");
   var rpt=RepeatCases(combos);if(rpt.Count>0){b.Append("\n* ---- ORTHOGONAL SEISMIC LOAD CASES (paste after the primary loads; the EQ cases are Load Type None) ----");
