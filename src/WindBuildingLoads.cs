@@ -3,12 +3,15 @@ namespace BeamScheduleFormatter {
 class WindBuildingInput {
  public double Width,Length,Eave,Apex,Kd=.85,Damping=.02,FrequencyNormal,FrequencyParallel,UserG=.85,OpeningHeight;
  public string System="MRF Steel",Enclosure="Enclosed";public bool AutoG=true;public int RidgeDirection;
+ /* any ridge azimuth (owner, 25 November 2026: "All yung building rotation ialign sa different azimuth"): degrees clockwise from north,
+    0-180; NaN = the compass alignment RidgeDirection x 45 */public double Azimuth=double.NaN;
+ public double Ridge{get{return WindTin.Finite(Azimuth)?(Azimuth%180+180)%180:RidgeDirection*45.0;}}
  public double Angle{get{return Math.Atan2(2*(Apex-Eave),Width)*180/Math.PI;}}
  public double Height{get{return Angle<=10?Eave:(Eave+Apex)/2;}}
- public void Validate(){foreach(double n in new[]{Width,Length,Eave,Apex,Kd,Damping,UserG})if(!WindTin.Finite(n)||n<=0)throw new Exception("Enter positive building dimensions, Kd, damping and G.");if(!WindTin.Finite(OpeningHeight)||!WindTin.Finite(FrequencyNormal)||!WindTin.Finite(FrequencyParallel)||FrequencyNormal<0||FrequencyParallel<0||Apex<Eave||Angle>60||Height>150||Kd>1||Damping>0.2||UserG>3||OpeningHeight<0||OpeningHeight>Apex||RidgeDirection<0||RidgeDirection>3)throw new Exception("Check building geometry, ridge direction, opening height and factors. Roof slope must be 0–60 degrees.");if(Enclosure!="Enclosed"&&Enclosure!="Partially enclosed")throw new Exception("This pressure sheet supports enclosed / partially enclosed buildings.");}
+ public void Validate(){foreach(double n in new[]{Width,Length,Eave,Apex,Kd,Damping,UserG})if(!WindTin.Finite(n)||n<=0)throw new Exception("Enter positive building dimensions, Kd, damping and G.");if(!WindTin.Finite(OpeningHeight)||!WindTin.Finite(FrequencyNormal)||!WindTin.Finite(FrequencyParallel)||FrequencyNormal<0||FrequencyParallel<0||Apex<Eave||Angle>60||Height>150||Kd>1||Damping>0.2||UserG>3||OpeningHeight<0||OpeningHeight>Apex||RidgeDirection<0||RidgeDirection>3||double.IsInfinity(Azimuth))throw new Exception("Check building geometry, ridge direction, opening height and factors. Roof slope must be 0–60 degrees.");if(Enclosure!="Enclosed"&&Enclosure!="Partially enclosed")throw new Exception("This pressure sheet supports enclosed / partially enclosed buildings.");}
 }
 class WindPressureRow {
- public string Direction,Surface,Case,Exposure;public double Z,Kz,Kzt,Q,Qh,Qi,G,Cp,GCpi,P;public int TerrainDirection;
+ public string Direction,Surface,Case,Exposure;public double Z,Kz,Kzt,Q,Qh,Qi,G,Cp,GCpi,P;public int TerrainDirection;/* the bearing the wind blows from (degrees) */public double Bearing;
 }
 static class WindBuildingLoads {
  public static double Lerp(double x,double x0,double x1,double y0,double y1){return x1==x0?y0:y0+(y1-y0)*(x-x0)/(x1-x0);}
@@ -39,19 +42,30 @@ static class WindBuildingLoads {
  public static double RoofZone(int zone,double ratio){return Lerp(Math.Max(.5,Math.Min(1,ratio)),.5,1,new[]{-.9,-.9,-.5,-.3}[zone],new[]{-1.3,-.7,-.7,-.7}[zone]);}
  /* the governing |p| for each ridge alignment N–S, NE–SW, E–W, NW–SE (owner, 24 November 2026: "yung ridge alignment dapat mag suggest");
     the largest is suggested as the critical orientation when the real one is not fixed */
- internal static double[] RidgePeaks(WindBuildingInput b,double speed,IList<WindDirection> directions){var peaks=new double[4];int keep=b.RidgeDirection;
-  try{for(int k=0;k<4;k++){b.RidgeDirection=k;var rows=Calculate(b,speed,directions);peaks[k]=rows.Count==0?0:rows.Max(r=>Math.Abs(r.P));}}finally{b.RidgeDirection=keep;}return peaks;}
+ internal static double[] RidgePeaks(WindBuildingInput b,double speed,IList<WindDirection> directions){return AzimuthPeaks(b,speed,directions,new[]{0.0,45,90,135});}
+ internal static double[] AzimuthPeaks(WindBuildingInput b,double speed,IList<WindDirection> directions,double[] azimuths){var peaks=new double[azimuths.Length];double keep=b.Azimuth;
+  try{for(int k=0;k<azimuths.Length;k++){b.Azimuth=azimuths[k];var rows=Calculate(b,speed,directions);peaks[k]=rows.Count==0?0:rows.Max(r=>Math.Abs(r.P));}}finally{b.Azimuth=keep;}return peaks;}
+ internal static double Norm(double a){return (a%360+360)%360;}
+ /* a compass point when the bearing is a multiple of 45°, otherwise the bearing in degrees ("030°") */
+ internal static string BearingName(double a){a=Norm(a);double k=a/45;if(Math.Abs(k-Math.Round(k))<1e-6)return new[]{"N","NE","E","SE","S","SW","W","NW"}[(int)Math.Round(k)%8];return a.ToString("000",CultureInfo.InvariantCulture)+"°";}
+ internal static string RidgeName(double az){az=(az%180+180)%180;return BearingName(az)+"–"+BearingName(az+180);}
+ static bool Usable(WindDirection d){return d!=null&&new[]{"B","C","D"}.Contains(d.Exposure)&&WindTin.Finite(d.Kzt);}
+ /* the terrain of a wind bearing: the assessed direction itself on a multiple of 45°, otherwise the one of its two neighbouring 45°
+    directions with the larger qh (Kz Kzt at h) - the governing, conservative choice */
+ internal static WindDirection Pick(IList<WindDirection> directions,double bearing,double h,out int index,out bool exact){/* the assessed directions may start at a building-aligned bearing */double k=Norm(bearing-directions[0].Bearing)/45;exact=Math.Abs(k-Math.Round(k))<1e-6;
+  if(exact){index=(int)Math.Round(k)%8;return Usable(directions[index])?directions[index]:null;}
+  int i0=(int)Math.Floor(k)%8,i1=(i0+1)%8;Func<WindDirection,double> q=d=>Usable(d)?Kz(d.Exposure,h)*TopographyAt(d,h):-1;index=q(directions[i0])>=q(directions[i1])?i0:i1;return Usable(directions[index])?directions[index]:null;}
  internal static int SuggestedRidge(double[] peaks){int best=0;for(int k=1;k<peaks.Length;k++)if(peaks[k]>peaks[best]+1e-9)best=k;return best;}
  public static List<WindPressureRow> Calculate(WindBuildingInput b,double speed,IList<WindDirection> directions){
   b.Validate();if(!WindTin.Finite(speed)||speed<=0||directions.Count!=8)throw new Exception("Valid wind speed and all eight terrain directions are required.");var rows=new List<WindPressureRow>();
   for(int axis=0;axis<4;axis++){
-   bool normal=axis<2;int index=normal?(b.RidgeDirection+2+axis*4)%8:(b.RidgeDirection+(axis-2)*4)%8;var d=directions[index];
-   if(!new[]{"B","C","D"}.Contains(d.Exposure)||!WindTin.Finite(d.Kzt))continue;
+   bool normal=axis<2;double bearing=Norm(normal?b.Ridge+90+axis*180:b.Ridge+(axis-2)*180);int index;bool exact;var d=Pick(directions,bearing,b.Height,out index,out exact);
+   if(d==null)continue;string label=(exact?d.Name:BearingName(bearing)+" ("+d.Name+" terrain)")+" / "+(normal?"normal":"parallel");
    double g=Gust(b,d.Exposure,normal,speed),kh=Kz(d.Exposure,b.Height),qh=.613*kh*TopographyAt(d,b.Height)*b.Kd*Math.Pow(speed/3.6,2)/1000,gcpi=b.Enclosure=="Enclosed"?.18:.55,ratio=normal?b.Width/b.Length:b.Length/b.Width;
    Action<string,string,double,double> add=(surface,loadcase,z,cp)=>{
     double kz=Kz(d.Exposure,z),q=.613*kz*TopographyAt(d,z)*b.Kd*Math.Pow(speed/3.6,2)/1000;
     for(int sign=1;sign>=-1;sign-=2){double qi=b.Enclosure=="Partially enclosed"&&sign>0&&b.OpeningHeight>0?.613*Kz(d.Exposure,b.OpeningHeight)*TopographyAt(d,b.OpeningHeight)*b.Kd*Math.Pow(speed/3.6,2)/1000:qh;
-     rows.Add(new WindPressureRow{Direction=d.Name+" / "+(normal?"normal":"parallel"),TerrainDirection=index,Exposure=d.Exposure,Surface=surface,Case=loadcase+"; GCpi "+(sign>0?"+":"−"),Z=z,Kz=kz,Kzt=TopographyAt(d,z),Q=q,Qh=qh,Qi=qi,G=g,Cp=cp,GCpi=sign*gcpi,P=q*g*cp-qi*sign*gcpi});
+     rows.Add(new WindPressureRow{Direction=label,TerrainDirection=index,Bearing=bearing,Exposure=d.Exposure,Surface=surface,Case=loadcase+"; GCpi "+(sign>0?"+":"−"),Z=z,Kz=kz,Kzt=TopographyAt(d,z),Q=q,Qh=qh,Qi=qi,G=g,Cp=cp,GCpi=sign*gcpi,P=q*g*cp-qi*sign*gcpi});
     }
    };
    double top=normal?b.Eave:b.Apex;for(int j=0;j<=10;j++)add("Windward wall","z="+(top*j/10).ToString("0.##",CultureInfo.InvariantCulture)+"m",top*j/10,.8);
@@ -61,6 +75,6 @@ static class WindBuildingLoads {
   }
   return rows;
  }
- public static string Report(WindBuildingInput b,IEnumerable<WindPressureRow> rows){var text=new StringBuilder();text.AppendLine("## BUILDING WIND PRESSURES | NSCP 2015 DIRECTIONAL PROCEDURE");text.AppendLine(string.Format(CultureInfo.InvariantCulture,"Width={0}m; length={1}m; eave={2}m; apex={3}m; slope={4:0.###}deg; mean roof height={5:0.###}m",b.Width,b.Length,b.Eave,b.Apex,b.Angle,b.Height));text.AppendLine("p = q G Cp - qi (GCpi); positive pressure acts toward the surface, negative away.");text.AppendLine("Four principal building axes use the matching eight-direction terrain sector. Both internal-pressure signs and roof Cp branches are separate load cases.");text.AppendLine("Reference: RCB Calculation!B10,D17,D42:D69,B74:D87,B104:T133,D139:Q203,J209:J265. Linear interpolation of Figure207B.4-1; h/L>=1 uses the high-ratio row, correcting the workbook's 10 sentinel.");text.AppendLine("Gross calculated surface pressures, not a complete MWFRS design: apply minimum design forces, prescribed load patterns/torsion and load combinations separately. C&C, open roofs, parapets and overhangs are outside this table.");foreach(var r in rows)text.AppendLine(string.Format(CultureInfo.InvariantCulture,"{0} | {1} | {2} | Exp {3}\r\n z={4:0.###}m; Kz={5:0.#####}; Kzt={6:0.#####}; q={7:0.#####}kPa; qh={8:0.#####}kPa; qi={9:0.#####}kPa\r\n p=({7:0.#####})({10:0.#####})({11:0.#####})-({9:0.#####})({12:0.#####})={13:0.#####}kPa",r.Direction,r.Surface,r.Case,r.Exposure,r.Z,r.Kz,r.Kzt,r.Q,r.Qh,r.Qi,r.G,r.Cp,r.GCpi,r.P));return text.ToString();}
+ public static string Report(WindBuildingInput b,IEnumerable<WindPressureRow> rows){var text=new StringBuilder();text.AppendLine("## BUILDING WIND PRESSURES | NSCP 2015 DIRECTIONAL PROCEDURE");text.AppendLine(string.Format(CultureInfo.InvariantCulture,"Width={0}m; length={1}m; eave={2}m; apex={3}m; slope={4:0.###}deg; mean roof height={5:0.###}m",b.Width,b.Length,b.Eave,b.Apex,b.Angle,b.Height));text.AppendLine("p = q G Cp - qi (GCpi); positive pressure acts toward the surface, negative away.");text.AppendLine("Four principal building axes use the matching eight-direction terrain sector; a face normal between two assessed directions (ridge at any azimuth) uses the neighbouring direction with the larger qh. Both internal-pressure signs and roof Cp branches are separate load cases.");text.AppendLine("Reference: RCB Calculation!B10,D17,D42:D69,B74:D87,B104:T133,D139:Q203,J209:J265. Linear interpolation of Figure207B.4-1; h/L>=1 uses the high-ratio row, correcting the workbook's 10 sentinel.");text.AppendLine("Gross calculated surface pressures, not a complete MWFRS design: apply minimum design forces, prescribed load patterns/torsion and load combinations separately. C&C, open roofs, parapets and overhangs are outside this table.");foreach(var r in rows)text.AppendLine(string.Format(CultureInfo.InvariantCulture,"{0} | {1} | {2} | Exp {3}\r\n z={4:0.###}m; Kz={5:0.#####}; Kzt={6:0.#####}; q={7:0.#####}kPa; qh={8:0.#####}kPa; qi={9:0.#####}kPa\r\n p=({7:0.#####})({10:0.#####})({11:0.#####})-({9:0.#####})({12:0.#####})={13:0.#####}kPa",r.Direction,r.Surface,r.Case,r.Exposure,r.Z,r.Kz,r.Kzt,r.Q,r.Qh,r.Qi,r.G,r.Cp,r.GCpi,r.P));return text.ToString();}
 }
 }

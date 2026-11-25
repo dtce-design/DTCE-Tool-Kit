@@ -1,0 +1,17 @@
+DTCE Tool Kit v7.2.35 (24 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Beam Formatter, ACI schedule option (owner: "sa bar placing diagram meron din ba ng diagram if may bottom bars sa support?";
+"ano ba yung nasa aci manual may G?"; "lahat ng pwedeng mangyari sa schedule ilagay mo"):
+- New schedule column G under BOTTOM: added bottom bars at the supports ("L: ..." left, "R: ..." right, or one value when both supports
+  have the same). They were only a remark ("BOT. LEFT +...") before. G is not a letter of ACI MNL-66 Fig. BM-1_1; it is added for this
+  schedule and the notes say so.
+- New placing diagram "BOTTOM BARS AT THE SUPPORTS, G" (when a beam has G): at an interior support one straight bar through the column,
+  Ln/4 past each face (not less than ld); at an end support a standard hook in the column and Ln/4 into the span - as the Bar Bending
+  Schedule cuts them.
+- New placing diagram "CANTILEVER" (when a beam is cantilevered): top bars to the free end with a standard hook down and into the back
+  span (by the design, not less than ld, commonly not less than the cantilever length), bottom bars of the back span and of the
+  cantilever, ties to the free end. Note: the Bar Bending Schedule does not cut cantilever spans.
+- Notes 5 (G) and 6 (cantilever) are added when they apply; long notes no longer overlap (top-anchored, spaced by their wrapped lines).
+- The DXF still reads back into the Bar Bending Schedule and the Bill of Quantities (hidden row data unchanged).
+Tests: ColumnScheduleTests 36.
+Includes everything of v7.2.34.

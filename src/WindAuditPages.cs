@@ -34,7 +34,7 @@ static class WindAuditPages {
   var blocks=new List<Block>();
   foreach(var d in directions){if(d.ExposureAudit==null&&d.TopographicChecks.Count==0)continue;blocks.Add(new Block{Title="EXPOSURE AND Kzt BASIS / WIND FROM "+d.Name,Text="Exposure "+d.Exposure+"; Kzt = "+(WindTin.Finite(d.Kzt)?d.Kzt.ToString("0.###",System.Globalization.CultureInfo.InvariantCulture):"unresolved")+". "+(d.ExposureAudit==null?"":d.ExposureAudit.Reason)});
    /* surface roughness diagram of the five upwind rays (owner, 24 November 2026: "ipakita din yung diagram for surface roughness") */
-   int dirIndex=Array.IndexOf(WindAssessment.Directions,d.Name);if(terrain!=null&&dirIndex>=0&&d.ExposureAudit!=null){var rays=WindAssessment.UpwindSector(terrain,dirIndex).ToList();var audit=d.ExposureAudit;string name=d.Name;double bearing=dirIndex*45;
+   int dirIndex=terrain!=null?d.Index:Array.IndexOf(WindAssessment.Directions,d.Name);if(terrain!=null&&dirIndex>=0&&d.ExposureAudit!=null){var rays=WindAssessment.UpwindSector(terrain,dirIndex).ToList();var audit=d.ExposureAudit;string name=d.Name;double bearing=terrain.BearingOf(dirIndex);
     blocks.Add(new Block{FigureHeight=178,Figure=(g,rc)=>RoughnessRays(g,rc,rays,audit,name,bearing,terrain,dirIndex)});}
    if(d.ExposureAudit!=null)blocks.Add(new Block{Headers=new[]{"Exposure check","Value","Basis / decision"},Widths=Fit(130,120,273),Rows=d.ExposureAudit.Checks.Select(r=>r.ToArray()).ToList()});
    if(d.TopographicChecks.Count>0)blocks.Add(new Block{Headers=new[]{"Kzt check (207A.8)","Value","Basis / decision"},Widths=Fit(130,150,243),Rows=d.TopographicChecks.Select(r=>r.ToArray()).ToList()});}

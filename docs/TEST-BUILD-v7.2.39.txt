@@ -1,0 +1,13 @@
+DTCE Tool Kit v7.2.39 (25 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load, Building inputs, 5 Components and cladding (owner: "yung building inputs diko magets sa components and claddings"):
+- The "name @ effective wind area" text is replaced by plain spacings: Truss / rafter spacing (= purlin span), Purlin spacing, Column
+  spacing (= girt span; blank = truss spacing) and Girt spacing. The app works out each element's effective wind area,
+  A = span x max(spacing, span / 3): roof sheet (span = purlin spacing), purlin, wall sheet (span = girt spacing) and girt, and shows them
+  under the inputs (e.g. Purlin 6 m span x 0.8 m = 12 m²).
+- "Other elements (optional)" keeps the name @ area entry for anything else (ridge cap, gutter ...). With nothing entered the typical
+  areas are used (sheets 0.93 m², purlin / girt 9.3 m²) and the screen says so; older sheets with the old default list open blank.
+- The STAAD DEFINE WIND LOAD already follows the ridge azimuth and the building faces (v7.2.36-v7.2.38): each WW / LW / SW type of +X, -X,
+  +Z, -Z uses the exposure and Kzt of its own face direction.
+Tests: WindComponentsCladdingTests 22, WindBuildingLoadsTests 42.
+Includes everything of v7.2.38.

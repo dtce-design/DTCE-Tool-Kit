@@ -28,6 +28,27 @@ class WindBuildingLoadsTests {
   {var dirs=Flat("B");dirs[2].Exposure="D";var rb=new WindBuildingInput{Width=12,Length=20,Eave=3,Apex=4,System="MRF Concrete",AutoG=false,RidgeDirection=1};var peaks=WindBuildingLoads.RidgePeaks(rb,310,dirs);
    Check(peaks.Length==4&&peaks.All(x=>x>0),"pressures for all four ridge alignments");Check(rb.RidgeDirection==1,"the entered ridge alignment is kept");int best=WindBuildingLoads.SuggestedRidge(peaks);Check(peaks[best]==peaks.Max(),"suggested alignment has the largest |p|");
    var flat=WindBuildingLoads.RidgePeaks(rb,310,Flat("B"));Check(Math.Abs(flat.Max()-flat.Min())<1e-9,"uniform exposure: every alignment gives the same peak");}
+  /* any ridge azimuth (owner, 25 November 2026: "All yung building rotation ialign sa different azimuth") */
+  {var a45=new WindBuildingInput{Width=12,Length=20,Eave=3,Apex=4,System="MRF Concrete",AutoG=false,RidgeDirection=1};var b45=new WindBuildingInput{Width=12,Length=20,Eave=3,Apex=4,System="MRF Concrete",AutoG=false,Azimuth=45};
+   var r1=WindBuildingLoads.Calculate(a45,310,Flat());var r2=WindBuildingLoads.Calculate(b45,310,Flat());Check(r1.Count==r2.Count&&r1.Zip(r2,(x,y)=>Math.Abs(x.P-y.P)<1e-12&&x.Direction==y.Direction).All(q=>q),"azimuth 45° = the NE–SW compass alignment");
+   var b30=new WindBuildingInput{Width=12,Length=20,Eave=3,Apex=4,System="MRF Concrete",AutoG=false,Azimuth=30};var dirs=Flat();dirs[2]=new WindDirection{Name="E",Exposure="C",Shape="Low relief",K1=0,K2=0,K3=0,Kzt=1};
+   var r3=WindBuildingLoads.Calculate(b30,310,dirs);var bearings=r3.Select(r=>r.Bearing).Distinct().OrderBy(x=>x).ToArray();Check(bearings.SequenceEqual(new[]{30.0,120,210,300}),"face normals at 30° steps of 90°: "+string.Join(",",bearings));
+   var w120=r3.First(r=>Math.Abs(r.Bearing-120)<1e-9);Check(w120.Exposure=="C"&&w120.Direction.StartsWith("120° (E terrain)"),"between E and SE the larger qh (exposure C of E) governs: "+w120.Direction);
+   Check(r3.First(r=>Math.Abs(r.Bearing-30)<1e-9).Direction.StartsWith("030° (")&&WindBuildingLoads.RidgeName(30)=="030°–210°"&&WindBuildingLoads.RidgeName(135)=="SE–NW"&&WindBuildingLoads.BearingName(-90)=="W","bearing and ridge names");
+   var v=WindBuildingGeometry.Vertices(b30);Near(Math.Atan2(v[3].X-v[0].X,v[3].Y-v[0].Y)*180/Math.PI,30,1e-9,"the model outline is turned to the azimuth");
+   Check(WindStaadInput.AxisOf(30+180,30)=="-X"&&WindStaadInput.AxisOf(120,30)=="+Z","STAAD axes with a +X bearing of 30°");
+   var cmds=WindStaadInput.FaceCommands(b30,310,dirs,30);Check(cmds.Contains("WIND WW+X")&&cmds.Contains("WIND LW-Z")&&cmds.Contains("+X = 030°, +Z = 120°"),"STAAD wind types named by the model axes at any +X bearing");
+   var peaks=WindBuildingLoads.AzimuthPeaks(b30,310,dirs,new[]{0.0,30,45});Check(peaks.Length==3&&peaks.All(p=>p>0)&&double.IsNaN(b30.Azimuth)==false&&b30.Azimuth==30,"azimuth sweep keeps the input azimuth");}
+  /* terrain assessed along the building faces (owner, 25 November 2026: "dapat yung faces ng building, pati yung Topographic factor") */
+  {var t=new WindTerrain{Lat=14.6,Lon=121,Radius=3200,Offset=30};for(int n=0;n<24;n++)for(double d=0;d<=3200;d+=100)t.Rays[n].Add(new WindSample{D=d,Z=n%3==1?5:double.NaN,Cover=n/3==2?80:50});
+   for(int i=0;i<8;i++)for(double d=-500;d<=500;d+=100)t.Cross[i].Add(new WindSample{D=d,Z=5});
+   var dirs=WindAssessment.Calculate(t,10,310,.85);Check(dirs.Select(d=>d.Name).SequenceEqual(new[]{"030°","075°","120°","165°","210°","255°","300°","345°"})&&dirs[2].Index==2&&Math.Abs(dirs[2].Bearing-120)<1e-9,"directions named by their bearings from the offset: "+string.Join(",",dirs.Select(d=>d.Name)));
+   var bf=new WindBuildingInput{Width=12,Length=20,Eave=3,Apex=4,System="MRF Concrete",AutoG=false,Azimuth=30};var fr=WindBuildingLoads.Calculate(bf,310,dirs);
+   Check(fr.Select(r=>r.Direction).Distinct().OrderBy(x=>x).SequenceEqual(new[]{"030° / parallel","120° / normal","210° / parallel","300° / normal"}),"every face uses its own assessed direction (no neighbour substitution): "+string.Join(",",fr.Select(r=>r.Direction).Distinct()));
+   Check(fr.Where(r=>Math.Abs(r.Bearing-120)<1e-9).All(r=>r.TerrainDirection==2),"wind from 120° uses the 120° terrain");
+   var b45=new WindBuildingInput{Width=12,Length=20,Eave=3,Apex=4,System="MRF Concrete",AutoG=false,RidgeDirection=0};var r0=WindBuildingLoads.Calculate(b45,310,dirs);Check(r0.Any(r=>r.Direction.Contains("terrain")),"a building not on the offset falls back to the governing neighbour");
+   var doc=new System.Xml.XmlDocument();var root=doc.CreateElement("Sheet");doc.AppendChild(root);WindTerrainXml.Write(root,t);var back=WindTerrainXml.Read(root);Check(back!=null&&Math.Abs(back.Offset-30)<1e-9,"the offset is saved with the terrain snapshot");
+   var noOff=new WindTerrain{Lat=14.6,Lon=121,Radius=3200};for(int n=0;n<24;n++)for(double d=0;d<=3200;d+=100)noOff.Rays[n].Add(new WindSample{D=d,Z=1,Cover=50});for(int i=0;i<8;i++)for(double d=-500;d<=500;d+=100)noOff.Cross[i].Add(new WindSample{D=d,Z=1});var doc2=new System.Xml.XmlDocument();var root2=doc2.CreateElement("Sheet");doc2.AppendChild(root2);WindTerrainXml.Write(root2,noOff);Check(!((System.Xml.XmlElement)root2.FirstChild).HasAttribute("offset")&&WindTerrainXml.Read(root2).Offset==0,"older snapshots (no offset) read as north-based");}
   Console.WriteLine("PASS: "+count+" wind pressure, workbook fixture, interpolation, sign and unresolved-data checks");
  }
 }

@@ -294,6 +294,16 @@ Owner (24 November 2026, "Hold it"): the v7.2.32 Store upload is on hold while t
 Owner (24 November 2026, "upload to microsof store"): the Store release is v7.2.34 (v7.2.32 plus the stair changes of v7.2.33 and the key-file
 button row of v7.2.34), the same way (PR #24 to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this
 release only - the pending v7.2.27 submissions are replaced; User visibility stays Public). Later versions again need a new explicit request.
+Done 24 November 2026: v7.2.34 merged to main (PR #24; GitHub release v7.2.34-build-306, run 45416912305). Store run 45416991179 (first
+attempt): new User (1152921505702494633; visibility Public) and Admin (1152921505702494670; visibility Private) submissions were created and
+committed, replacing the pending v7.2.27 submissions; Partner Center reported "accepted for processing" (PreProcessing). Certification is not
+guaranteed. v7.2.35 and later need a new explicit request.
+New owner request (25 November 2026, "publsih to store after nyan"; chose "Replace v7.2.34"): publish v7.2.37 (User and Admin) after its
+Windows CI passes (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User
+visibility stays Public). Later versions again need a new explicit request.
+Owner (25 November 2026, chose "Upload v7.2.38"): the Store release is v7.2.38 (v7.2.37 plus the single-value Building inputs), the same way
+(PR #25, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only).
+Owner (25 November 2026, chose "Upload v7.2.39"): the Store release is v7.2.39 (v7.2.38 plus C&C from spacings), the same way.
 
 ## Shared settings and the open project (23 November 2026)
 
@@ -342,6 +352,12 @@ Owner: hinges are "Ball Bearing Stainless Door Hinge" in 2 pcs/pack, sizes 3.0x3
 and one 4" Chrome Plated Foot Bolt; optional Deadbolt (Double Cylinder / Single Cylinder with Thumbturn, Satin Stainless Steel); leaves of
 different widths are typed in Leaf widths (e.g. 0.90+0.30) and each leaf gets its own hinges (src/DoorHardware.cs, v7.1.18). All go to
 1004(2) Finishing Hardware.
+
+## ACI beam schedule cases (24 November 2026)
+
+Owner: "lahat ng pwedeng mangyari sa schedule ilagay mo". The ACI beam schedule (src/AciBeamSchedule.cs) has a G column (added bottom
+bars at the supports; not a letter of ACI MNL-66 BM-1_1 - say so) and, besides TYPE 1, a placing diagram for G and one for cantilevers,
+drawn only when the schedule has them. The hidden row data that the BBS / BOQ read back stays unchanged (v7.2.35).
 
 ## Dropdowns, truss schedules and offcut sources (23 November 2026)
 
@@ -498,3 +514,16 @@ non-qualifying shape "No qualifying hill (Kzt = 1)", warns when H < 10 m (DEM ac
 Owner ("bakit yung upwind base below 0?"): in the Kzt profile, elevations below 0 m (sea floor, shore blending) are taken as
 mean sea level, 0 m, and the checks say so (WindTopographicAudit Ground, v7.2.31). Inland lakes / rivers keep their surface elevation;
 water cover alone never sets 0 m (a lake at 700 m is not an escarpment) (v7.2.32).
+Owner (25 November 2026, "All yung building rotation ialign sa different azimuth"): the building / ridge may have any azimuth (Ridge alignment
+"Other azimuth" + RidgeAzimuth; STAAD "+X" "Other bearing" + StaadXBearing). WindBuildingInput.Azimuth / Ridge, WindPressureRow.Bearing;
+a face normal between two of the eight assessed directions uses the neighbour with the larger qh (WindBuildingLoads.Pick); names are
+compass points on 45° multiples, otherwise bearings ("120°") (v7.2.36).
+Owner ("dapat yung faces ng building, pati yung Topographic factor"): with building pressures on, Load terrain samples the eight directions
+from the ridge azimuth (WindTerrain.Offset = azimuth mod 45; faces + diagonals), so exposure and Kzt are per face; directions carry Index /
+Bearing and are named by bearing. Owner ("diko gets yung +x axis"): STAAD +X may be chosen along / across the ridge (relative to the azimuth)
+(v7.2.37).
+Owner ("mas maayos na building inputs"; "doble doble ang dimension ... yung bearing magulo"): Building inputs are numbered groups with one value
+each - dimensions once, one RidgeAzimuth box, one StaadPlusX choice relative to the ridge; RidgeDirection / StaadXDir / StaadXBearing /
+StaadRidgeAxis / StaadX / StaadZ stay hidden only to read older sheets (LegacyBuildingInputs converts them) (v7.2.38).
+Owner ("diko magets sa components and claddings"): C&C elements come from spacings (CcFrameSpacing, CcPurlinSpacing, CcGirtSpan, CcGirtSpacing;
+A = span x max(spacing, span/3)); CCElements is only "Other elements (optional)" (CcElementsText) (v7.2.39).

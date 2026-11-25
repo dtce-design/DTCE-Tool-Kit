@@ -12,11 +12,11 @@ static class WindLoadCasesReport {
  static void Arrow(Graphics g,Color color,float width,PointF from,PointF to){using(var pen=new Pen(color,width))g.DrawLine(pen,from,to);double a=Math.Atan2(to.Y-from.Y,to.X-from.X);float h=width*3.2f+3;var p1=new PointF(to.X-(float)(Math.Cos(a-.45)*h),to.Y-(float)(Math.Sin(a-.45)*h));var p2=new PointF(to.X-(float)(Math.Cos(a+.45)*h),to.Y-(float)(Math.Sin(a+.45)*h));using(var br=new SolidBrush(color))g.FillPolygon(br,new[]{to,p1,p2});}
  static string Signed(double v){return (v>=0?"+":"")+v.ToString("0.00",Ci);}
  sealed class Face {public string Name,Cp,External,NetA,NetB;public double ExtMin,ExtMax;}
- sealed class Case {public string Id,From,Relation,Windward,Leeward,Side1,Side2;public int Index;public bool Normal;public double Qi,GCpi;public List<Face> Faces=new List<Face>();public double Windward0,WindwardTop,LeewardExt,SideExt;public string RoofText;}
+ sealed class Case {public string Id,From,Relation,Windward,Leeward,Side1,Side2;public int Index;public double Bearing;public bool Normal;public double Qi,GCpi;public List<Face> Faces=new List<Face>();public double Windward0,WindwardTop,LeewardExt,SideExt;public string RoofText;}
  static readonly string[] Dir={"N","NE","E","SE","S","SW","W","NW"};
  static List<Case> Cases(WindBuildingInput b,List<WindPressureRow> rows){var list=new List<Case>();int n=0;
-  foreach(var group in rows.GroupBy(r=>r.Direction)){var first=group.First();int idx=first.TerrainDirection;bool normal=group.Key.EndsWith("normal");var c=new Case{Id="W"+(++n).ToString(Ci),Index=idx,Normal=normal,From=Dir[idx],Relation=normal?"across the ridge":"along the ridge",
-    Windward=Dir[idx]+(normal?" long wall":" gable end"),Leeward=Dir[(idx+4)%8]+(normal?" long wall":" gable end"),Side1=Dir[(idx+2)%8]+(normal?" gable end":" long wall"),Side2=Dir[(idx+6)%8]+(normal?" gable end":" long wall"),Qi=first.Qi,GCpi=Math.Abs(first.GCpi)};
+  foreach(var group in rows.GroupBy(r=>r.Direction)){var first=group.First();int idx=first.TerrainDirection;bool normal=group.Key.EndsWith("normal");double brg=first.Bearing;Func<double,string> nm=WindBuildingLoads.BearingName;var c=new Case{Id="W"+(++n).ToString(Ci),Index=idx,Bearing=brg,Normal=normal,From=nm(brg),Relation=normal?"across the ridge":"along the ridge",
+    Windward=nm(brg)+(normal?" long wall":" gable end"),Leeward=nm(brg+180)+(normal?" long wall":" gable end"),Side1=nm(brg+90)+(normal?" gable end":" long wall"),Side2=nm(brg+270)+(normal?" gable end":" long wall"),Qi=first.Qi,GCpi=Math.Abs(first.GCpi)};
    Func<WindPressureRow,double> ext=r=>r.Q*r.G*r.Cp;Func<WindPressureRow,bool> plus=r=>r.GCpi>0;
    var ww=group.Where(r=>r.Surface=="Windward wall").ToList();
    if(ww.Count>0){var a=ww.Where(plus).ToList();var bb=ww.Where(r=>!plus(r)).ToList();c.Windward0=ww.Min(ext);c.WindwardTop=ww.Max(ext);
@@ -46,14 +46,14 @@ static class WindLoadCasesReport {
  /* plan view, north up: the building turned to the ridge, the wind arrow, and an arrow with the external pressure on each face */
  static void Plan(Graphics g,RectangleF rc,WindBuildingInput b,Case c){
   using(var f=new Font("Segoe UI",7.5f,FontStyle.Regular,GraphicsUnit.Point))using(var bf=new Font("Segoe UI",7.5f,FontStyle.Bold,GraphicsUnit.Point))using(var ink=new SolidBrush(PowTheme.Ink)){
-   var cen=new PointF(rc.Left+rc.Width/2,rc.Top+rc.Height/2+6);double th=b.RidgeDirection*Math.PI/4;double k=Math.Min(rc.Width*.36,rc.Height*.52)/Math.Max(b.Width,b.Length);
+   var cen=new PointF(rc.Left+rc.Width/2,rc.Top+rc.Height/2+6);double th=b.Ridge*Math.PI/180;double k=Math.Min(rc.Width*.36,rc.Height*.52)/Math.Max(b.Width,b.Length);
    Func<double,double,PointF> P=(x,y)=>new PointF(cen.X+(float)((x*Math.Cos(th)+y*Math.Sin(th))*k),cen.Y-(float)((-x*Math.Sin(th)+y*Math.Cos(th))*k));
    double w=b.Width/2,l=b.Length/2;var poly=new[]{P(-w,-l),P(w,-l),P(w,l),P(-w,l)};
    using(var fill=new SolidBrush(Color.FromArgb(238,242,246)))g.FillPolygon(fill,poly);using(var edge=new Pen(PowTheme.Ink,1.6f))g.DrawPolygon(edge,poly);
    using(var ridgePen=new Pen(Color.FromArgb(150,40,40),1.2f){DashStyle=DashStyle.Dash})g.DrawLine(ridgePen,P(0,-l),P(0,l));
    /* faces: outward normal bearing of each face (local x = across, y = along the ridge) */
    var faces=new[]{new{x=w,y=0.0,nx=1.0,ny=0.0,half=l},new{x=-w,y=0.0,nx=-1.0,ny=0.0,half=l},new{x=0.0,y=l,nx=0.0,ny=1.0,half=w},new{x=0.0,y=-l,nx=0.0,ny=-1.0,half=w}};
-   double windBearing=c.Index*45;
+   double windBearing=c.Bearing;
    foreach(var face in faces){double e=face.nx*Math.Cos(th)+face.ny*Math.Sin(th),nn=-face.nx*Math.Sin(th)+face.ny*Math.Cos(th);double brg=(Math.Atan2(e,nn)*180/Math.PI+360)%360;double diff=Math.Abs(((brg-windBearing)%360+540)%360-180);
     string role;double value;bool inward;Color color;
     if(diff<45){role="Windward";value=c.WindwardTop;inward=true;color=Color.FromArgb(190,40,40);}else if(diff>135){role="Leeward";value=c.LeewardExt;inward=false;color=Color.FromArgb(40,90,170);}else{role="Side wall";value=c.SideExt;inward=false;color=Color.FromArgb(40,90,170);}

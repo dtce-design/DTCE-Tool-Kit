@@ -1,0 +1,16 @@
+DTCE Tool Kit v7.2.36 (25 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load building orientation at any azimuth (owner: "All yung building rotation ialign sa different azimuth"):
+- Ridge alignment has a fifth choice, "Other azimuth (type it below)", with the input "Ridge azimuth (degrees clockwise from north,
+  0-180)" - e.g. 30 gives the ridge 030°-210°. The four compass alignments stay as before (same results).
+- STAAD model orientation: "+X axis of the STAAD model points to" has "Other bearing (type it below)" with "+X bearing of the STAAD model";
+  the ridge azimuth, width and length follow from it and the ridge axis as before, and the STAAD types (WW+X, LW-Z ...), the face
+  directions and the axis comments work at any bearing ("+X = 030°, +Z = 120°").
+- Pressures: the four building axes face the wind from the ridge azimuth + 90° / 270° (across the ridge) and + 0° / 180° (along it).
+  Terrain is still assessed in the eight 45° directions; a face normal between two of them uses the neighbouring direction with the larger
+  qh (Kz Kzt at h) - the governing, conservative choice - and its row says so, e.g. "120° (E terrain) / normal".
+- The site map outline, the 3D model, the load-case plans of the report and the C&C / STAAD texts are turned to the azimuth; names read
+  as bearings where the direction is not a compass point (wind from 120°, ridge 030°-210°).
+- Suggested ridge alignment: every azimuth 0-175° in 5° steps is checked; the four compass alignments are still listed.
+Tests: WindBuildingLoadsTests 36, WindAuditTests 79, WindRecoveryTests 40, WindComponentsCladdingTests 22.
+Includes everything of v7.2.35.
