@@ -303,6 +303,7 @@ Windows CI passes (PR to main, then publish_microsoft_store=true with replace_pe
 visibility stays Public). Later versions again need a new explicit request.
 Owner (25 November 2026, chose "Upload v7.2.38"): the Store release is v7.2.38 (v7.2.37 plus the single-value Building inputs), the same way
 (PR #25, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only).
+Owner (25 November 2026, chose "Upload v7.2.39"): the Store release is v7.2.39 (v7.2.38 plus C&C from spacings), the same way.
 
 ## Shared settings and the open project (23 November 2026)
 
