@@ -524,3 +524,5 @@ Bearing and are named by bearing. Owner ("diko gets yung +x axis"): STAAD +X may
 Owner ("mas maayos na building inputs"; "doble doble ang dimension ... yung bearing magulo"): Building inputs are numbered groups with one value
 each - dimensions once, one RidgeAzimuth box, one StaadPlusX choice relative to the ridge; RidgeDirection / StaadXDir / StaadXBearing /
 StaadRidgeAxis / StaadX / StaadZ stay hidden only to read older sheets (LegacyBuildingInputs converts them) (v7.2.38).
+Owner ("diko magets sa components and claddings"): C&C elements come from spacings (CcFrameSpacing, CcPurlinSpacing, CcGirtSpan, CcGirtSpacing;
+A = span x max(spacing, span/3)); CCElements is only "Other elements (optional)" (CcElementsText) (v7.2.39).

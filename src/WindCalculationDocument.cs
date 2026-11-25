@@ -57,7 +57,7 @@ partial class WindDesignForm {
      CalculationDocument.Text(g,"p = q G Cp − qi (GCpi)\r\nPositive pressure acts toward a surface; negative acts away. Values are individual gross surface pressures. Minimum MWFRS forces, load patterns, torsion, load combinations, components/cladding, parapets, overhangs and open roofs require separate checks. Unresolved directions are not substituted with default factors.",CalculationDocument.L,675,CalculationDocument.CW,116,9);
     });
     WindLoadCasesReport.AddPages(doc,b,pressure,ridge);
-    try{WindComponentsCladding.AddPages(doc,b,WindComponentsCladding.Calculate(b,pressure,Value("CCElements"),WindAssessment.Calculate(terrain,b.Height,wind.V,b.Kd),wind.V));}catch(Exception){/* C&C shown only when it applies (h <= 18 m) */}
+    try{WindComponentsCladding.AddPages(doc,b,WindComponentsCladding.Calculate(b,pressure,CcElementsText(),WindAssessment.Calculate(terrain,b.Height,wind.V,b.Kd),wind.V));}catch(Exception){/* C&C shown only when it applies (h <= 18 m) */}
     foreach(var group in grouped){var values=group.ToList();for(int offset=0;offset<values.Count;offset+=16){var rows=values.Skip(offset).Take(16).ToArray();string title=group.Key;doc.Sheets.Add(g=>{
      CalculationDocument.Section(g,"MWFRS SURFACE PRESSURES / "+title,130);
      CalculationDocument.Table(g,new[]{"From","Surface","Case / zone","G","Cp","GCpi","p kPa"},rows.Select(r=>new[]{r.Direction.Split(' ')[0],r.Surface,r.Case,F(r.G),F(r.Cp),F(r.GCpi),F(r.P)}).ToList(),170,new float[]{40,85,198,40,40,50,70},34);
