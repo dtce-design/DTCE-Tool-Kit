@@ -28,6 +28,17 @@ class WindBuildingLoadsTests {
   {var dirs=Flat("B");dirs[2].Exposure="D";var rb=new WindBuildingInput{Width=12,Length=20,Eave=3,Apex=4,System="MRF Concrete",AutoG=false,RidgeDirection=1};var peaks=WindBuildingLoads.RidgePeaks(rb,310,dirs);
    Check(peaks.Length==4&&peaks.All(x=>x>0),"pressures for all four ridge alignments");Check(rb.RidgeDirection==1,"the entered ridge alignment is kept");int best=WindBuildingLoads.SuggestedRidge(peaks);Check(peaks[best]==peaks.Max(),"suggested alignment has the largest |p|");
    var flat=WindBuildingLoads.RidgePeaks(rb,310,Flat("B"));Check(Math.Abs(flat.Max()-flat.Min())<1e-9,"uniform exposure: every alignment gives the same peak");}
+  /* any ridge azimuth (owner, 25 November 2026: "All yung building rotation ialign sa different azimuth") */
+  {var a45=new WindBuildingInput{Width=12,Length=20,Eave=3,Apex=4,System="MRF Concrete",AutoG=false,RidgeDirection=1};var b45=new WindBuildingInput{Width=12,Length=20,Eave=3,Apex=4,System="MRF Concrete",AutoG=false,Azimuth=45};
+   var r1=WindBuildingLoads.Calculate(a45,310,Flat());var r2=WindBuildingLoads.Calculate(b45,310,Flat());Check(r1.Count==r2.Count&&r1.Zip(r2,(x,y)=>Math.Abs(x.P-y.P)<1e-12&&x.Direction==y.Direction).All(q=>q),"azimuth 45° = the NE–SW compass alignment");
+   var b30=new WindBuildingInput{Width=12,Length=20,Eave=3,Apex=4,System="MRF Concrete",AutoG=false,Azimuth=30};var dirs=Flat();dirs[2]=new WindDirection{Name="E",Exposure="C",Shape="Low relief",K1=0,K2=0,K3=0,Kzt=1};
+   var r3=WindBuildingLoads.Calculate(b30,310,dirs);var bearings=r3.Select(r=>r.Bearing).Distinct().OrderBy(x=>x).ToArray();Check(bearings.SequenceEqual(new[]{30.0,120,210,300}),"face normals at 30° steps of 90°: "+string.Join(",",bearings));
+   var w120=r3.First(r=>Math.Abs(r.Bearing-120)<1e-9);Check(w120.Exposure=="C"&&w120.Direction.StartsWith("120° (E terrain)"),"between E and SE the larger qh (exposure C of E) governs: "+w120.Direction);
+   Check(r3.First(r=>Math.Abs(r.Bearing-30)<1e-9).Direction.StartsWith("030° (")&&WindBuildingLoads.RidgeName(30)=="030°–210°"&&WindBuildingLoads.RidgeName(135)=="SE–NW"&&WindBuildingLoads.BearingName(-90)=="W","bearing and ridge names");
+   var v=WindBuildingGeometry.Vertices(b30);Near(Math.Atan2(v[3].X-v[0].X,v[3].Y-v[0].Y)*180/Math.PI,30,1e-9,"the model outline is turned to the azimuth");
+   Check(WindStaadInput.AxisOf(30+180,30)=="-X"&&WindStaadInput.AxisOf(120,30)=="+Z","STAAD axes with a +X bearing of 30°");
+   var cmds=WindStaadInput.FaceCommands(b30,310,dirs,30);Check(cmds.Contains("WIND WW+X")&&cmds.Contains("WIND LW-Z")&&cmds.Contains("+X = 030°, +Z = 120°"),"STAAD wind types named by the model axes at any +X bearing");
+   var peaks=WindBuildingLoads.AzimuthPeaks(b30,310,dirs,new[]{0.0,30,45});Check(peaks.Length==3&&peaks.All(p=>p>0)&&double.IsNaN(b30.Azimuth)==false&&b30.Azimuth==30,"azimuth sweep keeps the input azimuth");}
   Console.WriteLine("PASS: "+count+" wind pressure, workbook fixture, interpolation, sign and unresolved-data checks");
  }
 }

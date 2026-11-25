@@ -508,3 +508,7 @@ non-qualifying shape "No qualifying hill (Kzt = 1)", warns when H < 10 m (DEM ac
 Owner ("bakit yung upwind base below 0?"): in the Kzt profile, elevations below 0 m (sea floor, shore blending) are taken as
 mean sea level, 0 m, and the checks say so (WindTopographicAudit Ground, v7.2.31). Inland lakes / rivers keep their surface elevation;
 water cover alone never sets 0 m (a lake at 700 m is not an escarpment) (v7.2.32).
+Owner (25 November 2026, "All yung building rotation ialign sa different azimuth"): the building / ridge may have any azimuth (Ridge alignment
+"Other azimuth" + RidgeAzimuth; STAAD "+X" "Other bearing" + StaadXBearing). WindBuildingInput.Azimuth / Ridge, WindPressureRow.Bearing;
+a face normal between two of the eight assessed directions uses the neighbour with the larger qh (WindBuildingLoads.Pick); names are
+compass points on 45° multiples, otherwise bearings ("120°") (v7.2.36).

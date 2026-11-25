@@ -48,7 +48,7 @@ partial class WindDesignForm {
     for(int n=0;n<pair.Length;n++)WindProfileDrawing.Draw(g,new RectangleF(CalculationDocument.L,172+n*305,CalculationDocument.CW,295),pair[n]);
    });}
    {List<WindStaadBand> staadBands=null;string staadText="";if(BuildingEnabled&&terrain!=null){var sb=Building();var sd=WindAssessment.Calculate(terrain,sb.Height,wind.V,sb.Kd,sb.Height);staadBands=WindStaadInput.WallBands(sb,wind.V,sd);staadText=StaadLines.Wrap(WindStaadInput.FaceCommands(sb,wind.V,sd,StaadBearing()));}WindAuditPages.Add(doc,directions,staadBands,staadText,terrain);}
-   if(BuildingEnabled){var b=Building();string ridge=Value("RidgeDirection");var pressure=PressureRows(b);var grouped=pressure.GroupBy(r=>r.Direction).ToArray();
+   if(BuildingEnabled){var b=Building();string ridge=RidgeLabel();var pressure=PressureRows(b);var grouped=pressure.GroupBy(r=>r.Direction).ToArray();
     doc.Sheets.Add(g=>{
      CalculationDocument.Section(g,"MAIN WIND FORCE RESISTING SYSTEM (MWFRS) - BUILDING PRESSURE BASIS",130);
      CalculationDocument.Table(g,new[]{"Input","Value"},new List<string[]>{new[]{"Width × length",F(b.Width)+" m × "+F(b.Length)+" m"},new[]{"Eave / apex / mean roof height",F(b.Eave)+" / "+F(b.Apex)+" / "+F(b.Height)+" m"},new[]{"Roof slope / ridge alignment",F(b.Angle)+"° / "+ridge},new[]{"System / enclosure",b.System+" / "+b.Enclosure},new[]{"Gust calculation",b.AutoG?"Calculated; flexible response if n < 1 Hz":"User G = "+F(b.UserG)},new[]{"Internal pressure","Both signs: ±"+(b.Enclosure=="Enclosed"?"0.18":"0.55")}},172,new float[]{235,288},32);

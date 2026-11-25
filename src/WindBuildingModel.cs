@@ -14,7 +14,7 @@ class WindBuildingModel:Control {
     building"): one principal wind axis at a time, right-click for the next one */
  public System.Collections.Generic.List<WindPressureRow> Pressures;public int Axis;
  void DrawPressures(Graphics g,WindBuildingInput b,WindModelPoint[] p,Func<WindModelPoint,PointF> project,int[][] faces){var axes=Pressures.Select(r=>r.Direction).Distinct().ToList();if(axes.Count==0)return;Axis=((Axis%axes.Count)+axes.Count)%axes.Count;var rows=Pressures.Where(r=>r.Direction==axes[Axis]).ToList();
-  double ang=rows[0].TerrainDirection*Math.PI/4;double sx=Math.Sin(ang),sy=Math.Cos(ang);Func<int[],WindModelPoint> centroid=f=>new WindModelPoint(f.Average(n=>p[n].X),f.Average(n=>p[n].Y),f.Average(n=>p[n].Z));
+  double ang=rows[0].Bearing*Math.PI/180;double sx=Math.Sin(ang),sy=Math.Cos(ang);Func<int[],WindModelPoint> centroid=f=>new WindModelPoint(f.Average(n=>p[n].X),f.Average(n=>p[n].Y),f.Average(n=>p[n].Z));
   var dots=faces.Select(f=>{var c=centroid(f);return c.X*sx+c.Y*sy;}).ToArray();int windward=Enumerable.Range(0,4).OrderByDescending(i=>dots[i]).First(),leeward=Enumerable.Range(0,4).OrderBy(i=>dots[i]).First();bool slopedRoof=rows.Any(r=>r.Surface=="Windward roof");
   Func<int,string> surface=i=>i==windward?"Windward wall":i==leeward?"Leeward wall":i<4?"Side walls":slopedRoof?(dots[i]>0?"Windward roof":"Leeward roof"):"Roof zone";
   Func<string,double[]> values=name=>{var list=rows.Where(r=>r.Surface.StartsWith(name)).ToList();if(list.Count==0)return null;var pos=list.Where(r=>r.GCpi>0).Select(r=>r.P).ToList();var neg=list.Where(r=>r.GCpi<0).Select(r=>r.P).ToList();return new[]{pos.Min(),pos.Max(),neg.Min(),neg.Max()};};
