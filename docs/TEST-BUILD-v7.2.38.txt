@@ -1,0 +1,17 @@
+DTCE Tool Kit v7.2.38 (25 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Wind Load, Building inputs (owner: "mas maayos na building inputs"; "doble doble ang dimension, doble doble ang input sa staad,
+yung bearing magulo"):
+- One value per item, in numbered groups: 1 Building (width across / length along the ridge, eave, apex, system, enclosure);
+  2 Orientation on site (one "Ridge azimuth" box, degrees from north: 0 = N-S, 45 = NE-SW, 90 = E-W, 135 = NW-SE, any value; the
+  suggestion under it); 3 STAAD model (one choice: +X along the ridge toward the azimuth / the opposite way, or across the ridge
+  +90° / -90°); 4 Gust effect and internal pressure; 5 Components and cladding.
+- Removed from view: the compass list next to the azimuth, the STAAD X / Z dimensions (the building is entered once), the compass and
+  typed +X bearings and the separate ridge-axis choice. Only inputs that apply are shown (G only when not calculated, damping /
+  frequencies only when calculated, qi height only for partially enclosed buildings); nothing below the switch shows while building
+  pressures are off.
+- Older sheets open converted: a compass alignment becomes its azimuth; a compass / typed +X with the ridge axis becomes the azimuth and
+  the +X choice; STAAD X / Z dimensions become the width and length.
+- Fixed: the 3D building model and the report text followed only the compass alignment, not a typed azimuth; both use the azimuth now.
+Tests: WindBuildingLoadsTests 42, WindAuditTests 79, WindRecoveryTests 40, WindComponentsCladdingTests 22; legacy sheet conversion checked.
+Includes everything of v7.2.37.

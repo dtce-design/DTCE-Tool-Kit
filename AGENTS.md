@@ -519,3 +519,6 @@ Owner ("dapat yung faces ng building, pati yung Topographic factor"): with build
 from the ridge azimuth (WindTerrain.Offset = azimuth mod 45; faces + diagonals), so exposure and Kzt are per face; directions carry Index /
 Bearing and are named by bearing. Owner ("diko gets yung +x axis"): STAAD +X may be chosen along / across the ridge (relative to the azimuth)
 (v7.2.37).
+Owner ("mas maayos na building inputs"; "doble doble ang dimension ... yung bearing magulo"): Building inputs are numbered groups with one value
+each - dimensions once, one RidgeAzimuth box, one StaadPlusX choice relative to the ridge; RidgeDirection / StaadXDir / StaadXBearing /
+StaadRidgeAxis / StaadX / StaadZ stay hidden only to read older sheets (LegacyBuildingInputs converts them) (v7.2.38).
