@@ -304,6 +304,10 @@ visibility stays Public). Later versions again need a new explicit request.
 Owner (25 November 2026, chose "Upload v7.2.38"): the Store release is v7.2.38 (v7.2.37 plus the single-value Building inputs), the same way
 (PR #25, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only).
 Owner (25 November 2026, chose "Upload v7.2.39"): the Store release is v7.2.39 (v7.2.38 plus C&C from spacings), the same way.
+Done 25 November 2026: v7.2.39 merged to main (PR #25; GitHub release v7.2.39-build-311, run 45580077710). Store run 45580111705 (first
+attempt): new User (1152921505702502448; visibility Public) and Admin (1152921505702502447; visibility Private) submissions were created and
+committed, replacing the pending v7.2.34 submissions; Partner Center reported "accepted for processing". Certification is not guaranteed.
+v7.2.40 / v8.0.0 and later need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
