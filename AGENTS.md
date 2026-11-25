@@ -301,6 +301,8 @@ guaranteed. v7.2.35 and later need a new explicit request.
 New owner request (25 November 2026, "publsih to store after nyan"; chose "Replace v7.2.34"): publish v7.2.37 (User and Admin) after its
 Windows CI passes (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User
 visibility stays Public). Later versions again need a new explicit request.
+Owner (25 November 2026, chose "Upload v7.2.38"): the Store release is v7.2.38 (v7.2.37 plus the single-value Building inputs), the same way
+(PR #25, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only).
 
 ## Shared settings and the open project (23 November 2026)
 
