@@ -309,7 +309,8 @@ attempt): new User (1152921505702502448; visibility Public) and Admin (115292150
 committed, replacing the pending v7.2.34 submissions; Partner Center reported "accepted for processing". Certification is not guaranteed.
 v7.2.40 / v8.0.0 and later need a new explicit request.
 New owner request (26 November 2026, "PUBLISH TO MICROSOFT STORE"; then "before upload" add all spaces and the Dead Load sub tab): publish v10.0.0 (User and Admin) after its Windows CI passes (PR to main for
-the GitHub release, then publish_microsoft_store=true). Later versions again need a new explicit request.
+the GitHub release, then publish_microsoft_store=true; owner chose "Replace v7.2.39": replace_pending_store_submission=true for this release only;
+User visibility stays Public). Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
