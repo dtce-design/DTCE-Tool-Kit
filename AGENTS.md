@@ -370,6 +370,11 @@ window has a main tab "Design Loads" with the sub tabs Wind Load, Earthquake Loa
 loadTabs / LoadSheets) (v8.0.5). Owner ("Design Loads isang access code", v8.0.6): Design Loads is one grant - ProgramAccess.DesignLoads =
 WindDesign | EarthquakeRsa | LoadCombinations; any of the three bits opens all three (Allows), and the desktop generator lists one "Design Loads"
 choice (ProgramAccess.Choices / ChoiceNames). The iPhone app and web generator still list the three separately (unchanged; each opens all three).
+Owner (26 November 2026, "include Live Loads ... Government Buildings all spaces and Rooms ... summarize them per space. based on NSCP 2015";
+"INCLUDE SEARCH BAR"): new design sheet "Live Loads (NSCP 2015)" (v9.0.0), first sub tab of Design Loads, under the Design Loads grant (sheet
+type "Live-Loads" -> LoadCombinations bit; no new program). src/NscpLiveLoads.cs holds Table 205-1 / 205-3 and the spaces of 14 government
+building types (row id per space); src/LiveLoadsWindow.cs shows them per space with f1 / reduction and search bars. Values entered without the
+code text at hand: correct them from the owner's NSCP pages when given.
 
 ## Door hardware (23 November 2026)
 
