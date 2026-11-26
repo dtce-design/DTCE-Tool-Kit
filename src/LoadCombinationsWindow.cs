@@ -16,7 +16,7 @@ partial class LoadCombinationsForm:DesignSheetForm {
   var auto=new CheckBox{Text="Automatic primary loads (from the structure class; earthquake cases first)",Checked=true,AutoSize=true};var lives=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Width=60};lives.Items.AddRange(new object[]{"1","2","3"});lives.SelectedIndex=1;
   var roof=new CheckBox{Text="Roof live (LLR)",Checked=true,AutoSize=true};var wind=new CheckBox{Text="Wind (WL ±X, ±Z)",Checked=true,AutoSize=true};
   var eqCmd=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Width=110};eqCmd.Items.AddRange(new object[]{"UBC LOAD","IBC LOAD","None"});eqCmd.SelectedIndex=0;var acc=new TextBox{Width=50,Text="0.05"};
-  var perf=new CheckBox{Text="PERFORM ANALYSIS / CHANGE after each EQ case (older STAAD)",Checked=true,AutoSize=true};
+  var perf=new CheckBox{Text="PERFORM ANALYSIS / CHANGE after each EQ case (older STAAD only; not needed in newer STAAD)",Checked=false,AutoSize=true};
   var bar1=new FlowLayoutPanel{Dock=DockStyle.Top,Height=44,Padding=new Padding(0,4,0,0)};bar1.Controls.Add(auto);bar1.Controls.Add(new Label{Text="Live load cases",AutoSize=true});bar1.Controls.Add(lives);bar1.Controls.Add(roof);bar1.Controls.Add(wind);
   var bar2=new FlowLayoutPanel{Dock=DockStyle.Top,Height=44,Padding=new Padding(0,4,0,0)};bar2.Controls.Add(new Label{Text="Seismic load command",AutoSize=true});bar2.Controls.Add(eqCmd);bar2.Controls.Add(new Label{Text="Accidental eccentricity ACC (structure B)",AutoSize=true});bar2.Controls.Add(acc);bar2.Controls.Add(perf);
   box.Controls.Add(text);box.Controls.Add(cap);box.Controls.Add(bar2);box.Controls.Add(bar1);if(tab!=null){tab.Controls.Clear();tab.Controls.Add(box);}else loads.Controls.Add(box);Inputs.Add("Primary",text);
