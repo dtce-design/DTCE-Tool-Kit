@@ -24,6 +24,7 @@ internal static partial class PowTheme {
    var page=root as TabPage;
    if(page!=null){page.UseVisualStyleBackColor=false;page.BackColor=Background;}
    var flow=root as FlowLayoutPanel;
+   /* controls of a toolbar row share one centre line (owner, 26 November 2026) */if(flow!=null)BarAlign.Attach(flow);
    if(flow!=null&&flow.Dock==DockStyle.Top&&flow.FlowDirection==FlowDirection.LeftToRight){
     flow.AutoSize=true;flow.AutoSizeMode=AutoSizeMode.GrowAndShrink;flow.WrapContents=true;
     flow.MinimumSize=new Size(0,40);flow.Padding=new Padding(12,4,12,4);flow.BackColor=ModernUi.Surface;

@@ -1,0 +1,7 @@
+DTCE Tool Kit v10.0.7 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.6).
+
+PATCH - alignment of toolbar rows in every window (owner: "paki check yung alignment ng buttons, pati na rin sa iba, always laging ganyan
+ang problem"): a row of buttons, labels, text boxes, dropdowns and check boxes (or small label + box groups) is centred on one line
+(src/BarAlign.cs, attached by the theme to every left-to-right flow panel that holds only such controls); captions no longer sit above
+the buttons beside them (Live Loads search bar, Dead Loads tables, Load Combinations ρ bar ...).
+Includes everything of v10.0.6.
