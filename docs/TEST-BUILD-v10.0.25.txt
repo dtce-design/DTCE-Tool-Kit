@@ -1,0 +1,28 @@
+DTCE Tool Kit v10.0.25 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release request is v10.0.24).
+
+PATCH - Design Loads (owner, 26 November 2026):
+- Shared parameters ("yung occupancy category sa wind at eq di pa naka link, pati sana yung iba sa design loads na may parehas na
+  parameters"): the occupancy category (Wind I / II / III-V, Earthquake I to V) and the structural system (Wind MRF Steel / MRF
+  Concrete / Other, Earthquake Ct system) are one value: set in one sheet, the other follows (also sheets opened later). Already
+  linked: site, Ca / I / Omega0, rho, structure class, live cases, wind types. Fix: the link store wrote its own timestamp back as a
+  value and failed silently.
+- Load Combinations, one Settings tab ("masyadong confusing ito at paulit ulit yung ibang inputs ... isang tab na lang"): STAAD output and
+  Factors merged into four groups - 1 Structure and seismic factors, 2 Primary load cases, 3 Combination sets, 4 STAAD output - with
+  short captions and the explanations as tool tips. Linked values are hidden while linked (Ca, I, Omega0 from Earthquake; live cases and
+  f1 from Live Loads); Ax is shown on its own tab only; ACC only for structure B.
+- STAAD load combinations tab ("diko makita yung separator ng windows"): 7 px dividers with a grip between the three panes, framed panes.
+- Wind loads before the run ("hindi magbabase sa redundancy factor. kasi bago ko irun loaded na dapat ito"; "yung wind kasi kailangan
+  meron na yung values ng windload bago ko irun"): the Primary loads tab has a "STAAD input (.std) for the wind loads" box beside the
+  primary cases; paste the model before the run and the wind cases get the member loads on the recessed sides from it. The status lists
+  the loaded sides (owner's sample: X = 24, 30, 50, 56 m at levels 0, 5.1, 9.6). rho can stay 1.0 until after the run. The WIND LOAD
+  TYPE numbers follow the Wind Load sheet's STAAD Wind Input (TYPE 1-3 +X, 4-6 -X, 7-9 +Z, 10-12 -Z).
+- Structural irregularities ("isang sub tab per irregularity"; "inputs ... autocompute na lang sana from staad"): a Summary tab and one
+  tab per irregularity with its criterion, result, how it is found and only its own inputs. From the STAAD input: re-entrant corners
+  (recesses of each floor plan; typed values override), floor area for the diaphragm check, columns that start on a beam (out-of-plane
+  offsets, listed also under in-plane discontinuity), vertical geometry by the real floor levels (a wall mesh with joints every 0.5 m is
+  no longer read as storeys; a one-storey rooftop structure is not counted). Openings and a weak storey stay as inputs.
+- Wording ("bat ano yung structure C sa summary? e for load combo lang naman yun"): the summary says the result (regular / irregular,
+  with the types) and which seismic load cases the combinations use - "C, orthogonal 100 % + 30 % (irregular)" - instead of
+  "structure C"; the Settings field is "Seismic load cases".
+Tests: DesignLoadsFileTests 22, StructuralIrregularityTests 11, WindEdgeLoadsTests 16, StaadCombinationsTests 36, RedundancyFactorTests 20.
+Includes everything of v10.0.24.

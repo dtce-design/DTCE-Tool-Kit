@@ -11,33 +11,57 @@ partial class LoadCombinationsForm:DesignSheetForm {
  public LoadCombinationsForm():base("Load Combinations (NSCP 2015) - STAAD input with orthogonal seismic effects","Load-Combinations"){
   var loads=Section("Primary loads","Paste the primary load cases of the STAAD model, one per line, as in the STAAD input (LOAD 4 LOADTYPE SEISMIC-H TITLE EQ+X) or the load case list (4 EQ+X Seismic-H). The load type gives D (Dead), L (Live), Lr (Roof Live), W (Wind) and E (Seismic-H; Seismic-V = Ev); without a type the title is read (DL, SDL, LL, LLR, WL+X, EQ+X ...). The combinations use the same titles.");
   var text=new TextBox{Multiline=true,ScrollBars=ScrollBars.Vertical,Width=560,Height=300,Font=new Font("Consolas",9.5f),Text=StaadCombinations.Example.Replace("\n","\r\n"),AcceptsReturn=true};/* the whole page is the box for the pasted lines (no two-column input layout) */var tab=loads.Parent.Parent as TabPage;var box=new Panel{Dock=DockStyle.Fill,BackColor=Color.White,Padding=new Padding(14)};text.Dock=DockStyle.Fill;text.Width=0;
-  var cap=new Label{Text="Primary load cases - automatic from the structure class (options on the STAAD output tab). To paste your own, uncheck Automatic there and paste them here as in the STAAD input (LOAD 5 LOADTYPE SEISMIC-H TITLE EQ+X).",Dock=DockStyle.Top,Height=52,Font=ModernUi.Strong,ForeColor=PowTheme.Ink};
-  box.Controls.Add(text);box.Controls.Add(cap);if(tab!=null){tab.Controls.Clear();tab.Controls.Add(box);}else loads.Controls.Add(box);Inputs.Add("Primary",text);
-  /* the primary-load and STAAD output options on their own tab, as ordinary fields (owner: "apakagulo naman nito") */
-  var opts=Section("STAAD output","Primary load cases made automatically (earthquake cases first) and what the STAAD output contains.");
-  var auto=Toggle(opts,"AutoPrimary","Automatic primary loads from the structure class (uncheck to paste your own on the Primary loads tab)",true);
-  Choice(opts,"LiveCases","Live load cases (LL1, LL2 ...)",new[]{"1","2","3"});((ComboBox)Inputs["LiveCases"]).SelectedIndex=1;
-  Toggle(opts,"RoofLive","Roof live load case (LLR)",true);/* owner: "automatic na ganito WIND LOAD X 1 TYPE 1 YR 0 12.6"; "tapos meron pa kasi sa gitna" */Toggle(opts,"WindLinked","Wind cases from the Wind Load sheet: WIND LOAD lines of its TYPEs, plus member loads on recessed faces from the STAAD input (Redundancy factor tab)",true);Toggle(opts,"WindCases","Wind load cases (WL+X, WL-X, WL+Z, WL-Z)",true);
-  Choice(opts,"EqCommand","Seismic load command in the EQ cases",new[]{"UBC LOAD","IBC LOAD","None"});
-  NumberField(opts,"Acc","Accidental eccentricity ACC (structure B)","0.05");NumberField(opts,"Ax","Torsional amplification Ax (1.0 - 3.0; from the Ax tab after the run)","1.0");
-  Toggle(opts,"PerformChange","PERFORM ANALYSIS / CHANGE after each EQ case (older STAAD only)",false);
-  Toggle(opts,"PrintReports","PERFORM ANALYSIS and print commands (CG, DIAPHRAGM CR, STORY STIFFNESS, STORY DRIFT, displacements, member forces, reactions)",true);
-  Toggle(opts,"LlLinked","Live load cases and f1 from the Live Loads sheet (checked spaces: LL1 f1 0.5, LL2 f1 1.0)",true);
-  EnableWhen(()=>On("AutoPrimary")&&!(On("LlLinked")&&LiveLink()!=null),"LiveCases");EnableWhen(()=>On("AutoPrimary"),"RoofLive","WindCases");EnableWhen(()=>!(On("AutoPrimary")&&On("LlLinked")&&LiveLink()!=null),"F1One");
-  auto.CheckedChanged+=(s0,e0)=>{text.ReadOnly=auto.Checked;};text.ReadOnly=true;
-  var factors=Section("Factors","NSCP 2015 Section 203.3.1 (LRFD) and 203.4.1 (ASD); E = ρEh + Ev (Section 208.5.1.1), Ev = 0.5 Ca I D. Take ρ, Ca and I from the Earthquake Load sheet.");
+  var cap=new Label{Text="Primary load cases - automatic from the structure class (Settings tab). To paste your own, uncheck Automatic there and paste them here as in the STAAD input (LOAD 5 LOADTYPE SEISMIC-H TITLE EQ+X).",Dock=DockStyle.Top,Height=52,Font=ModernUi.Strong,ForeColor=PowTheme.Ink};
+  /* the STAAD input pasted before the run (owner, 26 November 2026: "hindi magbabase sa redundancy factor. kasi bago ko irun loaded na dapat ito"):
+     the wind loads on recessed faces and the floor plans of the irregularity checks need only the model, not the results */
+  var model=new TextBox{Multiline=true,ScrollBars=ScrollBars.Both,WordWrap=false,Dock=DockStyle.Fill,Font=new Font("Consolas",9.5f),AcceptsReturn=true,BorderStyle=BorderStyle.FixedSingle};Inputs.Add("StaadInput",model);
+  var modelCap=new Label{Text="STAAD input (.std) for the wind loads - paste the model before the run: the wind cases get the member loads on the recessed faces from it (ρ can stay 1.0 until after the run).",Dock=DockStyle.Top,Height=52,Font=ModernUi.Strong,ForeColor=PowTheme.Ink};
+  var pair=new SplitContainer{Dock=DockStyle.Fill,Orientation=Orientation.Vertical,SplitterWidth=7,BackColor=Color.FromArgb(176,186,182)};pair.Panel1.BackColor=Color.White;pair.Panel2.BackColor=Color.White;pair.Panel1.Padding=new Padding(0,0,8,0);pair.Panel2.Padding=new Padding(8,0,0,0);
+  text.BorderStyle=BorderStyle.FixedSingle;pair.Panel1.Controls.Add(text);pair.Panel1.Controls.Add(cap);pair.Panel2.Controls.Add(model);pair.Panel2.Controls.Add(modelCap);box.Controls.Add(pair);
+  if(tab!=null){tab.Controls.Clear();tab.Controls.Add(box);}else loads.Controls.Add(box);Inputs.Add("Primary",text);
+  Shown+=(s0,e0)=>{try{pair.SplitterDistance=Math.Max(200,pair.Width/2);}catch(Exception){}};
+  /* one Settings tab in four groups (owner, 26 November 2026: "masyadong confusing ito at paulit ulit yung ibang inputs. sana masmaayos na
+     layout. saka baka pwede isang tab na lang"): short captions, the explanations as tool tips, linked values hidden instead of repeated */
+  var set=Section("Settings","Structure class and seismic factors, the primary load cases, the NSCP 2015 combination sets (Section 203) and what the STAAD output contains. Values linked from the other Design Loads sheets are hidden while linked.");
+  var tips=new ToolTip{AutoPopDelay=20000};Action<string,string> tip=(key,help)=>tips.SetToolTip(Inputs[key],help);
+  Action<string> group=t=>set.Controls.Add(new Label{Text=t.ToUpperInvariant(),Height=30,TextAlign=ContentAlignment.BottomLeft,Font=new Font("Segoe UI Semibold",9f),ForeColor=PowTheme.Teal,UseMnemonic=false});
+  group("1  Structure and seismic factors");
   /* the seismic cases as in the owner's STAAD notes: A regular / symmetrical, B regular / unsymmetrical (accidental torsion), C irregular /
      unsymmetrical (orthogonal effects as REPEAT LOAD cases) */
-  Choice(factors,"Structure","Structure (seismic load cases)",new[]{"C - Irregular and unsymmetrical: orthogonal 1.0(EQ+X)+0.3(EQ+Z) ...","B - Regular and unsymmetrical: EQ +X +E, EQ +X -E ... (accidental torsion)","A - Regular and symmetrical: EQ +X, -X, +Z, -Z"});
-  /* f1 by live case (owner: "hiwalay yung LL1 at LL2 yung f1 niya") */NumberField(factors,"F1One","Live cases with f1 = 1.0 (titles, e.g. LL2) - assembly, live load over 4.8 kPa, garages; the others 0.5","LL2");
-  Toggle(factors,"EqLinked","Ca, I and Ω0 from the Earthquake Load sheet (Calculate it first)",true);NumberField(factors,"Rho","Reliability / redundancy factor ρ","1.0");NumberField(factors,"Ca","Seismic coefficient Ca","0.44");NumberField(factors,"I","Importance factor I","1.0");
-  Toggle(factors,"Ev","Include Ev = 0.5 Ca I D in the strength design combinations (when there is no Seismic-V case)",true);Toggle(factors,"EvAsd","Also include Ev in the ASD combinations (208-18: Ev may be taken as zero for ASD)",false);
-  Toggle(factors,"Lrfd","Strength design, Eq. 203-1 to 203-7 (1000)",true);Toggle(factors,"AltAsd","Alternate basic ASD, Eq. 203-13 to 203-18 (2000) - one-third stress increase for W / E",true);Toggle(factors,"Special","Special seismic, Eq. 203-19 and 203-20, Em = Ω0 Eh (3000)",true);NumberField(factors,"Omega0","System overstrength Ω0 (Table 208-11)","2.8");
-  Toggle(factors,"Asd","Basic ASD, Eq. 203-8 to 203-12 (4000) - no stress increase; use instead of the alternate set",false);Toggle(factors,"Drift","Drift checks (5000 wind, 6000 seismic)",true);Toggle(factors,"DriftGravity","Seismic drift with gravity, D + 0.5L + 1.0 Eh (when STAAD runs P-Delta)",false);NumberField(factors,"DriftWind","Wind factor for the wind drift check (D + 0.5L + k W); 0.6 = service-level wind","0.6");
-  EnableWhen(()=>On("Ev")&&!On("EqLinked"),"Ca","I");EnableWhen(()=>On("Ev"),"EvAsd");EnableWhen(()=>On("Drift"),"DriftWind","DriftGravity");EnableWhen(()=>On("Special")&&!On("EqLinked"),"Omega0");EnableWhen(()=>Value("Structure").StartsWith("B"),"Acc","Ax");
+  Choice(set,"Structure","Seismic load cases",new[]{"C - Irregular and unsymmetrical: orthogonal 1.0(EQ+X)+0.3(EQ+Z) ...","B - Regular and unsymmetrical: EQ +X +E, EQ +X -E ... (accidental torsion)","A - Regular and symmetrical: EQ +X, -X, +Z, -Z"});
+  NumberField(set,"Rho","Redundancy factor ρ","1.0");tip("Rho","Reliability / redundancy factor ρ (Section 208.5.1.1); computed on the Redundancy factor ρ tab from the pasted STAAD data.");
+  Toggle(set,"EqLinked","Ca, I, Ω0 from the Earthquake sheet",true);tip("EqLinked","Seismic coefficient Ca, importance factor I and overstrength Ω0 taken from the Earthquake Load sheet (calculate it first).");
+  NumberField(set,"Ca","Seismic coefficient Ca","0.44");NumberField(set,"I","Importance factor I","1.0");NumberField(set,"Omega0","Overstrength Ω0 (Table 208-11)","2.8");
+  Toggle(set,"Ev","Ev = 0.5 Ca I D in strength design",true);tip("Ev","Vertical seismic Ev = 0.5 Ca I D added to the strength design combinations (when there is no Seismic-V case); E = ρEh + Ev (208.5.1.1).");
+  Toggle(set,"EvAsd","Ev also in the ASD sets",false);tip("EvAsd","Section 208-18: Ev may be taken as zero for allowable stress design.");
+  NumberField(set,"Acc","Accidental eccentricity ACC (B)","0.05");tip("Acc","Accidental torsion for structure B: ACC = 0.05 x Ax; Ax comes from the Torsional amplification Ax tab after the STAAD run.");
+  NumberField(set,"Ax","Torsional amplification Ax","1.0");
+  group("2  Primary load cases");
+  var auto=Toggle(set,"AutoPrimary","Automatic primary load cases",true);tip("AutoPrimary","Built from the structure class, earthquake cases first. Uncheck to paste your own list on the Primary loads tab.");
+  Choice(set,"EqCommand","Seismic command in the EQ cases",new[]{"UBC LOAD","IBC LOAD","None"});
+  Toggle(set,"LlLinked","Live cases from the Live Loads sheet",true);tip("LlLinked","The checked spaces of the Live Loads sheet set the live cases: LL1 (f1 0.5), LL2 (f1 1.0).");
+  Choice(set,"LiveCases","Live load cases",new[]{"1","2","3"});((ComboBox)Inputs["LiveCases"]).SelectedIndex=1;
+  /* f1 by live case (owner: "hiwalay yung LL1 at LL2 yung f1 niya") */NumberField(set,"F1One","Live cases with f1 = 1.0","LL2");tip("F1One","Titles of the live cases with f1 = 1.0 (assembly, live load over 4.8 kPa, garages); the others take 0.5.");
+  Toggle(set,"RoofLive","Roof live load case LLR",true);Toggle(set,"WindCases","Wind load cases WL±X, WL±Z",true);
+  /* owner: "automatic na ganito WIND LOAD X 1 TYPE 1 YR 0 12.6"; "tapos meron pa kasi sa gitna" */Toggle(set,"WindLinked","WIND LOAD lines from the Wind sheet",true);tip("WindLinked","Each wind case gets the WIND LOAD lines of the Wind Load sheet's TYPEs, plus member loads on recessed faces found from the STAAD input pasted on the Primary loads tab (before the run).");
+  Toggle(set,"PerformChange","PERFORM ANALYSIS / CHANGE per EQ case",false);tip("PerformChange","Only for older STAAD versions that need an analysis after each earthquake case.");
+  group("3  Combination sets (NSCP 2015 Section 203)");
+  Toggle(set,"Lrfd","Strength design 203-1 to 203-7 (1000)",true);Toggle(set,"AltAsd","Alternate basic ASD 203-13 to 203-18 (2000)",true);tip("AltAsd","One-third stress increase for W / E.");
+  Toggle(set,"Asd","Basic ASD 203-8 to 203-12 (4000)",false);tip("Asd","No stress increase; use instead of the alternate set.");
+  Toggle(set,"Special","Special seismic 203-19, 203-20 (3000)",true);tip("Special","Em = Ω0 Eh.");
+  Toggle(set,"Drift","Drift checks (5000 wind, 6000 seismic)",true);NumberField(set,"DriftWind","Wind factor k in D + 0.5L + kW","0.6");tip("DriftWind","Wind drift check D + 0.5L + k W; 0.6 = service-level wind.");
+  Toggle(set,"DriftGravity","Seismic drift with D + 0.5L (P-Delta)",false);tip("DriftGravity","Seismic drift D + 0.5L + 1.0 Eh when STAAD runs P-Delta; otherwise 1.0 Eh.");
+  group("4  STAAD output");
+  Toggle(set,"PrintReports","Analysis and print commands",true);tip("PrintReports","PERFORM ANALYSIS and the print commands: CG, DIAPHRAGM CR, STORY STIFFNESS, STORY DRIFT, displacements, member forces, reactions.");
+  auto.CheckedChanged+=(s0,e0)=>{text.ReadOnly=auto.Checked;};text.ReadOnly=true;
+  EnableWhen(()=>On("AutoPrimary"),"RoofLive","WindCases","WindLinked","LlLinked","EqCommand");EnableWhen(()=>On("Ev"),"EvAsd");EnableWhen(()=>On("Drift"),"DriftWind","DriftGravity");EnableWhen(()=>Value("Structure").StartsWith("B"),"Acc");
+  /* linked or unused values are hidden, not repeated */
+  ShowWhen(()=>!(On("AutoPrimary")&&On("LlLinked")&&LiveLink()!=null),"LiveCases","F1One");ShowWhen(()=>!On("EqLinked"),"Ca","I","Omega0");EnableWhen(()=>!On("EqLinked"),"Ca","I","Omega0");ShowWhen(()=>false,"Ax");ShowWhen(()=>Value("Structure").StartsWith("B"),"Acc");
   /* rho from the STAAD model (owner: "How do you compute redundancy or reliability factor" - "Yes with automatic staad computation") */AddRhoPage();/* owner: "add also automatic computation of torsional amplification factor" */AddAxPage();/* owner: "for structural irregularities check" */AddIrregularPage();
   var page=new TabPage("STAAD load combinations");var top=new FlowLayoutPanel{Dock=DockStyle.Top,Height=46,Padding=new Padding(6)};var copy=new Button{Text="Copy STAAD input",AutoSize=true};copy.Click+=(s,e)=>{if(output.Text.Length>0)Clipboard.SetText(output.Text);};top.Controls.Add(copy);
-  var split=new SplitContainer{Dock=DockStyle.Fill,Orientation=Orientation.Vertical,SplitterDistance=520};var left=new SplitContainer{Dock=DockStyle.Fill,Orientation=Orientation.Horizontal,SplitterDistance=220};
+  var split=new SplitContainer{Dock=DockStyle.Fill,Orientation=Orientation.Vertical,SplitterDistance=520};var left=new SplitContainer{Dock=DockStyle.Fill,Orientation=Orientation.Horizontal,SplitterDistance=220};/* visible dividers between the three panes (owner, 26 November 2026: "masakit tignan itong tab, diko makita yung separator ng windows"):
+     a 7 px bar in the line colour with a grip, white panes */foreach(var sc in new[]{split,left}){sc.SplitterWidth=7;sc.BackColor=Color.FromArgb(176,186,182);sc.Panel1.BackColor=Color.White;sc.Panel2.BackColor=Color.White;var bar=sc;bar.Paint+=(s0,e0)=>{var r=bar.SplitterRectangle;using(var dot=new SolidBrush(Color.FromArgb(110,122,118)))for(int k=-2;k<=2;k++){if(bar.Orientation==Orientation.Vertical)e0.Graphics.FillEllipse(dot,r.X+r.Width/2-2,r.Y+r.Height/2+k*9-2,4,4);else e0.Graphics.FillEllipse(dot,r.X+r.Width/2+k*9-2,r.Y+r.Height/2-2,4,4);}};}
+  foreach(var g in new[]{cases,combos}){g.BorderStyle=BorderStyle.FixedSingle;}output.BorderStyle=BorderStyle.FixedSingle;
   left.Panel1.Controls.Add(cases);left.Panel2.Controls.Add(combos);split.Panel1.Controls.Add(left);split.Panel2.Controls.Add(output);page.Controls.Add(split);page.Controls.Add(top);page.Controls.Add(status);AddResultPage(page);
   foreach(var h in new[]{"No.","Title","Used as"})cases.Columns.Add(h,h);foreach(var h in new[]{"No.","Group / Eq.","Combination"})combos.Columns.Add(h,h);cases.Columns[0].FillWeight=20;combos.Columns[0].FillWeight=20;combos.Columns[1].FillWeight=40;
   GridAppearance.Apply(cases);GridAppearance.Apply(combos);
@@ -65,8 +89,8 @@ partial class LoadCombinationsForm:DesignSheetForm {
  /* wind case text, cached by the model and the Wind sheet's types */
  string windNote="",windKey=null;Dictionary<string,string> windCache;
  Dictionary<string,string> WindTexts(){windNote="";if(!On("WindLinked"))return new Dictionary<string,string>();var link=DesignLoadsLink.Get("wind-staad");if(link==null){windNote="Wind cases: calculate the Wind Load sheet with building pressures and the STAAD +X set.";return new Dictionary<string,string>();}
-  string mt,ft;RhoTexts(out mt,out ft);string key=string.Join(";",link.OrderBy(k=>k.Key).Select(k=>k.Key+"="+k.Value))+"#"+(mt??"").Length+"#"+(mt??"").GetHashCode();
-  if(key!=windKey){string n;windCache=WindEdgeLoads.CaseTexts(link.Where(k=>k.Key.Length==2).ToDictionary(k=>k.Key,k=>k.Value),mt,out n);windKey=key;windCacheNote=n;}windNote="Wind cases: "+windCacheNote;return windCache;}
+  string mt=Value("StaadInput"),ft;if(!RedundancyFactor.HasModel(mt))RhoTexts(out mt,out ft);string key=string.Join(";",link.OrderBy(k=>k.Key).Select(k=>k.Key+"="+k.Value))+"#"+(mt??"").Length+"#"+(mt??"").GetHashCode();
+  if(key!=windKey){string n;windCache=WindEdgeLoads.CaseTexts(link.Where(k=>k.Key.Length==2).ToDictionary(k=>k.Key,k=>k.Value),mt,out n);windKey=key;windCacheNote=n;}windNote="Wind cases: "+windCacheNote.Replace("Paste the STAAD input on the Redundancy factor tab","Paste the STAAD input on the Primary loads tab");return windCache;}
  string windCacheNote="";
  void Refresh0(){if(!Restoring&&(ApplyEqLink()|ApplyOtherLinks()))return;cases.Rows.Clear();combos.Rows.Clear();
   if(On("AutoPrimary")&&!Restoring){string auto=StaadCombinations.AutoPrimary(Value("Structure").Substring(0,1),int.Parse(Value("LiveCases")),On("RoofLive"),On("WindCases")).Replace("\n","\r\n");if(Inputs["Primary"].Text!=auto){Inputs["Primary"].Text=auto;return;}}
@@ -95,7 +119,7 @@ partial class LoadCombinationsForm:DesignSheetForm {
   if(IrregularReport(rep,sec))sec++;
   rep.Heading(sec+"  LOAD COMBINATIONS");foreach(var g in all.GroupBy(c=>c.Group)){rep.Paragraph(g.Key,false,true);rep.Table(new[]{"No.","Eq.","Combination","Factors (load case x factor)"},g.Select(c=>new[]{c.No.ToString(),c.Eq,c.Title,string.Join("  ",c.Terms.OrderBy(t=>t.Key.No).Select(t=>t.Key.No+" x "+StaadCombinations.F(t.Value)))}),new float[]{9,14,42,35});}
   return rep.Build();}
- protected override bool OptionalSavedInput(string key){return key.StartsWith("Rho")&&key!="Rho"||key=="AutoPrimary"||key=="LiveCases"||key=="RoofLive"||key=="WindCases"||key=="EqCommand"||key=="Acc"||key=="Ax"||key=="DriftGravity"||key=="AxDisplacements"||key=="PrintReports"||key.StartsWith("Reg")||key=="EqLinked"||key=="PerformChange"||key=="LlLinked"||key=="WindLinked";}
+ protected override bool OptionalSavedInput(string key){return key.StartsWith("Rho")&&key!="Rho"||key=="AutoPrimary"||key=="LiveCases"||key=="RoofLive"||key=="WindCases"||key=="EqCommand"||key=="Acc"||key=="Ax"||key=="DriftGravity"||key=="AxDisplacements"||key=="PrintReports"||key.StartsWith("Reg")||key=="EqLinked"||key=="PerformChange"||key=="LlLinked"||key=="WindLinked"||key=="StaadInput";}
  /* sheets saved before the automatic primary loads keep their pasted primary loads */
  bool legacyPrimary;protected override void ReadAdditionalState(System.Xml.XmlElement root){legacyPrimary=root.SelectSingleNode("Input[@key='AutoPrimary']")==null;}
  protected override void AfterRestore(){base.AfterRestore();if(legacyPrimary)((CheckBox)Inputs["AutoPrimary"]).Checked=false;Refresh0();}

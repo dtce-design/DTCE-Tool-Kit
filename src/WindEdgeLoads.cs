@@ -40,6 +40,13 @@ static class WindEdgeLoads {
    if(dz==0){if(Math.Min(s.Z1,s.Z2)>z||Math.Max(s.Z1,s.Z2)<z||Math.Abs(s.Z2-s.Z1)<1e-9)continue;double xi=s.X1+(s.X2-s.X1)*(z-s.Z1)/(s.Z2-s.Z1);if((xi-x)*dx>0)return true;}
    else{if(Math.Min(s.X1,s.X2)>x||Math.Max(s.X1,s.X2)<x||Math.Abs(s.X2-s.X1)<1e-9)continue;double zi=s.Z1+(s.Z2-s.Z1)*(x-s.X1)/(s.X2-s.X1);if((zi-z)*dz>0)return true;}}
   return false;}
+ /* the floor plan of every level from its beams (grid cells enclosed by beams on all four sides), for the irregularity checks */
+ internal sealed class FloorPlan {public double Level;public List<double> Xs,Zs;public bool[,] Inside;
+  public double Area{get{double a=0;for(int i=0;i+1<Xs.Count;i++)for(int j=0;j+1<Zs.Count;j++)if(Inside[i,j])a+=(Xs[i+1]-Xs[i])*(Zs[j+1]-Zs[j]);return a;}}}
+ internal static List<FloorPlan> FloorPlans(StaadModel m){var list=new List<FloorPlan>();if(m==null||m.ZUp)return list;foreach(var lv in Levels(m).OrderBy(k=>k.Key)){var segs=lv.Value;
+   var xs=segs.SelectMany(s=>new[]{s.X1,s.X2}).Distinct().OrderBy(v=>v).ToList();var zs=segs.SelectMany(s=>new[]{s.Z1,s.Z2}).Distinct().OrderBy(v=>v).ToList();if(xs.Count<2||zs.Count<2)continue;
+   var inside=new bool[xs.Count-1,zs.Count-1];for(int i=0;i+1<xs.Count;i++)for(int j=0;j+1<zs.Count;j++){double cx=(xs[i]+xs[i+1])/2,cz=(zs[j]+zs[j+1])/2;inside[i,j]=Hits(segs,cx,cz,1,0)&&Hits(segs,cx,cz,-1,0)&&Hits(segs,cx,cz,0,1)&&Hits(segs,cx,cz,0,-1);}
+   list.Add(new FloorPlan{Level=lv.Key,Xs=xs,Zs=zs,Inside=inside});}return list;}
  /* the outline faces of every level: grid cells between the beam lines are inside when beams enclose them on all four sides; a cell side
     between an inside and an outside cell is a face; a face is shielded when the floor continues beyond it along its outward normal */
  internal static List<WindEdgeFace> Faces(StaadModel m,double baseY,double top,out string note){note="";var faces=new List<WindEdgeFace>();
@@ -83,7 +90,7 @@ static class WindEdgeLoads {
    var b=new StringBuilder(WindLoadLines(t,baseY));
    if(model!=null){if(faces==null){string n;faces=Faces(model,baseY,t.Top,out n);if(n!="")note=n;}int c;string r=RecessLoads(model,faces,t,out c);recess+=c;if(r!="")b.Append("\n").Append(r);}
    map[travel]=b.ToString();}
-  if(map.Count>0)note=(note!=""?note+" ":"")+(model==null?"Paste the STAAD input on the Redundancy factor tab to load the recessed faces too.":recess>0?recess+" member loads on recessed faces added.":"No recessed face found: WIND LOAD reaches every face.");
+  if(map.Count>0)note=(note!=""?note+" ":"")+(model==null?"Paste the STAAD input on the Primary loads tab to load the recessed faces too.":recess>0?recess+" member loads on the recessed sides: "+string.Join("; ",faces.Where(f=>f.Shielded).GroupBy(f=>f.Normal[1]+"="+F(f.At)+" m, "+(f.Normal[1]=='X'?"Z ":"X ")+F(f.A1)+"-"+F(f.A2)+" m").Select(g=>g.Key+" (levels "+string.Join(", ",g.Select(f=>F(f.Level)).Distinct())+")"))+".":"No recessed face found: WIND LOAD reaches every face.");
   return map;}
 }
 }

@@ -43,7 +43,7 @@ namespace BeamScheduleFormatter {
 static class DesignLoadsLink {
  static string PathOf(string name){return System.IO.Path.Combine(SharedData.Folder("Links",System.IO.Path.Combine("DTCE Tool Kit","Links")),name+"-link.xml");}
  internal static void Set(string name,System.Collections.Generic.Dictionary<string,string> values){try{var x=new System.Xml.Linq.XElement("Link",new System.Xml.Linq.XAttribute("saved",DateTime.Now.ToString("o",System.Globalization.CultureInfo.InvariantCulture)));
-   foreach(var kv in values)x.Add(new System.Xml.Linq.XAttribute(kv.Key,kv.Value??""));var path=PathOf(name);if(System.IO.File.Exists(path)){var old=System.Xml.Linq.XElement.Load(path);bool same=values.All(kv=>(string)old.Attribute(kv.Key)==(kv.Value??""));if(same)return;}x.Save(path);}catch(Exception){}}
- internal static System.Collections.Generic.Dictionary<string,string> Get(string name){try{var path=PathOf(name);if(!System.IO.File.Exists(path))return null;var x=System.Xml.Linq.XElement.Load(path);return x.Attributes().ToDictionary(a=>a.Name.LocalName,a=>a.Value);}catch(Exception){return null;}}
+   foreach(var kv in values)if(kv.Key!="saved")x.Add(new System.Xml.Linq.XAttribute(kv.Key,kv.Value??""));var path=PathOf(name);if(System.IO.File.Exists(path)){var old=System.Xml.Linq.XElement.Load(path);bool same=values.Where(kv=>kv.Key!="saved").All(kv=>(string)old.Attribute(kv.Key)==(kv.Value??""));if(same)return;}x.Save(path);}catch(Exception){}}
+ internal static System.Collections.Generic.Dictionary<string,string> Get(string name){try{var path=PathOf(name);if(!System.IO.File.Exists(path))return null;var x=System.Xml.Linq.XElement.Load(path);return x.Attributes().Where(a=>a.Name.LocalName!="saved").ToDictionary(a=>a.Name.LocalName,a=>a.Value);}catch(Exception){return null;}}
 }
 }

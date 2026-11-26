@@ -114,5 +114,9 @@ partial class WindDesignForm {
    if(terrain!=null&&Math.Abs(terrain.Offset-TerrainOffset())>1e-6)pressureStatus.Text+=" Terrain directions do not follow the building faces (assessed from "+WindBuildingLoads.BearingName(terrain.Offset)+" in 45° steps): press Load terrain again to assess exposure and Kzt for each face; until then each face uses the governing neighbouring direction.";
   }catch(Exception ex){pressureStatus.Text=ex.Message;UpdateCc(null,null);}}
  protected override bool OptionalSavedInput(string key){return buildingKeys.Contains(key);}
+ /* shared with the Earthquake Load sheet: occupancy category (Wind groups III to V) and the structural system */
+ protected override void SharedParameters(){
+  Share("occupancy","Category",v=>v=="I"||v=="II"?v:v=="III-V"?"III-V":null,(now,c)=>c=="I"||c=="II"?c:"III-V");
+  var sys=(ComboBox)Inputs["BuildingSystem"];Share("system","BuildingSystem",v=>SystemCommon(sys.Items.Cast<object>().Select(Convert.ToString).ToList().IndexOf(v)),(now,c)=>{int i=SystemIndex(c);return i<0?null:Convert.ToString(sys.Items[i]);});}
 }
 }
