@@ -26,6 +26,12 @@ static class RedundancyFactor {
  static double N(string s){return double.Parse(s,NumberStyles.Float,Ci);}
  static bool IsNum(string s){double v;return double.TryParse(s,NumberStyles.Float,Ci,out v);}
  /* the STAAD input: units, joints and members (with the simple generation forms) */
+ /* the model from the STAAD Nodes table (Node, X, Y, Z) and Beams table (Beam, Node A, Node B) as copied from STAAD; coordinates in metres
+    (a unit in the column headers is read) (owner, 26 November 2026: "2 inputs na lang joint from table and beams from table. or staad command
+    file or .std") */
+ internal static StaadModel ReadTables(string nodes,string beams){var data=new BeamDeflectionData();StaadDisplacements.Coordinates(data,nodes,"m");StaadDisplacements.Members(data,beams);
+  var m=new StaadModel{ToMetre=1};foreach(var n in data.Nodes.Values)m.Joints[n.Id]=new StaadJoint{No=n.Id,X=n.X,Y=n.Y,Z=n.Z};foreach(var b in data.Members.Values)m.Members[b.Id]=new StaadMember{No=b.Id,A=b.A,B=b.B};
+  if(m.Joints.Count==0||m.Members.Count==0)throw new Exception("Paste the STAAD Nodes table (Node, X, Y, Z) and the Beams table (Beam, Node A, Node B).");return m;}
  internal static StaadModel ReadModel(string text){var m=new StaadModel();string block="";double unit=1;
   foreach(var raw in (text??"").Replace("\r","").Split('\n')){/* the .ANL echoes the input with line numbers ("  12. JOINT COORDINATES") */string line=Regex.Replace(raw.Trim(),@"^\d+\.\s+","");if(line==""||line.StartsWith("*"))continue;string u=line.ToUpperInvariant();
    if(u.StartsWith("UNIT")){if(Regex.IsMatch(u,@"\bMMS?\b"))unit=0.001;else if(Regex.IsMatch(u,@"\bCMS?\b"))unit=0.01;else if(Regex.IsMatch(u,@"\b(METER|METRES?|METERS?|M)\b"))unit=1;else if(Regex.IsMatch(u,@"\b(FEET|FT)\b"))unit=0.3048;else if(Regex.IsMatch(u,@"\b(INCH|INCHES|IN)\b"))unit=0.0254;continue;}

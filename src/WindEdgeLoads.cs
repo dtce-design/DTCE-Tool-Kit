@@ -82,15 +82,15 @@ static class WindEdgeLoads {
   if(lines.Count==0)return "";
   return "* recessed faces the wind does not reach along "+t.Travel+" (from the model edges): w = p x tributary height\nUNIT METER KN\nMEMBER LOAD\n"+string.Join("\n",lines);}
  /* the wind load text of each case (+X, -X, +Z, -Z) for the Load Combinations sheet */
- internal static Dictionary<string,string> CaseTexts(Dictionary<string,string> link,string modelText,out string note){note="";var map=new Dictionary<string,string>();if(link==null)return map;
-  StaadModel model=null;List<WindEdgeFace> faces=null;double baseY=0;
-  if(RedundancyFactor.HasModel(modelText)){model=RedundancyFactor.ReadModel(modelText);}
+ internal static Dictionary<string,string> CaseTexts(Dictionary<string,string> link,string modelText,out string note){return CaseTexts(link,RedundancyFactor.HasModel(modelText)?RedundancyFactor.ReadModel(modelText):null,out note);}
+ internal static Dictionary<string,string> CaseTexts(Dictionary<string,string> link,StaadModel model,out string note){note="";var map=new Dictionary<string,string>();if(link==null)return map;
+  List<WindEdgeFace> faces=null;double baseY=0;
   int recess=0;
   foreach(var travel in new[]{"+X","-X","+Z","-Z"}){string packed;if(!link.TryGetValue(travel,out packed))continue;var t=WindFaceTypes.Unpack(travel,packed);if(t==null)continue;
    var b=new StringBuilder(WindLoadLines(t,baseY));
    if(model!=null){if(faces==null){string n;faces=Faces(model,baseY,t.Top,out n);if(n!="")note=n;}int c;string r=RecessLoads(model,faces,t,out c);recess+=c;if(r!="")b.Append("\n").Append(r);}
    map[travel]=b.ToString();}
-  if(map.Count>0)note=(note!=""?note+" ":"")+(model==null?"Paste the STAAD input on the Primary loads tab to load the recessed faces too.":recess>0?recess+" member loads on the recessed sides: "+string.Join("; ",faces.Where(f=>f.Shielded).GroupBy(f=>f.Normal[1]+"="+F(f.At)+" m, "+(f.Normal[1]=='X'?"Z ":"X ")+F(f.A1)+"-"+F(f.A2)+" m").Select(g=>g.Key+" (levels "+string.Join(", ",g.Select(f=>F(f.Level)).Distinct())+")"))+".":"No recessed face found: WIND LOAD reaches every face.");
+  if(map.Count>0)note=(note!=""?note+" ":"")+(model==null?"Paste the STAAD Nodes and Beams tables (or the .std file) on the Primary loads tab to load the recessed faces too.":recess>0?recess+" member loads on the recessed sides: "+string.Join("; ",faces.Where(f=>f.Shielded).GroupBy(f=>f.Normal[1]+"="+F(f.At)+" m, "+(f.Normal[1]=='X'?"Z ":"X ")+F(f.A1)+"-"+F(f.A2)+" m").Select(g=>g.Key+" (levels "+string.Join(", ",g.Select(f=>F(f.Level)).Distinct())+")"))+".":"No recessed face found: WIND LOAD reaches every face.");
   return map;}
 }
 }

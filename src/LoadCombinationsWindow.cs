@@ -1,4 +1,4 @@
-﻿using System;using System.Collections.Generic;using System.Drawing;using System.Linq;using System.Text;using System.Windows.Forms;
+﻿using System;using System.Collections.Generic;using System.Drawing;using System.IO;using System.Linq;using System.Text;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 /* Load Combinations (NSCP 2015) design sheet (owner, 25 November 2026: "create load combinations for superstructure including orthogonal
    effect for staad input"; "no included in Earthquake Sheet - Load Combinations NSCP 2015"): paste the primary load cases as in STAAD,
@@ -14,12 +14,20 @@ partial class LoadCombinationsForm:DesignSheetForm {
   var cap=new Label{Text="Primary load cases - automatic from the structure class (Settings tab). To paste your own, uncheck Automatic there and paste them here as in the STAAD input (LOAD 5 LOADTYPE SEISMIC-H TITLE EQ+X).",Dock=DockStyle.Top,Height=52,Font=ModernUi.Strong,ForeColor=PowTheme.Ink};
   /* the STAAD input pasted before the run (owner, 26 November 2026: "hindi magbabase sa redundancy factor. kasi bago ko irun loaded na dapat ito"):
      the wind loads on recessed faces and the floor plans of the irregularity checks need only the model, not the results */
-  var model=new TextBox{Multiline=true,ScrollBars=ScrollBars.Both,WordWrap=false,Dock=DockStyle.Fill,Font=new Font("Consolas",9.5f),AcceptsReturn=true,BorderStyle=BorderStyle.FixedSingle};Inputs.Add("StaadInput",model);
-  var modelCap=new Label{Text="STAAD input (.std) for the wind loads - paste the model before the run: the wind cases get the member loads on the recessed faces from it (ρ can stay 1.0 until after the run).",Dock=DockStyle.Top,Height=52,Font=ModernUi.Strong,ForeColor=PowTheme.Ink};
+  /* two inputs (owner, 26 November 2026: "2 inputs na lang joint from table and beams from table. or staad command file or .std"): the STAAD
+     Nodes table and Beams table as copied from STAAD, or the whole .std / command file in the first box (key StaadInput, as older sheets saved it) */
+  Func<TextBox> box0=()=>new TextBox{Multiline=true,ScrollBars=ScrollBars.Both,WordWrap=false,Dock=DockStyle.Fill,Font=new Font("Consolas",9.5f),AcceptsReturn=true,BorderStyle=BorderStyle.FixedSingle};
+  var nodesBox=box0();var beamsBox=box0();Inputs.Add("StaadInput",nodesBox);Inputs.Add("StaadBeams",beamsBox);
+  var modelCap=new Label{Text="STAAD model for the wind loads (before the run): the wind cases get the member loads on the recessed faces from it. ρ can stay 1.0 until after the run.",Dock=DockStyle.Top,Height=44,Font=ModernUi.Strong,ForeColor=PowTheme.Ink};
+  var openStd=new Button{Text="Open .std file…",AutoSize=true,Dock=DockStyle.Top};openStd.Click+=(s1,e1)=>{using(var d=new OpenFileDialog{Title="STAAD input file",Filter="STAAD input (*.std;*.txt)|*.std;*.txt|All files (*.*)|*.*"}){if(d.ShowDialog(this)!=DialogResult.OK)return;
+    try{nodesBox.Text=File.ReadAllText(d.FileName).Replace("\r\n","\n").Replace("\n","\r\n");beamsBox.Text="";}catch(Exception ex){MessageBox.Show(this,ex.Message,"Open .std file",MessageBoxButtons.OK,MessageBoxIcon.Warning);}}};
+  var model=new SplitContainer{Dock=DockStyle.Fill,Orientation=Orientation.Horizontal,SplitterWidth=7,BackColor=Color.FromArgb(176,186,182)};model.Panel1.BackColor=Color.White;model.Panel2.BackColor=Color.White;model.Panel1.Padding=new Padding(0,0,0,6);model.Panel2.Padding=new Padding(0,6,0,0);
+  model.Panel1.Controls.Add(nodesBox);model.Panel1.Controls.Add(new Label{Text="1  Nodes - STAAD Nodes table (Node, X, Y, Z), or the whole .std / command file",Dock=DockStyle.Top,Height=24,ForeColor=PowTheme.Teal,Font=new Font("Segoe UI Semibold",9f),UseMnemonic=false});
+  model.Panel2.Controls.Add(beamsBox);model.Panel2.Controls.Add(new Label{Text="2  Beams - STAAD Beams table (Beam, Node A, Node B); not needed with a .std file",Dock=DockStyle.Top,Height=24,ForeColor=PowTheme.Teal,Font=new Font("Segoe UI Semibold",9f),UseMnemonic=false});
   var pair=new SplitContainer{Dock=DockStyle.Fill,Orientation=Orientation.Vertical,SplitterWidth=7,BackColor=Color.FromArgb(176,186,182)};pair.Panel1.BackColor=Color.White;pair.Panel2.BackColor=Color.White;pair.Panel1.Padding=new Padding(0,0,8,0);pair.Panel2.Padding=new Padding(8,0,0,0);
-  text.BorderStyle=BorderStyle.FixedSingle;pair.Panel1.Controls.Add(text);pair.Panel1.Controls.Add(cap);pair.Panel2.Controls.Add(model);pair.Panel2.Controls.Add(modelCap);box.Controls.Add(pair);
+  text.BorderStyle=BorderStyle.FixedSingle;pair.Panel1.Controls.Add(text);pair.Panel1.Controls.Add(cap);pair.Panel2.Controls.Add(model);pair.Panel2.Controls.Add(openStd);pair.Panel2.Controls.Add(modelCap);box.Controls.Add(pair);
   if(tab!=null){tab.Controls.Clear();tab.Controls.Add(box);}else loads.Controls.Add(box);Inputs.Add("Primary",text);
-  Shown+=(s0,e0)=>{try{pair.SplitterDistance=Math.Max(200,pair.Width/2);}catch(Exception){}};
+  Shown+=(s0,e0)=>{try{pair.SplitterDistance=Math.Max(200,pair.Width/2);model.SplitterDistance=Math.Max(80,model.Height/2);}catch(Exception){}};
   /* one Settings tab in four groups (owner, 26 November 2026: "masyadong confusing ito at paulit ulit yung ibang inputs. sana masmaayos na
      layout. saka baka pwede isang tab na lang"): short captions, the explanations as tool tips, linked values hidden instead of repeated */
   var set=Section("Settings","Structure class and seismic factors, the primary load cases, the NSCP 2015 combination sets (Section 203) and what the STAAD output contains. Values linked from the other Design Loads sheets are hidden while linked.");
@@ -89,9 +97,13 @@ partial class LoadCombinationsForm:DesignSheetForm {
  /* wind case text, cached by the model and the Wind sheet's types */
  string windNote="",windKey=null;Dictionary<string,string> windCache;
  Dictionary<string,string> WindTexts(){windNote="";if(!On("WindLinked"))return new Dictionary<string,string>();var link=DesignLoadsLink.Get("wind-staad");if(link==null){windNote="Wind cases: calculate the Wind Load sheet with building pressures and the STAAD +X set.";return new Dictionary<string,string>();}
-  string mt=Value("StaadInput"),ft;if(!RedundancyFactor.HasModel(mt))RhoTexts(out mt,out ft);string key=string.Join(";",link.OrderBy(k=>k.Key).Select(k=>k.Key+"="+k.Value))+"#"+(mt??"").Length+"#"+(mt??"").GetHashCode();
-  if(key!=windKey){string n;windCache=WindEdgeLoads.CaseTexts(link.Where(k=>k.Key.Length==2).ToDictionary(k=>k.Key,k=>k.Value),mt,out n);windKey=key;windCacheNote=n;}windNote="Wind cases: "+windCacheNote.Replace("Paste the STAAD input on the Redundancy factor tab","Paste the STAAD input on the Primary loads tab");return windCache;}
+  string mt=Value("StaadInput")+"\u0001"+Value("StaadBeams"),ft;string key=string.Join(";",link.OrderBy(k=>k.Key).Select(k=>k.Key+"="+k.Value))+"#"+mt.Length+"#"+mt.GetHashCode();
+  if(key!=windKey){string n,err;var m=InputModel(out err);if(m==null){RhoTexts(out mt,out ft);if(RedundancyFactor.HasModel(mt))m=RedundancyFactor.ReadModel(mt);}windCache=WindEdgeLoads.CaseTexts(link.Where(k=>k.Key.Length==2).ToDictionary(k=>k.Key,k=>k.Value),m,out n);windKey=key;windCacheNote=(err!=""?err+" ":"")+n;}windNote="Wind cases: "+windCacheNote.Replace("Paste the STAAD input on the Redundancy factor tab","Paste the STAAD input on the Primary loads tab");return windCache;}
  string windCacheNote="";
+ /* the model of the Primary loads tab: the .std / command file in the Nodes box, or the Nodes and Beams tables; null when not given */
+ internal StaadModel InputModel(out string error){error="";string nodes=Value("StaadInput"),beams=Value("StaadBeams");try{if(RedundancyFactor.HasModel(nodes))return RedundancyFactor.ReadModel(nodes);
+   if(string.IsNullOrWhiteSpace(nodes)&&string.IsNullOrWhiteSpace(beams))return null;if(string.IsNullOrWhiteSpace(beams)){error="Paste the STAAD Beams table in box 2 too.";return null;}if(string.IsNullOrWhiteSpace(nodes)){error="Paste the STAAD Nodes table in box 1 too.";return null;}
+   return RedundancyFactor.ReadTables(nodes,beams);}catch(Exception ex){error="STAAD model: "+ex.Message;return null;}}
  void Refresh0(){if(!Restoring&&(ApplyEqLink()|ApplyOtherLinks()))return;cases.Rows.Clear();combos.Rows.Clear();
   if(On("AutoPrimary")&&!Restoring){string auto=StaadCombinations.AutoPrimary(Value("Structure").Substring(0,1),int.Parse(Value("LiveCases")),On("RoofLive"),On("WindCases")).Replace("\n","\r\n");if(Inputs["Primary"].Text!=auto){Inputs["Primary"].Text=auto;return;}}
   try{var list=StaadCombinations.Parse(Value("Primary"));var s=Settings();if(s.Rho<1)throw new Exception("ρ must be at least 1.0.");
@@ -121,7 +133,7 @@ partial class LoadCombinationsForm:DesignSheetForm {
   if(IrregularReport(rep,sec))sec++;
   rep.Heading(sec+"  LOAD COMBINATIONS");foreach(var g in all.GroupBy(c=>c.Group)){rep.Paragraph(g.Key,false,true);rep.Table(new[]{"No.","Eq.","Combination","Factors (load case x factor)"},g.Select(c=>new[]{c.No.ToString(),c.Eq,c.Title,string.Join("  ",c.Terms.OrderBy(t=>t.Key.No).Select(t=>t.Key.No+" x "+StaadCombinations.F(t.Value)))}),new float[]{9,14,42,35});}
   return rep.Build();}
- protected override bool OptionalSavedInput(string key){return key.StartsWith("Rho")&&key!="Rho"||key=="AutoPrimary"||key=="LiveCases"||key=="RoofLive"||key=="WindCases"||key=="EqCommand"||key=="Acc"||key=="Ax"||key=="DriftGravity"||key=="AxDisplacements"||key=="PrintReports"||key.StartsWith("Reg")||key=="EqLinked"||key=="PerformChange"||key=="LlLinked"||key=="WindLinked"||key=="StaadInput";}
+ protected override bool OptionalSavedInput(string key){return key.StartsWith("Rho")&&key!="Rho"||key=="AutoPrimary"||key=="LiveCases"||key=="RoofLive"||key=="WindCases"||key=="EqCommand"||key=="Acc"||key=="Ax"||key=="DriftGravity"||key=="AxDisplacements"||key=="PrintReports"||key.StartsWith("Reg")||key=="EqLinked"||key=="PerformChange"||key=="LlLinked"||key=="StaadBeams"||key=="WindLinked"||key=="StaadInput";}
  /* sheets saved before the automatic primary loads keep their pasted primary loads */
  bool legacyPrimary;protected override void ReadAdditionalState(System.Xml.XmlElement root){legacyPrimary=root.SelectSingleNode("Input[@key='AutoPrimary']")==null;}
  protected override void AfterRestore(){base.AfterRestore();if(legacyPrimary)((CheckBox)Inputs["AutoPrimary"]).Checked=false;Refresh0();}

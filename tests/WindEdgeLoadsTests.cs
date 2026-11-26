@@ -41,5 +41,13 @@ static class WindEdgeLoadsTests {
   DesignLoadsLink.Set("wind-cases-test",new Dictionary<string,string>{{"+X","LOAD 9 LOADTYPE WIND TITLE WL+X\nWIND LOAD X 1 TYPE 1 YR 0 8"}});var back2=DesignLoadsLink.Get("wind-cases-test");Check(back2!=null&&back2["+X"]=="LOAD 9 LOADTYPE WIND TITLE WL+X\nWIND LOAD X 1 TYPE 1 YR 0 8","multi-line wind case kept through the link file");
   /* the Wind sheet's types through the link file itself (keys "+X" ...) */
   DesignLoadsLink.Set("wind-staad-test",new Dictionary<string,string>{{"+X",t.Pack()},{"-X",tm.Pack()}});var viaFile=DesignLoadsLink.Get("wind-staad-test");Check(viaFile!=null&&viaFile.ContainsKey("+X")&&viaFile.ContainsKey("-X")&&WindFaceTypes.Unpack("+X",viaFile["+X"]).Sw==3,"wind types through the link file");
+  /* the same model as the STAAD Nodes and Beams tables (copied from STAAD, tab separated, units in the headers) */
+  {var ci=CultureInfo.InvariantCulture;var nodes=new StringBuilder("Node\tX (m)\tY (m)\tZ (m)\n");foreach(var j in model.Joints.Values.OrderBy(j=>j.No))nodes.Append(j.No+"\t"+j.X.ToString(ci)+"\t"+j.Y.ToString(ci)+"\t"+j.Z.ToString(ci)+"\n");
+   var beams=new StringBuilder("Beam\tNode A\tNode B\tProperty\tβ (degrees)\n");foreach(var m in model.Members.Values.OrderBy(m=>m.No))beams.Append(m.No+"\t"+m.A+"\t"+m.B+"\t1\t0\n");
+   var fromTables=RedundancyFactor.ReadTables(nodes.ToString(),beams.ToString());Check(fromTables.Joints.Count==model.Joints.Count&&fromTables.Members.Count==model.Members.Count,"model from the Nodes and Beams tables");
+   string n2;var t2=WindEdgeLoads.CaseTexts(link,fromTables,out n2);Check(t2["+X"]==texts["+X"]&&t2["-X"]==texts["-X"],"tables give the same wind cases (WW / LW / SW and the recess loads) as the .std");
+   var mm=new StringBuilder("Node\tX (mm)\tY (mm)\tZ (mm)\n");foreach(var j in model.Joints.Values.OrderBy(j=>j.No))mm.Append(j.No+"\t"+(j.X*1000).ToString(ci)+"\t"+(j.Y*1000).ToString(ci)+"\t"+(j.Z*1000).ToString(ci)+"\n");
+   var t3=WindEdgeLoads.CaseTexts(link,RedundancyFactor.ReadTables(mm.ToString(),beams.ToString()),out n2);Check(t3["+X"]==texts["+X"],"Nodes table in mm read in metres");
+   bool threw=false;try{RedundancyFactor.ReadTables(nodes.ToString(),"");}catch(Exception){threw=true;}Check(threw,"missing Beams table refused");}
   Console.WriteLine("WindEdgeLoadsTests passed: "+checks+" checks");}
 }
