@@ -1,0 +1,20 @@
+DTCE Tool Kit v10.0.30 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.24).
+
+PATCH - wind load case figures and recessed walls on any plan shape:
+- Load Combinations has a "Wind load cases" tab and the report a "WIND LOAD CASES" section ("isama mo din yung figure sa wind load
+  loading"): for every wind case a plan of the STAAD model as STAAD's top view (X right, Z down) with coloured arrows - windward (WW)
+  pushed in, leeward (LW) and side walls (SW) pulled out. Only coloured text and arrows ("colored lang yung text at arrows basta di
+  nagooverlap"): the WIND LOAD lines of the outer faces are in the legend above the plan; each recessed wall has a tag (R1, R2 ...) on
+  its floor side and its own WIND LOAD line in the legend under the plan. Levels with the same outline share one figure.
+- Plan shapes other than the sample ("as much as possible sa mga cases na hindi pa natin nadidiscover"):
+  * the floor outline is found by a flood from outside, so a winding notch open to the outside is not taken as floor;
+  * a level whose edge beams leave a gap keeps the four-direction test (noted);
+  * notches on any side (walls facing X or Z), separate blocks (the walls facing each other across the gap);
+  * the outline changing with height ("icheck mo din if hindi same ang outline ng taas at baba"): each storey takes the outline at its
+    top level; each run of levels gets its own ZR / XR and YR (from the level below the first to the last level, or the top of the
+    building); levels with a gap between them get a line each; the ground beams at the base give no line;
+  * a recessed wall is loaded only where beams run along it; skewed (non-orthogonal) beams are noted and not loaded by a range.
+- The TYPE numbers follow the Wind sheet per direction: WL+X uses TYPE 1-3, WL-X 4-6, WL+Z 7-9, WL-Z 10-12 (checked against the
+  DEFINE WIND LOAD notes of the owner's sample).
+Tests: WindEdgeShapesTests 14 (new), WindEdgeLoadsTests 23, StructuralIrregularityTests 11.
+Includes everything of v10.0.29.

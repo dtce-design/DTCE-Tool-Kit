@@ -9,7 +9,17 @@ sealed class WindFaceTypes {public string Travel="";public int Ww,Lw,Sw;public d
  internal static WindFaceTypes Unpack(string travel,string text){try{var p=(text??"").Split('|');if(p.Length<7)return null;var t=new WindFaceTypes{Travel=travel,Ww=int.Parse(p[0],Ci),Lw=int.Parse(p[1],Ci),Sw=int.Parse(p[2],Ci),Top=double.Parse(p[3],Ci),Leeward=double.Parse(p[4],Ci),Side=double.Parse(p[5],Ci)};
    foreach(var pair in p[6].Split(new[]{','},StringSplitOptions.RemoveEmptyEntries)){var q=pair.Split('@');t.WwInt.Add(double.Parse(q[0],Ci));t.WwHeig.Add(double.Parse(q[1],Ci));}return t;}catch(Exception){return null;}}}
 /* a face of the floor outline at one level: x / z of its two ends, the outward normal ("+X" ...) and the height band it carries */
-sealed class WindEdgeFace {public double Level,Bottom,TopBand,A1,A2,At;public string Normal="";public bool Shielded;}
+sealed class WindEdgeFace {public double Level,Bottom,TopBand,A1,A2,At;public string Normal="";public bool Shielded;
+ /* the level below (or the base), its index among the levels, the topmost level, the clear distance (m) along the normal to the next part
+    of the floor (shielded faces only) and whether beams run along the whole face */
+ public double Below,Free=double.PositiveInfinity;public int Index;public bool IsTop,Covered=true;
+ internal string Key{get{return Normal+"|"+At.ToString("R",System.Globalization.CultureInfo.InvariantCulture)+"|"+A1.ToString("R",System.Globalization.CultureInfo.InvariantCulture)+"|"+A2.ToString("R",System.Globalization.CultureInfo.InvariantCulture);}}}
+/* one recessed wall of a wind case: its WIND LOAD line (with the range), the role it has for the case (WW / LW / SW) and its levels */
+sealed class WindRecessLine {public WindEdgeFace Face;public string Role="",Text="",Comment="";public double Y1,Y2;public List<double> Levels=new List<double>();}
+/* the plan of one level for the wind cases and the figures: grid lines, the cells inside the floor, the beams and the outline faces */
+sealed class WindPlanLevel {public double Y;public int Index;public List<double> Xs,Zs;public bool[,] Inside;public List<WindEdgeFace> Faces=new List<WindEdgeFace>();public List<double[]> Beams=new List<double[]>();
+ /* levels with the same outline (faces, recesses) share one figure, whatever their inner beams */
+ internal string Signature{get{var b=new StringBuilder();foreach(var f in Faces.OrderBy(f=>f.Key))b.Append(f.Key).Append(f.Shielded?"s":"o").Append(f.Covered?"":"u").Append(';');return b.ToString();}}}
 /* the wind load cases of the STAAD input (owner, 26 November 2026: "automatic na ganito WIND LOAD X 1 TYPE 1 YR 0 12.6 ..."; "automatic load
    ng windload based sa edges ng building, kasi kapag may paloob sa gitna e di naloload"): each case gets the WIND LOAD lines of its windward,
    leeward and side-wall types; faces of the floor outline that the wind cannot reach along its direction (recesses in the middle of the
@@ -28,9 +38,10 @@ static class WindEdgeLoads {
   b.Append("WIND LOAD ").Append(other).Append(" -1 TYPE ").Append(t.Sw).Append(yr).Append("\n");
   b.Append("WIND LOAD -").Append(other).Append(" -1 TYPE ").Append(t.Sw).Append(yr);
   return b.ToString();}
- sealed class Seg {public int No;public double X1,Z1,X2,Z2,Y;public double Len{get{return Math.Sqrt((X2-X1)*(X2-X1)+(Z2-Z1)*(Z2-Z1));}}}
+ internal sealed class Seg {public int No;public double X1,Z1,X2,Z2,Y;public double Len{get{return Math.Sqrt((X2-X1)*(X2-X1)+(Z2-Z1)*(Z2-Z1));}}
+  public bool Skewed{get{return Math.Abs(X2-X1)>1e-6&&Math.Abs(Z2-Z1)>1e-6;}}}
  /* the horizontal members of the model by level (m), levels that carry a real floor (at least 20 % of the longest level's beams) */
- static Dictionary<double,List<Seg>> Levels(StaadModel m){var all=new List<Seg>();double k=m.ToMetre;
+ internal static Dictionary<double,List<Seg>> Levels(StaadModel m){var all=new List<Seg>();double k=m.ToMetre;
   foreach(var mem in m.Members.Values){StaadJoint a,b;if(!m.Joints.TryGetValue(mem.A,out a)||!m.Joints.TryGetValue(mem.B,out b))continue;double ya=m.H(a)*k,yb=m.H(b)*k;if(Math.Abs(ya-yb)>1e-3)continue;
    var s=new Seg{No=mem.No,X1=R(m.P1(a)*k),Z1=R(m.P2(a)*k),X2=R(m.P1(b)*k),Z2=R(m.P2(b)*k),Y=R(ya)};if(s.Len>1e-6)all.Add(s);}
   var groups=all.GroupBy(s=>s.Y).ToDictionary(g=>g.Key,g=>g.ToList());if(groups.Count==0)return groups;double max=groups.Values.Max(l=>l.Sum(s=>s.Len));
@@ -40,48 +51,86 @@ static class WindEdgeLoads {
    if(dz==0){if(Math.Min(s.Z1,s.Z2)>z||Math.Max(s.Z1,s.Z2)<z||Math.Abs(s.Z2-s.Z1)<1e-9)continue;double xi=s.X1+(s.X2-s.X1)*(z-s.Z1)/(s.Z2-s.Z1);if((xi-x)*dx>0)return true;}
    else{if(Math.Min(s.X1,s.X2)>x||Math.Max(s.X1,s.X2)<x||Math.Abs(s.X2-s.X1)<1e-9)continue;double zi=s.Z1+(s.Z2-s.Z1)*(x-s.X1)/(s.X2-s.X1);if((zi-z)*dz>0)return true;}}
   return false;}
- /* the floor plan of every level from its beams (grid cells enclosed by beams on all four sides), for the irregularity checks */
+ /* is the cell side on grid line x = c (vertical = true) or z = c, from a to b, closed by a beam (along it or crossing it)? */
+ static bool Closed(List<Seg> segs,bool vertical,double c,double a,double b){const double e=1e-6;foreach(var s in segs){
+   double p1=vertical?s.X1:s.Z1,p2=vertical?s.X2:s.Z2,q1=vertical?s.Z1:s.X1,q2=vertical?s.Z2:s.X2;
+   if(Math.Abs(p1-c)<e&&Math.Abs(p2-c)<e){if(Math.Min(Math.Max(q1,q2),b)-Math.Max(Math.Min(q1,q2),a)>e)return true;continue;}
+   if(Math.Min(p1,p2)>c+e||Math.Max(p1,p2)<c-e||Math.Abs(p2-p1)<e)continue;double qi=q1+(q2-q1)*(c-p1)/(p2-p1);if(qi>a+e&&qi<b-e)return true;}
+  return false;}
+ /* the cells inside the floor: enclosed by beams in all four directions and not reached from outside without crossing a beam (so a
+    winding notch open to the outside is not taken as floor); a level whose edge beams leave a gap (the flood reaches most of the floor)
+    keeps the four-direction test alone */
+ static bool[,] Inside(List<Seg> segs,List<double> xs,List<double> zs,out bool leak){int nx=xs.Count-1,nz=zs.Count-1;var ray=new bool[nx,nz];leak=false;
+  for(int i=0;i<nx;i++)for(int j=0;j<nz;j++){double cx=(xs[i]+xs[i+1])/2,cz=(zs[j]+zs[j+1])/2;ray[i,j]=Hits(segs,cx,cz,1,0)&&Hits(segs,cx,cz,-1,0)&&Hits(segs,cx,cz,0,1)&&Hits(segs,cx,cz,0,-1);}
+  /* flood from the padded border, cells -1..n */
+  var seen=new bool[nx+2,nz+2];var q=new Queue<int[]>();q.Enqueue(new[]{-1,-1});seen[0,0]=true;
+  while(q.Count>0){var c=q.Dequeue();foreach(var d in new[]{new[]{1,0},new[]{-1,0},new[]{0,1},new[]{0,-1}}){int i=c[0]+d[0],j=c[1]+d[1];if(i<-1||j<-1||i>nx||j>nz||seen[i+1,j+1])continue;
+    bool closed=false;if(d[0]!=0){int line=Math.Max(c[0],i);if(j>=0&&j<nz&&line>=0&&line<=nx)closed=Closed(segs,true,xs[line],zs[j],zs[j+1]);}
+    else{int line=Math.Max(c[1],j);if(i>=0&&i<nx&&line>=0&&line<=nz)closed=Closed(segs,false,zs[line],xs[i],xs[i+1]);}
+    if(closed)continue;seen[i+1,j+1]=true;q.Enqueue(new[]{i,j});}}
+  double all=0,reached=0;for(int i=0;i<nx;i++)for(int j=0;j<nz;j++)if(ray[i,j]){double a=(xs[i+1]-xs[i])*(zs[j+1]-zs[j]);all+=a;if(seen[i+1,j+1])reached+=a;}
+  if(all>0&&reached>0.5*all){leak=true;return ray;}
+  var inside=new bool[nx,nz];for(int i=0;i<nx;i++)for(int j=0;j<nz;j++)inside[i,j]=ray[i,j]&&!seen[i+1,j+1];return inside;}
+ /* the floor plan of every level from its beams, for the irregularity checks */
  internal sealed class FloorPlan {public double Level;public List<double> Xs,Zs;public bool[,] Inside;
   public double Area{get{double a=0;for(int i=0;i+1<Xs.Count;i++)for(int j=0;j+1<Zs.Count;j++)if(Inside[i,j])a+=(Xs[i+1]-Xs[i])*(Zs[j+1]-Zs[j]);return a;}}}
  internal static List<FloorPlan> FloorPlans(StaadModel m){var list=new List<FloorPlan>();if(m==null||m.ZUp)return list;foreach(var lv in Levels(m).OrderBy(k=>k.Key)){var segs=lv.Value;
    var xs=segs.SelectMany(s=>new[]{s.X1,s.X2}).Distinct().OrderBy(v=>v).ToList();var zs=segs.SelectMany(s=>new[]{s.Z1,s.Z2}).Distinct().OrderBy(v=>v).ToList();if(xs.Count<2||zs.Count<2)continue;
-   var inside=new bool[xs.Count-1,zs.Count-1];for(int i=0;i+1<xs.Count;i++)for(int j=0;j+1<zs.Count;j++){double cx=(xs[i]+xs[i+1])/2,cz=(zs[j]+zs[j+1])/2;inside[i,j]=Hits(segs,cx,cz,1,0)&&Hits(segs,cx,cz,-1,0)&&Hits(segs,cx,cz,0,1)&&Hits(segs,cx,cz,0,-1);}
-   list.Add(new FloorPlan{Level=lv.Key,Xs=xs,Zs=zs,Inside=inside});}return list;}
- /* the outline faces of every level: grid cells between the beam lines are inside when beams enclose them on all four sides; a cell side
-    between an inside and an outside cell is a face; a face is shielded when the floor continues beyond it along its outward normal */
- internal static List<WindEdgeFace> Faces(StaadModel m,double baseY,double top,out string note){note="";var faces=new List<WindEdgeFace>();
-  if(m.ZUp){note="The model uses SET Z UP: recessed faces are not generated (Y up only).";return faces;}
-  var levels=Levels(m);var ys=levels.Keys.Where(y=>y>=baseY-1e-6&&y<=top+1e-6).OrderBy(y=>y).ToList();if(ys.Count==0){note="No floor level with beams between the base and the top of the building.";return faces;}
+   bool leak;list.Add(new FloorPlan{Level=lv.Key,Xs=xs,Zs=zs,Inside=Inside(segs,xs,zs,out leak)});}return list;}
+ /* the plans of the levels between the base and the top: cells inside the floor, the outline faces (a cell side between an inside and an
+    outside cell), shielded when the floor continues beyond the face along its outward normal; faces without beams along them (skewed
+    walls cut into steps by the grid, gaps) are marked not covered and are never loaded by a range */
+ internal static List<WindPlanLevel> Plans(StaadModel m,double baseY,double top,out string note){note="";var plans=new List<WindPlanLevel>();
+  if(m==null)return plans;if(m.ZUp){note="The model uses SET Z UP: recessed faces are not generated (Y up only).";return plans;}
+  var levels=Levels(m);var ys=levels.Keys.Where(y=>y>=baseY-1e-6&&y<=top+1e-6).OrderBy(y=>y).ToList();if(ys.Count==0){note="No floor level with beams between the base and the top of the building.";return plans;}
+  var notes=new List<string>();
   for(int li=0;li<ys.Count;li++){double y=ys[li];var segs=levels[y];
-   double lo=li==0?baseY:(ys[li-1]+y)/2,hi=li==ys.Count-1?top:(ys[li+1]+y)/2;if(hi<=lo+1e-6)continue;
+   double lo=li==0?baseY:(ys[li-1]+y)/2,hi=li==ys.Count-1?top:(ys[li+1]+y)/2;
    var xs=segs.SelectMany(s=>new[]{s.X1,s.X2}).Distinct().OrderBy(v=>v).ToList();var zs=segs.SelectMany(s=>new[]{s.Z1,s.Z2}).Distinct().OrderBy(v=>v).ToList();if(xs.Count<2||zs.Count<2)continue;
-   int nx=xs.Count-1,nz=zs.Count-1;var inside=new bool[nx,nz];
-   for(int i=0;i<nx;i++)for(int j=0;j<nz;j++){double cx=(xs[i]+xs[i+1])/2,cz=(zs[j]+zs[j+1])/2;inside[i,j]=Hits(segs,cx,cz,1,0)&&Hits(segs,cx,cz,-1,0)&&Hits(segs,cx,cz,0,1)&&Hits(segs,cx,cz,0,-1);}
-   Func<int,int,bool> In=(i,j)=>i>=0&&j>=0&&i<nx&&j<nz&&inside[i,j];
+   int nx=xs.Count-1,nz=zs.Count-1;bool leak;var inside=Inside(segs,xs,zs,out leak);
+   if(leak)notes.Add("level "+F(y)+" m: the edge beams leave a gap, the outline is taken from the beams in four directions");
+   if(segs.Any(s=>s.Skewed))notes.Add("level "+F(y)+" m has skewed beams: recessed walls along them are not generated, check them in STAAD");
+   var plan=new WindPlanLevel{Y=y,Index=li,Xs=xs,Zs=zs,Inside=inside};foreach(var sg in segs)plan.Beams.Add(new[]{sg.X1,sg.Z1,sg.X2,sg.Z2});
+   Func<int,int,bool> In=(i,j)=>i>=0&&j>=0&&i<nx&&j<nz&&inside[i,j];var faces=new List<WindEdgeFace>();
    for(int i=0;i<nx;i++)for(int j=0;j<nz;j++){if(!inside[i,j])continue;
     foreach(var d in new[]{new[]{-1,0},new[]{1,0},new[]{0,-1},new[]{0,1}}){if(In(i+d[0],j+d[1]))continue;
-     bool shielded=false;for(int s=2;;s++){int ii=i+d[0]*s,jj=j+d[1]*s;if(ii<0||jj<0||ii>=nx||jj>=nz)break;if(inside[ii,jj]){shielded=true;break;}}
-     var f=new WindEdgeFace{Level=y,Bottom=lo,TopBand=hi,Shielded=shielded,Normal=(d[0]+d[1]>0?"+":"-")+(d[0]!=0?"X":"Z")};
-     if(d[0]!=0){f.At=d[0]<0?xs[i]:xs[i+1];f.A1=zs[j];f.A2=zs[j+1];}else{f.At=d[1]<0?zs[j]:zs[j+1];f.A1=xs[i];f.A2=xs[i+1];}faces.Add(f);}}}
-  /* join the cell sides of one straight face */
-  var merged=new List<WindEdgeFace>();foreach(var g in faces.GroupBy(f=>f.Level+"|"+f.Normal+"|"+f.At.ToString("R",Ci)+"|"+f.Shielded)){WindEdgeFace cur=null;
-   foreach(var f in g.OrderBy(f=>f.A1)){if(cur!=null&&Math.Abs(cur.A2-f.A1)<1e-6)cur.A2=f.A2;else{if(cur!=null)merged.Add(cur);cur=f;}}if(cur!=null)merged.Add(cur);}
-  return merged;}
+     bool shielded=false;double free=double.PositiveInfinity;for(int s=2;;s++){int ii=i+d[0]*s,jj=j+d[1]*s;if(ii<0||jj<0||ii>=nx||jj>=nz)break;if(inside[ii,jj]){shielded=true;free=d[0]!=0?Math.Abs((d[0]<0?xs[ii+1]:xs[ii])-(d[0]<0?xs[i]:xs[i+1])):Math.Abs((d[1]<0?zs[jj+1]:zs[jj])-(d[1]<0?zs[j]:zs[j+1]));break;}}
+     var f=new WindEdgeFace{Level=y,Bottom=lo,TopBand=hi,Shielded=shielded,Free=free,Index=li,Below=li==0?baseY:ys[li-1],IsTop=li==ys.Count-1,Normal=(d[0]+d[1]>0?"+":"-")+(d[0]!=0?"X":"Z")};
+     if(d[0]!=0){f.At=d[0]<0?xs[i]:xs[i+1];f.A1=zs[j];f.A2=zs[j+1];f.Covered=Closed(segs,true,f.At,f.A1,f.A2)&&Covers(segs,true,f.At,f.A1,f.A2);}
+     else{f.At=d[1]<0?zs[j]:zs[j+1];f.A1=xs[i];f.A2=xs[i+1];f.Covered=Covers(segs,false,f.At,f.A1,f.A2);}faces.Add(f);}}
+   /* join the cell sides of one straight face */
+   foreach(var g in faces.GroupBy(f=>f.Normal+"|"+f.At.ToString("R",Ci)+"|"+f.Shielded+"|"+f.Covered)){WindEdgeFace cur=null;
+    foreach(var f in g.OrderBy(f=>f.A1)){if(cur!=null&&Math.Abs(cur.A2-f.A1)<1e-6){cur.A2=f.A2;cur.Free=Math.Min(cur.Free,f.Free);}else{if(cur!=null)plan.Faces.Add(cur);cur=f;}}if(cur!=null)plan.Faces.Add(cur);}
+   foreach(var f in plan.Faces.Where(f=>f.Shielded&&!f.Covered))notes.Add("level "+F(y)+" m: recessed wall "+f.Normal[1]+" = "+F(f.At)+" m has no beam along it, not loaded");
+   plans.Add(plan);}
+  note=string.Join("; ",notes.Distinct());if(note!="")note=char.ToUpperInvariant(note[0])+note.Substring(1)+".";
+  return plans;}
+ /* do beams lying on the line run along the whole side from a to b? */
+ static bool Covers(List<Seg> segs,bool vertical,double c,double a,double b){const double e=1e-6;var spans=new List<double[]>();foreach(var s in segs){double p1=vertical?s.X1:s.Z1,p2=vertical?s.X2:s.Z2,q1=vertical?s.Z1:s.X1,q2=vertical?s.Z2:s.X2;
+   if(Math.Abs(p1-c)<e&&Math.Abs(p2-c)<e)spans.Add(new[]{Math.Max(Math.Min(q1,q2),a),Math.Min(Math.Max(q1,q2),b)});}
+  double at=a;foreach(var sp in spans.Where(x=>x[1]>x[0]+e).OrderBy(x=>x[0])){if(sp[0]>at+0.01)return false;at=Math.Max(at,sp[1]);}return at>=b-0.01;}
+ internal static List<WindEdgeFace> Faces(StaadModel m,double baseY,double top,out string note){return Plans(m,baseY,top,out note).SelectMany(p=>p.Faces).ToList();}
  /* the recessed faces as WIND LOAD lines of their own (owner, 26 November 2026: "bakit member load? dapat windload pa din"): an XR / ZR / YR
     range around one wall makes STAAD build the panel from that wall's members only, so the wall gets the Wind sheet's TYPE like an outer
     face - windward faces (normal against the travel) the WW type pushing in, faces turned away the LW type and walls along the wind the
-    SW type, both pulled out (factor -1) */
- internal static string RecessLoads(StaadModel m,List<WindEdgeFace> faces,WindFaceTypes t,out int count){count=0;var lines=new List<string>();
+    SW type, both pulled out (factor -1). A wall that is recessed on several levels in a row is one line, from the level below the first
+    to the last (the top of the building for the top level); levels with a gap between them get a line each. */
+ internal static List<WindRecessLine> RecessLines(List<WindEdgeFace> faces,WindFaceTypes t){var list=new List<WindRecessLine>();
   char ax=t.Travel[1];int sign=t.Travel[0]=='+'?1:-1;const double tol=0.05;
-  foreach(var g in faces.Where(x=>x.Shielded).GroupBy(f=>f.Normal+"|"+F(f.At)+"|"+F(f.A1)+"|"+F(f.A2)).OrderBy(g=>g.First().Normal[1]).ThenBy(g=>g.First().At).ThenBy(g=>g.First().A1)){
-   var f=g.First();char fn=f.Normal[1];int fs=f.Normal[0]=='+'?1:-1;bool windward=fn==ax&&fs==-sign,leeward=fn==ax&&fs==sign;
-   string dir=(fs>0?"-":"")+fn;string factor=windward?"1":"-1";int type=windward?t.Ww:leeward?t.Lw:t.Sw;
-   string across=fn=='X'?"Z":"X";double y1=g.Min(x=>x.Bottom),y2=g.Max(x=>x.TopBand);
-   string label=windward?"windward wall":leeward?"leeward wall":"side wall";
-   lines.Add("* "+label+" "+fn+" = "+F(f.At)+" m, "+across+" "+F(f.A1)+"-"+F(f.A2)+" m");
-   lines.Add("WIND LOAD "+dir+" "+factor+" TYPE "+type+" "+fn+"R "+F(f.At-tol)+" "+F(f.At+tol)+" "+across+"R "+F(f.A1-tol)+" "+F(f.A2+tol)+" YR "+F(y1-tol)+" "+F(y2+tol));count++;}
-  if(lines.Count==0)return "";
-  return "* recessed walls the wind does not reach along "+t.Travel+" (from the model edges): the range\n* makes STAAD load only that wall\n"+string.Join("\n",lines);}
+  /* a storey takes the outline at its top level (the floor above closes it): a level at the base (ground beams) has no storey below it;
+     where the outline changes from one level to the next (owner: "icheck mo din if hindi same ang outline ng taas at baba"), each run of
+     levels gets its own ZR / XR and YR */
+  foreach(var g in faces.Where(x=>x.Shielded&&x.Covered&&x.Level-x.Below>1e-3).GroupBy(f=>f.Key).OrderBy(g=>g.First().Normal[1]).ThenBy(g=>g.First().At).ThenBy(g=>g.First().A1)){
+   var runs=new List<List<WindEdgeFace>>();foreach(var f in g.OrderBy(x=>x.Index)){if(runs.Count==0||f.Index!=runs[runs.Count-1].Last().Index+1)runs.Add(new List<WindEdgeFace>());runs[runs.Count-1].Add(f);}
+   foreach(var run in runs){var f=run[0];var last=run[run.Count-1];char fn=f.Normal[1];int fs=f.Normal[0]=='+'?1:-1;bool windward=fn==ax&&fs==-sign,leeward=fn==ax&&fs==sign;
+    string dir=(fs>0?"-":"")+fn;string factor=windward?"1":"-1";int type=windward?t.Ww:leeward?t.Lw:t.Sw;string across=fn=='X'?"Z":"X";
+    double y1=f.Below,y2=last.IsTop?last.TopBand:last.Level;
+    var line=new WindRecessLine{Face=f,Role=(windward?"WW":leeward?"LW":"SW")+t.Travel,Y1=y1,Y2=y2,Levels=run.Select(x=>x.Level).ToList()};
+    line.Comment=(windward?"windward wall":leeward?"leeward wall":"side wall")+" "+fn+" = "+F(f.At)+" m, "+across+" "+F(f.A1)+"-"+F(f.A2)+" m";
+    line.Text="WIND LOAD "+dir+" "+factor+" TYPE "+type+" "+fn+"R "+F(f.At-tol)+" "+F(f.At+tol)+" "+across+"R "+F(f.A1-tol)+" "+F(f.A2+tol)+" YR "+F(y1-tol)+" "+F(y2+tol);list.Add(line);}}
+  return list;}
+ internal static string RecessLoads(StaadModel m,List<WindEdgeFace> faces,WindFaceTypes t,out int count){var lines=RecessLines(faces,t);count=lines.Count;if(count==0)return "";
+  return "* recessed walls the wind does not reach along "+t.Travel+" (from the model edges): the range\n* makes STAAD load only that wall\n"+string.Join("\n",lines.Select(l=>"* "+l.Comment+"\n"+l.Text));}
  /* the wind load text of each case (+X, -X, +Z, -Z) for the Load Combinations sheet */
  internal static Dictionary<string,string> CaseTexts(Dictionary<string,string> link,string modelText,out string note){return CaseTexts(link,RedundancyFactor.HasModel(modelText)?RedundancyFactor.ReadModel(modelText):null,out note);}
  internal static Dictionary<string,string> CaseTexts(Dictionary<string,string> link,StaadModel model,out string note){note="";var map=new Dictionary<string,string>();if(link==null)return map;
@@ -91,7 +140,7 @@ static class WindEdgeLoads {
    var b=new StringBuilder(WindLoadLines(t,baseY));
    if(model!=null){if(faces==null){string n;faces=Faces(model,baseY,t.Top,out n);if(n!="")note=n;}int c;string r=RecessLoads(model,faces,t,out c);recess+=c;if(r!="")b.Append("\n").Append(r);}
    map[travel]=b.ToString();}
-  if(map.Count>0)note=(note!=""?note+" ":"")+(model==null?"Paste the STAAD Nodes and Beams tables (or the .std file) on the Primary loads tab to load the recessed faces too.":recess>0?faces.Where(f=>f.Shielded).Select(f=>f.Normal+F(f.At)+F(f.A1)).Distinct().Count()+" recessed walls loaded with WIND LOAD ranges: "+string.Join("; ",faces.Where(f=>f.Shielded).GroupBy(f=>f.Normal[1]+"="+F(f.At)+" m, "+(f.Normal[1]=='X'?"Z ":"X ")+F(f.A1)+"-"+F(f.A2)+" m").Select(g=>g.Key+" (levels "+string.Join(", ",g.Select(f=>F(f.Level)).Distinct())+")"))+".":"No recessed face found: WIND LOAD reaches every face.");
+  if(map.Count>0)note=(note!=""?note+" ":"")+(model==null?"Paste the STAAD Nodes and Beams tables (or the .std file) on the Primary loads tab to load the recessed faces too.":recess>0?faces.Where(f=>f.Shielded&&f.Covered).Select(f=>f.Key).Distinct().Count()+" recessed walls loaded with WIND LOAD ranges: "+string.Join("; ",faces.Where(f=>f.Shielded&&f.Covered).GroupBy(f=>f.Normal[1]+"="+F(f.At)+" m, "+(f.Normal[1]=='X'?"Z ":"X ")+F(f.A1)+"-"+F(f.A2)+" m").Select(g=>g.Key+" (levels "+string.Join(", ",g.Select(f=>F(f.Level)).Distinct())+")"))+".":"No recessed face found: WIND LOAD reaches every face.");
   return map;}
 }
 }
