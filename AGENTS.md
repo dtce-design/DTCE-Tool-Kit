@@ -380,7 +380,10 @@ loads"; "perform analysis change every eq primary case", v10.0.9): "Automatic pr
 class, EQ first (A 4, B 8 with +E / -E, C 4 Load Type None), then DL, LL1.., LLR, WL; the STAAD output then starts with the primary section
 (UBC / IBC LOAD command, ACC +-0.05 for B, PERFORM ANALYSIS / CHANGE after each EQ case as a choice). Older sheets keep their pasted list. v10.0.10 (owner: "bago naman staad ko"): PERFORM ANALYSIS / CHANGE after each EQ case defaults
 off (older STAAD only); titles with + / - inside are bracketed (1.3(EQ+X+E)). v10.0.11: case B notes natural torsion (rigid diaphragms, CM / CR offset) and
-ACC = 0.05 Ax (Ax input 1.0-3.0); seismic drift 1.0 Eh by default, "D + 0.5L + 1.0 Eh" choice for P-Delta (owner: "sure ka na eq loads lang?"). Owner ("ikaw na bahala sa redundancy basta paste ko na lang yung required",
+ACC = 0.05 Ax (Ax input 1.0-3.0); seismic drift 1.0 Eh by default, "D + 0.5L + 1.0 Eh" choice for P-Delta (owner: "sure ka na eq loads lang?"). v10.0.12 (owner: "automatic computation of torsional amplification factor ... 1 muna ...
+after run papalitan ... include lahat sa report"): "Torsional amplification Ax" tab (src/TorsionAmplification.cs) - Ax = 1.0 until the STAAD joint
+displacements are pasted, then Ax = (dmax / 1.2 davg)^2 (1.0-3.0) per EQ case / level from the edge displacements replaces it (ACC = 0.05 Ax);
+reported with the table, and the basis table lists all the new settings. Owner ("ikaw na bahala sa redundancy basta paste ko na lang yung required",
 v8.0.7): the owner only pastes - the boxes are recognised either way (.ANL echo too), EQ cases / directions come from the input's LOAD cases,
 the lateral system is automatic (braces = floor-to-floor inclined members, rafters excluded), and the computed ρ goes into Factors by itself.
 Owner (26 November 2026, "Put Windload and Earthquake in a new main tab Design Loads including Load Combinations as sub tab"): the Design Sheets
