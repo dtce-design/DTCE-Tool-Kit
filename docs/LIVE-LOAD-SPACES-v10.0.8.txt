@@ -1,0 +1,120 @@
+Aisles / walkways  ||  4.8 | 8 Exit facilities
+Apparatus bay (fire trucks)  ||  4.8 | 9 Parking garages and ramps - General storage and/or repair
+Archive with compact shelving  ||  12.0 | 21 Storage - Heavy
+Armory  ||  7.2 | 2 Armories
+Balconies of halls / gymnasiums  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Lobbies and platforms
+Balcony / terrace open to the public  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Bids and Awards Committee (BAC) room  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Bleachers / grandstands  ||  4.8 | 17 Reviewing stands, grandstands, bleachers, and folding and telescoping seating
+Bonded / seized goods warehouse  ||  12.0 | 21 Storage - Heavy
+Book and module storage  ||  12.0 | 21 Storage - Heavy
+Cargo examination area (customs)  ||  12.0 | 21 Storage - Heavy
+Cashier  ||  3.4 | 13 Office - Other offices
+Catwalks / maintenance platforms  ||  1.9 | 5 Catwalk for maintenance access
+Census / election materials storage  ||  12.0 | 21 Storage - Heavy
+Classrooms / lecture rooms  ||  1.9 | 19 Schools - Classrooms
+Clinic / first aid / infirmary  ||  1.9 | 10 Hospitals - Wards and rooms
+Cold storage / chiller  ||  12.0 | 21 Storage - Heavy
+Conference / meeting room  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Consultation / examination / treatment rooms  ||  1.9 | 10 Hospitals - Wards and rooms
+Corridors (exit facilities, any floor)  ||  4.8 | 8 Exit facilities
+Corridors above ground floor (hospitals)  ||  3.8 | 10 Hospitals - Corridors above ground floor
+Corridors above ground floor (libraries)  ||  3.8 | 11 Libraries - Corridors above ground floor
+Corridors above ground floor (schools)  ||  3.8 | 19 Schools - Corridors above ground floor
+Counseling rooms  ||  3.4 | 13 Office - Other offices
+Courtroom, movable seats  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Curing room  ||  6.0 | 21 Storage - Light
+Delivery room  ||  2.9 | 10 Hospitals - Laboratories and operating rooms
+Detention cells / holding rooms  ||  1.9 | 15 Residential - Basic floor area
+Dining / canteen / mess hall / food court  ||  4.8 | 7 Dining rooms and restaurants
+Driveways / loading areas / yards  ||  12.0 | 20 Sidewalks and driveways - Public access
+Electrical room  ||  6.0 | 21 Storage - Light
+Elevator lobby  ||  4.8 | 13 Office - Lobbies and ground floor corridors
+Emergency room  ||  1.9 | 10 Hospitals - Wards and rooms
+Evacuation hall / family and sleeping areas  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Examination room (written tests)  ||  1.9 | 19 Schools - Classrooms
+Executive office  ||  3.4 | 13 Office - Other offices
+Exercise / dance area  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Exhibit halls  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Exterior exit balcony  ||  4.8 | 8 Exit facilities
+Faculty / principal's office  ||  3.4 | 13 Office - Other offices
+Fixed-seat hall / gallery / courtroom / audio-visual room  ||  2.9 | 3 Theaters, assembly areas and auditoriums - Fixed seats
+Food stalls  ||  4.8 | 22 Stores - Retail
+Forecast / operations room  ||  4.8 | 1 Access floor systems - Computer use
+Frontline / processing area (one-stop, member service, licensing, civil registry, passports)  ||  3.9 | 13 Office - Call centers and business processing offices
+Function / activity / training hall  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Generator room  ||  6.0 | 21 Storage - Light
+Ground floor corridors (schools)  ||  4.8 | 19 Schools - Ground floor corridors
+Guard house / information desk  ||  3.4 | 13 Office - Other offices
+Heavy workshops (welding, automotive, machining)  ||  12.0 | 12 Manufacturing - Heavy
+Holding pens  ||  4.8 | 9 Parking garages and ramps - General storage and/or repair
+Indoor play area  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Instrument room  ||  6.0 | 21 Storage - Light
+Intensive care unit  ||  1.9 | 10 Hospitals - Wards and rooms
+Janitor's closet / utility room  ||  2.4 | 16 Restrooms
+Judges' chambers  ||  3.4 | 13 Office - Other offices
+Kitchen / pantry  ||  4.8 | 7 Dining rooms and restaurants
+Labor room  ||  2.9 | 10 Hospitals - Laboratories and operating rooms
+Laboratory (clinical / forensic / field)  ||  2.9 | 10 Hospitals - Laboratories and operating rooms
+Lactation room  ||  3.4 | 13 Office - Other offices
+Laundry  ||  6.0 | 12 Manufacturing - Light
+Library / reading room  ||  2.9 | 11 Libraries - Reading rooms
+Library stack room  ||  7.2 | 11 Libraries - Stack rooms
+Light workshops (electronics, dressmaking, computer)  ||  6.0 | 12 Manufacturing - Light
+Lobby / concourse / atrium (assembly)  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Lobbies and platforms
+Lobby / waiting area / ground floor corridors  ||  4.8 | 13 Office - Lobbies and ground floor corridors
+Mail sorting area  ||  6.0 | 12 Manufacturing - Light
+Market stalls (retail)  ||  4.8 | 22 Stores - Retail
+Materials testing laboratory  ||  6.0 | 12 Manufacturing - Light
+Mechanical / pump room  ||  6.0 | 21 Storage - Light
+Medicine and supply warehouse  ||  12.0 | 21 Storage - Heavy
+Morgue  ||  2.9 | 10 Hospitals - Laboratories and operating rooms
+Motor pool / repair shop  ||  4.8 | 9 Parking garages and ramps - General storage and/or repair
+Negosyo / exhibit area  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Newborn care / nursery  ||  1.9 | 10 Hospitals - Wards and rooms
+Observation deck  ||  as served | 18 Roof decks - Same as area served or occupancy
+Offices (staff / administration)  ||  3.4 | 13 Office - Other offices
+Operating rooms  ||  2.9 | 10 Hospitals - Laboratories and operating rooms
+Parking  ||  2.4 | 9 Parking garages and ramps - Public parking
+Passport and records storage  ||  12.0 | 21 Storage - Heavy
+Pedestrian bridges / covered walkways  ||  4.8 | 23 Pedestrian bridges and walkways
+Pedestrian ramp  ||  4.8 | 8 Exit facilities
+Pharmacy / supply room  ||  6.0 | 21 Storage - Light
+Plans and drafting room  ||  3.4 | 13 Office - Other offices
+Plates and records storage  ||  12.0 | 21 Storage - Heavy
+Playground  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Playing court / gym floor  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Plaza / open court  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Prayer room / chapel  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Radiology / imaging  ||  2.9 | 10 Hospitals - Laboratories and operating rooms
+Ramp for vehicles  ||  4.8 | 9 Parking garages and ramps - Ramps
+Records / file room  ||  6.0 | 21 Storage - Light
+Recovery / postpartum ward  ||  1.9 | 10 Hospitals - Wards and rooms
+Relief goods storage (light)  ||  6.0 | 21 Storage - Light
+Relief goods warehouse (heavy, stacked)  ||  12.0 | 21 Storage - Heavy
+Roof  ||  0.60 - 1.00 | Table 205-3 (roof)
+Roof deck  ||  as served | 18 Roof decks - Same as area served or occupancy
+Roof deck used as refuge (flooding)  ||  as served | 18 Roof decks - Same as area served or occupancy
+Sample / core storage  ||  12.0 | 21 Storage - Heavy
+Science / computer laboratory  ||  1.9 | 19 Schools - Classrooms
+Seed / sample storage  ||  6.0 | 21 Storage - Light
+Server / computer / IT room  ||  4.8 | 1 Access floor systems - Computer use
+Session hall  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Slaughter / meat processing area  ||  6.0 | 12 Manufacturing - Light
+Sleeping rooms / dormitory / barracks  ||  1.9 | 15 Residential - Basic floor area
+Souvenir shop  ||  4.8 | 22 Stores - Retail
+Stage  ||  7.2 | 3 Theaters, assembly areas and auditoriums - Stage areas
+Stairs and exits  ||  4.8 | 8 Exit facilities
+Storage / supply room (light)  ||  6.0 | 21 Storage - Light
+Toilets / comfort rooms / showers / lockers  ||  2.4 | 16 Restrooms
+Treatment / dialysis area  ||  1.9 | 10 Hospitals - Wards and rooms
+Vaccine / cold chain room  ||  6.0 | 21 Storage - Light
+Vault  ||  12.0 | 21 Storage - Heavy
+Waiting area  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Waiting shed  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats
+Wards / patient rooms  ||  1.9 | 10 Hospitals - Wards and rooms
+Warehouse, heavy storage  ||  12.0 | 21 Storage - Heavy
+Warehouse, light storage  ||  6.0 | 21 Storage - Light
+Water treatment room  ||  6.0 | 21 Storage - Light
+Wholesale area  ||  6.0 | 22 Stores - Wholesale
+Women- and child-friendly space, breastfeeding room  ||  4.8 | 3 Theaters, assembly areas and auditoriums - Movable seats

@@ -396,7 +396,9 @@ total and STAAD input without the slab, roof top chord / bottom chord / purlin w
 elevator with impact. v10.0.1: Live Load spaces start unchecked, the owner checks them ("ako ang mag check"); building type and partitions sit on the
 per-space page (no "Building and spaces" tab). v10.0.2: "National Government Office" building type (owner: "bat walang national government offices?"). v10.0.3: the national agencies (owner: "any type of National Government Office"), each the office core + its own rooms. v10.0.4: janitor's closet / utility room 2.4 kPa as the occupancy served (owner: "sure ka ... 6kpa?"). v10.0.5: Dead Loads Elevator tab of its own, Add / Delete buttons on every table (owner: "hiwalay mo naman yung Elevator ..."). v10.0.6: Live Loads is one sorted list of spaces, not grouped by building (owner: "huwag mo na igroup per building").
 Owner (26 November 2026, "paki check yung alignment ng buttons, pati na rin sa iba, always laging ganyan ang problem"): toolbar rows are
-centred on one line app-wide (src/BarAlign.cs via PowTheme.Apply, v10.0.7); build new bars from plain controls so it applies. Report pages: the page number ends at the right end of the footer line in every report (CalculationDocument).
+centred on one line app-wide (src/BarAlign.cs via PowTheme.Apply, v10.0.7); build new bars from plain controls so it applies. Live Loads (v10.0.8, owner: duplicates "Bids and Awards ..." / "Catwalks"
+/ "Conference rooms" / "Corridors above ground floor"; "paki check na din po lahat"): the same room is one row with one name (NscpLiveLoads.SameRoom;
+add new rooms there when a similar one exists); the occupancy is added only where one name stands on different Table 205-1 rows. Report pages: the page number ends at the right end of the footer line in every report (CalculationDocument).
 
 ## Door hardware (23 November 2026)
 
