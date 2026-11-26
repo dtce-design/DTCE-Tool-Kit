@@ -76,7 +76,9 @@ abstract class DesignSheetForm:Form {
  /* Ctrl+S saves to the file already chosen (Ctrl+Shift+S asks again), Ctrl+O opens (owner, 26 November 2026: "DI GUMAGANA ANG CTRL S");
     the five Design Loads sheets share one file */
  string sheetPath;static string designLoadsPath;
- string SavedPath{get{return DesignLoadsFile.Kinds.Contains(kind)?designLoadsPath:sheetPath;}set{if(DesignLoadsFile.Kinds.Contains(kind))designLoadsPath=value;else sheetPath=value;}}
+ string SavedPath{get{return DesignLoadsFile.Kinds.Contains(kind)?designLoadsPath:sheetPath;}set{if(DesignLoadsFile.Kinds.Contains(kind))designLoadsPath=value;else sheetPath=value;/* kept under the current project */ProjectFiles.Remember(DesignLoadsFile.Kinds.Contains(kind)?"design:loads":"design:"+kind,value);}}
+ /* a file chosen elsewhere (the project's files from Project Information) */
+ internal void OpenFile(string path){string xml=File.ReadAllText(path);SavedPath=path;if(DesignLoadsFile.Kinds.Contains(kind)){string msg=DesignLoadsFile.Open(xml,this);status.ForeColor=PowTheme.Teal;status.Text=msg;}else Restore(xml);}
  protected override bool ProcessCmdKey(ref Message msg,Keys keyData){if(keyData==(Keys.Control|Keys.S)){Save(false);return true;}if(keyData==(Keys.Control|Keys.Shift|Keys.S)){Save(true);return true;}if(keyData==(Keys.Control|Keys.O)){Open();return true;}return base.ProcessCmdKey(ref msg,keyData);}
  void Save(){Save(false);}
  void Save(bool ask){bool loads=DesignLoadsFile.Kinds.Contains(kind);string path=SavedPath;if(ask||string.IsNullOrEmpty(path)){using(var dialog=new SaveFileDialog{Filter=loads?"DTCE Design Loads (all five sheets)|*.design.xml":"DTCE design sheet|*.design.xml",FileName=!string.IsNullOrEmpty(path)?Path.GetFileName(path):loads?"Design-Loads.design.xml":kind+".design.xml"}){if(!string.IsNullOrEmpty(path))try{dialog.InitialDirectory=Path.GetDirectoryName(path);}catch(Exception){}if(dialog.ShowDialog(this)!=DialogResult.OK)return;path=dialog.FileName;}}

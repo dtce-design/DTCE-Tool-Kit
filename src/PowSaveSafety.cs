@@ -25,7 +25,7 @@ static class PowBackups {
 }
 partial class ProgramOfWorksForm {
  DateTime? knownPowWriteUtc;
- void RememberPowFile(string path){try{knownPowWriteUtc=File.Exists(path)?File.GetLastWriteTimeUtc(path):(DateTime?)null;}catch(Exception){knownPowWriteUtc=null;}}
+ void RememberPowFile(string path){/* kept under the current project (opened again from Project Information) */ProjectFiles.Remember("boq",path);try{knownPowWriteUtc=File.Exists(path)?File.GetLastWriteTimeUtc(path):(DateTime?)null;}catch(Exception){knownPowWriteUtc=null;}}
  bool ChangedOnDisk(string path){try{return File.Exists(path)&&knownPowWriteUtc.HasValue&&string.Equals(Path.GetFullPath(path),currentPowPath,StringComparison.OrdinalIgnoreCase)&&File.GetLastWriteTimeUtc(path)!=knownPowWriteUtc.Value;}catch(Exception){return false;}}
  // Returns false when the user declines replacing the file.
  bool ConfirmReplace(string path,string snapshot,bool automatic){if(!File.Exists(path))return true;int before;try{before=PowBackups.EntriesInFile(path);}catch(Exception){before=0;}int after=PowBackups.Entries(snapshot);

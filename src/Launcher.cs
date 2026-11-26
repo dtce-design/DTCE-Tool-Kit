@@ -61,7 +61,7 @@ class LauncherForm:Form {
    #endif
    foreach(var child in children){child.Close();if(!child.IsDisposed){e.Cancel=true;return;}}
    foreach(var window in windows.Values.Where(w=>!w.IsDisposed).ToList()){window.Release();window.Close();}
-  };DesktopAppearance.Attach(this);new StoreUpdateMonitor(this);ShowStart();
+  };DesktopAppearance.Attach(this);new StoreUpdateMonitor(this);ShowStart();Action<ProjectInformation,List<ProjectFile>> openFiles=(p,files)=>{if(!IsDisposed)BeginInvoke(new Action(()=>OpenProjectFiles(files)));};ProjectFiles.OpenRequested+=openFiles;FormClosed+=(s,e)=>ProjectFiles.OpenRequested-=openFiles;
  }
  Form CreateBeam(){var form=new MainForm();
   #if !ADMIN_APP
@@ -79,8 +79,18 @@ class LauncherForm:Form {
    if(info==null||!info.Complete){MessageBox.Show(this,"This file has no complete project information. Fill in the Project Information, then open the file again or use Open in the Bill of Quantities.","Open saved project",MessageBoxButtons.OK,MessageBoxIcon.Information);UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8);return;}
    ProjectInfoStore.Save(info.Name,info.Location,info.Office,info.OfficeAddress,info.DatePrepared??"",PowProjectInformation.FiscalYearFor(info),PowProjectInformation.AbcFor(info));
    UseTool(ref works,()=>{var f=new ProgramOfWorksForm();ProgramOfWorksForm.Live=new WeakReference(f);GridFormulas.AttachAll(f);return f;},"Bill of Quantities",null,2);
-   var boq=works as ProgramOfWorksForm;if(boq!=null&&!boq.IsDisposed)boq.OpenPath(path);}
+   var boq=works as ProgramOfWorksForm;if(boq!=null&&!boq.IsDisposed)boq.OpenPath(path);/* and the project's other saved files */OpenProjectFiles(ProjectFiles.Of(info).Where(x=>x.Exists&&x.Kind!="boq").ToList());}
   catch(Exception ex){MessageBox.Show(this,ex.Message,"Open saved project",MessageBoxButtons.OK,MessageBoxIcon.Information);}}
+ /* the files saved for a project, opened when it is chosen in Project Information */
+ static readonly Dictionary<string,string> SheetTitles=new Dictionary<string,string>{{"loads","Load Combinations (NSCP 2015)"},{"Wind-Design","Wind Load (NSCP 2015)"},{"RSA-Curve","Earthquake Load & RSA Curve Builder"},{"Load-Combinations","Load Combinations (NSCP 2015)"},{"Live-Loads","Live Loads (NSCP 2015)"},{"Dead-Loads","Dead Loads (NSCP 2015)"},{"Purlin-Design","Purlin Design"},{"Truss-Connections","Truss Connections"},{"Beam-Deflection","Beam Deflection Check"},{"Staircase-Design","Staircase Design"},{"Strap-Footing","Strap Foundation"},{"Truss-Support","Truss Support on RC"}};
+ void OpenProjectFiles(List<ProjectFile> files){var failed=new List<string>();
+  foreach(var f in files.OrderBy(x=>x.Kind=="boq"?0:x.Kind=="pow"?1:2)){try{
+    if(f.Kind=="boq"){UseTool(ref works,()=>{var w=new ProgramOfWorksForm();ProgramOfWorksForm.Live=new WeakReference(w);GridFormulas.AttachAll(w);return w;},"Bill of Quantities",null,2);var boq=works as ProgramOfWorksForm;if(boq!=null&&!boq.IsDisposed)boq.OpenPath(f.Path);}
+    else if(f.Kind=="pow"){if(powWorkbook==null||powWorkbook.IsDisposed)powWorkbook=new PowWorkbookForm();ShowTool(powWorkbook,"Program of Works (POW)",null);((PowWorkbookForm)powWorkbook).OpenProjectFile(f.Path);}
+    else if(f.Kind.StartsWith("design:")){string title;if(!SheetTitles.TryGetValue(f.Kind.Substring(7),out title))continue;Action open;if(!designLoaders.TryGetValue(title,out open))continue;
+     ShowDesignSheets();open();Form form;var sheet=designModules.TryGetValue(title,out form)?form as DesignSheetForm:null;if(sheet!=null&&!sheet.IsDisposed)sheet.OpenFile(f.Path);}}
+   catch(Exception ex){failed.Add(f.Label+": "+ex.Message);}}
+  if(failed.Count>0)MessageBox.Show(this,"Some saved files of the project could not be opened:\r\n\r\n"+string.Join("\r\n",failed),"Project files",MessageBoxButtons.OK,MessageBoxIcon.Information);}
  bool ProjectReady(){ProjectInformation info;try{info=ProjectInfoStore.Read();}catch(Exception){info=new ProjectInformation();}if(info.Complete)return true;
   MessageBox.Show(this,"Fill in the Project Information first (project title, location, implementing office, office address and date prepared), then save it.","Project Information",MessageBoxButtons.OK,MessageBoxIcon.Information);UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8);return false;}
  /* full use, view only (User edition without access for that app: tabs and scrolling only), or not at all */

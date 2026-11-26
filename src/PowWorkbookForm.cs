@@ -138,7 +138,9 @@ sealed partial class PowWorkbookForm : Form {
  bool SaveProject(bool saveAs){if(book==null)return false;string path=projectPath;if(saveAs||path==null){using(var d=new SaveFileDialog{Title="Save POW",Filter="Program of Works (POW)|*.pow.xml",FileName=path==null?"Program-of-Works.pow.xml":Path.GetFileName(path),OverwritePrompt=true}){if(d.ShowDialog(this)!=DialogResult.OK)return false;path=d.FileName;}}
   try{PowProjectFileWriter.AtomicWrite(path,ProjectXml(edits,templateName));}catch(Exception ex){MessageBox.Show(this,"The POW was not saved: "+ex.Message,Text);return false;}
   projectPath=path;dirty=false;Remember(path);UpdateTitle();status.Text="Saved "+Path.GetFileName(path)+" ("+edits.Count+" value(s) changed from the template).";return true;}
- void OpenProject(){if(book==null||!ConfirmDiscard())return;using(var d=new OpenFileDialog{Title="Open POW",Filter="Program of Works (POW)|*.pow.xml|All files|*.*"}){if(d.ShowDialog(this)!=DialogResult.OK)return;
+ void OpenProject(){OpenProjectFile(null);}
+ /* a file chosen elsewhere (the project's files from Project Information) */
+ internal void OpenProjectFile(string chosen){if(book==null||!ConfirmDiscard())return;var d=new OpenFileDialog{Title="Open POW",Filter="Program of Works (POW)|*.pow.xml|All files|*.*",FileName=chosen??""};using(d){if(chosen==null&&d.ShowDialog(this)!=DialogResult.OK)return;
    Dictionary<string,object> values;try{values=ReadProject(d.FileName);}catch(Exception ex){MessageBox.Show(this,ex.Message,Text);return;}
    foreach(var at in originals.Keys.ToList())Restore(at);edits.Clear();originals.Clear();formulaOriginals.Clear();Apply(values);projectPath=d.FileName;dirty=false;Remember(d.FileName);Recalculate(null);UpdateTitle();status.Text="Opened "+Path.GetFileName(d.FileName)+" ("+values.Count+" saved value(s)).";}}
  void NewProject(){if(book==null||!ConfirmDiscard())return;foreach(var at in originals.Keys.ToList())Restore(at);edits.Clear();originals.Clear();formulaOriginals.Clear();projectPath=null;dirty=false;try{File.Delete(LastProjectPath);}catch(IOException){}Recalculate(null);UpdateTitle();status.Text="New POW from the template. Change input cells, then Save POW.";}
@@ -154,7 +156,7 @@ sealed partial class PowWorkbookForm : Form {
   if(changed>0){dirty=true;UpdateTitle();Recalculate(null);}
   status.Text="BACKUP linked to Bill of Quantities: "+plan.Matched+" pay item(s) placed"+(changed>0?", "+changed+" BACKUP quantity cell(s) updated":", no change")+(plan.Unmatched.Count>0?"; not found in BACKUP: "+string.Join(", ",plan.Unmatched.Take(6).Select(u=>u.Code))+(plan.Unmatched.Count>6?" …":""):"")+".";}
  object CurrentValue(string at){int bang=at.LastIndexOf('!');var s=book.Sheet(at.Substring(0,bang));int r,c;if(s==null||!WbBook.ParseA1(at.Substring(bang+1),out r,out c))return null;var cell=s.Get(r,c);return cell==null?null:cell.Cached;}
- static void Remember(string path){try{File.WriteAllText(LastProjectPath,path);}catch(IOException){}catch(UnauthorizedAccessException){}}
+ static void Remember(string path){ProjectFiles.Remember("pow",path);try{File.WriteAllText(LastProjectPath,path);}catch(IOException){}catch(UnauthorizedAccessException){}}
  /* printing */
  void PrintSheets(bool preview){if(view.Sheet==null)return;Print(new List<WbSheet>{view.Sheet},preview);}
  void PrintDupas(){if(book==null)return;var detailed=book.Sheet("DETAILED");var codes=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
