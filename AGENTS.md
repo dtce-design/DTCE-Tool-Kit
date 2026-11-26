@@ -308,6 +308,8 @@ Done 25 November 2026: v7.2.39 merged to main (PR #25; GitHub release v7.2.39-bu
 attempt): new User (1152921505702502448; visibility Public) and Admin (1152921505702502447; visibility Private) submissions were created and
 committed, replacing the pending v7.2.34 submissions; Partner Center reported "accepted for processing". Certification is not guaranteed.
 v7.2.40 / v8.0.0 and later need a new explicit request.
+New owner request (26 November 2026, "PUBLISH TO MICROSOFT STORE"): publish v9.0.1 (User and Admin) after its Windows CI passes (PR to main for
+the GitHub release, then publish_microsoft_store=true). Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
@@ -374,7 +376,9 @@ Owner (26 November 2026, "include Live Loads ... Government Buildings all spaces
 "INCLUDE SEARCH BAR"): new design sheet "Live Loads (NSCP 2015)" (v9.0.0), first sub tab of Design Loads, under the Design Loads grant (sheet
 type "Live-Loads" -> LoadCombinations bit; no new program). src/NscpLiveLoads.cs holds Table 205-1 / 205-3 and the spaces of 14 government
 building types (row id per space); src/LiveLoadsWindow.cs shows them per space with f1 / reduction and search bars. Values entered without the
-code text at hand: correct them from the owner's NSCP pages when given.
+code text at hand: correct them from the owner's NSCP pages when given. v9.0.1: Table 205-1 as printed (owner's photos of pp. 2-17 / 2-18,
+23 categories, notes 1-9); "In report" check boxes choose the spaces in the report (owner: "ADD CHECK ARROW TO BE INCLUDED IN THE REPORT");
+Table 205-3 still not compared with the printed page.
 
 ## Door hardware (23 November 2026)
 

@@ -10,41 +10,39 @@ sealed class LiveLoadSpace {public string Space,Row,Remark="";public double Over
 static class NscpLiveLoads {
  static LiveLoadRow R(string id,string cat,string desc,double u,double c=double.NaN,string note=""){return new LiveLoadRow{Id=id,Category=cat,Description=desc,Uniform=u,Concentrated=c,Note=note};}
  const double N=double.NaN;
- /* Table 205-1 Minimum uniform and concentrated live loads; the concentrated load acts on 750 mm x 750 mm unless stated */
+ /* Table 205-1 Minimum uniform and concentrated live loads, as printed in NSCP 2015 (7th edition) pp. 2-17 / 2-18 (owner's photos,
+    26 November 2026); the superscripts are the table notes (Notes) */
  internal static readonly LiveLoadRow[] Table={
-  R("1a","1 Access floor systems","Office use",2.4,9.0),R("1b","1 Access floor systems","Computer use",4.8,9.0),
-  R("2","2 Armories","",7.2),
-  R("3a","3 Theaters, assembly areas and auditoriums","Fixed seats fastened to the floor",2.9),R("3b","3 Theaters, assembly areas and auditoriums","Lobbies",4.8),R("3c","3 Theaters, assembly areas and auditoriums","Movable seats",4.8),R("3d","3 Theaters, assembly areas and auditoriums","Platforms (assembly)",4.8),R("3e","3 Theaters, assembly areas and auditoriums","Stage areas",7.2),
-  R("4","4 Bowling alleys, poolrooms and similar recreational areas","",3.6),
-  R("5","5 Catwalks for maintenance access","",1.9,1.3),
-  R("6","6 Cornices and marquees","",3.6),
-  R("7","7 Dance halls and ballrooms","",4.8),
-  R("8","8 Dining rooms and restaurants","",4.8),
-  R("9","9 Exit facilities","Corridors serving 10 or more persons, exterior exit balconies, stairways, fire escapes and similar",4.8),
-  R("10a","10 Garages","General storage and / or repair",4.8,N,"trucks and buses: by the actual wheel loads"),R("10b","10 Garages","Private or pleasure-type motor vehicle storage",1.9),
-  R("11","11 Gymnasiums","Main floors and balconies",4.8),
-  R("12a","12 Hospitals","Operating rooms, laboratories",2.9,4.5),R("12b","12 Hospitals","Private rooms",1.9,4.5),R("12c","12 Hospitals","Wards",1.9,4.5),R("12d","12 Hospitals","Corridors above ground floor",3.8,4.5),
-  R("13a","13 Libraries","Reading rooms",2.9,4.5),R("13b","13 Libraries","Stack rooms",7.2,4.5),R("13c","13 Libraries","Corridors above ground floor",3.8,4.5),
-  R("14a","14 Manufacturing","Light",6.0,9.0),R("14b","14 Manufacturing","Heavy",12.0,13.4),
-  R("15a","15 Office use","Lobbies and ground floor corridors",4.8,9.0),R("15b","15 Office use","Offices",2.4,9.0),R("15c","15 Office use","Corridors above ground floor",3.8,9.0),R("15d","15 Office use","File and computer rooms",N,N,"designed for the heavier loads of the expected use"),
-  R("16a","16 Penal institutions","Cell blocks",1.9),R("16b","16 Penal institutions","Corridors",4.8),
-  R("17a","17 Printing plants","Press rooms",7.2,11.0),R("17b","17 Printing plants","Composing and linotype rooms",4.8,9.0),
-  R("18a","18 Residential","One and two family: uninhabitable attics without storage",0.5),R("18b","18 Residential","One and two family: uninhabitable attics with storage",1.0),R("18c","18 Residential","One and two family: habitable attics and sleeping areas",1.4),R("18d","18 Residential","One and two family: all other areas",1.9),
-  R("18e","18 Residential","Hotels and multifamily: private rooms and corridors serving them",1.9),R("18f","18 Residential","Hotels and multifamily: public rooms and corridors serving them",4.8),
-  R("19","19 Restrooms","",N,N,"same as the occupancy served, need not exceed 2.4 kPa"),
-  R("20","20 Reviewing stands, grandstands and bleachers","",4.8),
-  R("21","21 Roof decks","",N,N,"same as the area served or the occupancy accommodated"),
-  R("22a","22 Schools","Classrooms",1.9,4.5),R("22b","22 Schools","Corridors above ground floor",3.8,4.5),R("22c","22 Schools","Ground floor corridors",4.8,4.5),
-  R("23","23 Scuttles, skylight ribs and accessible ceilings","",N,0.9),
-  R("24","24 Sidewalks, vehicular driveways and yards subject to trucking","",12.0,35.6),
-  R("25a","25 Stadiums and arenas","Bleachers",4.8),R("25b","25 Stadiums and arenas","Fixed seats fastened to the floor",2.9),
-  R("26a","26 Stairs and exits","One and two family dwellings",1.9),R("26b","26 Stairs and exits","All others",4.8),
-  R("27a","27 Storage warehouses","Light",6.0),R("27b","27 Storage warehouses","Heavy",12.0),
-  R("28a","28 Stores","Retail, first floor",4.8,4.5),R("28b","28 Stores","Retail, upper floors",3.6,4.5),R("28c","28 Stores","Wholesale, all floors",6.0,4.5),
-  R("29","29 Yards and terraces, pedestrians","",4.8),
-  R("30a","30 Balconies (exterior)","",4.8),R("30b","30 Balconies (exterior)","One and two family, not over 9.3 m²",2.9),
-  R("31","31 Walkways and elevated platforms (other than exitways)","",2.9),
-  R("32","32 Elevator machine room grating","on 2,580 mm²",N,1.3)};
+  R("1a","1 Access floor systems","Office use",2.4,9.0,"note 2"),R("1b","1 Access floor systems","Computer use",4.8,9.0,"note 2"),
+  R("2","2 Armories","",7.2,0),
+  R("3a","3 Theaters, assembly areas and auditoriums","Fixed seats",2.9,0,"note 3"),R("3b","3 Theaters, assembly areas and auditoriums","Movable seats",4.8,0,"note 3"),R("3c","3 Theaters, assembly areas and auditoriums","Lobbies and platforms",4.8,0,"note 3"),R("3d","3 Theaters, assembly areas and auditoriums","Stage areas",7.2,0,"note 3"),
+  R("4","4 Bowling alleys, poolrooms and similar recreational areas","",3.6,0),
+  R("5","5 Catwalk for maintenance access","",1.9,1.3),
+  R("6","6 Cornices and marquees","",3.6,0,"note 4"),
+  R("7","7 Dining rooms and restaurants","",4.8,0),
+  R("8","8 Exit facilities","",4.8,0,"notes 5, 6"),
+  R("9a","9 Parking garages and ramps","General storage and/or repair",4.8,N,"note 7"),R("9b","9 Parking garages and ramps","Public parking",2.4,N,"note 7"),R("9c","9 Parking garages and ramps","Private (residential) or pleasure-type motor vehicle storage",2.4,N,"note 7"),R("9d","9 Parking garages and ramps","Ramps",4.8,N,"note 7"),
+  R("10a","10 Hospitals","Wards and rooms",1.9,4.5,"note 2"),R("10b","10 Hospitals","Laboratories and operating rooms",2.9,4.5,"note 2"),R("10c","10 Hospitals","Corridors above ground floor",3.8,4.5),
+  R("11a","11 Libraries","Reading rooms",2.9,4.5,"note 2"),R("11b","11 Libraries","Stack rooms",7.2,4.5,"note 2"),R("11c","11 Libraries","Corridors above ground floor",3.8,4.5),
+  R("12a","12 Manufacturing","Light",6.0,9.0,"note 2"),R("12b","12 Manufacturing","Heavy",12.0,13.4,"note 2"),R("12c","12 Manufacturing","Building corridors above ground floor",3.8,9.0),
+  R("13a","13 Office","Call centers and business processing offices",2.9,9.0),R("13b","13 Office","Lobbies and ground floor corridors",4.8,9.0),R("13c","13 Office","Other offices",2.4,9.0,"note 2"),
+  R("14a","14 Printing plants","Press rooms",7.2,11.0,"note 2"),R("14b","14 Printing plants","Composing and linotype rooms",4.8,9.0,"note 2"),
+  R("15a","15 Residential","Basic floor area",1.9,0,"notes 6, 8"),R("15b","15 Residential","Exterior balconies",2.9,0,"notes 4, 8"),R("15c","15 Residential","Decks",1.9,0,"notes 4, 8"),R("15d","15 Residential","Storage",1.9,0,"note 8"),
+  R("16","16 Restrooms","",N,N,"note 9: not less than the occupancy served, need not exceed 2.4 kPa"),
+  R("17","17 Reviewing stands, grandstands, bleachers, and folding and telescoping seating","",4.8,0),
+  R("18","18 Roof decks","Same as area served or occupancy",N,N),
+  R("19a","19 Schools","Classrooms",1.9,4.5,"note 2"),R("19b","19 Schools","Corridors above ground floor",3.8,4.5),R("19c","19 Schools","Ground floor corridors",4.8,4.5),
+  R("20","20 Sidewalks and driveways","Public access",12.0,N,"note 7"),
+  R("21a","21 Storage","Light",6.0),R("21b","21 Storage","Heavy",12.0),
+  R("22a","22 Stores","Retail",4.8,4.5,"note 2"),R("22b","22 Stores","Wholesale",6.0,13.4,"note 2"),
+  R("23","23 Pedestrian bridges and walkways","",4.8)};
+ internal static readonly string[] Notes={
+  "1 See Section 205.5 for live load reductions.","2 See Section 205.3.3, first paragraph, for area of load application.",
+  "3 Assembly areas include such occupancies as dance halls, drill rooms, gymnasiums, playgrounds, plazas, terraces and similar occupancies that are generally accessible to the public.",
+  "4 For special-purpose roofs, see Section 205.4.4.","5 Exit facilities shall include such uses as corridors serving an occupant load of 10 or more persons, exterior exit balconies, stairways, fire escapes and similar uses.",
+  "6 Individual stair treads shall be designed to support a 1.3 N concentrated load placed in a position that would cause maximum stress (as printed). Stair stringers may be designed for the uniform load set forth in the table.",
+  "7 See Section 205.3.3, second paragraph, for concentrated loads. See Table 205-2 for vehicle barriers.","8 Residential occupancies include private dwellings, apartments and hotel guest rooms.",
+  "9 Restroom loads shall not be less than the load for the occupancy with which they are associated, but need not exceed 2.4 kPa."};
  internal static LiveLoadRow Row(string id){return Table.First(r=>r.Id==id);}
  /* Table 205-3 Minimum roof live loads, Method 1 (kPa, by tributary area) */
  internal static readonly string[][] RoofTable={
@@ -53,41 +51,41 @@ static class NscpLiveLoads {
   new[]{"3 Rise 12 in 12 and greater; arch or dome with rise 3/8 of the span or greater","0.60","0.60","0.60"},
   new[]{"4 Awnings, except cloth covered","0.25","0.25","0.25"},new[]{"5 Greenhouses, lath houses and agricultural buildings","0.50","0.50","0.50"}};
  static LiveLoadSpace S(string space,string row,string remark=""){return new LiveLoadSpace{Space=space,Row=row,Remark=remark};}
- static LiveLoadSpace T(string space,double kpa,string remark){return new LiveLoadSpace{Space=space,Row="19",Override=kpa,Remark=remark};}
- const string Toilet="as the area served, not over 2.4 kPa";const string Roof="roof: Table 205-3 by slope and tributary area";
+ static LiveLoadSpace T(string space,double kpa,string remark){return new LiveLoadSpace{Space=space,Row="16",Override=kpa,Remark=remark};}
+ const string Toilet="note 9: as the occupancy served, not over 2.4 kPa";const string Assembly="assembly area (note 3)";const string NoRow="no own row in Table 205-1";
  internal static readonly Dictionary<string,LiveLoadSpace[]> Buildings=new Dictionary<string,LiveLoadSpace[]>{
-  {"Barangay Hall",new[]{S("Offices (punong barangay, secretary, treasurer, staff)","15b"),S("Session hall (Sangguniang Barangay)","3c","movable seats"),S("Lupon / conference / multi-purpose room","3c","people gather: assembly, movable seats"),
-   S("Lobby, waiting area and ground floor corridors","15a"),S("Corridors above ground floor","15c"),S("Records / file room","15d","use Light storage 6.0 kPa unless the files are lighter"),S("Barangay health station / clinic room","12b"),
-   S("Day care / child development room","22a"),T("Toilets",2.4,Toilet),S("Stairs and exits","26b"),S("Roof deck (accessible)","21","as the use on the deck")}},
-  {"Evacuation Center",new[]{S("Evacuation hall / family and sleeping areas","3c","crowded use: assembly, movable seats"),S("Women- and child-friendly space, breastfeeding room","3c"),S("Community kitchen","8","heavy equipment by its weight"),S("Dining area","8"),
-   S("Relief goods storage","27a","stacked sacks of rice / water: check Heavy storage 12.0 kPa"),S("Clinic / first aid / isolation room","12c"),S("Administration / command post office","15b"),
-   T("Toilets and bathing areas",2.4,Toilet),S("Corridors and exits","9"),S("Stairs","26b"),S("Roof deck used as refuge (flooding)","3c","as the use on the deck: assembly")}},
-  {"Birthing Center / Lying-in Clinic",new[]{S("Delivery room","12a"),S("Labor room","12a"),S("Laboratory","12a"),S("Recovery / postpartum ward","12c"),S("Private patient rooms","12b"),S("Newborn care / nursery","12c"),
-   S("Consultation / examination rooms","12b"),S("Pharmacy / supply room","27a"),S("Waiting area / lobby","15a"),S("Offices / nurse station","15b"),S("Corridors, ground floor","9"),S("Corridors above ground floor","12d"),T("Toilets",2.4,Toilet),S("Stairs and exits","26b")}},
-  {"Senior Citizen Center",new[]{S("Activity / function hall","3c"),S("Exercise / dance area","7"),S("Dining area","8"),S("Kitchen","8"),S("Reading room / library","13a"),S("Clinic / therapy room","12b"),
-   S("Resting / sleeping room","18e"),S("Offices","15b"),S("Lobby and ground floor corridors","15a"),S("Corridors above ground floor","15c"),T("Toilets",2.4,Toilet),S("Stairs and exits","26b")}},
-  {"Gymnasium",new[]{S("Playing court / main floor","11"),S("Balconies","11"),S("Bleachers","20"),S("Fixed seats","25b"),S("Stage","3e"),S("Lobby / concourse","3b"),T("Locker and shower rooms",2.4,Toilet),
-   S("Equipment storage","27a"),S("Offices","15b"),S("Catwalks for maintenance","5"),S("Stairs and exits","26b"),S("Roof","","Table 205-3 by slope and tributary area")}},
-  {"Covered Court",new[]{S("Court floor","11","usually a slab on grade"),S("Bleachers","20"),S("Stage","3e"),S("Equipment storage","27a"),T("Toilets",2.4,Toilet),S("Catwalks for maintenance","5"),S("Roof","","Table 205-3 by slope and tributary area")}},
-  {"Multi-Purpose Hall",new[]{S("Hall, movable seats","3c"),S("Hall, fixed seats","3a"),S("Stage","3e"),S("Lobby","3b"),S("Kitchen / pantry","8"),S("Storage","27a"),T("Toilets",2.4,Toilet),S("Stairs and exits","26b"),S("Roof","","Table 205-3 by slope and tributary area")}},
-  {"Municipal / City / Provincial Hall",new[]{S("Offices","15b"),S("Session hall","3c"),S("Gallery with fixed seats","3a"),S("Lobby and ground floor corridors","15a"),S("Corridors above ground floor","15c"),
-   S("Records / archives","15d","Light storage 6.0 kPa; compact shelving: Heavy 12.0 kPa"),S("Computer / server room","1b"),S("Conference rooms","3c"),S("Canteen","8"),T("Toilets",2.4,Toilet),S("Stairs and exits","26b"),S("Roof deck","21")}},
-  {"School Building",new[]{S("Classrooms","22a"),S("Corridors above ground floor","22b"),S("Ground floor corridors","22c"),S("Library reading room","13a"),S("Library stack room","13b"),S("Science / computer laboratory","12a","laboratories"),
-   S("Faculty / principal's office","15b"),S("Canteen","8"),S("Stage / assembly","3e"),T("Toilets",2.4,Toilet),S("Stairs and exits","26b")}},
-  {"Rural Health Unit / Health Center",new[]{S("Consultation / treatment rooms","12b"),S("Laboratory","12a"),S("Ward / observation","12c"),S("Pharmacy / storage","27a"),S("Waiting area","15a"),S("Offices","15b"),
-   S("Corridors above ground floor","12d"),S("Ground floor corridors","9"),T("Toilets",2.4,Toilet),S("Stairs and exits","26b")}},
-  {"Child Development / Day Care Center",new[]{S("Activity / classroom","22a"),S("Indoor play area","3c","children gathering: assembly"),S("Sleeping room","18c"),S("Kitchen / dining","8"),S("Office","15b"),T("Toilets",2.4,Toilet),S("Stairs and exits","26b")}},
-  {"Public Market",new[]{S("Market stalls, ground floor (retail)","28a"),S("Stalls, upper floors (retail)","28b"),S("Wholesale area","28c"),S("Cold storage / warehouse","27b"),S("Food court","8"),S("Aisles / walkways","9"),S("Loading area / driveway","24"),T("Toilets",2.4,Toilet)}},
-  {"Police / Fire Station",new[]{S("Offices","15b"),S("Detention cells","16a"),S("Cell corridors","16b"),S("Barracks / sleeping quarters","18e"),S("Apparatus bay (fire trucks)","10a","fire trucks: by the actual wheel loads"),S("Garage (patrol cars)","10b"),
-   S("Armory","2"),S("Lobby","15a"),T("Toilets and showers",2.4,Toilet),S("Stairs and exits","26b")}},
-  {"Public Library",new[]{S("Reading rooms","13a"),S("Stack rooms","13b"),S("Corridors above ground floor","13c"),S("Lobby","15a"),S("Offices","15b"),T("Toilets",2.4,Toilet),S("Stairs and exits","26b")}}};
+  {"Barangay Hall",new[]{S("Offices (punong barangay, secretary, treasurer, staff)","13c"),S("Session hall (Sangguniang Barangay)","3b",Assembly),S("Lupon / conference / multi-purpose room","3b",Assembly),
+   S("Lobby, waiting area and ground floor corridors","13b"),S("Corridors above ground floor","8","exit facilities serving 10 or more persons (note 5)"),S("Records / file room","21a",NoRow+": light storage"),S("Barangay health station / clinic room","10a"),
+   S("Day care / child development room","19a"),T("Toilets",2.4,Toilet),S("Stairs","8","notes 5, 6"),S("Roof deck (accessible)","18")}},
+  {"Evacuation Center",new[]{S("Evacuation hall / family and sleeping areas","3b",Assembly+", crowded use"),S("Women- and child-friendly space, breastfeeding room","3b",Assembly),S("Community kitchen","7","heavy equipment by its weight"),S("Dining area","7"),
+   S("Relief goods storage","21a","stacked sacks of rice / water: check Heavy 12.0 kPa"),S("Clinic / first aid / isolation room","10a"),S("Administration / command post office","13c"),
+   T("Toilets and bathing areas",2.4,Toilet),S("Corridors","8","note 5"),S("Stairs","8","notes 5, 6"),S("Roof deck used as refuge (flooding)","18","as the use on the deck: assembly 4.8 kPa")}},
+  {"Birthing Center / Lying-in Clinic",new[]{S("Delivery room","10b"),S("Labor room","10b"),S("Laboratory","10b"),S("Recovery / postpartum ward","10a"),S("Patient rooms","10a"),S("Newborn care / nursery","10a"),
+   S("Consultation / examination rooms","10a"),S("Pharmacy / supply room","21a"),S("Waiting area / lobby","13b"),S("Offices / nurse station","13c"),S("Corridors, ground floor","8","note 5"),S("Corridors above ground floor","10c"),T("Toilets",2.4,Toilet),S("Stairs","8","notes 5, 6")}},
+  {"Senior Citizen Center",new[]{S("Activity / function hall","3b",Assembly),S("Exercise / dance area","3b","dance halls are assembly areas (note 3)"),S("Dining area","7"),S("Kitchen","7"),S("Reading room / library","11a"),S("Clinic / therapy room","10a"),
+   S("Resting / sleeping room","15a"),S("Offices","13c"),S("Lobby and ground floor corridors","13b"),S("Corridors above ground floor","8","note 5"),T("Toilets",2.4,Toilet),S("Stairs","8","notes 5, 6")}},
+  {"Gymnasium",new[]{S("Playing court / main floor","3b","gymnasiums are assembly areas (note 3)"),S("Balconies","3c","assembly platforms (note 3)"),S("Bleachers / grandstands","17"),S("Fixed seats","3a"),S("Stage","3d"),S("Lobby / concourse","3c"),T("Locker and shower rooms",2.4,Toilet),
+   S("Equipment storage","21a"),S("Offices","13c"),S("Catwalks for maintenance","5"),S("Stairs and exits","8","notes 5, 6"),S("Roof","","Section 205.4 / Table 205-3 by slope and tributary area")}},
+  {"Covered Court",new[]{S("Court floor","3b","gymnasiums / playgrounds are assembly areas (note 3); usually a slab on grade"),S("Bleachers","17"),S("Stage","3d"),S("Equipment storage","21a"),T("Toilets",2.4,Toilet),S("Catwalks for maintenance","5"),S("Roof","","Section 205.4 / Table 205-3 by slope and tributary area")}},
+  {"Multi-Purpose Hall",new[]{S("Hall, movable seats","3b"),S("Hall, fixed seats","3a"),S("Stage","3d"),S("Lobby","3c"),S("Kitchen / pantry","7"),S("Storage","21a"),T("Toilets",2.4,Toilet),S("Stairs and exits","8","notes 5, 6"),S("Roof","","Section 205.4 / Table 205-3 by slope and tributary area")}},
+  {"Municipal / City / Provincial Hall",new[]{S("Offices","13c"),S("One-stop / business processing center","13a"),S("Session hall","3b",Assembly),S("Gallery with fixed seats","3a"),S("Lobby and ground floor corridors","13b"),S("Corridors above ground floor","8","note 5"),
+   S("Records / archives","21a",NoRow+"; compact shelving: Heavy 12.0 kPa"),S("Computer / server room","1b","access floor, computer use"),S("Conference rooms","3b",Assembly),S("Canteen","7"),T("Toilets",2.4,Toilet),S("Stairs and exits","8","notes 5, 6"),S("Roof deck","18")}},
+  {"School Building",new[]{S("Classrooms","19a"),S("Corridors above ground floor","19b"),S("Ground floor corridors","19c"),S("Library reading room","11a"),S("Library stack room","11b"),S("Science / computer laboratory","19a",NoRow+": as classrooms; heavy equipment by its weight"),
+   S("Faculty / principal's office","13c"),S("Canteen","7"),S("Stage","3d"),T("Toilets",2.4,Toilet),S("Stairs and exits","8","notes 5, 6")}},
+  {"Rural Health Unit / Health Center",new[]{S("Consultation / treatment rooms","10a"),S("Laboratory","10b"),S("Ward / observation","10a"),S("Pharmacy / storage","21a"),S("Waiting area","13b"),S("Offices","13c"),
+   S("Corridors above ground floor","10c"),S("Ground floor corridors","8","note 5"),T("Toilets",2.4,Toilet),S("Stairs and exits","8","notes 5, 6")}},
+  {"Child Development / Day Care Center",new[]{S("Activity / classroom","19a"),S("Indoor play area","3b","playgrounds are assembly areas (note 3)"),S("Sleeping room","15a"),S("Kitchen / dining","7"),S("Office","13c"),T("Toilets",2.4,Toilet),S("Stairs and exits","8","notes 5, 6")}},
+  {"Public Market",new[]{S("Market stalls (retail)","22a"),S("Wholesale area","22b"),S("Cold storage / warehouse","21b"),S("Food court","7"),S("Aisles / walkways","8","note 5"),S("Loading area / driveway","20"),S("Parking","9b"),T("Toilets",2.4,Toilet)}},
+  {"Police / Fire Station",new[]{S("Offices","13c"),S("Detention cells","15a",NoRow+" (no penal category): as residential basic floor area"),S("Cell corridors","8","note 5"),S("Barracks / sleeping quarters","15a"),S("Apparatus bay (fire trucks)","9a","note 7: fire trucks by the actual wheel loads"),S("Parking (patrol cars)","9b"),
+   S("Armory","2"),S("Lobby","13b"),T("Toilets and showers",2.4,Toilet),S("Stairs and exits","8","notes 5, 6")}},
+  {"Public Library",new[]{S("Reading rooms","11a"),S("Stack rooms","11b"),S("Corridors above ground floor","11c"),S("Lobby","13b"),S("Offices","13c"),T("Toilets",2.4,Toilet),S("Stairs and exits","8","notes 5, 6")}}};
  /* the load of a space: the table row, or the space's own value */
- internal static double Uniform(LiveLoadSpace s){if(!double.IsNaN(s.Override))return s.Override;if(s.Row==""||s.Row=="21"||s.Row=="19")return double.NaN;var r=Row(s.Row);if(!double.IsNaN(r.Uniform))return r.Uniform;return s.Row=="15d"?6.0:double.NaN;}
- internal static double Concentrated(LiveLoadSpace s){if(s.Row==""||s.Row=="19")return double.NaN;return Row(s.Row).Concentrated;}
+ internal static double Uniform(LiveLoadSpace s){if(!double.IsNaN(s.Override))return s.Override;if(s.Row=="")return double.NaN;return Row(s.Row).Uniform;}
+ internal static double Concentrated(LiveLoadSpace s){if(s.Row==""||s.Row=="16")return double.NaN;return Row(s.Row).Concentrated;}
  /* f1 of Eq. 203-3 / 203-5: 1.0 for places of public assembly, live loads over 4.8 kPa and garages; 0.5 otherwise */
- internal static string F1(LiveLoadSpace s){double u=Uniform(s);if(s.Row==""||double.IsNaN(u))return "-";var cat=Row(s.Row).Category;bool one=cat.StartsWith("3 ")||cat.StartsWith("7 ")||cat.StartsWith("11 ")||cat.StartsWith("20 ")||cat.StartsWith("25 ")||cat.StartsWith("10 ")||u>4.8;return one?"1.0":"0.5";}
+ internal static string F1(LiveLoadSpace s){double u=Uniform(s);if(s.Row==""||double.IsNaN(u))return "-";var cat=Row(s.Row).Category;bool one=cat.StartsWith("3 ")||cat.StartsWith("17 ")||cat.StartsWith("9 ")||u>4.8;return one?"1.0":"0.5";}
  /* live load reduction (Section 205.5): not for places of public assembly, not for live loads over 4.8 kPa (except as allowed) */
- internal static string Reducible(LiveLoadSpace s){if(s.Row=="")return "-";var cat=Row(s.Row).Category;if(cat.StartsWith("3 ")||cat.StartsWith("7 ")||cat.StartsWith("11 ")||cat.StartsWith("20 ")||cat.StartsWith("25 "))return "No (assembly)";double u=Uniform(s);if(u>4.8)return "No (over 4.8 kPa)";return double.IsNaN(u)?"-":"Yes";}
+ internal static string Reducible(LiveLoadSpace s){if(s.Row=="")return "-";var cat=Row(s.Row).Category;if(cat.StartsWith("3 ")||cat.StartsWith("17 "))return "No (assembly)";double u=Uniform(s);if(u>4.8)return "No (over 4.8 kPa)";return double.IsNaN(u)?"-":"Yes";}
  internal static string Basis(LiveLoadSpace s){if(s.Row=="")return "Table 205-3 (roof)";var r=Row(s.Row);return "Table 205-1, "+r.Category+(r.Description!=""?" - "+r.Description:"");}
 }
 }
