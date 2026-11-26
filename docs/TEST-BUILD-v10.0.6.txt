@@ -1,0 +1,7 @@
+DTCE Tool Kit v10.0.6 (26 November 2026) - Store release (includes v10.0.0 to v10.0.5).
+
+PATCH - Live Loads: one list of spaces, not grouped by building (owner: "huwag mo na igroup per building"). Every space of every building
+type is listed once (same name and same Table 205-1 row), sorted by name, with the check boxes, search and partition option; the report is
+one table of the checked spaces. The building type input is no longer shown (kept hidden so older sheets open).
+Tests: LiveLoadsTests 544; mobile generator test reserved masks after Load Combinations (32768, 33280).
+Includes everything of v10.0.5.

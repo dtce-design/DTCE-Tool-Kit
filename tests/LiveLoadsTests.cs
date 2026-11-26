@@ -12,10 +12,10 @@ class LiveLoadsTests {
   var store=NscpLiveLoads.Buildings["Evacuation Center"].First(s=>s.Space.StartsWith("Relief"));Check(NscpLiveLoads.Uniform(store)==6.0&&NscpLiveLoads.F1(store)=="1.0"&&NscpLiveLoads.Reducible(store).StartsWith("No"),"storage 6.0 > 4.8: f1 1.0, not reducible");
   var wc=NscpLiveLoads.Buildings["Barangay Hall"].First(s=>s.Space=="Toilets");Check(NscpLiveLoads.Uniform(wc)==2.4,"toilets 2.4");
   System.Windows.Forms.Application.SetUnhandledExceptionMode(System.Windows.Forms.UnhandledExceptionMode.CatchException);AccessCodes.Granted=true;
-  using(var form=new LiveLoadsForm()){form.Show();System.Windows.Forms.Application.DoEvents();int all=form.Rows().Count();Check(all==NscpLiveLoads.Buildings.Values.Sum(v=>v.Length),"all building types listed: "+all);
-   int toilets=form.SearchSpaces("toilet");Check(toilets>=10&&toilets<all,"search 'toilet': "+toilets);Check(form.SearchSpaces("gymnasium bleachers")==1,"search with two words");form.SearchSpaces("toilet");var shown=form.Rows().Where(r=>r[1].IndexOf("toilet",StringComparison.OrdinalIgnoreCase)>=0||r[7].IndexOf("toilet",StringComparison.OrdinalIgnoreCase)>=0).ToList();
+  using(var form=new LiveLoadsForm()){form.Show();System.Windows.Forms.Application.DoEvents();var rows=form.Rows().ToList();int all=rows.Count;Check(all>100&&all<NscpLiveLoads.Buildings.Values.Sum(v=>v.Length)&&rows.Select(r=>r[0]+"|"+r[5]).Distinct().Count()==all,"one list, each space once (owner: huwag igroup per building): "+all);Check(rows.Select(r=>r[0]).SequenceEqual(rows.Select(r=>r[0]).OrderBy(x=>x,StringComparer.OrdinalIgnoreCase)),"sorted by space");
+   int toilets=form.SearchSpaces("toilet");Check(toilets>=2&&toilets<all,"search 'toilet': "+toilets);Check(form.SearchSpaces("bleachers 4.8")>=1&&form.SearchSpaces("bleachers 4.8")<toilets+5,"search with two words");form.SearchSpaces("toilet");var shown=form.Rows().Where(r=>string.Join(" ",r).IndexOf("toilet",StringComparison.OrdinalIgnoreCase)>=0).ToList();
    Check(!form.Rows().Any(form.Included),"every space starts unchecked (owner: ako ang mag check)");
-   form.SetIncluded(shown,true);Check(form.Rows().Count(form.Included)==shown.Count&&!form.Rows().Where(r=>r[1]=="Classrooms").Any(form.Included),"only the checked spaces go to the report");form.SetIncluded(shown,false);Check(!form.Rows().Any(form.Included),"unchecked again");
+   form.SetIncluded(shown,true);Check(form.Rows().Count(form.Included)==shown.Count&&!form.Rows().Where(r=>r[0]=="Classrooms").Any(form.Included),"only the checked spaces go to the report");form.SetIncluded(shown,false);Check(!form.Rows().Any(form.Included),"unchecked again");
    form.SearchSpaces("");form.Close();}
   Console.WriteLine("LiveLoadsTests passed: "+checks+" checks");}
 }
