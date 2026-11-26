@@ -3,6 +3,7 @@ using System;using System.Linq;using BeamScheduleFormatter;
 class DeadLoadsTests {
  static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}
  static void Main(){
+  System.Windows.Forms.Application.SetUnhandledExceptionMode(System.Windows.Forms.UnhandledExceptionMode.CatchException);AccessCodes.Granted=true;
   using(var f=new DeadLoadsForm()){f.Show();System.Windows.Forms.Application.DoEvents();
    var ft=f.FloorTotals();Func<int,int,string> at=(r,c)=>ft[r][c];
    Check(at(0,1)=="4.31"&&at(1,1)=="1.36","Typical: total 4.31, STAAD 1.36: "+at(0,1)+" "+at(1,1));
