@@ -1,0 +1,10 @@
+DTCE Tool Kit v10.0.5 (26 November 2026) - Store release (includes v10.0.0 to v10.0.4).
+
+PATCH - Dead Loads (owner: "hiwalay mo naman yung Elevator. allow magdelete ng load description add, floor type, remove wall loads, add
+level etc"):
+- Elevator on its own tab (shaft length / width, weight, impact %, result); Roof purlins on theirs; the concrete unit weight sits next to
+  the slab helper on the Floor dead loads page.
+- Buttons on every table: Add / Delete selected load descriptions (floor and roof tables), Add floor type / Remove selected floor type,
+  Add / Delete selected wall loads, Add / Delete selected levels (wall heights). The totals and line loads follow at once.
+- Tests: access masks after Load Combinations (16384 is a program; All = 32759); the Design Loads group in the access protocol test.
+Includes everything of v10.0.4.
