@@ -1,0 +1,9 @@
+DTCE Tool Kit v10.0.26 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release request is v10.0.24).
+
+PATCH - sample data removed (owner: "lahat ng pakita ko sample lang yun pati yung sa mga truss support, alisin mo iyon"):
+- Truss Support on RC: the two preset buttons taken from the owner's sample drawings ("Example A ... 250 x 300 x 16 plate" and "Example B
+  ... 350 x 1000 x 20 plate") are removed; the sheet keeps its ordinary starting values. The two cases stay only as test data.
+- Column Formatter: the note no longer refers to the sample schedule.
+- The owner's sample STAAD file and screenshots were only used for checking; none of them is in the app or the repository.
+Tests: TrussSupportTests 39, ColumnScheduleTests 36.
+Includes everything of v10.0.25.
