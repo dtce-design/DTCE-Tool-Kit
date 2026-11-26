@@ -375,7 +375,10 @@ alternative basic ASD and special seismic sets (v8.0.1), regrouped in v8.0.2.
 Owner ("How do you compute redundancy or reliability factor"; "Yes with automatic staad computation"): the sheet has a "Redundancy factor ρ" tab
 (src/RedundancyFactor.cs, src/LoadCombinationsRho.cs): the pasted .std and the EQ member end forces give the story shears and r_i (bay of two
 columns, 70 % interior; brace horizontal component; dual 80 %; walls typed), A_B from the base joints, ρ = 2 - 6.1/(r_max √A_B) per direction
-with the limits; "Use ρ" fills Factors; reported as its own section (v8.0.4). Owner ("ikaw na bahala sa redundancy basta paste ko na lang yung required",
+with the limits; "Use ρ" fills Factors; reported as its own section (v8.0.4). Owner (26 November 2026, "automatic na sana di na ako maglalagay ng primary loads"; "nauuna yung Earthquake
+loads"; "perform analysis change every eq primary case", v10.0.9): "Automatic primary loads" (default on) builds the primaries from the structure
+class, EQ first (A 4, B 8 with +E / -E, C 4 Load Type None), then DL, LL1.., LLR, WL; the STAAD output then starts with the primary section
+(UBC / IBC LOAD command, ACC +-0.05 for B, PERFORM ANALYSIS / CHANGE after each EQ case as a choice). Older sheets keep their pasted list. Owner ("ikaw na bahala sa redundancy basta paste ko na lang yung required",
 v8.0.7): the owner only pastes - the boxes are recognised either way (.ANL echo too), EQ cases / directions come from the input's LOAD cases,
 the lateral system is automatic (braces = floor-to-floor inclined members, rafters excluded), and the computed ρ goes into Factors by itself.
 Owner (26 November 2026, "Put Windload and Earthquake in a new main tab Design Loads including Load Combinations as sub tab"): the Design Sheets

@@ -41,5 +41,12 @@ class StaadCombinationsTests {
   var text=StaadCombinations.Staad(all,list,s);Check(text.Contains("LOAD COMBINATION 1001 1.4DL")&&text.Contains("LOAD 13 LOADTYPE SEISMIC TITLE 1.0(EQ+X)+0.3(EQ+Z)\nREPEAT LOAD\n5 1 7 0.3")&&text.Contains("LOAD COMBINATION 3001 ")&&text.Contains("* Eq. 203-5")&&text.Split('\n').All(x=>x.TrimEnd('\r').Length<=72),"STAAD text: REPEAT LOAD cases, combinations, lines within 72 columns");
   Check(ProgramAccess.ForSheet("Load-Combinations")==ProgramAccess.LoadCombinations&&(ProgramAccess.All&ProgramAccess.LoadCombinations)!=0&&ProgramAccess.Names.Contains("Load Combinations (NSCP 2015)"),"own access program");
   try{StaadCombinations.Build(StaadCombinations.Parse("1 LL"),s);Check(false,"no dead load must be refused");}catch(Exception ex){Check(ex.Message.Contains("dead"),"no dead load case: "+ex.Message);}
+  /* automatic primary loads, earthquake cases first, PERFORM ANALYSIS / CHANGE after each EQ case (owner, 26 November 2026) */
+  {var b=StaadCombinations.Parse(StaadCombinations.AutoPrimary("B",2,true,true));Check(b.Count==16&&b.Take(8).All(p=>p.Kind=="E")&&b[0].Title=="EQ+X+E"&&b[7].Title=="EQ-Z-E"&&b[8].Title=="DL"&&b[11].Kind=="Lr"&&b.Skip(12).All(p=>p.Kind=="W"),"structure B: 8 EQ cases first, then DL, LL1, LL2, LLR, WL");
+   var sb=new StaadCombinationSettings{Structure="B",AutoPrimary=true};var txt=StaadCombinations.Staad(StaadCombinations.Build(b,sb),b,sb);
+   Check(txt.Contains("LOAD 2 LOADTYPE SEISMIC-H TITLE EQ+X-E\nUBC LOAD X 1 ACC -0.05\nPERFORM ANALYSIS\nCHANGE")&&txt.Contains("LOAD 9 LOADTYPE DEAD TITLE DL\nSELFWEIGHT Y -1"),"primary section with UBC LOAD, ACC and PERFORM ANALYSIS / CHANGE");
+   var c=StaadCombinations.Parse(StaadCombinations.AutoPrimary("C",1,false,false));Check(c.Count==6&&c[0].Title=="EQ+X"&&c[4].Title=="DL"&&c[5].Title=="LL","structure C: 4 EQ, DL, LL");
+   var sc=new StaadCombinationSettings{Structure="C",AutoPrimary=true,PerformChange=false};var t2=StaadCombinations.Staad(StaadCombinations.Build(c,sc),c,sc);Check(t2.Contains("LOAD 1 LOADTYPE NONE TITLE EQ+X\nUBC LOAD X 1\nLOAD 2")&&!t2.Contains("CHANGE"),"structure C: Load Type None; no CHANGE when switched off");
+   Check(!StaadCombinations.Staad(StaadCombinations.Build(c,new StaadCombinationSettings()),c,new StaadCombinationSettings()).Contains("PRIMARY LOAD CASES"),"pasted primaries: no primary section");}
   Console.WriteLine("PASS: "+checks+" load combination checks");}
 }
