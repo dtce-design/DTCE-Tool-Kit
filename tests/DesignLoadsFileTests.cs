@@ -19,4 +19,11 @@ class DesignLoadsFileTests{static int checks;static void Check(bool ok,string wh
   Check(((Control)in4["RegWeights"]).Text=="3.5 1200\r\n7 900","storey weights from the Earthquake Load sheet");
   var lcl=DesignLoadsLink.Get("load-combinations");Check(lcl!=null&&lcl["structure"].Length==1,"the structure class goes to the Earthquake Load sheet");
   DesignLoadsLink.Set("live-loads",new Dictionary<string,string>{{"cases",""}});
+  /* one site location: Wind and Earthquake share Latitude / Longitude (v10.0.17) */
+  DesignLoadsLink.Set("site",new Dictionary<string,string>{{"lat","16.4023"},{"lon","120.5960"}});var wf=new WindDesignForm();wf.Show();Pump();var win=(System.Collections.IDictionary)typeof(DesignSheetForm).GetField("Inputs",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(wf);
+  Check(((Control)win["Latitude"]).Text=="16.4023"&&((Control)win["Longitude"]).Text=="120.5960","a new Wind sheet starts at the shared site");
+  var ef=new RsaCurveForm();ef.Show();Pump();var ein=(System.Collections.IDictionary)typeof(DesignSheetForm).GetField("Inputs",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(ef);
+  Check(((Control)ein["Latitude"]).Text=="16.4023","a new Earthquake sheet starts at the shared site");
+  ((Control)win["Latitude"]).Text="14.5995";((Control)win["Longitude"]).Text="120.9842";Pump();Check(((Control)ein["Latitude"]).Text=="14.5995"&&((Control)ein["Longitude"]).Text=="120.9842","coordinates typed in Wind appear in Earthquake");
+  ((Control)ein["Latitude"]).Text="10.3157";Pump();Check(((Control)win["Latitude"]).Text=="10.3157","and the other way round");wf.Dispose();ef.Dispose();
   Console.WriteLine("DesignLoadsFileTests passed: "+checks+" checks");Environment.Exit(0);}}

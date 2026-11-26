@@ -1,0 +1,9 @@
+DTCE Tool Kit v10.0.17 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.7).
+
+PATCH - one site location (owner: "yung lat and long, bat paulit ulit pa din?"):
+- Latitude and longitude are entered once. Typing them in the Wind Load sheet fills the Earthquake Load sheet and the other way
+  round (open sheets update at once; sheets opened later start at the same site). Opening a saved sheet makes its coordinates the
+  shared site. Any design sheet with Latitude / Longitude takes part (DesignSheetForm site link, Links\site-link.xml).
+- In the Wind sheet the new coordinates start the terrain load as if typed there.
+Tests: DesignLoadsFileTests 15 (4 new), EarthquakeSiteTests 25, RsaCurveTests 21.
+Includes everything of v10.0.16.
