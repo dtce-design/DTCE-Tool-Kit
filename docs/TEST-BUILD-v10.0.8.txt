@@ -1,0 +1,12 @@
+DTCE Tool Kit v10.0.8 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.7).
+
+PATCH - Live Loads: no duplicate rooms (owner: "Bids and Awards / conference room" / "Bids and Awards Committee room"; "Catwalk / maintenance
+platform" / "Catwalks"; "Conference room" / "Conference rooms"; four "Corridors above ground floor"; "paki check na din po lahat"):
+- The same room from different building types is one row with one name (NscpLiveLoads.SameRoom), e.g. "Toilets / comfort rooms / showers /
+  lockers", "Server / computer / IT room", "Offices (staff / administration)", "Conference / meeting room", "Catwalks / maintenance platforms".
+- Where the same name stands on different Table 205-1 rows, the occupancy is added: "Corridors above ground floor (hospitals / libraries /
+  schools)", "Ground floor corridors (schools)"; all exit-facility corridors are one row, "Corridors (exit facilities, any floor)".
+- Confusing pairs renamed: cargo examination area (customs) / examination room (written tests); relief goods storage (light) / warehouse
+  (heavy, stacked); balconies of halls / gymnasiums.
+- 267 rows became 120; the full list is in docs/LIVE-LOAD-SPACES-v10.0.8.txt.
+Includes everything of v10.0.7.

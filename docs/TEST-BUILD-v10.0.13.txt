@@ -1,0 +1,12 @@
+DTCE Tool Kit v10.0.13 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.7).
+
+PATCH - Load Combinations STAAD output:
+- DEFINE ENVELOPE at the end of the combinations (owner: "also add define envelope at the end of load combo"): one envelope per group -
+  strength design and special seismic TYPE STRENGTH, alternate / basic ASD and the drift groups TYPE SERVICEABILITY (e.g. 1001 TO 1031
+  ENVELOPE 1 TYPE STRENGTH ... END DEFINE ENVELOPE).
+- Analysis and reports (owner: "include also the reports needed to print like print story drift, load list, print dia cr, print story
+  stiffness etc."), a choice on by default: PERFORM ANALYSIS PRINT LOAD DATA; PRINT CG, PRINT DIAPHRAGM CR, PRINT STORY STIFFNESS;
+  LOAD LIST of the seismic drift cases + PRINT STORY DRIFT; LOAD LIST of the EQ cases + PRINT JOINT DISPLACEMENTS ALL (for Ax) and PRINT
+  MEMBER FORCES ALL (for rho); LOAD LIST ALL + PRINT SUPPORT REACTION ALL.
+Tests: StaadCombinationsTests 36.
+Includes everything of v10.0.12.

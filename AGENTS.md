@@ -316,7 +316,14 @@ Done 26 November 2026: v10.0.6 merged to main (PR #26; GitHub release v10.0.6-bu
 the pending v7.2.39 submissions; Partner Center reported "accepted for processing" (PreProcessing). Certification is not guaranteed.
 New owner request (26 November 2026, "publish"; chose "Replace v10.0.6 with v10.0.7"): publish v10.0.7 (button alignment) the same way after its
 Windows CI passes (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User
-visibility stays Public). Later versions again need a new explicit request. Later versions again need a new explicit request.
+visibility stays Public). Later versions again need a new explicit request.
+Done 26 November 2026: v10.0.7 merged to main (PR #27; GitHub release v10.0.7-build-328). Store run 45745731189 (first attempt): new User
+(1152921505702510936; visibility Public) and Admin (1152921505702511099; visibility Private) submissions were created and committed, replacing the
+v10.0.6 submissions (the owner had cancelled them in Partner Center); Partner Center reported "accepted for processing". Certification is not
+guaranteed. v10.0.8 and later need a new explicit request. Later versions again need a new explicit request.
+New owner request (26 November 2026, "publish to microsoft store"): publish v10.0.18 (User and Admin) after its Windows CI passes (PR to main
+for the GitHub release, then publish_microsoft_store=true). Asked whether to replace the pending v10.0.7 submissions, the owner gave no
+preference, so replace_pending_store_submission stays false; User visibility stays Public. Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
@@ -371,7 +378,21 @@ alternative basic ASD and special seismic sets (v8.0.1), regrouped in v8.0.2.
 Owner ("How do you compute redundancy or reliability factor"; "Yes with automatic staad computation"): the sheet has a "Redundancy factor ρ" tab
 (src/RedundancyFactor.cs, src/LoadCombinationsRho.cs): the pasted .std and the EQ member end forces give the story shears and r_i (bay of two
 columns, 70 % interior; brace horizontal component; dual 80 %; walls typed), A_B from the base joints, ρ = 2 - 6.1/(r_max √A_B) per direction
-with the limits; "Use ρ" fills Factors; reported as its own section (v8.0.4). Owner ("ikaw na bahala sa redundancy basta paste ko na lang yung required",
+with the limits; "Use ρ" fills Factors; reported as its own section (v8.0.4). Owner (26 November 2026, "automatic na sana di na ako maglalagay ng primary loads"; "nauuna yung Earthquake
+loads"; "perform analysis change every eq primary case", v10.0.9): "Automatic primary loads" (default on) builds the primaries from the structure
+class, EQ first (A 4, B 8 with +E / -E, C 4 Load Type None), then DL, LL1.., LLR, WL; the STAAD output then starts with the primary section
+(UBC / IBC LOAD command, ACC +-0.05 for B, PERFORM ANALYSIS / CHANGE after each EQ case as a choice). Older sheets keep their pasted list. v10.0.10 (owner: "bago naman staad ko"): PERFORM ANALYSIS / CHANGE after each EQ case defaults
+off (older STAAD only); titles with + / - inside are bracketed (1.3(EQ+X+E)). v10.0.11: case B notes natural torsion (rigid diaphragms, CM / CR offset) and
+ACC = 0.05 Ax (Ax input 1.0-3.0); seismic drift 1.0 Eh by default, "D + 0.5L + 1.0 Eh" choice for P-Delta (owner: "sure ka na eq loads lang?"). v10.0.12 (owner: "automatic computation of torsional amplification factor ... 1 muna ...
+after run papalitan ... include lahat sa report"): "Torsional amplification Ax" tab (src/TorsionAmplification.cs) - Ax = 1.0 until the STAAD joint
+displacements are pasted, then Ax = (dmax / 1.2 davg)^2 (1.0-3.0) per EQ case / level from the edge displacements replaces it (ACC = 0.05 Ax);
+reported with the table, and the basis table lists all the new settings. v10.0.13: DEFINE ENVELOPE per group at the end (strength / special
+STRENGTH, ASD / drift SERVICEABILITY) and an analysis + print block (CG, DIAPHRAGM CR, STORY STIFFNESS, STORY DRIFT of the drift cases, EQ
+displacements / member forces, reactions) with LOAD LISTs (owner: "add define envelope"; "include also the reports needed to print"). v10.0.14: "Structural irregularities" tab (Tables 208-9 / 208-10 from the
+STAAD data + short inputs, suggested structure class; src/StructuralIrregularity.cs); options on a "STAAD output" tab as ordinary fields (owner:
+"apakagulo naman nito"); Ca, I, Omega0 linked from the Earthquake Load sheet (EarthquakeLink, "EqLinked" default on); Design Loads saved / opened as
+one file <DesignLoads> with the five sheets (src/DesignLoadsFile.cs; owner: "isang xml sheet na lang yung design loads"). v10.0.15: Live Loads marks each space LL1 (f1 0.5) or
+LL2 (f1 1.0) and reports them apart; Load Combinations' f1 = 1.0 default is LL2 (owner: "ilagay if LL1 or LL2 ... ipaghiwalay"). v10.0.16 (owner: "link mo lahat ng kailangan inputs sa isat isa"): DesignLoadsLink (Links\<name>-link.xml) - Load Combinations sends the computed ρ and the structure class to Earthquake (Rho / Regularity, "LcLinked"), Earthquake Levels fill RegWeights, Live Loads checked spaces set LiveCases / F1One ("LlLinked"); linked fields are locked. v10.0.17 (owner: "yung lat and long, bat paulit ulit pa din?"): Latitude / Longitude are one shared site for every design sheet that has them (DesignSheetForm HookSite / PublishSite, Links\site-link.xml): typed once, filled in Wind and Earthquake. v10.0.18 (owner: "DI GUMAGANA ANG CTRL S"): design sheets take Ctrl+S (same file after the first save; Design Loads share one path), Ctrl+Shift+S, Ctrl+O (DesignSheetForm.ProcessCmdKey). Owner ("DIBA DAPAT ITO AY NAKA BASE NA SA DIRECTION NG BUILDING"): the Wind exposure / Kzt pages list the building-face directions first, titled with their load case and face (WindLoadCasesReport.FaceLabels); other directions are marked reference. Owner ("ikaw na bahala sa redundancy basta paste ko na lang yung required",
 v8.0.7): the owner only pastes - the boxes are recognised either way (.ANL echo too), EQ cases / directions come from the input's LOAD cases,
 the lateral system is automatic (braces = floor-to-floor inclined members, rafters excluded), and the computed ρ goes into Factors by itself.
 Owner (26 November 2026, "Put Windload and Earthquake in a new main tab Design Loads including Load Combinations as sub tab"): the Design Sheets
@@ -392,7 +413,9 @@ total and STAAD input without the slab, roof top chord / bottom chord / purlin w
 elevator with impact. v10.0.1: Live Load spaces start unchecked, the owner checks them ("ako ang mag check"); building type and partitions sit on the
 per-space page (no "Building and spaces" tab). v10.0.2: "National Government Office" building type (owner: "bat walang national government offices?"). v10.0.3: the national agencies (owner: "any type of National Government Office"), each the office core + its own rooms. v10.0.4: janitor's closet / utility room 2.4 kPa as the occupancy served (owner: "sure ka ... 6kpa?"). v10.0.5: Dead Loads Elevator tab of its own, Add / Delete buttons on every table (owner: "hiwalay mo naman yung Elevator ..."). v10.0.6: Live Loads is one sorted list of spaces, not grouped by building (owner: "huwag mo na igroup per building").
 Owner (26 November 2026, "paki check yung alignment ng buttons, pati na rin sa iba, always laging ganyan ang problem"): toolbar rows are
-centred on one line app-wide (src/BarAlign.cs via PowTheme.Apply, v10.0.7); build new bars from plain controls so it applies. Report pages: the page number ends at the right end of the footer line in every report (CalculationDocument).
+centred on one line app-wide (src/BarAlign.cs via PowTheme.Apply, v10.0.7); build new bars from plain controls so it applies. Live Loads (v10.0.8, owner: duplicates "Bids and Awards ..." / "Catwalks"
+/ "Conference rooms" / "Corridors above ground floor"; "paki check na din po lahat"): the same room is one row with one name (NscpLiveLoads.SameRoom;
+add new rooms there when a similar one exists); the occupancy is added only where one name stands on different Table 205-1 rows. Report pages: the page number ends at the right end of the footer line in every report (CalculationDocument).
 
 ## Door hardware (23 November 2026)
 

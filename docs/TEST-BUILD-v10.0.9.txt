@@ -1,0 +1,13 @@
+DTCE Tool Kit v10.0.9 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.7).
+
+PATCH - Load Combinations: automatic primary loads (owner: "automatic na sana di na ako maglalagay ng primary loads"; "hindi ba dapat nauuna yung
+Earthquake loads?"; "perform analysis change every eq primary case"):
+- "Automatic primary loads" (on by default): the primary load cases follow the structure class, earthquake cases first - A: EQ+X, EQ-X,
+  EQ+Z, EQ-Z; B: the same with accidental torsion, EQ+X+E, EQ+X-E ... (8 cases); C: EQ +X -X +Z -Z with Load Type None (the orthogonal
+  REPEAT LOAD cases are seismic) - then DL, LL / LL1..LL3 (choice), LLR and WL+X, WL-X, WL+Z, WL-Z (choices). Uncheck it to paste your own.
+- The STAAD output then starts with the primary load section: each EQ case with its seismic load command (UBC LOAD / IBC LOAD / none;
+  structure B with ACC +0.05 / -0.05, value editable) and PERFORM ANALYSIS / CHANGE after each EQ case (choice, on by default, for older
+  STAAD); DL with SELFWEIGHT Y -1; comment lines where the other loads go. Then the orthogonal cases and the combinations as before.
+- Sheets saved before keep their pasted primary loads (automatic off).
+Tests: StaadCombinationsTests 30.
+Includes everything of v10.0.8.

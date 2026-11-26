@@ -1,0 +1,13 @@
+DTCE Tool Kit v10.0.12 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.7).
+
+PATCH - Load Combinations: automatic torsional amplification factor Ax (owner: "add also automatic computation of torsional amplification
+factor. pero 1 muna ang value, tapos after run papalitan.. include lahat sa report"); src/TorsionAmplification.cs, src/LoadCombinationsAx.cs:
+- Ax starts at 1.0 (ACC = 0.05). After the STAAD run, paste the joint displacements of the EQ cases (Node Displacements table or the .ANL
+  JOINT DISPLACEMENT block) on the new "Torsional amplification Ax" tab. For each EQ case and floor level, the displacements in the load
+  direction at the two extreme edges give dmax and davg; torsional irregularity when dmax > 1.2 davg; Ax = (dmax / 1.2 davg)^2, 1.0 to 3.0.
+  The governing Ax replaces the input at once, so ACC = 0.05 Ax in the STAAD primary load section; joints / levels come from the STAAD input
+  of the Redundancy factor ρ tab (or an .ANL pasted on the Ax tab).
+- Report: its own "Torsional amplification factor Ax" section (formula, table per case and level, governing Ax and ACC), and the basis table
+  now lists the primary load mode, seismic load command, torsion of case B (natural + accidental, ACC / Ax) and the seismic drift choice.
+Tests: TorsionAmplificationTests 4, StaadCombinationsTests 34.
+Includes everything of v10.0.11.
