@@ -363,6 +363,9 @@ Owner ("How do you compute redundancy or reliability factor"; "Yes with automati
 (src/RedundancyFactor.cs, src/LoadCombinationsRho.cs): the pasted .std and the EQ member end forces give the story shears and r_i (bay of two
 columns, 70 % interior; brace horizontal component; dual 80 %; walls typed), A_B from the base joints, ρ = 2 - 6.1/(r_max √A_B) per direction
 with the limits; "Use ρ" fills Factors; reported as its own section (v8.0.4).
+Owner (26 November 2026, "Put Windload and Earthquake in a new main tab Design Loads including Load Combinations as sub tab"): the Design Sheets
+window has a main tab "Design Loads" with the sub tabs Wind Load, Earthquake Load & RSA Curve Builder and Load Combinations (src/Launcher.cs
+loadTabs / LoadSheets); each keeps its own program access (v8.0.5).
 
 ## Door hardware (23 November 2026)
 
