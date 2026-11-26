@@ -21,10 +21,10 @@ sealed class StaadCombo {public int No;public string Title,Group,Eq="";public Li
    torsion, each alone), "C" irregular and unsymmetrical (orthogonal effects: eight REPEAT LOAD cases 1.0(EQ +X) + 0.3(EQ +Z) ..., Load Type
    Seismic, built from the EQ cases of Load Type None) - the owner's STAAD notes. F1One: titles of the live cases with f1 = 1.0 (owner:
    "hiwalay yung LL1 at LL2 yung f1 niya"); other live cases f1 = 0.5. */
-sealed class StaadCombinationSettings {/* automatic primary loads and their STAAD section (owner, 26 November 2026: "automatic na sana di na ako maglalagay ng primary loads"; "perform analysis change every eq primary case") */public bool AutoPrimary,PerformChange=false;public string EqCommand="UBC LOAD";public double Acc=0.05;public double Rho=1.0,Ca=0.44,I=1.0;public bool IncludeEv=true,Lrfd=true,Asd=false,EvInAsd=false;public string Structure="C";
+sealed class StaadCombinationSettings {/* automatic primary loads and their STAAD section (owner, 26 November 2026: "automatic na sana di na ako maglalagay ng primary loads"; "perform analysis change every eq primary case") */public bool AutoPrimary,PerformChange=false;public string EqCommand="UBC LOAD";public double Acc=0.05,Ax=1.0;public double Rho=1.0,Ca=0.44,I=1.0;public bool IncludeEv=true,Lrfd=true,Asd=false,EvInAsd=false;public string Structure="C";
  /* drift checks (owner, 25 November 2026: "also for drift check wind and seismic"): 7000 wind drift D + 0.5L + kW (k = DriftWind, 0.6 =
     service-level wind of the NSCP 2015 ultimate wind speeds), 8000 seismic drift 1.0 Eh of every seismic case (Section 208.6.4: the
-    design-level displacement of the design seismic forces, then dM = 0.7 R dS against 0.025h / 0.020h) */public bool Drift=true;public double DriftWind=0.6;
+    design-level displacement of the design seismic forces, then dM = 0.7 R dS against 0.025h / 0.020h) */public bool Drift=true,DriftGravity=false;public double DriftWind=0.6;
  /* owner (25 November 2026: "diba may basic at alternative tapos may additional loads sa eq?"): 9000 the alternative basic ASD
     combinations (NSCP 2015 203.4.2: D + L + Lr; D + L + 0.6 omega W; D + L + E/1.4; 0.9D + E/1.4 - allowable stresses may then be
     increased by one-third for wind or seismic), 10000 the special seismic combinations (203.5: 1.2D + f1L + 1.0Em; 0.9D + 1.0Em,
@@ -114,7 +114,7 @@ static class StaadCombinations {
    eqNow="203-11";if(l.Count>0&&lr.Count>0)add(3,BASIC,c=>{put(c,d,1.0);put(c,l,0.75);put(c,lr,0.75);});
    eqNow="203-12";foreach(var wi in w){var one=new[]{wi};add(3,BASIC,c=>{put(c,d,1.0);put(c,one,0.6);});}foreach(var e in eh)add(3,BASIC,c=>{put(c,d,1.0+eva/1.4);putE(c,e,1/1.4);put(c,evAsd,1/1.4);});}
   if(s.Drift){eqNow="D + 0.5L + "+F(s.DriftWind)+"W";foreach(var wi in w){var one=new[]{wi};add(4,WD,c=>{put(c,d,1.0);put(c,l,0.5);put(c,one,s.DriftWind);});}
-   eqNow="1.0 Eh (208.6.4)";foreach(var e in eh)add(5,ED,c=>{foreach(var t in e)c.Terms.Add(new KeyValuePair<StaadPrimary,double>(t.Key,t.Value));});}
+   /* with a P-Delta analysis the gravity loads must be in the drift case (owner: "sure ka na eq loads lang?") */eqNow=s.DriftGravity?"D + 0.5L + 1.0 Eh (208.6.4, P-Delta)":"1.0 Eh (208.6.4)";foreach(var e in eh)add(5,ED,c=>{if(s.DriftGravity){put(c,d,1.0);put(c,l,0.5);}foreach(var t in e)c.Terms.Add(new KeyValuePair<StaadPrimary,double>(t.Key,t.Value));});}
   return list;}
  /* "1.2DL+1.2SDL+1.6LL+0.5LR", "0.9DL-1.0EQ+X-0.3EQ+Z" with the STAAD titles */
  static string Title(List<KeyValuePair<StaadPrimary,double>> terms){var b=new StringBuilder();foreach(var t in terms.OrderBy(t=>Order(t.Key.Kind)).ThenBy(t=>t.Key.No)){string f=F(Math.Abs(t.Value));b.Append(t.Value<0?"-":b.Length>0?"+":"").Append(f=="1"?"":f).Append(t.Key.Repeat!=null&&f!="1"?"["+t.Key.Title.Replace(" ","")+"]":Paren(t.Key));}return b.ToString();}
@@ -131,10 +131,12 @@ static class StaadCombinations {
   return string.Join("\n",lines);}
  /* the STAAD primary load section: each EQ case with its seismic load command and, as older STAAD needs, PERFORM ANALYSIS / CHANGE */
  internal static string PrimarySection(List<StaadPrimary> cases,StaadCombinationSettings s){var b=new StringBuilder("* ---- PRIMARY LOAD CASES (earthquake cases first) ----\n* Before them: DEFINE UBC LOAD (or the seismic definition of your STAAD)\n* with the zone / I / R / soil data and the seismic weights.");
+  /* case B (owner: "apply also natural torsion kapag case b"): natural torsion from the centre of mass / centre of rigidity offset, accidental torsion through ACC = 0.05 Ax */
+  if(s.Structure=="B"){b.Append("\n* Natural torsion: seismic weights at their true positions and\n* rigid floor diaphragms (FLOOR DIAPHRAGM ... TYPE RIG) put each\n* storey force at the centre of mass; its offset from the centre of\n* rigidity gives the natural torsion in the analysis.\n* Accidental torsion: ACC = 0.05 x Ax = ").Append(F(s.Acc*s.Ax)).Append(",\n* Ax = (dmax / 1.2 davg)^2, 1.0 to 3.0 (torsional irregularity).");}
   foreach(var p in cases){string type=p.Kind=="E"?(s.Structure=="C"?"NONE":"SEISMIC-H"):p.Kind=="D"?"DEAD":p.Kind=="L"?"LIVE":p.Kind=="Lr"?"ROOF LIVE":p.Kind=="W"?"WIND":p.Kind=="Ev"?"SEISMIC-V":"NONE";
    b.Append("\nLOAD ").Append(p.No).Append(" LOADTYPE ").Append(type).Append(" TITLE ").Append(p.Title);
    if(p.Kind=="E"){if(s.EqCommand!="None"&&p.Axis!=""){b.Append("\n").Append(s.EqCommand).Append(" ").Append(p.Axis).Append(" ").Append(p.Sign<0?"-1":"1");
-      if(s.Structure=="B"){bool minus=System.Text.RegularExpressions.Regex.IsMatch(p.Title,@"-E$",System.Text.RegularExpressions.RegexOptions.IgnoreCase);b.Append(" ACC ").Append(F(minus?-s.Acc:s.Acc));}}
+      if(s.Structure=="B"){bool minus=System.Text.RegularExpressions.Regex.IsMatch(p.Title,@"-E$",System.Text.RegularExpressions.RegexOptions.IgnoreCase);b.Append(" ACC ").Append(F(minus?-s.Acc*s.Ax:s.Acc*s.Ax));}}
      else b.Append("\n* add the seismic load of ").Append(p.Title).Append(" here");
      if(s.PerformChange)b.Append("\nPERFORM ANALYSIS\nCHANGE");}
    else if(p.Kind=="D")b.Append("\nSELFWEIGHT Y -1\n* add the floor / member dead loads here");
@@ -148,8 +150,8 @@ static class StaadCombinations {
   if(s.AltAsd)b.Append("\n* Alternate basic ASD: one-third increase in allowable stresses for W / E.");
   b.Append(s.EvInAsd?"\n* ASD: E = rho Eh + Ev.":"\n* ASD: E = rho Eh (Ev taken as zero for ASD, Section 208-18).");
   if(s.Special)b.Append("\n* Special seismic: Omega0 = ").Append(F(s.Omega0)).Append(", no rho / Ev in Em.");
-  if(s.Drift)b.Append("\n* Drift: wind D + 0.5L + ").Append(F(s.DriftWind)).Append("W; seismic 1.0 Eh (dS, Section 208.6.4; dM = 0.7 R dS).");
-  b.Append(s.Structure=="C"?"\n* Seismic: irregular and unsymmetrical - orthogonal effects, 100 % of one direction + 30 % of the other.":s.Structure=="B"?"\n* Seismic: regular and unsymmetrical - each EQ case with its accidental torsion (+E / -E).":"\n* Seismic: regular and symmetrical - each EQ direction alone.");
+  if(s.Drift)b.Append("\n* Drift: wind D + 0.5L + ").Append(F(s.DriftWind)).Append(s.DriftGravity?"W; seismic D + 0.5L + 1.0 Eh for P-Delta\n* (dS, Section 208.6.4; dM = 0.7 R dS).":"W; seismic 1.0 Eh (dS, Section 208.6.4; dM = 0.7 R dS).");
+  b.Append(s.Structure=="C"?"\n* Seismic: irregular and unsymmetrical - orthogonal effects, 100 % of one direction + 30 % of the other.":s.Structure=="B"?"\n* Seismic: regular and unsymmetrical - natural torsion (centre of mass offset)\n* plus accidental torsion (+E / -E) in each EQ case.":"\n* Seismic: regular and symmetrical - each EQ direction alone.");
   var rpt=RepeatCases(combos);if(rpt.Count>0){b.Append("\n* ---- ORTHOGONAL SEISMIC LOAD CASES (paste after the primary loads; the EQ cases are Load Type None) ----");
    foreach(var r in rpt){b.Append("\nLOAD ").Append(r.No).Append(" LOADTYPE SEISMIC TITLE ").Append(r.Title).Append("\nREPEAT LOAD\n").Append(string.Join(" ",r.Repeat.Select(t=>t.Key.No.ToString(Ci)+" "+F(t.Value))));}}
   string group="";foreach(var c in combos){if(c.Group!=group){group=c.Group;b.Append("\n* ---- ").Append(group.ToUpperInvariant()).Append(" ----");}

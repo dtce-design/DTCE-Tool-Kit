@@ -1,0 +1,11 @@
+DTCE Tool Kit v10.0.11 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.7).
+
+PATCH - Load Combinations:
+- Case B (regular and unsymmetrical) includes natural torsion (owner: "apply also natural torsion kapag case b"): the STAAD output states
+  how the analysis gets it (seismic weights at their true positions, rigid floor diaphragms - the storey force acts at the centre of mass,
+  offset from the centre of rigidity), and the accidental torsion is ACC = 0.05 x Ax, with the torsional amplification Ax = (dmax / 1.2
+  davg)^2, 1.0 to 3.0, as a new input next to ACC.
+- Seismic drift (owner: "sure ka na eq loads lang?"): 1.0 Eh stays the default (dS from the design seismic forces, Section 208.6.4);
+  new choice "Seismic drift with gravity, D + 0.5L + 1.0 Eh" for a P-Delta analysis, where the gravity loads must be in the drift case.
+Tests: StaadCombinationsTests 34.
+Includes everything of v10.0.10.
