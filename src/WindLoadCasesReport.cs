@@ -14,6 +14,12 @@ static class WindLoadCasesReport {
  sealed class Face {public string Name,Cp,External,NetA,NetB;public double ExtMin,ExtMax;}
  sealed class Case {public string Id,From,Relation,Windward,Leeward,Side1,Side2;public int Index;public double Bearing;public bool Normal;public double Qi,GCpi;public List<Face> Faces=new List<Face>();public double Windward0,WindwardTop,LeewardExt,SideExt;public string RoofText;}
  static readonly string[] Dir={"N","NE","E","SE","S","SW","W","NW"};
+ /* the building face each assessed terrain direction stands for (owner, 26 November 2026: "DIBA DAPAT ITO AY NAKA BASE NA SA DIRECTION NG
+    BUILDING"): terrain direction index -> "W1, across the ridge: windward E long wall" */
+ internal static Dictionary<int,string> FaceLabels(WindBuildingInput b,List<WindPressureRow> rows){var map=new Dictionary<int,string>();
+  int n=0;Func<double,string> nm=WindBuildingLoads.BearingName;foreach(var group in rows.GroupBy(r=>r.Direction)){var first=group.First();bool normal=group.Key.EndsWith("normal");
+   string t="W"+(++n).ToString(Ci)+", wind from "+nm(first.Bearing)+" "+(normal?"across the ridge":"along the ridge")+": windward "+nm(first.Bearing)+(normal?" long wall":" gable end");
+   string old;map[first.TerrainDirection]=map.TryGetValue(first.TerrainDirection,out old)?old+"; "+t:t;}return map;}
  static List<Case> Cases(WindBuildingInput b,List<WindPressureRow> rows){var list=new List<Case>();int n=0;
   foreach(var group in rows.GroupBy(r=>r.Direction)){var first=group.First();int idx=first.TerrainDirection;bool normal=group.Key.EndsWith("normal");double brg=first.Bearing;Func<double,string> nm=WindBuildingLoads.BearingName;var c=new Case{Id="W"+(++n).ToString(Ci),Index=idx,Bearing=brg,Normal=normal,From=nm(brg),Relation=normal?"across the ridge":"along the ridge",
     Windward=nm(brg)+(normal?" long wall":" gable end"),Leeward=nm(brg+180)+(normal?" long wall":" gable end"),Side1=nm(brg+90)+(normal?" gable end":" long wall"),Side2=nm(brg+270)+(normal?" gable end":" long wall"),Qi=first.Qi,GCpi=Math.Abs(first.GCpi)};

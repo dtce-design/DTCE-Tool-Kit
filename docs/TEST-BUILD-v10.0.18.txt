@@ -1,0 +1,13 @@
+DTCE Tool Kit v10.0.18 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.7).
+
+PATCH - Ctrl+S and the wind exposure pages (owner: "DI GUMAGANA ANG CTRL S"; "DIBA DAPAT ITO AY NAKA BASE NA SA DIRECTION NG BUILDING"):
+- Design sheets: Ctrl+S saves (the first time it asks for the file, then saves to the same file without asking), Ctrl+Shift+S saves
+  as a new file, Ctrl+O opens. The Save sheet XML button works the same way. The five Design Loads sheets share one file, so Ctrl+S
+  in any of them saves all five. The status bar shows where it was saved.
+- Wind report, "Exposure and Kzt basis" pages: with building pressures on, the directions normal to the building faces come first,
+  in load case order, each titled with its load case and face (e.g. WIND FROM E (LOAD CASE W1, BUILDING FACE) - "W1, wind from E
+  across the ridge: windward E long wall"). The other assessed directions follow, marked "REFERENCE, NOT A FACE" (diagonal wind /
+  Kzt envelope). With a ridge azimuth that is not a multiple of 45 degrees the eight directions already turn with the building (v7.2.37).
+- Fix: a design sheet's live-report timer no longer runs after the sheet is disposed.
+Tests: DesignLoadsFileTests 16 (Ctrl+S), WindAuditTests 79.
+Includes everything of v10.0.17.

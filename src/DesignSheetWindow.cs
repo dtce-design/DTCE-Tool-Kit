@@ -28,7 +28,7 @@ abstract class DesignSheetForm:Form {
  /* live calculation report for pages without wide blocks */
  readonly Dictionary<TabPage,CalculationReportView> liveViews=new Dictionary<TabPage,CalculationReportView>();readonly Timer liveTimer=new Timer{Interval=700};bool liveHooked;
  void LiveRefresh(TabPage page){if(Restoring||!liveHooked||!IsHandleCreated||!liveViews.ContainsKey(page)||!page.Visible)return;try{liveViews[page].SetDocument(BuildDocument());status.ForeColor=PowTheme.Teal;status.Text="Report updated from the inputs.";}catch(Exception ex){status.ForeColor=Color.Firebrick;status.Text=ex.Message;}}
- void HookLive(){if(liveHooked)return;liveHooked=true;liveTimer.Tick+=(s,e)=>{liveTimer.Stop();var page=Pages.SelectedTab;if(page!=null)LiveRefresh(page);};FormClosed+=(s,e)=>liveTimer.Dispose();
+ void HookLive(){if(liveHooked)return;liveHooked=true;liveTimer.Tick+=(s,e)=>{liveTimer.Stop();if(IsDisposed||Disposing||Pages.IsDisposed||Pages.TabCount==0)return;var page=Pages.SelectedTab;if(page!=null)LiveRefresh(page);};FormClosed+=(s,e)=>liveTimer.Dispose();Disposed+=(s,e)=>liveTimer.Dispose();
   EventHandler changed=(s,e)=>{if(Restoring)return;liveTimer.Stop();liveTimer.Start();};foreach(var c in Inputs.Values){c.TextChanged+=changed;var cb=c as CheckBox;if(cb!=null)cb.CheckedChanged+=changed;var co=c as ComboBox;if(co!=null)co.SelectedIndexChanged+=changed;}}
  /* the input pane narrows on a small window (360 to 540 px) so the drawings and models beside it keep room */
  static float Pane(Control root){int w=root.ClientSize.Width;return w<=0?FormPane:Math.Max(360,Math.Min(FormPane,(int)(w*.4)));}
@@ -73,8 +73,16 @@ abstract class DesignSheetForm:Form {
  public string CurrentReport(){return BuildReport();}
  void Calculate(){report.SetDocument(BuildDocument());status.ForeColor=PowTheme.Teal;status.Text="Calculated. Save sheet XML to keep inputs; exports contain the calculation report only.";Pages.SelectedIndex=Pages.TabCount-1;}
  void ExportExcel(){string text=BuildReport();using(var dialog=new SaveFileDialog{Filter="Excel workbook|*.xlsx",FileName=kind+"-Report.xlsx",OverwritePrompt=false})if(dialog.ShowDialog(this)==DialogResult.OK){using(var output=new ExcelLiveLink(dialog.FileName,true,false))output.UpdateDesignReport(kind,text);status.Text="Calculation report exported. Save sheet XML separately to retain editable inputs.";}}
- void Save(){bool loads=DesignLoadsFile.Kinds.Contains(kind);using(var dialog=new SaveFileDialog{Filter=loads?"DTCE Design Loads (all five sheets)|*.design.xml":"DTCE design sheet|*.design.xml",FileName=loads?"Design-Loads.design.xml":kind+".design.xml"})if(dialog.ShowDialog(this)==DialogResult.OK){File.WriteAllText(dialog.FileName,loads?DesignLoadsFile.Bundle():Snapshot());if(loads){status.ForeColor=PowTheme.Teal;status.Text="Design Loads saved in one file: "+DesignLoadsFile.Count+" sheets.";}}}
- void Open(){using(var dialog=new OpenFileDialog{Filter="DTCE design sheet / Design Loads|*.design.xml"})if(dialog.ShowDialog(this)==DialogResult.OK){string xml=File.ReadAllText(dialog.FileName);
+ /* Ctrl+S saves to the file already chosen (Ctrl+Shift+S asks again), Ctrl+O opens (owner, 26 November 2026: "DI GUMAGANA ANG CTRL S");
+    the five Design Loads sheets share one file */
+ string sheetPath;static string designLoadsPath;
+ string SavedPath{get{return DesignLoadsFile.Kinds.Contains(kind)?designLoadsPath:sheetPath;}set{if(DesignLoadsFile.Kinds.Contains(kind))designLoadsPath=value;else sheetPath=value;}}
+ protected override bool ProcessCmdKey(ref Message msg,Keys keyData){if(keyData==(Keys.Control|Keys.S)){Save(false);return true;}if(keyData==(Keys.Control|Keys.Shift|Keys.S)){Save(true);return true;}if(keyData==(Keys.Control|Keys.O)){Open();return true;}return base.ProcessCmdKey(ref msg,keyData);}
+ void Save(){Save(false);}
+ void Save(bool ask){bool loads=DesignLoadsFile.Kinds.Contains(kind);string path=SavedPath;if(ask||string.IsNullOrEmpty(path)){using(var dialog=new SaveFileDialog{Filter=loads?"DTCE Design Loads (all five sheets)|*.design.xml":"DTCE design sheet|*.design.xml",FileName=!string.IsNullOrEmpty(path)?Path.GetFileName(path):loads?"Design-Loads.design.xml":kind+".design.xml"}){if(!string.IsNullOrEmpty(path))try{dialog.InitialDirectory=Path.GetDirectoryName(path);}catch(Exception){}if(dialog.ShowDialog(this)!=DialogResult.OK)return;path=dialog.FileName;}}
+  try{File.WriteAllText(path,loads?DesignLoadsFile.Bundle():Snapshot());SavedPath=path;status.ForeColor=PowTheme.Teal;status.Text=(loads?"Design Loads saved in one file ("+DesignLoadsFile.Count+" sheets): ":"Saved: ")+path+"  (Ctrl+S saves again)";}
+  catch(Exception ex){status.ForeColor=Color.Firebrick;status.Text="Not saved: "+ex.Message;}}
+ void Open(){using(var dialog=new OpenFileDialog{Filter="DTCE design sheet / Design Loads|*.design.xml"})if(dialog.ShowDialog(this)==DialogResult.OK){string xml=File.ReadAllText(dialog.FileName);SavedPath=dialog.FileName;
    if(DesignLoadsFile.Kinds.Contains(kind)){string msg=DesignLoadsFile.Open(xml,this);status.ForeColor=PowTheme.Teal;status.Text=msg;}else Restore(xml);}}
  /* Design Loads: the five sheets are saved and opened as one file (owner, 26 November 2026: "isang xml sheet na lang yung design loads") */
  /* one site location for every sheet with Latitude / Longitude (Wind, Earthquake; owner: "yung lat and long, bat paulit ulit pa din?"):

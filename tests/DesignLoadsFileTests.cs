@@ -26,4 +26,9 @@ class DesignLoadsFileTests{static int checks;static void Check(bool ok,string wh
   Check(((Control)ein["Latitude"]).Text=="16.4023","a new Earthquake sheet starts at the shared site");
   ((Control)win["Latitude"]).Text="14.5995";((Control)win["Longitude"]).Text="120.9842";Pump();Check(((Control)ein["Latitude"]).Text=="14.5995"&&((Control)ein["Longitude"]).Text=="120.9842","coordinates typed in Wind appear in Earthquake");
   ((Control)ein["Latitude"]).Text="10.3157";Pump();Check(((Control)win["Latitude"]).Text=="10.3157","and the other way round");wf.Dispose();ef.Dispose();
+  /* Ctrl+S saves to the chosen file again without asking (v10.0.18) */
+  {var lc5=new LoadCombinationsForm();lc5.Show();Pump();string tmp=System.IO.Path.Combine(System.IO.Path.GetTempPath(),"dl-ctrl-s.design.xml");if(System.IO.File.Exists(tmp))System.IO.File.Delete(tmp);
+   typeof(DesignSheetForm).GetField("designLoadsPath",BindingFlags.Static|BindingFlags.NonPublic).SetValue(null,tmp);var m=new Message();
+   bool handled=(bool)typeof(DesignSheetForm).GetMethod("ProcessCmdKey",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(lc5,new object[]{m,Keys.Control|Keys.S});
+   Check(handled&&System.IO.File.Exists(tmp)&&System.IO.File.ReadAllText(tmp).Contains("<DesignLoads"),"Ctrl+S saves the Design Loads file again");lc5.Dispose();}
   Console.WriteLine("DesignLoadsFileTests passed: "+checks+" checks");Environment.Exit(0);}}
