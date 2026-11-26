@@ -1,4 +1,4 @@
-using System;using System.Reflection;using System.Windows.Forms;using BeamScheduleFormatter;
+using System.Linq;using System;using System.Reflection;using System.Windows.Forms;using BeamScheduleFormatter;
 // Owner (26 November 2026): "sa start na lang magoopen ng saved file tapos doon na din magsasave. Nakasave na din doon yung project" -
 // a saved Bill of Quantities file carries the project information; opening it at the start makes it the current project, and Save
 // writes back to the same file.
@@ -18,5 +18,5 @@ class OpenSavedProjectTests {
    string current=(string)typeof(ProgramOfWorksForm).GetField("currentPowPath",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(f2);
    Check(current==System.IO.Path.GetFullPath(path),"Save writes back to the opened file");
   }finally{try{System.IO.File.Delete(path);}catch(Exception){}ProjectInfoStore.ClearProject();}
-  Console.WriteLine("OpenSavedProjectTests passed: "+checks+" checks");Environment.Exit(0);}
+  Console.WriteLine("OpenSavedProjectTests passed: "+checks+" checks");foreach(Form f in Application.OpenForms.Cast<Form>().ToList())try{f.Close();f.Dispose();}catch(Exception){}Application.DoEvents();Environment.Exit(0);}
 }

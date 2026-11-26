@@ -16,11 +16,11 @@ class ProjectPackageTests {
    Check(Parts(file).Contains("design:loads"),"Design Loads saved into the one project file");
    /* Bill of Quantities: its default path is the project's working copy; saving packs it in */
    string boqPath=ProjectPackage.PathFor("boq",null);Check(ProjectPackage.IsWorking(boqPath)&&boqPath.EndsWith(".boq.xml"),"the Bill of Quantities saves to the project's working copy");
-   /* not shown (Windows runner tooltip crash) */var boq=new ProgramOfWorksForm();boq.SaveTo(boqPath);ProjectFiles.Remember("boq",boqPath);
+   /* not shown (Windows runner tooltip crash) */var boq=new ProgramOfWorksForm();disposeLater.Add(boq);boq.SaveTo(boqPath);ProjectFiles.Remember("boq",boqPath);
    var parts=Parts(file);Check(parts.Contains("boq")&&parts.Contains("design:loads")&&parts.Count==2,"one file holds both workspaces");
    /* Splice, Development & Hooks and the Bar Bending Schedule go into the same file */
-   var rl=new RebarLengthForm();typeof(RebarLengthForm).GetMethod("WriteProject",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(rl,new object[]{ProjectPackage.PathIfOpen("lengths")});
-   var bbs=new CuttingListForm();typeof(CuttingListForm).GetMethod("WriteTo",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(bbs,new object[]{ProjectPackage.PathIfOpen("bbs")});
+   var rl=new RebarLengthForm();disposeLater.Add(rl);typeof(RebarLengthForm).GetMethod("WriteProject",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(rl,new object[]{ProjectPackage.PathIfOpen("lengths")});
+   var bbs=new CuttingListForm();disposeLater.Add(bbs);typeof(CuttingListForm).GetMethod("WriteTo",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(bbs,new object[]{ProjectPackage.PathIfOpen("bbs")});
    parts=Parts(file);Check(parts.Contains("lengths")&&parts.Contains("bbs")&&parts.Count==4,"the other tabs are in the project file too");
    /* an older loose file still opens and saves back to itself, not into the project file */
    string loose=System.IO.Path.Combine(dir,"old-sheet.design.xml");typeof(DesignSheetForm).GetField("designLoadsPath",BindingFlags.Static|BindingFlags.NonPublic).SetValue(null,null);
@@ -39,5 +39,11 @@ class ProjectPackageTests {
    ProjectInfoStore.Save("Other Project","Baguio","DPWH","Baguio","2026-11-06","2027","1000000");Check(!ProjectPackage.IsWorking(null),"no path");
    string before=System.IO.File.ReadAllText(file);ProjectFiles.Remember("boq",opened.First(f=>f.Kind=="boq").Path);Check(System.IO.File.ReadAllText(file)==before,"a different current project leaves the file alone");
   }finally{try{System.IO.Directory.Delete(dir,true);}catch(Exception){}ProjectPackage.Close();ProjectInfoStore.ClearProject();}
-  Console.WriteLine("ProjectPackageTests passed: "+checks+" checks");Environment.Exit(0);}
+  Console.WriteLine("ProjectPackageTests passed: "+checks+" checks");
+  /* close every window before leaving (an exit with open windows ended with a non-zero code on the Windows runner); Mono cannot dispose the
+     Bill of Quantities window */
+  foreach(Form f in Application.OpenForms.Cast<Form>().ToList())try{f.Close();f.Dispose();}catch(Exception){}
+  if(Environment.OSVersion.Platform==PlatformID.Win32NT)foreach(var d in disposeLater)try{d.Dispose();}catch(Exception){}
+  Application.DoEvents();Environment.Exit(0);}
+ static readonly List<IDisposable> disposeLater=new List<IDisposable>();
 }

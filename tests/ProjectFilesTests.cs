@@ -30,5 +30,5 @@ class ProjectFilesTests {
    var opened=modules["Load Combinations (NSCP 2015)"] as DesignSheetForm;Check(opened!=null&&!opened.IsDisposed&&opened.Visible,"the Design Loads sheet opened with the project's file");
    Check((string)typeof(DesignSheetForm).GetField("designLoadsPath",BindingFlags.Static|BindingFlags.NonPublic).GetValue(null)==System.IO.Path.GetFullPath(wind),"Ctrl+S saves back to the project's file");
   }finally{try{System.IO.Directory.Delete(dir,true);}catch(Exception){}ProjectInfoStore.ClearProject();}
-  Console.WriteLine("ProjectFilesTests passed: "+checks+" checks");Environment.Exit(0);}
+  Console.WriteLine("ProjectFilesTests passed: "+checks+" checks");foreach(Form f in Application.OpenForms.Cast<Form>().ToList())try{f.Close();f.Dispose();}catch(Exception){}Application.DoEvents();Environment.Exit(0);}
 }
