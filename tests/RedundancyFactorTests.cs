@@ -33,5 +33,14 @@ class RedundancyFactorTests {
   Check(RedundancyFactor.Rho(1.0,100,"Moment",true,out raw,out note)==1.0,"Zone 2: rho = 1.0");
   /* a missing member: reported, not silently zero */
   var part=RedundancyFactor.ReadForces(string.Join("\n",anl.ToString().Split('\n').Skip(2)));var r3=RedundancyFactor.Compute(model,part,5,"5","X","Moment");Check(r3.Governing.StartsWith("Some members have no end forces"),"missing end forces reported");
+  /* automatic (owner, 26 November 2026, "ikaw na bahala sa redundancy basta paste ko na lang"): EQ cases and directions from the STAAD input */
+  var loads="LOAD 1 LOADTYPE DEAD TITLE DL\nSELFWEIGHT Y -1\nLOAD 5 LOADTYPE SEISMIC TITLE EQ+X\n1893 LOAD X 1\nLOAD 6 LOADTYPE SEISMIC TITLE EQUAKE 2\nJOINT LOAD\n7 FZ 50\nLOAD 7 LOADTYPE SEISMIC TITLE SEISMIC Y\nLOAD COMB 100 1.2DL\n1 1.2\nPERFORM ANALYSIS\nFINISH";
+  var eqs=RedundancyFactor.SeismicCases(std+"\n"+loads);Check(eqs.Count==3&&eqs[0].No==5&&eqs[0].Axis=="X"&&eqs[1].No==6&&eqs[1].Axis=="Z"&&eqs[2].Axis=="","seismic cases and directions from the input: "+string.Join(",",eqs.Select(e=>e.No+e.Axis)));
+  Check(RedundancyFactor.TableCases("1\t5 EQ+X\t1\t100\t10\t0\t0\t0\t0\n\t6 EQ+Z\t1\t1\t1\t1\t0\t0\t0").Select(e=>e.Axis).SequenceEqual(new[]{"X","Z"}),"seismic cases from the table titles");
+  /* the .ANL echoes the input with line numbers */var echo=string.Join("\n",std.ToString().Replace("\r","").Split('\n').Select((l,i)=>"   "+(i+1)+". "+l));var m2=RedundancyFactor.ReadModel(echo);Check(m2.Joints.Count==18&&m2.Members.Count==26&&RedundancyFactor.HasModel(echo),"model from the .ANL echo");
+  /* a gable rafter is not a brace; a floor-to-floor diagonal is */
+  var gable=std.ToString().Replace("DEFINE MATERIAL START","JOINT COORDINATES\n19 6 9 0\nMEMBER INCIDENCES\n27 13 19\n28 19 15\nDEFINE MATERIAL START");var mg=RedundancyFactor.ReadModel(gable);Check(!RedundancyFactor.HasBraces(mg),"rafters to a ridge are not braces");
+  var rg=RedundancyFactor.Compute(mg,f,5,"5","X","Moment");Check(Math.Abs(rg.RMax-0.3)<1e-9,"rafters change nothing: "+rg.RMax);
+  var braced=std.ToString().Replace("DEFINE MATERIAL START","MEMBER INCIDENCES\n29 1 8\nDEFINE MATERIAL START");Check(RedundancyFactor.HasBraces(RedundancyFactor.ReadModel(braced)),"a diagonal from the base to level 1 is a brace");
   Console.WriteLine("RedundancyFactorTests passed: "+checks+" checks");}
 }

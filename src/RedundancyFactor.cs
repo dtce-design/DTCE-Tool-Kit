@@ -27,7 +27,7 @@ static class RedundancyFactor {
  static bool IsNum(string s){double v;return double.TryParse(s,NumberStyles.Float,Ci,out v);}
  /* the STAAD input: units, joints and members (with the simple generation forms) */
  internal static StaadModel ReadModel(string text){var m=new StaadModel();string block="";double unit=1;
-  foreach(var raw in (text??"").Replace("\r","").Split('\n')){string line=raw.Trim();if(line==""||line.StartsWith("*"))continue;string u=line.ToUpperInvariant();
+  foreach(var raw in (text??"").Replace("\r","").Split('\n')){/* the .ANL echoes the input with line numbers ("  12. JOINT COORDINATES") */string line=Regex.Replace(raw.Trim(),@"^\d+\.\s+","");if(line==""||line.StartsWith("*"))continue;string u=line.ToUpperInvariant();
    if(u.StartsWith("UNIT")){if(Regex.IsMatch(u,@"\bMMS?\b"))unit=0.001;else if(Regex.IsMatch(u,@"\bCMS?\b"))unit=0.01;else if(Regex.IsMatch(u,@"\b(METER|METRES?|METERS?|M)\b"))unit=1;else if(Regex.IsMatch(u,@"\b(FEET|FT)\b"))unit=0.3048;else if(Regex.IsMatch(u,@"\b(INCH|INCHES|IN)\b"))unit=0.0254;continue;}
    if(u.StartsWith("SET Z UP")){m.ZUp=true;continue;}
    if(u.StartsWith("JOINT COORD")){block="J";m.ToMetre=unit;line=Regex.Replace(line,@"^JOINT\s+COORD\w*(\s+CYL\w*)?","",RegexOptions.IgnoreCase).Trim();if(line=="")continue;}
@@ -41,6 +41,25 @@ static class RedundancyFactor {
      else if(v.Length>=4){int m1=(int)v[0],n1=(int)v[1],n2=(int)v[2],m2=(int)v[3],minc=v.Length>=5?(int)v[4]:1,ninc=v.Length>=6?(int)v[5]:1;for(int k=0;m1+k*minc<=m2;k++)m.Members[m1+k*minc]=new StaadMember{No=m1+k*minc,A=n1+k*ninc,B=n2+k*ninc};}}}}
   if(m.Joints.Count==0||m.Members.Count==0)throw new Exception("Paste the STAAD input (.std): the JOINT COORDINATES and MEMBER INCIDENCES were not found.");
   return m;}
+ /* the pasted text holds a STAAD model (.std or the .ANL echo) */
+ internal static bool HasModel(string text){return Regex.IsMatch(text??"",@"JOINT\s+COORD",RegexOptions.IgnoreCase)&&Regex.IsMatch(text??"",@"MEMBER\s+INCI",RegexOptions.IgnoreCase);}
+ /* the seismic load cases of the STAAD input: LOAD n LOADTYPE SEISMIC... TITLE ...; the direction from the title (EQ+X), else from the load
+    data (UBC / IBC / 1893 LOAD X, JOINT LOAD FX / FZ, member loads GX / GZ) */
+ internal static List<StaadPrimary> SeismicCases(string text){var list=new List<StaadPrimary>();StaadPrimary cur=null;
+  foreach(var raw in (text??"").Replace("\r","").Split('\n')){string line=Regex.Replace(raw.Trim(),@"^\d+\.\s+","");string u=line.ToUpperInvariant();
+   if(Regex.IsMatch(u,@"^LOAD\s+\d+")&&!Regex.IsMatch(u,@"\bCOMB")){var p=StaadCombinations.Parse(line).FirstOrDefault();cur=p!=null&&p.Kind=="E"?p:null;if(cur!=null)list.Add(cur);continue;}
+   if(Regex.IsMatch(u,@"^(LOAD\s+COMB|PERFORM|FINISH|PRINT|PARAMETER|DEFINE)"))cur=null;
+   if(cur!=null&&cur.Axis==""){var a=Regex.Match(u,@"\bLOAD\s+([XZ])\b|\b([FG])([XZ])\b");if(a.Success){cur.Axis=a.Groups[1].Success&&a.Groups[1].Value!=""?a.Groups[1].Value:a.Groups[3].Value;}}}
+  return list;}
+ /* load case titles of the STAAD table copy (L/C column "5 EQ+X") */
+ internal static List<StaadPrimary> TableCases(string text){var lines=new List<string>();
+  foreach(var raw in (text??"").Replace("\r","").Split('\n')){var c=raw.Split('\t');if(c.Length>=2){var m=Regex.Match(c[1].Trim(),@"^(\d+)\s*[:.]?\s+(\S.*)$");if(m.Success)lines.Add(m.Groups[1].Value+" "+m.Groups[2].Value);}}
+  return StaadCombinations.Parse(string.Join("\n",lines.Distinct())).Where(p=>p.Kind=="E").ToList();}
+ /* the model has inclined members (braces) */
+ internal static bool HasBraces(StaadModel m){var cols=new List<StaadMember>();var inclined=new List<StaadMember>();
+  foreach(var mem in m.Members.Values){StaadJoint a,b;if(!m.Joints.TryGetValue(mem.A,out a)||!m.Joints.TryGetValue(mem.B,out b))continue;double dv=Math.Abs(m.H(b)-m.H(a)),dh=Math.Sqrt(Math.Pow(m.P1(b)-m.P1(a),2)+Math.Pow(m.P2(b)-m.P2(a),2));if(dv>1e-6&&dh<=0.02*dv)cols.Add(mem);else if(dv>1e-6)inclined.Add(mem);}
+  return inclined.Any(b=>AtLevel(m,cols,m.Joints[b.A])&&AtLevel(m,cols,m.Joints[b.B]));}
+ static bool AtLevel(StaadModel m,List<StaadMember> cols,StaadJoint j){double h=m.H(j);return cols.Any(c=>{StaadJoint a,b;return m.Joints.TryGetValue(c.A,out a)&&Math.Abs(m.H(a)-h)<1e-3||m.Joints.TryGetValue(c.B,out b)&&Math.Abs(m.H(b)-h)<1e-3;});}
  /* member end forces: member, load case, joint -> Fx, Fy, Fz (local); from the STAAD table copy or the .ANL block */
  internal static Dictionary<string,double[]> ReadForces(string text){var f=new Dictionary<string,double[]>();int member=0,load=0;
   foreach(var raw in (text??"").Replace("\r","").Split('\n')){string line=raw.Trim();if(line=="")continue;
@@ -63,8 +82,11 @@ static class RedundancyFactor {
  internal static RhoResult Compute(StaadModel m,Dictionary<string,double[]> forces,int load,string caseName,string axis,string system){var r=new RhoResult{Case=caseName,Axis=axis};
   Func<int,StaadJoint> J=n=>{StaadJoint j;if(!m.Joints.TryGetValue(n,out j))throw new Exception("Joint "+n+" of a member is not in the joint list.");return j;};
   var cols=new List<StaadMember>();var beams=new List<StaadMember>();var braces=new List<StaadMember>();
+  var inclined=new List<StaadMember>();
   foreach(var mem in m.Members.Values){var a=J(mem.A);var b=J(mem.B);double dv=Math.Abs(m.H(b)-m.H(a)),dh=Math.Sqrt(Math.Pow(m.P1(b)-m.P1(a),2)+Math.Pow(m.P2(b)-m.P2(a),2));
-   if(dv<1e-6&&dh>1e-6)beams.Add(mem);else if(dh<=0.02*dv)cols.Add(mem);else if(dv>1e-6)braces.Add(mem);}
+   if(dv<1e-6&&dh>1e-6)beams.Add(mem);else if(dh<=0.02*dv)cols.Add(mem);else if(dv>1e-6)inclined.Add(mem);}
+  /* a brace runs between two floor levels (column ends); sloping rafters and other inclined members are not braces */
+  braces.AddRange(inclined.Where(b=>AtLevel(m,cols,J(b.A))&&AtLevel(m,cols,J(b.B))));
   if(cols.Count==0)throw new Exception("No columns (vertical members) found in the model.");
   Func<StaadMember,StaadJoint> low=mm=>m.H(J(mm.A))<=m.H(J(mm.B))?J(mm.A):J(mm.B);Func<StaadMember,StaadJoint> high=mm=>m.H(J(mm.A))<=m.H(J(mm.B))?J(mm.B):J(mm.A);
   Func<StaadMember,double[]> F=mm=>{double[] v;int jl=low(mm).No;if(forces.TryGetValue(mm.No+"|"+load+"|"+jl,out v))return v;int other=jl==mm.A?mm.B:mm.A;return forces.TryGetValue(mm.No+"|"+load+"|"+other,out v)?v:null;};
