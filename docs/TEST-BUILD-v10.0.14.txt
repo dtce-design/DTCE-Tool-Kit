@@ -1,0 +1,19 @@
+DTCE Tool Kit v10.0.14 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.7).
+
+PATCH - Design Loads:
+- Structural irregularities (owner: "for structural irregularities check"): new tab in Load Combinations checking NSCP 2015 Table 208-9
+  (1 soft storey from storey stiffness k = storey shear / storey drift of the pasted STAAD data, 2 weight from the typed storey weights,
+  3 vertical geometry from the column plan per storey, 4 in-plane discontinuity and 5 weak storey as marked) and Table 208-10 (1 torsion
+  from dmax / davg of the Ax tab, 2 re-entrant corners and 3 diaphragm openings from short inputs, 4 out-of-plane offsets as marked,
+  5 nonparallel systems from the model); suggests the structure class (C if any irregularity, B if regular with dmax / davg > 1.05, else A)
+  with a button to use it; its own report section (src/StructuralIrregularity.cs, src/LoadCombinationsIrregular.cs).
+- The primary-load and STAAD output options moved to their own "STAAD output" tab as ordinary fields (owner: "apakagulo naman nito");
+  the Primary loads tab holds only the list.
+- Ca, I and Omega0 come from the Earthquake Load sheet (owner: "inputs for seismic are connected to earthquake load"): the Earthquake sheet
+  stores them when it calculates (src/DesignLoadsFile.cs EarthquakeLink); "Ca, I and Ω0 from the Earthquake Load sheet" (on by default)
+  fills and locks them in Load Combinations; uncheck to type them.
+- One file for Design Loads (owner: "isang xml sheet na lang yung design loads"): Save / Open sheet XML in any Design Loads sub tab saves /
+  opens Dead Loads, Live Loads, Wind, Earthquake and Load Combinations together in one *.design.xml (<DesignLoads>); a sheet not open yet
+  gets its part when it opens; older single-sheet files still open.
+Tests: StructuralIrregularityTests 11, DesignLoadsFileTests 4, StaadCombinationsTests 36.
+Includes everything of v10.0.13.

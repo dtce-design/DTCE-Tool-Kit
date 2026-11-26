@@ -385,7 +385,10 @@ after run papalitan ... include lahat sa report"): "Torsional amplification Ax" 
 displacements are pasted, then Ax = (dmax / 1.2 davg)^2 (1.0-3.0) per EQ case / level from the edge displacements replaces it (ACC = 0.05 Ax);
 reported with the table, and the basis table lists all the new settings. v10.0.13: DEFINE ENVELOPE per group at the end (strength / special
 STRENGTH, ASD / drift SERVICEABILITY) and an analysis + print block (CG, DIAPHRAGM CR, STORY STIFFNESS, STORY DRIFT of the drift cases, EQ
-displacements / member forces, reactions) with LOAD LISTs (owner: "add define envelope"; "include also the reports needed to print"). Owner ("ikaw na bahala sa redundancy basta paste ko na lang yung required",
+displacements / member forces, reactions) with LOAD LISTs (owner: "add define envelope"; "include also the reports needed to print"). v10.0.14: "Structural irregularities" tab (Tables 208-9 / 208-10 from the
+STAAD data + short inputs, suggested structure class; src/StructuralIrregularity.cs); options on a "STAAD output" tab as ordinary fields (owner:
+"apakagulo naman nito"); Ca, I, Omega0 linked from the Earthquake Load sheet (EarthquakeLink, "EqLinked" default on); Design Loads saved / opened as
+one file <DesignLoads> with the five sheets (src/DesignLoadsFile.cs; owner: "isang xml sheet na lang yung design loads"). Owner ("ikaw na bahala sa redundancy basta paste ko na lang yung required",
 v8.0.7): the owner only pastes - the boxes are recognised either way (.ANL echo too), EQ cases / directions come from the input's LOAD cases,
 the lateral system is automatic (braces = floor-to-floor inclined members, rafters excluded), and the computed ρ goes into Factors by itself.
 Owner (26 November 2026, "Put Windload and Earthquake in a new main tab Design Loads including Load Combinations as sub tab"): the Design Sheets

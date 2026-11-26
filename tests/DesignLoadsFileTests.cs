@@ -1,0 +1,12 @@
+using System;using System.Linq;using System.Reflection;using System.Windows.Forms;using BeamScheduleFormatter;
+class DesignLoadsFileTests{static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}static void Pump(){for(int i=0;i<20;i++){Application.DoEvents();System.Threading.Thread.Sleep(30);}}
+ [STAThread]static void Main(){Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);AccessCodes.Granted=true;var lc=new LoadCombinationsForm();lc.Show();var dl=new DeadLoadsForm();dl.Show();Pump();
+  var inputs=(System.Collections.IDictionary)typeof(DesignSheetForm).GetField("Inputs",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(lc);((ComboBox)inputs["Structure"]).SelectedIndex=1;
+  var din=(System.Collections.IDictionary)typeof(DesignSheetForm).GetField("Inputs",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(dl);((Control)din["ElevMass"]).Text="5000";Pump();
+  string xml=DesignLoadsFile.Bundle();Check(DesignLoadsFile.Count==2&&xml.Contains("<DesignLoads")&&xml.Contains("type=\"Dead-Loads\"")&&xml.Contains("type=\"Load-Combinations\""),"one Design Loads file with the open sheets");
+  ((Control)din["ElevMass"]).Text="1";((ComboBox)inputs["Structure"]).SelectedIndex=0;Pump();
+  DesignLoadsFile.Open(xml,lc);Pump();Check(((Control)din["ElevMass"]).Text=="5000"&&((ComboBox)inputs["Structure"]).Text.StartsWith("B"),"both sheets restored from the one file");
+  /* a sheet opened later gets its part */lc.Dispose();var xml2=xml;DesignLoadsFile.Open(xml2,dl);var lc2=new LoadCombinationsForm();lc2.Show();Pump();var in2=(System.Collections.IDictionary)typeof(DesignSheetForm).GetField("Inputs",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(lc2);Check(((ComboBox)in2["Structure"]).Text.StartsWith("B"),"a sheet opened later gets its part");
+  var s=new StaticLateralResult{Ca=0.36,I=1.25,Omega=2.5,Rho=1.0,R=8.5,Zone=4};EarthquakeLink.Save(s);var lc3=new LoadCombinationsForm();lc3.Show();Pump();var in3=(System.Collections.IDictionary)typeof(DesignSheetForm).GetField("Inputs",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(lc3);
+  Check(((Control)in3["Ca"]).Text=="0.36"&&((Control)in3["I"]).Text=="1.25"&&((Control)in3["Omega0"]).Text=="2.5"&&!((Control)in3["Ca"]).Enabled,"Ca, I, Omega0 from the Earthquake Load sheet, locked");
+  Console.WriteLine("DesignLoadsFileTests passed: "+checks+" checks");Environment.Exit(0);}}
