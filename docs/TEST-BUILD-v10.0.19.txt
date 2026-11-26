@@ -1,0 +1,19 @@
+DTCE Tool Kit v10.0.19 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release request is v10.0.18).
+
+PATCH - automatic wind load cases (owner: "automatic na ganito WIND LOAD X 1 TYPE 1 YR 0 12.6 ..."; "tapos meron pa kasi sa gitna";
+"automatic load ng windload based sa edges ng building, kasi kapag may paloob sa gitna e di naloload"):
+- Load Combinations, automatic primary loads: the wind cases WL+X, WL-X, WL+Z, WL-Z are filled from the Wind Load sheet (new check
+  "Wind cases from the Wind Load sheet", default on). Each case gets the WIND LOAD lines of its DEFINE WIND LOAD types, YR from the
+  ground (0) to the building top:
+    WL+X: WIND LOAD X 1 TYPE 1 (windward), WIND LOAD -X -1 TYPE 2 (leeward, pulled outward), WIND LOAD Z -1 TYPE 3 and
+    WIND LOAD -Z -1 TYPE 3 (both side walls, pulled outward); the other directions likewise with their own TYPE numbers.
+  The Wind Load sheet passes its TYPE numbers and intensities (Links\wind-staad-link.xml) when building pressures are on and the
+  STAAD +X is set.
+- Recessed faces ("sa gitna"): from the STAAD input pasted on the Redundancy factor tab, the floor outline of every level is found from
+  its beams; faces the wind cannot reach along its direction (recesses, re-entrant walls) get MEMBER LOAD lines on the edge beams:
+  windward faces the windward pressure (by height band), the others the leeward / side-wall suction, w = p x tributary storey height
+  (half the storey below and above). Faces that WIND LOAD already reaches are not loaded twice.
+  On the owner's sample model the recess at the back middle (X 24 to 56, Z 16 to 24) gets 16 member loads per X wind case.
+- Note: STAAD's sign convention for a negative WIND LOAD factor (suction) should be checked once in the owner's STAAD version.
+Tests: WindEdgeLoadsTests 16 (new), StaadCombinationsTests 36, DesignLoadsFileTests 16, WindAuditTests 79.
+Includes everything of v10.0.18.

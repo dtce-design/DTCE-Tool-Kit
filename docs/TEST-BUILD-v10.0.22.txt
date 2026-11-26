@@ -1,0 +1,15 @@
+DTCE Tool Kit v10.0.22 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.18).
+
+PATCH - one project file (owner: "1 file na lang ang isave"; "or open project, or from list kapag nawala sa default saved list"):
+- A DTCE project file (*.dtce) holds the project information and the saved file of every workspace: Bill of Quantities, POW workbook,
+  Design Loads (all five sheets) and the other design sheets.
+- The first Save (or Ctrl+S) of a workspace that has no file yet asks once for the project file (named after the project title); after
+  that every Save in every workspace goes into the same file without asking. Save As still writes a separate file when wanted.
+- Open the project from "Open saved project" on the Workspaces window, or double-click it in the saved list of Project Information.
+  If it is missing from the saved list, use "Open project file…" in Project Information (or "Open saved project"): the project goes
+  back on the list. Opening sets the project information and opens every workspace saved in it.
+- How it works: while a project is open, each workspace works on its own copy in Documents\DTCE Tool Kit\Working; each Save writes
+  that copy and packs all of them into the project file (replaced in one step).
+- Older loose files (.boq.xml, .pow.xml, .design.xml) still open as before.
+Tests: ProjectPackageTests 10 (new), ProjectFilesTests 6, OpenSavedProjectTests 5, DesignLoadsFileTests 16, ProjectLibraryTests 20.
+Includes everything of v10.0.21.

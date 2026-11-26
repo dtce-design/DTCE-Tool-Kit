@@ -9,6 +9,10 @@ on:
         description: Explicitly upload to Microsoft Store (requires owner instruction)
         type: boolean
         default: false
+      store_status:
+        description: Read-only - show the Store's published and pending submissions (changes nothing)
+        type: boolean
+        default: false
       replace_pending_store_submission:
         description: Cancel a Store submission still in certification and submit this build instead (requires owner instruction)
         type: boolean
@@ -144,6 +148,33 @@ jobs:
           VERSION=$(ls release/*.msix | head -n 1 | sed -nE 's/.*_([0-9]+\.[0-9]+\.[0-9]+)\.0_x64\.msix$/\1/p')
           if [ -n "$VERSION" ]; then TAG="v${VERSION}-build-${GITHUB_RUN_NUMBER}"; TITLE="DTCE Tool Kit v${VERSION} - build ${GITHUB_RUN_NUMBER}"; else TAG="build-${GITHUB_RUN_NUMBER}"; TITLE="DTCE Tool Kit - successful build ${GITHUB_RUN_NUMBER}"; fi
           gh release create "$TAG" release/DTCE-Tool-Kit-User.zip release/DTCE-Tool-Kit-Admin.zip release/DTCE-Mobile-Access.zip release/*.msix --target "$GITHUB_SHA" --title "$TITLE" --notes "User and key-free Admin builds. Calculations and signed-access checks passed. Commit: ${GITHUB_SHA}. Private signing keys are excluded. Includes separate User and Admin MSIX packages. Package generation does not submit or certify the app."
+  store-status:
+    # read-only: prints the last published and the pending submission of both editions; nothing is changed in Partner Center
+    if: github.event_name == 'workflow_dispatch' && inputs.store_status == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        include:
+          - edition: User
+            app: 9NSQN0157W5K
+          - edition: Admin
+            app: 9P53CR08ZSZ3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Store status (${{ matrix.edition }})
+        env:
+          STORE_TENANT_ID: ${{ secrets.STORE_TENANT_ID }}
+          STORE_CLIENT_ID: ${{ secrets.STORE_CLIENT_ID }}
+          STORE_CLIENT_SECRET: ${{ secrets.STORE_CLIENT_SECRET }}
+          STORE_EDITION: ${{ matrix.edition }}
+          STORE_APP_ID: ${{ matrix.app }}
+        run: python3 scripts/store_status.py
+      - name: Public Store catalog version (${{ matrix.edition }})
+        run: |
+          curl -s -m 30 "https://displaycatalog.mp.microsoft.com/v7.0/products/${{ matrix.app }}?market=PH&languages=en-us" -o catalog.json || true
+          python3 -c "import json,re;s=open('catalog.json').read();print('bytes',len(s));print(sorted(set(re.findall(r'\"PackageFullName\":\"([^\"]+)\"',s))));print(sorted(set(re.findall(r'\"Version\":\"([^\"]+)\"',s)))[:10])"
+
   store-user-upload:
     if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish_microsoft_store == true && vars.STORE_AUTO_UPLOAD_ENABLED == 'true' && needs.build.outputs.windows_changed == 'true'
     needs: build

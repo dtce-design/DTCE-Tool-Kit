@@ -1,0 +1,14 @@
+DTCE Tool Kit v10.0.23 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.18).
+
+PATCH - the other tabs in the one project file (owner: "pero gagana pa din yung mga lumang files na sinave ko per workspace?.. pero
+ayusin mo yung ibang tabs"):
+- Bar Bending Schedule: Save (and Ctrl+S) goes into the project file; a new "Save as" button still writes a separate
+  .beam-cutting.xml. Opening the project opens the BBS with its saved cutting list.
+- Splice, Development & Hooks: Ctrl+S saves the current configuration into the project file; "Save in app" also puts it there while a
+  project file is open (and still keeps it in the app's library for the estimator). Opening the project restores it.
+- Older files saved per workspace (.boq.xml, .pow.xml, .design.xml, .beam-cutting.xml) still open with each workspace's Open; Save then
+  writes back to that same old file, not into the project file. Use Save As in the workspace (or start from the project) to move it
+  into a project.
+- Formatters have nothing to save in a project: they read and write the DXF drawings themselves.
+Tests: ProjectPackageTests 12, BeamCuttingListTests 247, MemberBbsTests 12, ProjectFilesTests 6, SavedConfigurationTests 10.
+Includes everything of v10.0.22.

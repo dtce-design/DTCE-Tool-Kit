@@ -7696,22 +7696,24 @@ worksExcelTimer.Tick += async delegate
 			saved = DataXml();
 		}
 
-        private async void Open()
+        private void Open(){OpenPath(null);}
+        /* a file chosen before the window opens (owner, 26 November 2026: "sa start na lang magoopen ng saved file tapos doon na din magsasave"): the same
+           opening as Open, so Save writes back to that file */
+        internal async void OpenPath(string chosen)
         {
             if(openingPow)return;
-            try{Guard();Commit();using(var dialog=new OpenFileDialog{Filter="Bill of Quantities (*.boq.xml, older *.pow.xml)|*.boq.xml;*.pow.xml|All files|*.*"}){
-                if(dialog.ShowDialog(this)!=DialogResult.OK)return;
+            try{Guard();Commit();string fileName=chosen;if(fileName==null)using(var dialog=new OpenFileDialog{Filter="Bill of Quantities (*.boq.xml, older *.pow.xml)|*.boq.xml;*.pow.xml|All files|*.*"}){if(dialog.ShowDialog(this)!=DialogResult.OK)return;fileName=dialog.FileName;}{
                 openingPow=true;
-                using(var busy=new PowBusyIndicator(this,"Open Bill of Quantities","Opening "+Path.GetFileName(dialog.FileName)+"…")){
+                using(var busy=new PowBusyIndicator(this,"Open Bill of Quantities","Opening "+Path.GetFileName(fileName)+"…")){
                 while((linkingExcel||capturingExcelSource)&&!IsDisposed)await System.Threading.Tasks.Task.Delay(50);
                 if(IsDisposed)return;
                 openingPow=true;worksExcelTimer.Stop();excelSaveTimer.Stop();
                 if(currentSync!=null)try{await currentSync;}catch(Exception ex){ExcelFailure(ex);}
                 busy.Status("Reading project and source files…");PowTiming.Start("Open");
-                CancelDeferredSources();var snapshot=await System.Threading.Tasks.Task.Run(()=>PowProjectFileWriter.Read(dialog.FileName,true));
+                CancelDeferredSources();var snapshot=await System.Threading.Tasks.Task.Run(()=>PowProjectFileWriter.Read(fileName,true));
                 if(IsDisposed)return;PowTiming.Mark("read file");
                 busy.Status("Loading worksheets and quantities…");
-                try{OpenProjectDocument(snapshot.Document,snapshot.Sources,snapshot.SourcesDeferred?dialog.FileName:null);}catch{CancelDeferredSources();/* a partly loaded window must not overwrite any project file */currentPowPath=null;knownPowWriteUtc=null;throw;}currentPowPath=Path.GetFullPath(dialog.FileName);RememberPowFile(currentPowPath);WarnIfEmptyProject(snapshot.Document,dialog.FileName);if(!snapshot.SourcesDeferred)VerifySourcesInBackground(snapshot.Sources);
+                try{OpenProjectDocument(snapshot.Document,snapshot.Sources,snapshot.SourcesDeferred?fileName:null);}catch{CancelDeferredSources();/* a partly loaded window must not overwrite any project file */currentPowPath=null;knownPowWriteUtc=null;throw;}currentPowPath=Path.GetFullPath(fileName);RememberPowFile(currentPowPath);WarnIfEmptyProject(snapshot.Document,fileName);if(!snapshot.SourcesDeferred)VerifySourcesInBackground(snapshot.Sources);
                 if(worksExcel!=null&&linkedHasBackup){busy.Status("Refreshing linked BACKUP items…");await LoadCatalogue();PowTiming.Mark("Excel BACKUP items");lastExcelXml="";dashboardDirty=true;RefreshVisibleWorksViews();saved=DataXml();ScheduleWorksExcel();}
                 ShowTiming(PowTiming.Finish());}
             }}catch(Exception ex){if(!IsDisposed)MessageBox.Show(this,ex.Message,"Open Bill of Quantities",MessageBoxButtons.OK,MessageBoxIcon.Information);}finally{openingPow=false;if(!IsDisposed&&worksExcel!=null&&!excelBroken)ScheduleWorksExcel();}

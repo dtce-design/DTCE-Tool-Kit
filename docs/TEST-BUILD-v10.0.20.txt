@@ -1,0 +1,11 @@
+DTCE Tool Kit v10.0.20 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.18).
+
+PATCH - open a saved project at the start (owner: "Pwede ba kapag maginsert ako project info magoopen na din yung project?"; "Sa start na
+lang magoopen ng saved file tapos doon na din magsasave. Nakasave na din doon yung project"):
+- Workspaces window: new "Open saved project" button beside Workspace settings. It opens a saved Bill of Quantities file (*.boq.xml,
+  older *.pow.xml). The project information saved in the file becomes the current project (no need to fill in Project Information
+  again), and the Bill of Quantities workspace opens with that file.
+- Save (and Ctrl+S) in the Bill of Quantities then writes back to the same file, project information included; Save As still asks.
+- A file without complete project information opens the Project Information window first, with a note.
+Tests: OpenSavedProjectTests 5 (new), ProjectLibraryTests 20.
+Includes everything of v10.0.19.

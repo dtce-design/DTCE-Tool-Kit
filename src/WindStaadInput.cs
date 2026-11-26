@@ -91,6 +91,14 @@ static class WindStaadInput {
    b.Append("\n* side walls: ").Append(swFace).Append(travel!=""?" ("+FaceAt(s1)+" load "+LoadDir(s1,-1)+"; "+FaceAt(s2)+" load "+LoadDir(s2,-1)+")":"").Append(", Cp -0.7 (suction)");
    b.Append("\nINT ").Append(f(Math.Abs(sw.Qh*sw.G*sw.Cp))).Append(" HEIG ").Append(f(top));}
   return b.ToString();}
+ /* the TYPE numbers and intensities FaceCommands writes, by direction of travel, for the Load Combinations wind cases */
+ internal static List<WindFaceTypes> FaceTypes(WindBuildingInput building,double speed,IList<WindDirection> directions,double xBearing){var list=new List<WindFaceTypes>();if(xBearing<0)return list;
+  var rows=WindBuildingLoads.Calculate(building,speed,directions).Where(r=>r.GCpi>0).ToList();int type=0;double top=Math.Max(building.Eave,building.Apex);string[] order={"+X","-X","+Z","-Z"};
+  var groups=rows.GroupBy(r=>r.Direction).OrderBy(gr=>{int k=Array.IndexOf(order,AxisOf(gr.First().Bearing+180,xBearing));return k<0?9:k;}).ToList();
+  foreach(var axis in groups){var first=axis.First();var ww=axis.Where(r=>r.Surface=="Windward wall"&&r.Z>1e-9).OrderBy(r=>r.Z).ToList();var lw=axis.FirstOrDefault(r=>r.Surface=="Leeward wall");var sw=axis.FirstOrDefault(r=>r.Surface=="Side walls");if(ww.Count==0||lw==null||sw==null)continue;
+   string travel=AxisOf(first.Bearing+180,xBearing);var t=new WindFaceTypes{Travel=travel,Ww=++type,Lw=++type,Sw=++type,Top=top,Leeward=Math.Abs(lw.Qh*lw.G*lw.Cp),Side=Math.Abs(sw.Qh*sw.G*sw.Cp)};
+   foreach(var r in ww){t.WwInt.Add(Math.Abs(r.Q*r.G*r.Cp));t.WwHeig.Add(r.Z);}if(travel!="")list.Add(t);}
+  return list;}
  internal static string Commands(IEnumerable<WindStaadBand> bands){var b=new StringBuilder("UNIT METER KN\nDEFINE WIND LOAD");foreach(var axis in bands.GroupBy(x=>x.Type)){var list=axis.OrderBy(x=>x.Top).ToList();b.Append("\nTYPE ").Append(axis.Key).Append(" ").Append(TypeName(axis.Key,list[0].Axis)).Append("\n* ").Append(TypeName(axis.Key,list[0].Axis)).Append(", ").Append(Relation(list[0].Axis)).Append(": windward + leeward walls, kN/m2, heights from ground\nINT ").Append(string.Join(" ",list.Select(x=>F(x.Combined)))).Append(" HEIG ").Append(string.Join(" ",list.Select(x=>F(x.Top))));}return b.ToString();}
 }
 }

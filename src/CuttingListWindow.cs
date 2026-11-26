@@ -26,7 +26,7 @@ class CuttingListForm:Form {
   var commands=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,Padding=new Padding(8),WrapContents=true};
   Func<string,Action,Button> button=(text,action)=>{var b=new Button{Text=text,AutoSize=true,Height=36};b.Click+=(s,e)=>{try{action();}catch(Exception ex){MessageBox.Show(this,ex.Message,"Beam Cutting List",MessageBoxButtons.OK,MessageBoxIcon.Information);}};commands.Controls.Add(b);return b;};
   /* one compact row (owner, 20 November 2026: cohesive, professional): load, print, save / open, and the rest under More */
-  button("Load beam schedule DXF",LoadSchedule);button("Load from Bill of Quantities",LoadMembers);Button printButton=null;printButton=button("Print BBS report",()=>{Calculate();PrintMenu(printButton);});button("Save",Save);button("Open",Open);
+  button("Load beam schedule DXF",LoadSchedule);button("Load from Bill of Quantities",LoadMembers);Button printButton=null;printButton=button("Print BBS report",()=>{Calculate();PrintMenu(printButton);});button("Save",Save);button("Save as",()=>SaveDialog());button("Open",Open);
   {var more=new ContextMenuStrip();Action<string,Action> item=(text,action)=>more.Items.Add(text,null,(s0,e0)=>{try{action();}catch(Exception ex){MessageBox.Show(this,ex.Message,"Bar Bending Schedule",MessageBoxButtons.OK,MessageBoxIcon.Information);}});
    item("Add bar",AddBar);item("Reset edits",ResetEdits);more.Items.Add(new ToolStripSeparator());item("Copy cutting list",()=>{Calculate();Clipboard.SetText(Tsv(cutGrid));});item("Copy bar bending schedule",()=>{Calculate();Clipboard.SetText(Tsv(bbsGrid));});
    Button mb=null;mb=button("More  ▾",()=>more.Show(mb,new Point(0,mb.Height)));}
@@ -185,8 +185,13 @@ class CuttingListForm:Form {
    foreach(XmlElement e in root.SelectNodes("Span")){int i=spans.Rows.Add();var r=spans.Rows[i];foreach(var c in new[]{"Line","Ln","Left","Right","Slab","Qty"})r.Cells[c].Value=e.GetAttribute(c.ToLowerInvariant());string m=e.GetAttribute("mark");r.Cells["Mark"].Value=schedule.ContainsKey(m)?m:null;r.Cells["Include"].Value=e.GetAttribute("include")!="False";}}
   finally{filling=false;}Calculate();saved=State();}
  string State(){try{return ProjectXml();}catch(Exception){return "";}}
- bool SaveDialog(){if(schedule.Count==0)throw new Exception("Load a beam schedule first.");using(var d=new SaveFileDialog{Filter="Beam cutting list|*.beam-cutting.xml",FileName="Beam-Cutting-List.beam-cutting.xml"}){if(d.ShowDialog(this)!=DialogResult.OK)return false;string xml=ProjectXml();string temp=d.FileName+"."+Guid.NewGuid().ToString("N")+".tmp";try{File.WriteAllText(temp,xml,new UTF8Encoding(false));File.Copy(temp,d.FileName,true);}finally{if(File.Exists(temp))File.Delete(temp);}saved=xml;status.ForeColor=PowTheme.Teal;status.Text="Saved "+Path.GetFileName(d.FileName)+".";return true;}}
- void Save(){SaveDialog();}
+ bool SaveDialog(){if(schedule.Count==0)throw new Exception("Load a beam schedule first.");using(var d=new SaveFileDialog{Filter="Beam cutting list|*.beam-cutting.xml",FileName="Beam-Cutting-List.beam-cutting.xml"}){if(d.ShowDialog(this)!=DialogResult.OK)return false;WriteTo(d.FileName);return true;}}
+ /* Save goes to the file already in use, or into the one project file (owner, 26 November 2026: "1 file na lang ang isave"; "ayusin mo yung ibang tabs") */
+ string cuttingPath;
+ void WriteTo(string path){string xml=ProjectXml();string temp=path+"."+Guid.NewGuid().ToString("N")+".tmp";try{File.WriteAllText(temp,xml,new UTF8Encoding(false));File.Copy(temp,path,true);}finally{if(File.Exists(temp))File.Delete(temp);}saved=xml;cuttingPath=path;ProjectFiles.Remember("bbs",path);status.ForeColor=PowTheme.Teal;status.Text=ProjectPackage.IsWorking(path)?"Saved in the project file "+Path.GetFileName(ProjectPackage.CurrentPath)+".":"Saved "+Path.GetFileName(path)+".";}
+ void Save(){if(schedule.Count==0)throw new Exception("Load a beam schedule first.");string path=cuttingPath??ProjectPackage.PathFor("bbs",this);if(path==null)return;WriteTo(path);}
+ internal void OpenFile(string path){OpenProjectXml(File.ReadAllText(path));cuttingPath=path;ProjectFiles.Remember("bbs",path);}
+ protected override bool ProcessCmdKey(ref Message msg,Keys keyData){if(keyData==(Keys.Control|Keys.S)){try{Save();}catch(Exception ex){MessageBox.Show(this,ex.Message,Text);}return true;}return base.ProcessCmdKey(ref msg,keyData);}
  /* columns, slabs and footings of the open Program of Works (owner, 20 November 2026) */
  void LoadMembers(){var pow=ProgramOfWorksForm.Current;if(pow==null)throw new Exception("Open the Bill of Quantities with its columns, slabs and footings computed, then load them here.");var sources=pow.BbsSources();if(sources.Count==0)throw new Exception("The Bill of Quantities has no computed columns, slabs or footings yet.");var notes=new List<string>();var pieces=MemberBbs.Pieces(sources,notes);memberPieces.Clear();memberPieces.AddRange(pieces);Calculate();
   status.ForeColor=PowTheme.Teal;status.Text="Loaded from the Bill of Quantities: "+string.Join(", ",MemberBbs.Kinds.Select(k=>new{k,n=sources.Count(x=>x.Kind==k)}).Where(x=>x.n>0).Select(x=>x.n+" "+x.k.ToLowerInvariant()+(x.n>1?"s":"")))+" - "+pieces.Count+" bar marks."+(notes.Count>0?" "+string.Join(" ",notes):"");}
@@ -196,6 +201,6 @@ class CuttingListForm:Form {
    if(s.Originals.Count==0)s=ColumnFormatter.Merged(s,"C");
    var notes=new List<string>();var pieces=ColumnFormatter.BbsPieces(s,Settings(),notes);if(pieces.Count==0)throw new Exception("No column bars could be taken from this DXF.");memberPieces.RemoveAll(p=>p.Group=="Column");memberPieces.AddRange(pieces);Calculate();
    status.ForeColor=PowTheme.Teal;status.Text="Loaded "+Path.GetFileName(d.FileName)+": "+s.Marks.Count+" column marks, "+pieces.Count+" bar marks. "+string.Join(" ",notes);}}
- void Open(){using(var d=new OpenFileDialog{Filter="Beam cutting list|*.beam-cutting.xml"})if(d.ShowDialog(this)==DialogResult.OK)OpenProjectXml(File.ReadAllText(d.FileName));}
+ void Open(){using(var d=new OpenFileDialog{Filter="Beam cutting list|*.beam-cutting.xml"})if(d.ShowDialog(this)==DialogResult.OK)OpenFile(d.FileName);}
 }
 }

@@ -1,0 +1,14 @@
+DTCE Tool Kit v10.0.21 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.18).
+
+PATCH - a project opens its saved files (owner: "Kapag may click ako ng project sa project information magopen na din lahat ng files ko
+na sinave ko doon sa kahit saan workspace"):
+- Every file saved or opened in a workspace is kept under the current project (Documents\DTCE Tool Kit\Settings\ProjectFiles.xml, the
+  same for the Store app and the .exe): the Bill of Quantities (.boq.xml), the POW workbook (.pow.xml), the Design Loads file and every
+  other design sheet (.design.xml). One file per workspace / sheet: the last one saved or opened.
+- Project Information: clicking a saved project shows which files it has; double-click (or Save project information) uses the project
+  and opens all of them, each in its own workspace window; Ctrl+S / Save then saves back to the same files.
+- "Open saved project" on the Workspaces window also opens the project's other saved files after its Bill of Quantities.
+- Files that no longer exist are skipped; a file that cannot be opened is listed in one message.
+- Not included: Formatter and Bar Bending Schedule outputs (DXF / Excel exports, not project files) and Splice, Development & Hooks.
+Tests: ProjectFilesTests 6 (new), OpenSavedProjectTests 5, DesignLoadsFileTests 16, ProjectLibraryTests 20, PowWorkbookCopiesTests 8.
+Includes everything of v10.0.20.
