@@ -1,7 +1,7 @@
 ﻿using System;using System.Drawing;using System.Linq;using System.Windows.Forms;using System.Collections.Generic;
 namespace BeamScheduleFormatter {
 class LauncherForm:Form {
- Form formatter,slabFormatter,columnFormatter,lengths,project,works,cutting,powWorkbook;
+  Form formatter,slabFormatter,columnFormatter,lengths,project,works,cutting,powWorkbook;
  #if ADMIN_APP
  Form generator;
  #endif

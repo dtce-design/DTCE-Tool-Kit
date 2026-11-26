@@ -1,0 +1,17 @@
+DTCE Tool Kit v10.0.24 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.18).
+
+PATCH - automatic update check that works (owner: "di namang gumagana yung pagcheck ng updates"; "V7.2.39 pa din app ko"; "e di pa ako
+inuupdate or ninonotify e may available ng update sa microsoft store"; "ayaw ko ng check for updates, gusto ko automatic na"):
+- Cause: the app asked the Windows Store API through reflection; when that failed it counted as "Store not reachable" and said nothing,
+  so v10.0.18 (published in the Store for both editions - checked with the read-only Store status job) was never announced.
+- Now the app reads the version the Store has published from the public Store catalog (displaycatalog.mp.microsoft.com, the package
+  "DTCE.DTCEToolKit_10.0.18.0_x64_..." / "DTCE.DTCEToolKit-Admin_...") and compares it with its own version; the Store API is only the
+  fallback. Automatic: a few seconds after start and again every few hours; no button.
+- Store app with a newer version published: the Microsoft Store page opens by itself (once per version) and the update notice is shown
+  ("click Update there"); restart after updating.
+- Copy not installed from the Store (downloaded .exe): told once per version that a newer version is available, with the Store page.
+- The copy you have now (v7.2.39) still has the old check: update it once from the Store (Update button); from then on the app notices
+  new versions itself. Turning on "App updates" in the Microsoft Store settings also lets Windows update it in the background.
+- Workflow: a read-only "store_status" input lists the published and pending Store submissions and the catalog version (changes nothing).
+Tests: StoreCatalogTests 6 (new), UpdateAndQuantityTests 31.
+Includes everything of v10.0.23.
