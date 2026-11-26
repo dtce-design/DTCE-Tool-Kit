@@ -328,6 +328,9 @@ Done 26 November 2026: v10.0.18 merged to main (PR #28, Windows CI green; GitHub
 replace_pending_store_submission=false): new User (1152921505702514078; visibility Public) and Admin (1152921505702514277; visibility Private)
 submissions were created and committed; Partner Center reported "accepted for processing" (PreProcessing). Certification is not guaranteed.
 v10.0.19 and later need a new explicit request.
+New owner request (26 November 2026, "publish to microsoft store"): publish v10.0.24 (User and Admin) after its Windows CI passes (PR to main for
+the GitHub release, then publish_microsoft_store=true; nothing is pending in the Store, so replace_pending_store_submission stays false; User
+visibility stays Public). Later versions again need a new explicit request.
 Checked 26 November 2026 (read-only store_status job, run 45825954870): v10.0.18 is Published for User and Admin; no submission pending;
 the public catalog lists DTCE.DTCEToolKit_10.0.18.0 / DTCE.DTCEToolKit-Admin_10.0.18.0.
 Update check (owner, 26 November 2026: "di namang gumagana yung pagcheck ng updates"; "ayaw ko ng check for updates, gusto ko automatic na",
