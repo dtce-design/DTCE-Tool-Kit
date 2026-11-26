@@ -17,12 +17,13 @@ static class ProjectFiles {
   if(d.DocumentElement==null||d.DocumentElement.Name!="ProjectFiles"){d=new XmlDocument();d.AppendChild(d.CreateElement("ProjectFiles"));}return d;}
  static void Write(XmlDocument d){Directory.CreateDirectory(ProjectInfoStore.DirectoryPath);string temp=FilePath+"."+Guid.NewGuid().ToString("N")+".tmp";try{d.Save(temp);if(File.Exists(FilePath))File.Replace(temp,FilePath,null);else File.Move(temp,FilePath);}finally{if(File.Exists(temp))File.Delete(temp);}}
  /* one file per kind and project: the last one saved or opened */
- internal static void Remember(string kind,string path){if(Suspended||string.IsNullOrEmpty(path))return;try{var p=ProjectInfoStore.Read();if(p==null||p.Name.Trim().Length==0)return;string key=Key(p),full=System.IO.Path.GetFullPath(path);var d=Load();
+ internal static void Remember(string kind,string path){if(Suspended||string.IsNullOrEmpty(path))return;/* a working copy of the open project file: the project file follows */if(ProjectPackage.IsWorking(path)){ProjectPackage.Saved(path);return;}try{var p=ProjectInfoStore.Read();if(p==null||p.Name.Trim().Length==0)return;string key=Key(p),full=System.IO.Path.GetFullPath(path);var d=Load();
    XmlElement project=d.DocumentElement.SelectNodes("Project").Cast<XmlElement>().FirstOrDefault(e=>e.GetAttribute("key")==key);if(project==null){project=d.CreateElement("Project");project.SetAttribute("key",key);d.DocumentElement.AppendChild(project);}
    foreach(var old in project.SelectNodes("File").Cast<XmlElement>().Where(e=>e.GetAttribute("kind")==kind).ToList())project.RemoveChild(old);
    var f=d.CreateElement("File");f.SetAttribute("kind",kind);f.SetAttribute("path",full);f.SetAttribute("saved",DateTime.Now.ToString("o",System.Globalization.CultureInfo.InvariantCulture));project.AppendChild(f);Write(d);}catch(Exception){}}
  internal static List<ProjectFile> Of(ProjectInformation p){var list=new List<ProjectFile>();try{string key=Key(p);if(key.Trim().Length==0)return list;var project=Load().DocumentElement.SelectNodes("Project").Cast<XmlElement>().FirstOrDefault(e=>e.GetAttribute("key")==key);if(project==null)return list;
    foreach(XmlElement e in project.SelectNodes("File")){DateTime t;DateTime.TryParse(e.GetAttribute("saved"),System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.RoundtripKind,out t);list.Add(new ProjectFile{Kind=e.GetAttribute("kind"),Path=e.GetAttribute("path"),Saved=t});}}catch(Exception){}return list;}
+ internal static void RequestOpen(ProjectInformation p,ProjectFile file){var ev=OpenRequested;if(ev!=null)ev(p,new List<ProjectFile>{file});}
  internal static void RequestOpen(ProjectInformation p){var files=Of(p).Where(f=>f.Exists).ToList();var ev=OpenRequested;if(files.Count>0&&ev!=null)ev(p,files);}
 }
 }

@@ -74,7 +74,8 @@ class LauncherForm:Form {
  /* a saved Bill of Quantities file holds the project information: it becomes the current project, the Bill of Quantities opens with
     the file, and Save / Ctrl+S write back to the same file */
  internal static ProjectInformation ProjectInFile(string path){var snapshot=PowProjectFileWriter.Read(path,true);return PowProjectInformation.Read(snapshot.Document.DocumentElement);}
- void OpenSavedProject(){string path;using(var dialog=new OpenFileDialog{Title="Open saved project",Filter="Bill of Quantities project (*.boq.xml, older *.pow.xml)|*.boq.xml;*.pow.xml|All files|*.*"}){if(dialog.ShowDialog(this)!=DialogResult.OK)return;path=dialog.FileName;}
+ void OpenSavedProject(){string path;using(var dialog=new OpenFileDialog{Title="Open saved project",Filter="DTCE project (*.dtce)|*.dtce|Older Bill of Quantities file (*.boq.xml, *.pow.xml)|*.boq.xml;*.pow.xml|All files|*.*"}){if(dialog.ShowDialog(this)!=DialogResult.OK)return;path=dialog.FileName;}
+  if(ProjectPackage.IsProjectFile(path)){OpenProjectFiles(new List<ProjectFile>{new ProjectFile{Kind="project",Path=path}});return;}
   try{var info=ProjectInFile(path);
    if(info==null||!info.Complete){MessageBox.Show(this,"This file has no complete project information. Fill in the Project Information, then open the file again or use Open in the Bill of Quantities.","Open saved project",MessageBoxButtons.OK,MessageBoxIcon.Information);UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8);return;}
    ProjectInfoStore.Save(info.Name,info.Location,info.Office,info.OfficeAddress,info.DatePrepared??"",PowProjectInformation.FiscalYearFor(info),PowProjectInformation.AbcFor(info));
@@ -83,7 +84,7 @@ class LauncherForm:Form {
   catch(Exception ex){MessageBox.Show(this,ex.Message,"Open saved project",MessageBoxButtons.OK,MessageBoxIcon.Information);}}
  /* the files saved for a project, opened when it is chosen in Project Information */
  static readonly Dictionary<string,string> SheetTitles=new Dictionary<string,string>{{"loads","Load Combinations (NSCP 2015)"},{"Wind-Design","Wind Load (NSCP 2015)"},{"RSA-Curve","Earthquake Load & RSA Curve Builder"},{"Load-Combinations","Load Combinations (NSCP 2015)"},{"Live-Loads","Live Loads (NSCP 2015)"},{"Dead-Loads","Dead Loads (NSCP 2015)"},{"Purlin-Design","Purlin Design"},{"Truss-Connections","Truss Connections"},{"Beam-Deflection","Beam Deflection Check"},{"Staircase-Design","Staircase Design"},{"Strap-Footing","Strap Foundation"},{"Truss-Support","Truss Support on RC"}};
- void OpenProjectFiles(List<ProjectFile> files){var failed=new List<string>();
+ void OpenProjectFiles(List<ProjectFile> files){var failed=new List<string>();/* the project file holds every workspace: open it instead of loose files */var package=files.FirstOrDefault(x=>x.Kind=="project"&&x.Exists);if(package!=null){try{files=ProjectPackage.Open(package.Path);}catch(Exception ex){MessageBox.Show(this,ex.Message,"Open project",MessageBoxButtons.OK,MessageBoxIcon.Information);return;}}else if(files.Any(x=>x.Kind=="project"))files=files.Where(x=>x.Kind!="project").ToList();
   foreach(var f in files.OrderBy(x=>x.Kind=="boq"?0:x.Kind=="pow"?1:2)){try{
     if(f.Kind=="boq"){UseTool(ref works,()=>{var w=new ProgramOfWorksForm();ProgramOfWorksForm.Live=new WeakReference(w);GridFormulas.AttachAll(w);return w;},"Bill of Quantities",null,2);var boq=works as ProgramOfWorksForm;if(boq!=null&&!boq.IsDisposed)boq.OpenPath(f.Path);}
     else if(f.Kind=="pow"){if(powWorkbook==null||powWorkbook.IsDisposed)powWorkbook=new PowWorkbookForm();ShowTool(powWorkbook,"Program of Works (POW)",null);((PowWorkbookForm)powWorkbook).OpenProjectFile(f.Path);}
