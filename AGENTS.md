@@ -310,7 +310,13 @@ committed, replacing the pending v7.2.34 submissions; Partner Center reported "a
 v7.2.40 / v8.0.0 and later need a new explicit request.
 New owner request (26 November 2026, "PUBLISH TO MICROSOFT STORE"; then "before upload" add all spaces and the Dead Load sub tab): publish v10.0.6 (v10.0.0 plus the Live Load spaces unchecked by default, no separate building tab, and the national government office types) (User and Admin) after its Windows CI passes (PR to main for
 the GitHub release, then publish_microsoft_store=true; owner chose "Replace v7.2.39": replace_pending_store_submission=true for this release only;
-User visibility stays Public). Later versions again need a new explicit request.
+User visibility stays Public).
+Done 26 November 2026: v10.0.6 merged to main (PR #26; GitHub release v10.0.6-build-325, run 45739164218). Store run 45739183832: new User
+(1152921505702510795; visibility Public) and Admin (1152921505702510586; visibility Private) submissions were created and committed, replacing
+the pending v7.2.39 submissions; Partner Center reported "accepted for processing" (PreProcessing). Certification is not guaranteed.
+New owner request (26 November 2026, "publish"; chose "Replace v10.0.6 with v10.0.7"): publish v10.0.7 (button alignment) the same way after its
+Windows CI passes (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User
+visibility stays Public). Later versions again need a new explicit request. Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
