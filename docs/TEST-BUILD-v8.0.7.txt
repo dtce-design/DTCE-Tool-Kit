@@ -1,0 +1,13 @@
+DTCE Tool Kit v8.0.7 (26 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - Redundancy factor ρ is automatic (owner: "ikaw na bahala sa redundancy basta paste ko na lang yung required"):
+- Paste the STAAD input and the member end forces - in either box, in either order; a whole .ANL (input echo with line numbers plus the
+  end forces) also works in one box. ρ is computed shortly after pasting and goes straight into Factors (no button to press).
+- The EQ load cases and their directions come from the STAAD input itself (LOAD n LOADTYPE SEISMIC TITLE EQ+X; without X / Z in the title,
+  from UBC / IBC / 1893 LOAD X / Z or JOINT LOAD FX / FZ), else from the Primary loads, else from the table titles (5 EQ+X).
+- Lateral system "Automatic" (default): braced frame when the model has braces, otherwise moment-resisting frame; the other choices stay
+  as overrides (SMRF limit 1.25, dual, shear walls typed).
+- Braces are only inclined members running floor to floor; sloping roof rafters are no longer taken as braces.
+- While the Primary loads are still the example (or empty), they are filled with the LOAD lines of the pasted input.
+Tests: RedundancyFactorTests 20.
+Includes everything of v8.0.6.

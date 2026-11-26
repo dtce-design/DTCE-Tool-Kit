@@ -1,0 +1,9 @@
+DTCE Tool Kit v8.0.6 (26 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - access codes (owner: "Design Loads isang access code"):
+- Design Loads is one grant: Wind Load, Earthquake Load & RSA Curve Builder and Load Combinations open together. The Access Code
+  Generator (Admin) has one "Design Loads" choice in place of the three (12 choices; the code carries all three program bits).
+- Any of the three bits opens all three, so codes made earlier (for example Wind only) and codes from the iPhone app / web generator,
+  which still list the three separately, open the whole Design Loads tab. Other programs are unchanged.
+- Test fix: the generator test expected 13 programs (stale since Load Combinations was added); it now checks the 12 choices.
+Includes everything of v8.0.5.

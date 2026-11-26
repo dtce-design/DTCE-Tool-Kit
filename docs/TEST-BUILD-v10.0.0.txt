@@ -1,0 +1,22 @@
+DTCE Tool Kit v10.0.0 (26 November 2026) - Store release candidate.
+
+MAJOR - new design sheet "Dead Loads (NSCP 2015)", the first sub tab of Design Loads (owner: "ANOTHER SUB TAB FOR DEAD LOAD, DEAD LOAD
+FLOOR LOAD", with the owner's Excel dead load sheet as the layout; src/DeadLoadsWindow.cs):
+- Floor dead loads: components (Slab, Floor Finish, Partition Loads, Ceiling, MEP, Waterproofing ...) x floor types (Typical, Ceiling,
+  Roof Slab, Gutter, Stair, Canopy ...), all editable; add / remove floor types; slab from its thickness (x 23.6 kN/m³ by default).
+  Total and STAAD input (total without the slab, which STAAD adds by SELFWEIGHT) per floor type - the owner's values give 4.31 / 1.36,
+  6.97 / 4.02, 3.37 / 0.42, 3.92 / 0.97 ...
+- Roof dead loads on the truss top chord, bottom chord and purlins; the purlin weight from mass, span, purlin and truss spacing
+  (LC 150x50x20x2.0: 25 pcs, 4.24 kN, 0.076 kPa); STAAD input in kN/m (chords x truss spacing, purlin x purlin spacing).
+- Wall line loads: wall types (150 CHB 2.73, 100 CHB 2.11, 100 RC 2.4, curtain wall 0.5, 100 mm AAC 0.873 kPa ...) x heights of
+  levels / parapets / fire exits; line load = height x wall load.
+- Elevator: weight on the shaft area with the impact increase (3800 kg on 3 x 3 m: 4.142 kPa, 8.284 kPa with 100 %).
+- Calculation report with all of them.
+Live Loads: more building types and rooms (owner: "LAHAT NG PWEDENG SPACES OR ROOMS ILAGAY MO SA LIVE LOAD"): common rooms of any building
+(conference, pantry, server, electrical / mechanical / generator rooms, janitor's closet, guard house, elevator lobby, atrium, ramps,
+balconies, plazas, playgrounds, parking, driveways, catwalks ...), Hall of Justice, District / Provincial Hospital, Dialysis / Diagnostic
+Center, Jail, Dormitory / Training Center, Social Welfare Center, Museum / Tourism Center, Passenger Terminal, Sports Complex, Warehouse /
+Motor Pool, Materials Testing Laboratory, Slaughterhouse, Public Comfort Room - 29 building types in all.
+All reports: the page number ends at the right end of the footer line (owner: "PAGE ILAGAY SA PINAKA RIGHT NG FOOTER"; "SA LAHAT NG REPORTS").
+Tests: DeadLoadsTests 11, LiveLoadsTests 313.
+Includes everything of v9.0.1.

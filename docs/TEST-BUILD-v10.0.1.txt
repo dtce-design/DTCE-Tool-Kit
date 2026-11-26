@@ -1,0 +1,9 @@
+DTCE Tool Kit v10.0.1 (26 November 2026) - Store release (owner chose "Upload v10.0.0, replace v7.2.39"; this PATCH is included).
+
+PATCH - Live Loads:
+- Every space starts unchecked; the designer checks the spaces that go to the report (owner: "yung live load uncheck lahat. ako ang mag
+  check"). The checked spaces are kept with the sheet ("Included"); v9.x sheets with "Excluded" still open.
+- No separate "Building and spaces" tab (owner: "bat may building and spaces pa na tab?"): the building type and the partition option are
+  on the "Live loads per space" page above the search bar.
+- Tests: the Live / Dead Loads tests run as the User build with test access and [STAThread] (Windows CI).
+Includes everything of v10.0.0.

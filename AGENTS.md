@@ -304,6 +304,13 @@ visibility stays Public). Later versions again need a new explicit request.
 Owner (25 November 2026, chose "Upload v7.2.38"): the Store release is v7.2.38 (v7.2.37 plus the single-value Building inputs), the same way
 (PR #25, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only).
 Owner (25 November 2026, chose "Upload v7.2.39"): the Store release is v7.2.39 (v7.2.38 plus C&C from spacings), the same way.
+Done 25 November 2026: v7.2.39 merged to main (PR #25; GitHub release v7.2.39-build-311, run 45580077710). Store run 45580111705 (first
+attempt): new User (1152921505702502448; visibility Public) and Admin (1152921505702502447; visibility Private) submissions were created and
+committed, replacing the pending v7.2.34 submissions; Partner Center reported "accepted for processing". Certification is not guaranteed.
+v7.2.40 / v8.0.0 and later need a new explicit request.
+New owner request (26 November 2026, "PUBLISH TO MICROSOFT STORE"; then "before upload" add all spaces and the Dead Load sub tab): publish v10.0.6 (v10.0.0 plus the Live Load spaces unchecked by default, no separate building tab, and the national government office types) (User and Admin) after its Windows CI passes (PR to main for
+the GitHub release, then publish_microsoft_store=true; owner chose "Replace v7.2.39": replace_pending_store_submission=true for this release only;
+User visibility stays Public). Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
@@ -344,6 +351,40 @@ kinks, L/4 (Philippine practice)" is the default, "Full length" optional. Each f
 landing beams at a landing end are monolithic with the slab and anchor the bars; wall supports are drawn as walls (WallT). Chair bars follow
 the owner's detail: riser leg down through the waist and tread leg back into the waist, both bent along the bottom bars and lapped 300 mm
 (30db), nosing bar in the bend - not hooked into the waist top mat.
+
+## Load Combinations sheet (25 November 2026)
+
+Owner: "create load combinations for superstructure including orthogonal effect for staad input" - its own design sheet "Load Combinations
+(NSCP 2015)" (program 16384, v8.0.0; src/StaadCombinations.cs, src/LoadCombinationsWindow.cs). Primary loads are pasted as in STAAD and
+the combinations use the same titles (DL, LL1, LL2, LLR, WL+X, EQ+X ...); numbered as the owner marked the NSCP pages (v8.0.3): 1000 strength
+design 203-1..7, 2000 alternate basic ASD 203-13..18, 3000 special seismic 203-19/20 (Em = Omega0 Eh), 4000 basic ASD 203-8..12 (off by
+default), 5000 wind drift, 6000 seismic drift, each labelled with its equation; Ev only in strength design (208-18: zero for ASD unless chosen); f1 per live case; seismic cases by the
+owner's STAAD notes - A regular / symmetrical, B regular / unsymmetrical (accidental torsion), C irregular / unsymmetrical (orthogonal
+1.0 + 0.3 as REPEAT LOAD cases, Load Type Seismic, the EQ primaries Load Type None). Owner ("diba may basic at alternative tapos may additional loads sa eq?"): the
+alternative basic ASD and special seismic sets (v8.0.1), regrouped in v8.0.2.
+Owner ("How do you compute redundancy or reliability factor"; "Yes with automatic staad computation"): the sheet has a "Redundancy factor ρ" tab
+(src/RedundancyFactor.cs, src/LoadCombinationsRho.cs): the pasted .std and the EQ member end forces give the story shears and r_i (bay of two
+columns, 70 % interior; brace horizontal component; dual 80 %; walls typed), A_B from the base joints, ρ = 2 - 6.1/(r_max √A_B) per direction
+with the limits; "Use ρ" fills Factors; reported as its own section (v8.0.4). Owner ("ikaw na bahala sa redundancy basta paste ko na lang yung required",
+v8.0.7): the owner only pastes - the boxes are recognised either way (.ANL echo too), EQ cases / directions come from the input's LOAD cases,
+the lateral system is automatic (braces = floor-to-floor inclined members, rafters excluded), and the computed ρ goes into Factors by itself.
+Owner (26 November 2026, "Put Windload and Earthquake in a new main tab Design Loads including Load Combinations as sub tab"): the Design Sheets
+window has a main tab "Design Loads" with the sub tabs Wind Load, Earthquake Load & RSA Curve Builder and Load Combinations (src/Launcher.cs
+loadTabs / LoadSheets) (v8.0.5). Owner ("Design Loads isang access code", v8.0.6): Design Loads is one grant - ProgramAccess.DesignLoads =
+WindDesign | EarthquakeRsa | LoadCombinations; any of the three bits opens all three (Allows), and the desktop generator lists one "Design Loads"
+choice (ProgramAccess.Choices / ChoiceNames). The iPhone app and web generator still list the three separately (unchanged; each opens all three).
+Owner (26 November 2026, "include Live Loads ... Government Buildings all spaces and Rooms ... summarize them per space. based on NSCP 2015";
+"INCLUDE SEARCH BAR"): new design sheet "Live Loads (NSCP 2015)" (v9.0.0), first sub tab of Design Loads, under the Design Loads grant (sheet
+type "Live-Loads" -> LoadCombinations bit; no new program). src/NscpLiveLoads.cs holds Table 205-1 / 205-3 and the spaces of 14 government
+building types (row id per space); src/LiveLoadsWindow.cs shows them per space with f1 / reduction and search bars. Values entered without the
+code text at hand: correct them from the owner's NSCP pages when given. v9.0.1: Table 205-1 as printed (owner's photos of pp. 2-17 / 2-18,
+23 categories, notes 1-9); "In report" check boxes choose the spaces in the report (owner: "ADD CHECK ARROW TO BE INCLUDED IN THE REPORT");
+Table 205-3 still not compared with the printed page. Owner ("LAHAT NG PWEDENG SPACES OR ROOMS ILAGAY MO SA LIVE LOAD"; "ANOTHER SUB TAB FOR DEAD LOAD, DEAD
+LOAD FLOOR LOAD", v10.0.0): Live Loads has 29 building types incl. "Common rooms (any building)"; new design sheet "Dead Loads (NSCP 2015)"
+(src/DeadLoadsWindow.cs, sheet type "Dead-Loads", Design Loads grant) laid out like the owner's Excel: floor components x floor types with
+total and STAAD input without the slab, roof top chord / bottom chord / purlin with the purlin weight, wall line loads (height x wall kPa),
+elevator with impact. v10.0.1: Live Load spaces start unchecked, the owner checks them ("ako ang mag check"); building type and partitions sit on the
+per-space page (no "Building and spaces" tab). v10.0.2: "National Government Office" building type (owner: "bat walang national government offices?"). v10.0.3: the national agencies (owner: "any type of National Government Office"), each the office core + its own rooms. v10.0.4: janitor's closet / utility room 2.4 kPa as the occupancy served (owner: "sure ka ... 6kpa?"). v10.0.5: Dead Loads Elevator tab of its own, Add / Delete buttons on every table (owner: "hiwalay mo naman yung Elevator ..."). v10.0.6: Live Loads is one sorted list of spaces, not grouped by building (owner: "huwag mo na igroup per building"). Report pages: the page number ends at the right end of the footer line in every report (CalculationDocument).
 
 ## Door hardware (23 November 2026)
 

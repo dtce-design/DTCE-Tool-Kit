@@ -1,0 +1,12 @@
+DTCE Tool Kit v10.0.3 (26 November 2026) - Store release (includes v10.0.0 to v10.0.2).
+
+PATCH - Live Loads: national government offices by agency (owner: "any type of National Government Office"). Each has the office core
+(executive office, staff offices, conference room, records, server room, pantry, lobby, corridors, toilets, stairs) plus its own rooms:
+DPWH District / Regional Office (drafting, materials testing laboratory, core storage, motor pool, BAC room); DepEd Division / Regional
+Office (learning resource center, book and module storage, training hall); DOH Regional / Provincial Health Office (laboratory, cold chain,
+medicine warehouse, clinic); DSWD Field Office (payout waiting area, relief warehouse, counseling); DILG / DOLE / DTI / DA / DENR Provincial
+Office; BIR Revenue District / Treasury Office (taxpayer area, cashier, vault); LTO District / Licensing Office (inspection lane, plates
+storage); SSS / GSIS / PhilHealth / Pag-IBIG Branch; DFA Consular / Passport Office; PSA / COMELEC / NBI Office; Post Office; Bureau of
+Customs / Port Office; TESDA / Training Institute (light and heavy workshops); PAGASA / Weather Station. 44 building types in all.
+Tests: LiveLoadsTests 543.
+Includes everything of v10.0.2.
