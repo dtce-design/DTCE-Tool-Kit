@@ -13,7 +13,7 @@ sealed class WindEdgeFace {public double Level,Bottom,TopBand,A1,A2,At;public st
 /* the wind load cases of the STAAD input (owner, 26 November 2026: "automatic na ganito WIND LOAD X 1 TYPE 1 YR 0 12.6 ..."; "automatic load
    ng windload based sa edges ng building, kasi kapag may paloob sa gitna e di naloload"): each case gets the WIND LOAD lines of its windward,
    leeward and side-wall types; faces of the floor outline that the wind cannot reach along its direction (recesses in the middle of the
-   building, re-entrant corners) are loaded from the pasted STAAD model as member loads on the edge beams of each level */
+   building, re-entrant corners) are loaded from the pasted STAAD model as WIND LOAD lines limited by XR / ZR / YR to each recessed wall */
 static class WindEdgeLoads {
  static readonly CultureInfo Ci=CultureInfo.InvariantCulture;
  static string F(double v){return Math.Round(v,3).ToString("0.###",Ci);}
@@ -67,20 +67,21 @@ static class WindEdgeLoads {
   var merged=new List<WindEdgeFace>();foreach(var g in faces.GroupBy(f=>f.Level+"|"+f.Normal+"|"+f.At.ToString("R",Ci)+"|"+f.Shielded)){WindEdgeFace cur=null;
    foreach(var f in g.OrderBy(f=>f.A1)){if(cur!=null&&Math.Abs(cur.A2-f.A1)<1e-6)cur.A2=f.A2;else{if(cur!=null)merged.Add(cur);cur=f;}}if(cur!=null)merged.Add(cur);}
   return merged;}
- /* the member loads of the shielded faces for one wind case: windward faces (normal against the travel) take the windward pressure pushing
-    in, the others the leeward / side-wall suction pulling out; w = p x band height on the beams along the face */
- internal static string RecessLoads(StaadModel m,List<WindEdgeFace> faces,WindFaceTypes t,out int count){count=0;var lines=new List<string>();var levels=Levels(m);
-  char ax=t.Travel[1];int sign=t.Travel[0]=='+'?1:-1;
-  foreach(var f in faces.Where(x=>x.Shielded)){char fn=f.Normal[1];int fs=f.Normal[0]=='+'?1:-1;bool windward=fn==ax&&fs==-sign,leeward=fn==ax&&fs==sign;
-   double p=windward?t.WindwardAt(f.TopBand):leeward?t.Leeward:t.Side;double h=f.TopBand-f.Bottom;double w=p*h*(windward?-fs:fs);
-   string g=fn=='X'?"GX":"GZ";List<Seg> segs;if(!levels.TryGetValue(f.Level,out segs))continue;
-   foreach(var s in segs){bool along=fn=='X'?Math.Abs(s.X1-f.At)<1e-6&&Math.Abs(s.X2-f.At)<1e-6:Math.Abs(s.Z1-f.At)<1e-6&&Math.Abs(s.Z2-f.At)<1e-6;if(!along)continue;
-    double s1=fn=='X'?s.Z1:s.X1,s2=fn=='X'?s.Z2:s.X2;double lo=Math.Max(Math.Min(s1,s2),f.A1),hi=Math.Min(Math.Max(s1,s2),f.A2);if(hi-lo<1e-6)continue;
-    double d1=Math.Abs(lo-s1),d2=Math.Abs(hi-s1);if(d1>d2){var tmp=d1;d1=d2;d2=tmp;}
-    lines.Add(s.No.ToString(Ci)+" UNI "+g+" "+F(w)+" "+F(d1)+" "+F(d2)+" ");count++;
-    lines[lines.Count-1]=lines[lines.Count-1].TrimEnd();}}
+ /* the recessed faces as WIND LOAD lines of their own (owner, 26 November 2026: "bakit member load? dapat windload pa din"): an XR / ZR / YR
+    range around one wall makes STAAD build the panel from that wall's members only, so the wall gets the Wind sheet's TYPE like an outer
+    face - windward faces (normal against the travel) the WW type pushing in, faces turned away the LW type and walls along the wind the
+    SW type, both pulled out (factor -1) */
+ internal static string RecessLoads(StaadModel m,List<WindEdgeFace> faces,WindFaceTypes t,out int count){count=0;var lines=new List<string>();
+  char ax=t.Travel[1];int sign=t.Travel[0]=='+'?1:-1;const double tol=0.05;
+  foreach(var g in faces.Where(x=>x.Shielded).GroupBy(f=>f.Normal+"|"+F(f.At)+"|"+F(f.A1)+"|"+F(f.A2)).OrderBy(g=>g.First().Normal[1]).ThenBy(g=>g.First().At).ThenBy(g=>g.First().A1)){
+   var f=g.First();char fn=f.Normal[1];int fs=f.Normal[0]=='+'?1:-1;bool windward=fn==ax&&fs==-sign,leeward=fn==ax&&fs==sign;
+   string dir=(fs>0?"-":"")+fn;string factor=windward?"1":"-1";int type=windward?t.Ww:leeward?t.Lw:t.Sw;
+   string across=fn=='X'?"Z":"X";double y1=g.Min(x=>x.Bottom),y2=g.Max(x=>x.TopBand);
+   string label=windward?"windward wall":leeward?"leeward wall":"side wall";
+   lines.Add("* "+label+" "+fn+" = "+F(f.At)+" m, "+across+" "+F(f.A1)+"-"+F(f.A2)+" m");
+   lines.Add("WIND LOAD "+dir+" "+factor+" TYPE "+type+" "+fn+"R "+F(f.At-tol)+" "+F(f.At+tol)+" "+across+"R "+F(f.A1-tol)+" "+F(f.A2+tol)+" YR "+F(y1-tol)+" "+F(y2+tol));count++;}
   if(lines.Count==0)return "";
-  return "* recessed faces the wind does not reach along "+t.Travel+" (from the model edges): w = p x tributary height\nUNIT METER KN\nMEMBER LOAD\n"+string.Join("\n",lines);}
+  return "* recessed walls the wind does not reach along "+t.Travel+" (from the model edges): the range\n* makes STAAD load only that wall\n"+string.Join("\n",lines);}
  /* the wind load text of each case (+X, -X, +Z, -Z) for the Load Combinations sheet */
  internal static Dictionary<string,string> CaseTexts(Dictionary<string,string> link,string modelText,out string note){return CaseTexts(link,RedundancyFactor.HasModel(modelText)?RedundancyFactor.ReadModel(modelText):null,out note);}
  internal static Dictionary<string,string> CaseTexts(Dictionary<string,string> link,StaadModel model,out string note){note="";var map=new Dictionary<string,string>();if(link==null)return map;
@@ -90,7 +91,7 @@ static class WindEdgeLoads {
    var b=new StringBuilder(WindLoadLines(t,baseY));
    if(model!=null){if(faces==null){string n;faces=Faces(model,baseY,t.Top,out n);if(n!="")note=n;}int c;string r=RecessLoads(model,faces,t,out c);recess+=c;if(r!="")b.Append("\n").Append(r);}
    map[travel]=b.ToString();}
-  if(map.Count>0)note=(note!=""?note+" ":"")+(model==null?"Paste the STAAD Nodes and Beams tables (or the .std file) on the Primary loads tab to load the recessed faces too.":recess>0?recess+" member loads on the recessed sides: "+string.Join("; ",faces.Where(f=>f.Shielded).GroupBy(f=>f.Normal[1]+"="+F(f.At)+" m, "+(f.Normal[1]=='X'?"Z ":"X ")+F(f.A1)+"-"+F(f.A2)+" m").Select(g=>g.Key+" (levels "+string.Join(", ",g.Select(f=>F(f.Level)).Distinct())+")"))+".":"No recessed face found: WIND LOAD reaches every face.");
+  if(map.Count>0)note=(note!=""?note+" ":"")+(model==null?"Paste the STAAD Nodes and Beams tables (or the .std file) on the Primary loads tab to load the recessed faces too.":recess>0?faces.Where(f=>f.Shielded).Select(f=>f.Normal+F(f.At)+F(f.A1)).Distinct().Count()+" recessed walls loaded with WIND LOAD ranges: "+string.Join("; ",faces.Where(f=>f.Shielded).GroupBy(f=>f.Normal[1]+"="+F(f.At)+" m, "+(f.Normal[1]=='X'?"Z ":"X ")+F(f.A1)+"-"+F(f.A2)+" m").Select(g=>g.Key+" (levels "+string.Join(", ",g.Select(f=>F(f.Level)).Distinct())+")"))+".":"No recessed face found: WIND LOAD reaches every face.");
   return map;}
 }
 }

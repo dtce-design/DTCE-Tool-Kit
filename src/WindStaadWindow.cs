@@ -18,7 +18,7 @@ partial class WindDesignForm {
    var note=new Label{Dock=DockStyle.Bottom,Height=70,Padding=new Padding(10),Text=notes[i]};page.Controls.Add(body);page.Controls.Add(note);page.Controls.Add(commands);nested.TabPages.Add(page);}
   AddResultPage(root);}
  /* the wind load cases to paste after DEFINE WIND LOAD (owner, 26 November 2026: "yung loading niya sa building na copy paste ko na lang sa
-    command"): with the Load Combinations sheet calculated, its LOAD numbers and the member loads on the recessed sides from its STAAD input;
+    command"): with the Load Combinations sheet calculated, its LOAD numbers and the WIND LOAD lines of the recessed walls from its STAAD input;
     otherwise the WIND LOAD lines with numbers to adjust */
  static string WindCaseCommands(WindBuildingInput b,double speed,IList<WindDirection> directions,double xb){var types=WindStaadInput.FaceTypes(b,speed,directions,xb);if(types.Count==0)return "";var link=DesignLoadsLink.Get("wind-cases");
   var sb=new StringBuilder("\n*\n* ---- WIND LOAD CASES (paste among the primary load cases) ----");if(link==null)sb.Append("\n* LOAD numbers to match your model; calculate the Load Combinations sheet to number them and to add the loads on recessed sides.");

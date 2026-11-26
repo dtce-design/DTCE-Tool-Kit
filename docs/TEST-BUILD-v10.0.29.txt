@@ -1,0 +1,11 @@
+DTCE Tool Kit v10.0.29 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.24).
+
+PATCH - recessed walls loaded with WIND LOAD, not MEMBER LOAD:
+- Load Combinations wind cases ("bakit member load? dapat windload pa din"): each recessed wall that the outer WIND LOAD cannot reach
+  gets its own WIND LOAD line limited by a range around that wall - XR (wall X +/- 0.05 m) and ZR (its extent), or ZR / XR for walls
+  facing Z, and YR over its height - so STAAD builds the panel of that wall only and applies the Wind sheet's TYPE by height:
+  windward walls the WW type (factor 1), walls facing away the LW type and walls along the wind the SW type (factor -1, suction).
+  Example (owner's sample, WL+X): WIND LOAD X 1 TYPE 1 XR 29.95 30.05 ZR 15.95 20.05 YR -0.05 12.65 (windward recess wall X = 30 m).
+- The member loads (UNI GX ... kN/m) of v10.0.19 - v10.0.28 are no longer written.
+Tests: WindEdgeLoadsTests 23.
+Includes everything of v10.0.28.
