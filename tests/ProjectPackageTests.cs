@@ -18,13 +18,23 @@ class ProjectPackageTests {
    string boqPath=ProjectPackage.PathFor("boq",null);Check(ProjectPackage.IsWorking(boqPath)&&boqPath.EndsWith(".boq.xml"),"the Bill of Quantities saves to the project's working copy");
    var boq=new ProgramOfWorksForm();boq.Show();Pump(200);boq.SaveTo(boqPath);ProjectFiles.Remember("boq",boqPath);
    var parts=Parts(file);Check(parts.Contains("boq")&&parts.Contains("design:loads")&&parts.Count==2,"one file holds both workspaces");
+   /* Splice, Development & Hooks and the Bar Bending Schedule go into the same file */
+   var rl=new RebarLengthForm();rl.Show();Pump(200);typeof(RebarLengthForm).GetMethod("WriteProject",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(rl,new object[]{ProjectPackage.PathIfOpen("lengths")});
+   var bbs=new CuttingListForm();bbs.Show();Pump(200);typeof(CuttingListForm).GetMethod("WriteTo",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(bbs,new object[]{ProjectPackage.PathIfOpen("bbs")});
+   parts=Parts(file);Check(parts.Contains("lengths")&&parts.Contains("bbs")&&parts.Count==4,"the other tabs are in the project file too");
+   /* an older loose file still opens and saves back to itself, not into the project file */
+   string loose=System.IO.Path.Combine(dir,"old-sheet.design.xml");typeof(DesignSheetForm).GetField("designLoadsPath",BindingFlags.Static|BindingFlags.NonPublic).SetValue(null,null);
+   typeof(DesignSheetForm).GetMethod("Save",BindingFlags.Instance|BindingFlags.NonPublic,null,new[]{typeof(bool)},null).Invoke(lc,new object[]{false});
+   System.IO.File.Copy(ProjectPackage.PathIfOpen("design:loads"),loose);string packed=System.IO.File.ReadAllText(file);lc.OpenFile(loose);
+   typeof(DesignSheetForm).GetMethod("Save",BindingFlags.Instance|BindingFlags.NonPublic,null,new[]{typeof(bool)},null).Invoke(lc,new object[]{false});
+   Check(System.IO.File.Exists(loose)&&System.IO.File.ReadAllText(file)==packed,"an old loose file opens and saves to itself");
    Check(ProjectFiles.Of(info).Any(f=>f.Kind=="project"&&f.Path==System.IO.Path.GetFullPath(file))&&!ProjectFiles.Of(info).Any(f=>f.Kind=="boq"&&ProjectPackage.IsWorking(f.Path)),"the saved list points to the project file, not the working copies");
    /* gone from the saved list: opening the file brings the project back */
    ProjectLibrary.Remove(info);ProjectInfoStore.ClearProject();ProjectPackage.Close();
    var opened=ProjectPackage.Open(file);
    Check(ProjectInfoStore.Read().Name=="Rural Health Unit"&&ProjectInfoStore.Read().Abc=="6500000","opening the project file sets the project");
    Check(ProjectLibrary.List().Any(p=>p.Name=="Rural Health Unit"),"the project is back on the saved list");
-   Check(opened.Count==2&&opened.All(f=>f.Exists&&ProjectPackage.IsWorking(f.Path)),"every workspace file unpacked for its workspace");
+   Check(opened.Count==4&&opened.All(f=>f.Exists&&ProjectPackage.IsWorking(f.Path)),"every workspace file unpacked for its workspace");
    /* another project does not write into this file */
    ProjectInfoStore.Save("Other Project","Baguio","DPWH","Baguio","2026-11-06","2027","1000000");Check(!ProjectPackage.IsWorking(null),"no path");
    string before=System.IO.File.ReadAllText(file);ProjectFiles.Remember("boq",opened.First(f=>f.Kind=="boq").Path);Check(System.IO.File.ReadAllText(file)==before,"a different current project leaves the file alone");

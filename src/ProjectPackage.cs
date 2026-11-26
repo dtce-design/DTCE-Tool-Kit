@@ -13,14 +13,16 @@ static class ProjectPackage {
  static string working,projectKey;
  internal static bool Packing;
  /* the working copy names by kind */
- internal static string FileName(string kind){return kind=="boq"?"project.boq.xml":kind=="pow"?"project.pow.xml":kind=="design:loads"?"design-loads.design.xml":kind.StartsWith("design:")?"design-"+kind.Substring(7)+".design.xml":null;}
- static string KindOf(string name){if(name=="project.boq.xml")return "boq";if(name=="project.pow.xml")return "pow";if(name=="design-loads.design.xml")return "design:loads";if(name.StartsWith("design-")&&name.EndsWith(".design.xml"))return "design:"+name.Substring(7,name.Length-7-11);return null;}
+ internal static string FileName(string kind){return kind=="bbs"?"project.beam-cutting.xml":kind=="lengths"?"project.lengths.xml":kind=="boq"?"project.boq.xml":kind=="pow"?"project.pow.xml":kind=="design:loads"?"design-loads.design.xml":kind.StartsWith("design:")?"design-"+kind.Substring(7)+".design.xml":null;}
+ static string KindOf(string name){if(name=="project.beam-cutting.xml")return "bbs";if(name=="project.lengths.xml")return "lengths";if(name=="project.boq.xml")return "boq";if(name=="project.pow.xml")return "pow";if(name=="design-loads.design.xml")return "design:loads";if(name.StartsWith("design-")&&name.EndsWith(".design.xml"))return "design:"+name.Substring(7,name.Length-7-11);return null;}
  static string NewWorkingFolder(){string dir=Path.Combine(SharedData.Folder("Working",Path.Combine("DTCE Tool Kit","Working")),DateTime.Now.ToString("yyyyMMdd-HHmmss",Ci)+"-"+Guid.NewGuid().ToString("N").Substring(0,8));Directory.CreateDirectory(dir);return dir;}
  static bool SameProject(){try{return CurrentPath!=null&&projectKey==ProjectFiles.Key(ProjectInfoStore.Read());}catch(Exception){return false;}}
  /* the path a workspace saves to when it has none yet: the working copy of the open project file; with no project file for the current
     project, the owner names it once (null when cancelled) */
  internal static string PathFor(string kind,IWin32Window owner){if(FileName(kind)==null)return null;if(!SameProject()&&!Create(owner))return null;return Path.Combine(working,FileName(kind));}
  /* a workspace's own path belongs to the open project when it is one of its working copies */
+ /* the working copy only while the current project has its file open (no question asked) */
+ internal static string PathIfOpen(string kind){return SameProject()&&FileName(kind)!=null?Path.Combine(working,FileName(kind)):null;}
  internal static bool IsWorking(string path){try{return working!=null&&path!=null&&string.Equals(Path.GetDirectoryName(Path.GetFullPath(path)),working,StringComparison.OrdinalIgnoreCase);}catch(Exception){return false;}}
  internal static bool Create(IWin32Window owner){var p=ProjectInfoStore.Read();if(p==null||!p.Complete){MessageBox.Show(owner,"Fill in and save the Project Information first.","Save project",MessageBoxButtons.OK,MessageBoxIcon.Information);return false;}
   string name=new string((p.Name.Length>60?p.Name.Substring(0,60):p.Name).Select(c=>Path.GetInvalidFileNameChars().Contains(c)||c=='\n'||c=='\r'?' ':c).ToArray()).Trim();if(name=="")name="Project";

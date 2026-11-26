@@ -88,6 +88,8 @@ class LauncherForm:Form {
   foreach(var f in files.OrderBy(x=>x.Kind=="boq"?0:x.Kind=="pow"?1:2)){try{
     if(f.Kind=="boq"){UseTool(ref works,()=>{var w=new ProgramOfWorksForm();ProgramOfWorksForm.Live=new WeakReference(w);GridFormulas.AttachAll(w);return w;},"Bill of Quantities",null,2);var boq=works as ProgramOfWorksForm;if(boq!=null&&!boq.IsDisposed)boq.OpenPath(f.Path);}
     else if(f.Kind=="pow"){if(powWorkbook==null||powWorkbook.IsDisposed)powWorkbook=new PowWorkbookForm();ShowTool(powWorkbook,"Program of Works (POW)",null);((PowWorkbookForm)powWorkbook).OpenProjectFile(f.Path);}
+    else if(f.Kind=="bbs"){UseTool(ref cutting,()=>new CuttingListForm(),"Bar Bending Schedule",null,ProgramAccess.BarBendingSchedule);var bbs=cutting as CuttingListForm;if(bbs!=null&&!bbs.IsDisposed)bbs.OpenFile(f.Path);}
+    else if(f.Kind=="lengths"){Action open;if(!designLoaders.TryGetValue("Splice, Development & Hooks",out open))continue;ShowDesignSheets();open();var rl=lengths as RebarLengthForm;if(rl!=null&&!rl.IsDisposed)rl.OpenFile(f.Path);}
     else if(f.Kind.StartsWith("design:")){string title;if(!SheetTitles.TryGetValue(f.Kind.Substring(7),out title))continue;Action open;if(!designLoaders.TryGetValue(title,out open))continue;
      ShowDesignSheets();open();Form form;var sheet=designModules.TryGetValue(title,out form)?form as DesignSheetForm:null;if(sheet!=null&&!sheet.IsDisposed)sheet.OpenFile(f.Path);}}
    catch(Exception ex){failed.Add(f.Label+": "+ex.Message);}}

@@ -6,7 +6,7 @@ namespace BeamScheduleFormatter {
    app and the .exe); using the project again in Project Information opens them all */
 sealed class ProjectFile {public string Kind="",Path="";public DateTime Saved;public bool Exists{get{try{return File.Exists(Path);}catch(Exception){return false;}}}
  /* "boq", "pow", "design:loads" (the five Design Loads sheets in one file), "design:<sheet type>" */
- internal string Label{get{return Kind=="boq"?"Bill of Quantities":Kind=="pow"?"Program of Works (POW)":Kind=="design:loads"?"Design Loads":Kind.StartsWith("design:")?"Design sheet "+Kind.Substring(7):Kind;}}}
+ internal string Label{get{return Kind=="bbs"?"Bar Bending Schedule":Kind=="lengths"?"Splice, Development & Hooks":Kind=="project"?"Project file":Kind=="boq"?"Bill of Quantities":Kind=="pow"?"Program of Works (POW)":Kind=="design:loads"?"Design Loads":Kind.StartsWith("design:")?"Design sheet "+Kind.Substring(7):Kind;}}}
 static class ProjectFiles {
  internal static string FilePath{get{return System.IO.Path.Combine(ProjectInfoStore.DirectoryPath,"ProjectFiles.xml");}}
  internal static string Key(ProjectInformation p){return p==null?"":(p.Name??"").Trim().ToUpperInvariant()+"\n"+(p.Location??"").Trim().ToUpperInvariant();}
