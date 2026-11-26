@@ -2,7 +2,7 @@ using System;using System.Linq;using BeamScheduleFormatter;
 /* Live Loads (NSCP 2015) per space of government buildings */
 class LiveLoadsTests {
  static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}
- static void Main(){
+ [STAThread]static void Main(){
   foreach(var b in NscpLiveLoads.Buildings)foreach(var s in b.Value)Check(s.Row==""||NscpLiveLoads.Table.Any(r=>r.Id==s.Row),"row of "+b.Key+" / "+s.Space+": "+s.Row);
   Check(NscpLiveLoads.Table.Select(r=>r.Id).Distinct().Count()==NscpLiveLoads.Table.Length,"row ids unique");
   foreach(var name in new[]{"Barangay Hall","Evacuation Center","Birthing Center / Lying-in Clinic","Senior Citizen Center","Gymnasium","Covered Court"})Check(NscpLiveLoads.Buildings.ContainsKey(name),"building type "+name);
@@ -14,7 +14,8 @@ class LiveLoadsTests {
   System.Windows.Forms.Application.SetUnhandledExceptionMode(System.Windows.Forms.UnhandledExceptionMode.CatchException);AccessCodes.Granted=true;
   using(var form=new LiveLoadsForm()){form.Show();System.Windows.Forms.Application.DoEvents();int all=form.Rows().Count();Check(all==NscpLiveLoads.Buildings.Values.Sum(v=>v.Length),"all building types listed: "+all);
    int toilets=form.SearchSpaces("toilet");Check(toilets>=10&&toilets<all,"search 'toilet': "+toilets);Check(form.SearchSpaces("gymnasium bleachers")==1,"search with two words");form.SearchSpaces("toilet");var shown=form.Rows().Where(r=>r[1].IndexOf("toilet",StringComparison.OrdinalIgnoreCase)>=0||r[7].IndexOf("toilet",StringComparison.OrdinalIgnoreCase)>=0).ToList();
-   form.SetIncluded(shown,false);Check(form.Rows().Count(r=>!form.Included(r))==shown.Count&&form.Rows().Where(r=>r[1]=="Classrooms").All(form.Included),"unchecked spaces leave the report, the others stay");form.SetIncluded(shown,true);Check(form.Rows().All(form.Included),"checked again");
+   Check(!form.Rows().Any(form.Included),"every space starts unchecked (owner: ako ang mag check)");
+   form.SetIncluded(shown,true);Check(form.Rows().Count(form.Included)==shown.Count&&!form.Rows().Where(r=>r[1]=="Classrooms").Any(form.Included),"only the checked spaces go to the report");form.SetIncluded(shown,false);Check(!form.Rows().Any(form.Included),"unchecked again");
    form.SearchSpaces("");form.Close();}
   Console.WriteLine("LiveLoadsTests passed: "+checks+" checks");}
 }

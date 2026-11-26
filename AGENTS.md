@@ -308,7 +308,7 @@ Done 25 November 2026: v7.2.39 merged to main (PR #25; GitHub release v7.2.39-bu
 attempt): new User (1152921505702502448; visibility Public) and Admin (1152921505702502447; visibility Private) submissions were created and
 committed, replacing the pending v7.2.34 submissions; Partner Center reported "accepted for processing". Certification is not guaranteed.
 v7.2.40 / v8.0.0 and later need a new explicit request.
-New owner request (26 November 2026, "PUBLISH TO MICROSOFT STORE"; then "before upload" add all spaces and the Dead Load sub tab): publish v10.0.0 (User and Admin) after its Windows CI passes (PR to main for
+New owner request (26 November 2026, "PUBLISH TO MICROSOFT STORE"; then "before upload" add all spaces and the Dead Load sub tab): publish v10.0.1 (v10.0.0 plus the Live Load spaces unchecked by default and no separate building tab) (User and Admin) after its Windows CI passes (PR to main for
 the GitHub release, then publish_microsoft_store=true; owner chose "Replace v7.2.39": replace_pending_store_submission=true for this release only;
 User visibility stays Public). Later versions again need a new explicit request.
 
@@ -383,7 +383,8 @@ Table 205-3 still not compared with the printed page. Owner ("LAHAT NG PWEDENG S
 LOAD FLOOR LOAD", v10.0.0): Live Loads has 29 building types incl. "Common rooms (any building)"; new design sheet "Dead Loads (NSCP 2015)"
 (src/DeadLoadsWindow.cs, sheet type "Dead-Loads", Design Loads grant) laid out like the owner's Excel: floor components x floor types with
 total and STAAD input without the slab, roof top chord / bottom chord / purlin with the purlin weight, wall line loads (height x wall kPa),
-elevator with impact. Report pages: the page number ends at the right end of the footer line in every report (CalculationDocument).
+elevator with impact. v10.0.1: Live Load spaces start unchecked, the owner checks them ("ako ang mag check"); building type and partitions sit on the
+per-space page (no "Building and spaces" tab). Report pages: the page number ends at the right end of the footer line in every report (CalculationDocument).
 
 ## Door hardware (23 November 2026)
 

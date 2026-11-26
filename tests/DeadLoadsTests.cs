@@ -2,7 +2,7 @@ using System;using System.Linq;using BeamScheduleFormatter;
 /* Dead Loads sheet: the owner's Excel values give the same totals */
 class DeadLoadsTests {
  static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}
- static void Main(){
+ [STAThread]static void Main(){
   System.Windows.Forms.Application.SetUnhandledExceptionMode(System.Windows.Forms.UnhandledExceptionMode.CatchException);AccessCodes.Granted=true;
   using(var f=new DeadLoadsForm()){f.Show();System.Windows.Forms.Application.DoEvents();
    var ft=f.FloorTotals();Func<int,int,string> at=(r,c)=>ft[r][c];
