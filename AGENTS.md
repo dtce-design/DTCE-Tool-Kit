@@ -324,8 +324,10 @@ guaranteed. v10.0.8 and later need a new explicit request. Later versions again 
 New owner request (26 November 2026, "publish to microsoft store"): publish v10.0.18 (User and Admin) after its Windows CI passes (PR to main
 for the GitHub release, then publish_microsoft_store=true). Asked whether to replace the pending v10.0.7 submissions, the owner gave no
 preference, so replace_pending_store_submission stays false; User visibility stays Public. Later versions again need a new explicit request.
-Result 26 November 2026: v10.0.18 merged to main (PR #28, Windows CI green); Store run 45787825007 started (publish_microsoft_store=true,
-replace_pending_store_submission=false).
+Done 26 November 2026: v10.0.18 merged to main (PR #28, Windows CI green; GitHub release OK). Store run 45787825007 (first attempt,
+replace_pending_store_submission=false): new User (1152921505702514078; visibility Public) and Admin (1152921505702514277; visibility Private)
+submissions were created and committed; Partner Center reported "accepted for processing" (PreProcessing). Certification is not guaranteed.
+v10.0.19 and later need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
