@@ -170,6 +170,10 @@ jobs:
           STORE_EDITION: ${{ matrix.edition }}
           STORE_APP_ID: ${{ matrix.app }}
         run: python3 scripts/store_status.py
+      - name: Public Store catalog version (${{ matrix.edition }})
+        run: |
+          curl -s -m 30 "https://displaycatalog.mp.microsoft.com/v7.0/products/${{ matrix.app }}?market=PH&languages=en-us" -o catalog.json || true
+          python3 -c "import json,re;s=open('catalog.json').read();print('bytes',len(s));print(sorted(set(re.findall(r'\"PackageFullName\":\"([^\"]+)\"',s))));print(sorted(set(re.findall(r'\"Version\":\"([^\"]+)\"',s)))[:10])"
 
   store-user-upload:
     if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish_microsoft_store == true && vars.STORE_AUTO_UPLOAD_ENABLED == 'true' && needs.build.outputs.windows_changed == 'true'
