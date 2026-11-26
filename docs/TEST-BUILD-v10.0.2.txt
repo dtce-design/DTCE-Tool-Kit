@@ -1,0 +1,9 @@
+DTCE Tool Kit v10.0.2 (26 November 2026) - Store release (includes v10.0.0 and v10.0.1).
+
+PATCH - Live Loads: new building type "National Government Office (central / regional / district)" (owner: "bat walang national government
+offices? staff office executive office etc"): executive office, executive suite / receiving area, staff offices (open plan), division /
+section chief offices, frontline / public assistance and processing area (Table 205-1 13, call centers and business processing 2.9 kPa),
+Bids and Awards / board conference rooms, training room, records and compact-shelving archive, server room, library, plans and drafting
+room, supply room, clinic, lactation and prayer rooms, pantry, canteen, lobby, corridors, toilets, stairs, roof deck, parking, motor pool.
+30 building types in all. Tests: LiveLoadsTests 341.
+Includes everything of v10.0.1.
