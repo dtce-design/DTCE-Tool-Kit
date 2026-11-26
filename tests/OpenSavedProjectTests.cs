@@ -9,7 +9,7 @@ class OpenSavedProjectTests {
   string path=System.IO.Path.Combine(System.IO.Path.GetTempPath(),"open-saved-project-"+Guid.NewGuid().ToString("N")+".boq.xml");
   try{
    ProjectInfoStore.Save("Two-Storey Office Building","Baguio City","DPWH District Office","Engineers Hill","2026-11-01","2027","4950000");
-   var f=new ProgramOfWorksForm();f.Show();Pump(200);f.SaveTo(path);f.Hide();
+   var f=new ProgramOfWorksForm();f.Show();Pump(200);f.SaveTo(path);/* Windows: close it (a hidden second window crashed in its tooltip); Mono cannot dispose this window */if(Environment.OSVersion.Platform==PlatformID.Win32NT)f.Dispose();else f.Hide();
    Check(System.IO.File.Exists(path),"Bill of Quantities saved");
    ProjectInfoStore.ClearProject();Check(ProjectInfoStore.Read().Name=="","project cleared before opening");
    var info=LauncherForm.ProjectInFile(path);Check(info!=null&&info.Name=="Two-Storey Office Building"&&info.Complete,"the file carries the complete project information");

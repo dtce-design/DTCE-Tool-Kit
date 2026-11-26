@@ -16,7 +16,7 @@ class ProjectPackageTests {
    Check(Parts(file).Contains("design:loads"),"Design Loads saved into the one project file");
    /* Bill of Quantities: its default path is the project's working copy; saving packs it in */
    string boqPath=ProjectPackage.PathFor("boq",null);Check(ProjectPackage.IsWorking(boqPath)&&boqPath.EndsWith(".boq.xml"),"the Bill of Quantities saves to the project's working copy");
-   var boq=new ProgramOfWorksForm();boq.Show();Pump(200);boq.SaveTo(boqPath);ProjectFiles.Remember("boq",boqPath);
+   var boq=new ProgramOfWorksForm();boq.Show();Pump(200);boq.SaveTo(boqPath);ProjectFiles.Remember("boq",boqPath);if(Environment.OSVersion.Platform==PlatformID.Win32NT)boq.Dispose();else boq.Hide();
    var parts=Parts(file);Check(parts.Contains("boq")&&parts.Contains("design:loads")&&parts.Count==2,"one file holds both workspaces");
    /* Splice, Development & Hooks and the Bar Bending Schedule go into the same file */
    var rl=new RebarLengthForm();rl.Show();Pump(200);typeof(RebarLengthForm).GetMethod("WriteProject",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(rl,new object[]{ProjectPackage.PathIfOpen("lengths")});
