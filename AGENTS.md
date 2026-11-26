@@ -310,7 +310,13 @@ committed, replacing the pending v7.2.34 submissions; Partner Center reported "a
 v7.2.40 / v8.0.0 and later need a new explicit request.
 New owner request (26 November 2026, "PUBLISH TO MICROSOFT STORE"; then "before upload" add all spaces and the Dead Load sub tab): publish v10.0.6 (v10.0.0 plus the Live Load spaces unchecked by default, no separate building tab, and the national government office types) (User and Admin) after its Windows CI passes (PR to main for
 the GitHub release, then publish_microsoft_store=true; owner chose "Replace v7.2.39": replace_pending_store_submission=true for this release only;
-User visibility stays Public). Later versions again need a new explicit request.
+User visibility stays Public).
+Done 26 November 2026: v10.0.6 merged to main (PR #26; GitHub release v10.0.6-build-325, run 45739164218). Store run 45739183832: new User
+(1152921505702510795; visibility Public) and Admin (1152921505702510586; visibility Private) submissions were created and committed, replacing
+the pending v7.2.39 submissions; Partner Center reported "accepted for processing" (PreProcessing). Certification is not guaranteed.
+New owner request (26 November 2026, "publish"; chose "Replace v10.0.6 with v10.0.7"): publish v10.0.7 (button alignment) the same way after its
+Windows CI passes (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User
+visibility stays Public). Later versions again need a new explicit request. Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
@@ -384,7 +390,9 @@ LOAD FLOOR LOAD", v10.0.0): Live Loads has 29 building types incl. "Common rooms
 (src/DeadLoadsWindow.cs, sheet type "Dead-Loads", Design Loads grant) laid out like the owner's Excel: floor components x floor types with
 total and STAAD input without the slab, roof top chord / bottom chord / purlin with the purlin weight, wall line loads (height x wall kPa),
 elevator with impact. v10.0.1: Live Load spaces start unchecked, the owner checks them ("ako ang mag check"); building type and partitions sit on the
-per-space page (no "Building and spaces" tab). v10.0.2: "National Government Office" building type (owner: "bat walang national government offices?"). v10.0.3: the national agencies (owner: "any type of National Government Office"), each the office core + its own rooms. v10.0.4: janitor's closet / utility room 2.4 kPa as the occupancy served (owner: "sure ka ... 6kpa?"). v10.0.5: Dead Loads Elevator tab of its own, Add / Delete buttons on every table (owner: "hiwalay mo naman yung Elevator ..."). v10.0.6: Live Loads is one sorted list of spaces, not grouped by building (owner: "huwag mo na igroup per building"). Report pages: the page number ends at the right end of the footer line in every report (CalculationDocument).
+per-space page (no "Building and spaces" tab). v10.0.2: "National Government Office" building type (owner: "bat walang national government offices?"). v10.0.3: the national agencies (owner: "any type of National Government Office"), each the office core + its own rooms. v10.0.4: janitor's closet / utility room 2.4 kPa as the occupancy served (owner: "sure ka ... 6kpa?"). v10.0.5: Dead Loads Elevator tab of its own, Add / Delete buttons on every table (owner: "hiwalay mo naman yung Elevator ..."). v10.0.6: Live Loads is one sorted list of spaces, not grouped by building (owner: "huwag mo na igroup per building").
+Owner (26 November 2026, "paki check yung alignment ng buttons, pati na rin sa iba, always laging ganyan ang problem"): toolbar rows are
+centred on one line app-wide (src/BarAlign.cs via PowTheme.Apply, v10.0.7); build new bars from plain controls so it applies. Report pages: the page number ends at the right end of the footer line in every report (CalculationDocument).
 
 ## Door hardware (23 November 2026)
 
