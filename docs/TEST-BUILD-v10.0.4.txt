@@ -1,0 +1,5 @@
+DTCE Tool Kit v10.0.4 (26 November 2026) - Store release (includes v10.0.0 to v10.0.3).
+
+PATCH - Live Loads: janitor's closet / utility room is 2.4 kPa, as the occupancy served (as restrooms, note 9), not light storage 6.0 kPa
+(owner: "sure ka janitors closet or utility room 6kpa?"). Table 205-1 has no row for it; storage applies only where supplies are stacked.
+Includes everything of v10.0.3.
