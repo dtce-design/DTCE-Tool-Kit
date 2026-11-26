@@ -359,6 +359,10 @@ default), 5000 wind drift, 6000 seismic drift, each labelled with its equation; 
 owner's STAAD notes - A regular / symmetrical, B regular / unsymmetrical (accidental torsion), C irregular / unsymmetrical (orthogonal
 1.0 + 0.3 as REPEAT LOAD cases, Load Type Seismic, the EQ primaries Load Type None). Owner ("diba may basic at alternative tapos may additional loads sa eq?"): the
 alternative basic ASD and special seismic sets (v8.0.1), regrouped in v8.0.2.
+Owner ("How do you compute redundancy or reliability factor"; "Yes with automatic staad computation"): the sheet has a "Redundancy factor ρ" tab
+(src/RedundancyFactor.cs, src/LoadCombinationsRho.cs): the pasted .std and the EQ member end forces give the story shears and r_i (bay of two
+columns, 70 % interior; brace horizontal component; dual 80 %; walls typed), A_B from the base joints, ρ = 2 - 6.1/(r_max √A_B) per direction
+with the limits; "Use ρ" fills Factors; reported as its own section (v8.0.4).
 
 ## Door hardware (23 November 2026)
 
