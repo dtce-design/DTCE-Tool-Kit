@@ -38,5 +38,8 @@ static class WindEdgeLoadsTests {
   Check(StaadCombinations.WindKey("WL+X")=="+X"&&StaadCombinations.WindKey("WL-Z")=="-Z"&&StaadCombinations.WindKey("DL")=="","wind case key from the title");
   var s=new StaadCombinationSettings{AutoPrimary=true};s.WindText["+X"]=texts["+X"];var prim=StaadCombinations.Parse("LOAD 1 LOADTYPE WIND TITLE WL+X\nLOAD 2 LOADTYPE WIND TITLE WL-X");
   string sec=StaadCombinations.PrimarySection(prim,s);Check(sec.Contains("TITLE WL+X\nWIND LOAD X 1 TYPE 1")&&sec.Contains("TITLE WL-X\n* add the wind loads here"),"primary section carries the wind lines");
+  DesignLoadsLink.Set("wind-cases-test",new Dictionary<string,string>{{"+X","LOAD 9 LOADTYPE WIND TITLE WL+X\nWIND LOAD X 1 TYPE 1 YR 0 8"}});var back2=DesignLoadsLink.Get("wind-cases-test");Check(back2!=null&&back2["+X"]=="LOAD 9 LOADTYPE WIND TITLE WL+X\nWIND LOAD X 1 TYPE 1 YR 0 8","multi-line wind case kept through the link file");
+  /* the Wind sheet's types through the link file itself (keys "+X" ...) */
+  DesignLoadsLink.Set("wind-staad-test",new Dictionary<string,string>{{"+X",t.Pack()},{"-X",tm.Pack()}});var viaFile=DesignLoadsLink.Get("wind-staad-test");Check(viaFile!=null&&viaFile.ContainsKey("+X")&&viaFile.ContainsKey("-X")&&WindFaceTypes.Unpack("+X",viaFile["+X"]).Sw==3,"wind types through the link file");
   Console.WriteLine("WindEdgeLoadsTests passed: "+checks+" checks");}
 }

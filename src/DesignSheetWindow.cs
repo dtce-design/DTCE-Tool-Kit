@@ -20,7 +20,7 @@ abstract class DesignSheetForm:Form {
   var wide=new FlowLayoutPanel{Dock=DockStyle.Fill,AutoScroll=true,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(0),Margin=Padding.Empty,BackColor=PaneBack};
   var right=new Panel{Dock=DockStyle.Fill,Margin=Padding.Empty,BackColor=PaneBack};right.Controls.Add(wide);root.Controls.Add(flow,0,0);root.Controls.Add(right,1,0);flow.Tag=wide;page.Controls.Add(root);
   /* the explanation is shown by the window's info icon while this tab is open (owner, 20 November 2026) */InfoButton.Register(page,title,note);
-  flow.Resize+=(sender,args)=>Arrange(flow);wide.Resize+=(sender,args)=>Arrange(flow);flow.ControlAdded+=(sender,args)=>{if(flow.IsHandleCreated)flow.BeginInvoke(new Action(()=>Arrange(flow)));};page.VisibleChanged+=(sender,args)=>{if(page.Visible){Arrange(flow);if(IsHandleCreated&&Visible)HookLive();LiveRefresh(page);}};
+  flow.Resize+=(sender,args)=>Arrange(flow);wide.Resize+=(sender,args)=>Arrange(flow);var added=new List<Control>();addedOrder.Add(flow,added);flow.ControlAdded+=(sender,args)=>{if(!added.Contains(args.Control))added.Add(args.Control);if(flow.IsHandleCreated)flow.BeginInvoke(new Action(()=>Arrange(flow)));};page.VisibleChanged+=(sender,args)=>{if(page.Visible){Arrange(flow);if(IsHandleCreated&&Visible)HookLive();LiveRefresh(page);}};
   var output=Pages.TabPages[Pages.TabPages.Count-1];Pages.TabPages.Remove(output);Pages.TabPages.Add(page);Pages.TabPages.Add(output);Pages.SelectedIndex=0;return flow;}
  /* a page that lays itself out takes its input flow back from the standard two panes */
  protected TabPage Detach(FlowLayoutPanel flow){var root=flow.Parent;var page=(TabPage)root.Parent;root.Controls.Remove(flow);page.Controls.Remove(root);root.Dispose();flow.Tag=null;flow.Visible=true;flow.Margin=Padding.Empty;return page;}
@@ -32,7 +32,11 @@ abstract class DesignSheetForm:Form {
   EventHandler changed=(s,e)=>{if(Restoring)return;liveTimer.Stop();liveTimer.Start();};foreach(var c in Inputs.Values){c.TextChanged+=changed;var cb=c as CheckBox;if(cb!=null)cb.CheckedChanged+=changed;var co=c as ComboBox;if(co!=null)co.SelectedIndexChanged+=changed;}}
  /* the input pane narrows on a small window (360 to 540 px) so the drawings and models beside it keep room */
  static float Pane(Control root){int w=root.ClientSize.Width;return w<=0?FormPane:Math.Max(360,Math.Min(FormPane,(int)(w*.4)));}
- internal static void Arrange(FlowLayoutPanel flow){if(flow.IsDisposed||flow.FlowDirection!=FlowDirection.LeftToRight)return;var wide=flow.Tag as FlowLayoutPanel;
+ /* the order the controls were added in: a heading, its fields and their notes stay together (owner, 26 November 2026: "bat yung guide ng no. 3
+    nasa baba ng 4" - on Windows a note showed under the next heading) */
+ static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FlowLayoutPanel,List<Control>> addedOrder=new System.Runtime.CompilerServices.ConditionalWeakTable<FlowLayoutPanel,List<Control>>();
+ static void KeepOrder(FlowLayoutPanel flow){List<Control> order;if(!addedOrder.TryGetValue(flow,out order))return;int k=0;foreach(var c in order){if(c.IsDisposed||c.Parent!=flow)continue;if(flow.Controls.GetChildIndex(c)!=k)flow.Controls.SetChildIndex(c,k);k++;}}
+ internal static void Arrange(FlowLayoutPanel flow){if(flow.IsDisposed||flow.FlowDirection!=FlowDirection.LeftToRight)return;KeepOrder(flow);var wide=flow.Tag as FlowLayoutPanel;
   /* wide blocks (previews, tables, action rows) go to the right pane in their order; headings stay with the inputs */
   if(wide!=null){var items=flow.Controls.Cast<Control>().ToList();Func<Control,bool> isWide=c=>Convert.ToString(c.Tag)=="FullWidth"&&!(c is Label);
    for(int k=0;k<items.Count;k++){var item=items[k];bool move=isWide(item)||(item is Label&&Convert.ToString(item.Tag)=="FullWidth"&&item.Name!="SectionNote"&&k+1<items.Count&&isWide(items[k+1]));/* a heading travels with the table under it */if(move){flow.Controls.Remove(item);wide.Controls.Add(item);}}}

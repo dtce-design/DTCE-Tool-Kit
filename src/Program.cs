@@ -73,7 +73,7 @@ class TemplateLayout {
  public string LegText(string value){string raw=Leg.Get(1);return raw.StartsWith("{")&&raw.Contains(";")?raw.Substring(0,raw.LastIndexOf(';')+1)+value+"}":value;}
 }
 class Engine {
- public const string Version="10.0.26";
+ public const string Version="10.0.27";
  public static string Normal(string s){return Regex.Replace(s.ToUpperInvariant().Replace("%%C","Ø").Replace("\\U+2205","Ø").Replace("--","-"),@"\s+","");}
  public static string Format(string s){if(s=="-"||s=="--")return "--";s=s.Replace("#","%%C").Replace("\\U+2205","%%C").Replace("%%c","%%C");s=Regex.Replace(s,@"^(\d+)-","$1 - ");return Regex.Replace(s,@"(%%C\d+)(EF)$","$1 EF");}
  const string BeamToken=@"\d*[A-Z]+\d+";

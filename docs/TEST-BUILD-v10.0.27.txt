@@ -1,0 +1,13 @@
+DTCE Tool Kit v10.0.27 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.24).
+
+PATCH - wind load cases to copy, link fix, input order:
+- Fix (in v10.0.19 to v10.0.24): the links between the Design Loads sheets could not store keys such as "+X" (not valid XML names) or
+  text with line breaks, and the write failed without a message: the Wind sheet's TYPE numbers never reached Load Combinations, so its
+  wind cases kept "* add the wind loads here". Key names are now encoded and line breaks kept; tested through the link file.
+- Wind Load sheet, STAAD Wind Input commands ("yung loading niya sa building na copy paste ko na lang sa command"): after DEFINE WIND LOAD
+  come the wind load cases ready to paste - LOAD n LOADTYPE WIND TITLE WL+X with its WIND LOAD lines and, once the Load Combinations sheet
+  has the STAAD input, the member loads on the recessed sides and its LOAD numbers (otherwise numbered 901-904 to adjust).
+- Design sheets keep the order their inputs were added in ("bat yung guide ng no. 3 nasa baba ng 4"): a group's note can no longer
+  slip under the next heading (seen on Windows in the Wind building inputs).
+Tests: WindEdgeLoadsTests 18, DesignLoadsFileTests 22, WindAuditTests 79, StaadCombinationsTests 36, TrussSupportTests 39, StaircaseTests 44.
+Includes everything of v10.0.26.
