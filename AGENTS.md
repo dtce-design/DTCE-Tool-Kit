@@ -335,7 +335,7 @@ Owner: "kahit sana app from store or downloaded lang exe file sana naoopen pa di
 saved projects live in Documents\DTCE Tool Kit (src/SharedData.cs), shared by the Store (MSIX, AppData virtualized) and the .exe; old
 AppData / Store-private copies are brought over once. Owner (23 November 2026, "kapag bagong open or naka close huwag mag select ng
 project information"): no project is selected when the app opens or after the Bill of Quantities closes (v7.1.4); projects are
-picked from the saved list (shared) or loaded with a Bill of Quantities file.
+picked from the saved list (shared) or loaded with a Bill of Quantities file. Owner (26 November 2026, "sa start na lang magoopen ng saved file tapos doon na din magsasave. Nakasave na din doon yung project", v10.0.20): the Workspaces window has "Open saved project" (LauncherForm.OpenSavedProject): the .boq.xml project information becomes the current project and the Bill of Quantities opens the file (ProgramOfWorksForm.OpenPath), so Save writes back to it.
 
 ## The app's quantities go to BACKUP (23 November 2026)
 

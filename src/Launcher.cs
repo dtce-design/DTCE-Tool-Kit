@@ -25,7 +25,7 @@ class LauncherForm:Form {
    "USER EDITION"
    #endif
    ,Left=143,Top=16,Width=260,Height=20,Font=new Font("Segoe UI",8.5f,FontStyle.Bold),ForeColor=PowTheme.Teal});
-  var intro=new Label{Text="Your workspaces",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",12,FontStyle.Bold),ForeColor=PowTheme.Ink,Margin=Padding.Empty};var workspaceActions=new Panel{Dock=DockStyle.Fill,Margin=Padding.Empty,Padding=new Padding(0,10,0,10)};var preferences=new Button{Text="Workspace settings",Dock=DockStyle.Right,Width=190,AccessibleName="Workspace appearance settings"};preferences.Click+=(sender,args)=>DesktopAppearance.ShowSettings(this);workspaceActions.Controls.Add(intro);workspaceActions.Controls.Add(preferences);dashboard.Controls.Add(workspaceActions,0,1);
+  var intro=new Label{Text="Your workspaces",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",12,FontStyle.Bold),ForeColor=PowTheme.Ink,Margin=Padding.Empty};var workspaceActions=new Panel{Dock=DockStyle.Fill,Margin=Padding.Empty,Padding=new Padding(0,10,0,10)};var preferences=new Button{Text="Workspace settings",Dock=DockStyle.Right,Width=190,AccessibleName="Workspace appearance settings"};preferences.Click+=(sender,args)=>DesktopAppearance.ShowSettings(this);/* owner (26 November 2026): "sa start na lang magoopen ng saved file tapos doon na din magsasave. Nakasave na din doon yung project" */var openSaved=new Button{Text="Open saved project",Dock=DockStyle.Right,Width=190,AccessibleName="Open a saved Bill of Quantities project file"};openSaved.Click+=(sender,args)=>OpenSavedProject();var actionGap=new Panel{Dock=DockStyle.Right,Width=10};workspaceActions.Controls.Add(intro);workspaceActions.Controls.Add(openSaved);workspaceActions.Controls.Add(actionGap);workspaceActions.Controls.Add(preferences);dashboard.Controls.Add(workspaceActions,0,1);
   var cards=new FlowLayoutPanel{Dock=DockStyle.Fill,AutoScroll=false,WrapContents=true,Margin=Padding.Empty,Padding=new Padding(0,0,0,12)};dashboard.Controls.Add(cards,0,2);
   /* owner (19 November 2026): Project Information always comes first */
   AddCard(cards,"Project Information","Set the project details used in your calculations and reports.",()=>UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8));
@@ -71,6 +71,16 @@ class LauncherForm:Form {
  }
  /* the other workspaces open only after the project information is complete (owner, 19 November 2026: "di pwede mag proceed if
     di nafill up") */
+ /* a saved Bill of Quantities file holds the project information: it becomes the current project, the Bill of Quantities opens with
+    the file, and Save / Ctrl+S write back to the same file */
+ internal static ProjectInformation ProjectInFile(string path){var snapshot=PowProjectFileWriter.Read(path,true);return PowProjectInformation.Read(snapshot.Document.DocumentElement);}
+ void OpenSavedProject(){string path;using(var dialog=new OpenFileDialog{Title="Open saved project",Filter="Bill of Quantities project (*.boq.xml, older *.pow.xml)|*.boq.xml;*.pow.xml|All files|*.*"}){if(dialog.ShowDialog(this)!=DialogResult.OK)return;path=dialog.FileName;}
+  try{var info=ProjectInFile(path);
+   if(info==null||!info.Complete){MessageBox.Show(this,"This file has no complete project information. Fill in the Project Information, then open the file again or use Open in the Bill of Quantities.","Open saved project",MessageBoxButtons.OK,MessageBoxIcon.Information);UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8);return;}
+   ProjectInfoStore.Save(info.Name,info.Location,info.Office,info.OfficeAddress,info.DatePrepared??"",PowProjectInformation.FiscalYearFor(info),PowProjectInformation.AbcFor(info));
+   UseTool(ref works,()=>{var f=new ProgramOfWorksForm();ProgramOfWorksForm.Live=new WeakReference(f);GridFormulas.AttachAll(f);return f;},"Bill of Quantities",null,2);
+   var boq=works as ProgramOfWorksForm;if(boq!=null&&!boq.IsDisposed)boq.OpenPath(path);}
+  catch(Exception ex){MessageBox.Show(this,ex.Message,"Open saved project",MessageBoxButtons.OK,MessageBoxIcon.Information);}}
  bool ProjectReady(){ProjectInformation info;try{info=ProjectInfoStore.Read();}catch(Exception){info=new ProjectInformation();}if(info.Complete)return true;
   MessageBox.Show(this,"Fill in the Project Information first (project title, location, implementing office, office address and date prepared), then save it.","Project Information",MessageBoxButtons.OK,MessageBoxIcon.Information);UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8);return false;}
  /* full use, view only (User edition without access for that app: tabs and scrolling only), or not at all */
