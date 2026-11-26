@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Drawing;using System.Linq;using System.Text;using System.Windows.Forms;
+﻿using System;using System.Collections.Generic;using System.Drawing;using System.Linq;using System.Text;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 /* Load Combinations (NSCP 2015) design sheet (owner, 25 November 2026: "create load combinations for superstructure including orthogonal
    effect for staad input"; "no included in Earthquake Sheet - Load Combinations NSCP 2015"): paste the primary load cases as in STAAD,
@@ -17,7 +17,7 @@ partial class LoadCombinationsForm:DesignSheetForm {
   var opts=Section("STAAD output","Primary load cases made automatically (earthquake cases first) and what the STAAD output contains.");
   var auto=Toggle(opts,"AutoPrimary","Automatic primary loads from the structure class (uncheck to paste your own on the Primary loads tab)",true);
   Choice(opts,"LiveCases","Live load cases (LL1, LL2 ...)",new[]{"1","2","3"});((ComboBox)Inputs["LiveCases"]).SelectedIndex=1;
-  Toggle(opts,"RoofLive","Roof live load case (LLR)",true);Toggle(opts,"WindCases","Wind load cases (WL+X, WL-X, WL+Z, WL-Z)",true);
+  Toggle(opts,"RoofLive","Roof live load case (LLR)",true);/* owner: "automatic na ganito WIND LOAD X 1 TYPE 1 YR 0 12.6"; "tapos meron pa kasi sa gitna" */Toggle(opts,"WindLinked","Wind cases from the Wind Load sheet: WIND LOAD lines of its TYPEs, plus member loads on recessed faces from the STAAD input (Redundancy factor tab)",true);Toggle(opts,"WindCases","Wind load cases (WL+X, WL-X, WL+Z, WL-Z)",true);
   Choice(opts,"EqCommand","Seismic load command in the EQ cases",new[]{"UBC LOAD","IBC LOAD","None"});
   NumberField(opts,"Acc","Accidental eccentricity ACC (structure B)","0.05");NumberField(opts,"Ax","Torsional amplification Ax (1.0 - 3.0; from the Ax tab after the run)","1.0");
   Toggle(opts,"PerformChange","PERFORM ANALYSIS / CHANGE after each EQ case (older STAAD only)",false);
@@ -44,7 +44,7 @@ partial class LoadCombinationsForm:DesignSheetForm {
   foreach(var c in Inputs.Values){c.TextChanged+=(s,e)=>{if(!Restoring)Refresh0();};var cb=c as CheckBox;if(cb!=null)cb.CheckedChanged+=(s,e)=>{if(!Restoring)Refresh0();};var co=c as ComboBox;if(co!=null)co.SelectedIndexChanged+=(s,e)=>{if(!Restoring)Refresh0();};}
   VisibleChanged+=(s,e)=>{if(Visible&&!Restoring&&IsHandleCreated)Refresh0();};
   /* the STAAD text gets the wider half */Shown+=(s,e)=>{try{split.SplitterDistance=Math.Max(320,split.Width*42/100);left.SplitterDistance=Math.Max(160,left.Height*40/100);}catch(Exception){}Refresh0();};}
- internal StaadCombinationSettings Settings(){double acc,axv;if(!double.TryParse(Value("Acc"),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out acc))acc=0.05;if(!double.TryParse(Value("Ax"),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out axv))axv=1.0;axv=Math.Max(1.0,Math.Min(3.0,axv));var extra=new StaadCombinationSettings{PrintReports=On("PrintReports"),AutoPrimary=On("AutoPrimary"),PerformChange=On("PerformChange"),EqCommand=Value("EqCommand"),Acc=acc,Ax=axv};var one=new HashSet<string>(Value("F1One").Split(new[]{',',';',' '},StringSplitOptions.RemoveEmptyEntries).Select(t=>t.Trim()),StringComparer.OrdinalIgnoreCase);return new StaadCombinationSettings{F1One=one,Structure=Value("Structure").Substring(0,1),Rho=Number("Rho"),Ca=On("Ev")?Number("Ca"):0,I=On("Ev")?Number("I"):1,IncludeEv=On("Ev"),Lrfd=On("Lrfd"),Asd=On("Asd"),EvInAsd=On("Ev")&&On("EvAsd"),Drift=On("Drift"),DriftGravity=On("DriftGravity"),DriftWind=Number("DriftWind"),AltAsd=On("AltAsd"),Special=On("Special"),Omega0=Number("Omega0"),AutoPrimary=extra.AutoPrimary,PrintReports=extra.PrintReports,PerformChange=extra.PerformChange,EqCommand=extra.EqCommand,Acc=extra.Acc,Ax=extra.Ax};}
+ internal StaadCombinationSettings Settings(){double acc,axv;if(!double.TryParse(Value("Acc"),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out acc))acc=0.05;if(!double.TryParse(Value("Ax"),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out axv))axv=1.0;axv=Math.Max(1.0,Math.Min(3.0,axv));var extra=new StaadCombinationSettings{PrintReports=On("PrintReports"),AutoPrimary=On("AutoPrimary"),PerformChange=On("PerformChange"),EqCommand=Value("EqCommand"),Acc=acc,Ax=axv};var one=new HashSet<string>(Value("F1One").Split(new[]{',',';',' '},StringSplitOptions.RemoveEmptyEntries).Select(t=>t.Trim()),StringComparer.OrdinalIgnoreCase);var res=new StaadCombinationSettings{F1One=one,Structure=Value("Structure").Substring(0,1),Rho=Number("Rho"),Ca=On("Ev")?Number("Ca"):0,I=On("Ev")?Number("I"):1,IncludeEv=On("Ev"),Lrfd=On("Lrfd"),Asd=On("Asd"),EvInAsd=On("Ev")&&On("EvAsd"),Drift=On("Drift"),DriftGravity=On("DriftGravity"),DriftWind=Number("DriftWind"),AltAsd=On("AltAsd"),Special=On("Special"),Omega0=Number("Omega0"),AutoPrimary=extra.AutoPrimary,PrintReports=extra.PrintReports,PerformChange=extra.PerformChange,EqCommand=extra.EqCommand,Acc=extra.Acc,Ax=extra.Ax};res.WindText=WindTexts();return res;}
  static string Used(string kind){return kind=="D"?"Dead D":kind=="L"?"Live L":kind=="Lr"?"Roof live Lr":kind=="W"?"Wind W":kind=="E"?"Seismic Eh":kind=="Ev"?"Vertical seismic Ev":"not used (other type)";}
  /* Ca, I, Omega0 from the Earthquake Load sheet when linked */
  string eqLinkNote="";
@@ -62,13 +62,19 @@ partial class LoadCombinationsForm:DesignSheetForm {
    linkNote="Live cases from the Live Loads sheet: "+live["cases"].Replace(",",", ")+".";}
   var lv=DesignLoadsLink.Get("earthquake-levels");if(lv!=null&&lv.ContainsKey("levels")){string w=WeightsFromLevels(lv["levels"]);string cur=Value("RegWeights");if(w!=""&&cur!=w&&(cur==""||cur==levelsAuto)){Inputs["RegWeights"].Text=w;changed=true;}if(w!="")levelsAuto=w;}
   return changed;}
+ /* wind case text, cached by the model and the Wind sheet's types */
+ string windNote="",windKey=null;Dictionary<string,string> windCache;
+ Dictionary<string,string> WindTexts(){windNote="";if(!On("WindLinked"))return new Dictionary<string,string>();var link=DesignLoadsLink.Get("wind-staad");if(link==null){windNote="Wind cases: calculate the Wind Load sheet with building pressures and the STAAD +X set.";return new Dictionary<string,string>();}
+  string mt,ft;RhoTexts(out mt,out ft);string key=string.Join(";",link.OrderBy(k=>k.Key).Select(k=>k.Key+"="+k.Value))+"#"+(mt??"").Length+"#"+(mt??"").GetHashCode();
+  if(key!=windKey){string n;windCache=WindEdgeLoads.CaseTexts(link.Where(k=>k.Key.Length==2).ToDictionary(k=>k.Key,k=>k.Value),mt,out n);windKey=key;windCacheNote=n;}windNote="Wind cases: "+windCacheNote;return windCache;}
+ string windCacheNote="";
  void Refresh0(){if(!Restoring&&(ApplyEqLink()|ApplyOtherLinks()))return;cases.Rows.Clear();combos.Rows.Clear();
   if(On("AutoPrimary")&&!Restoring){string auto=StaadCombinations.AutoPrimary(Value("Structure").Substring(0,1),int.Parse(Value("LiveCases")),On("RoofLive"),On("WindCases")).Replace("\n","\r\n");if(Inputs["Primary"].Text!=auto){Inputs["Primary"].Text=auto;return;}}
   try{var list=StaadCombinations.Parse(Value("Primary"));var s=Settings();if(s.Rho<1)throw new Exception("ρ must be at least 1.0.");
    foreach(var p in list)cases.Rows.Add(p.No,p.Title,Used(p.Kind)+(p.Kind=="L"?", f1 = "+StaadCombinations.F(s.F1(p)):"")+(p.Kind=="E"?(p.Axis==""?" (no X / Z in the title: ± used)":" "+p.Axis+(p.Sign>0?" +":p.Sign<0?" −":" ±")):""));
    var all=StaadCombinations.Build(list,s);foreach(var r in StaadCombinations.RepeatCases(all))combos.Rows.Add(r.No,"Orthogonal seismic load case (REPEAT LOAD)",r.Title);foreach(var c in all)combos.Rows.Add(c.No,c.Group+(c.Eq!=""?"  ·  "+c.Eq:""),c.Title);output.Text=StaadCombinations.Staad(all,list,s).Replace("\n","\r\n");
    /* rho and the structure class for the Earthquake Load sheet */DesignLoadsLink.Set("load-combinations",new Dictionary<string,string>{{"rho",double.IsNaN(rhoFound)?"":Value("Rho")},{"structure",Value("Structure").Substring(0,1)}});
-   status.ForeColor=PowTheme.Teal;status.Text=(eqLinkNote!=""?eqLinkNote+" ":"")+(linkNote!=""?linkNote+" ":"")+list.Count+" primary load cases, "+all.Count+" combinations: "+string.Join(", ",all.GroupBy(c=>c.Group).Select(g=>g.Key+" "+g.First().No+"–"+g.Last().No))+".";}
+   status.ForeColor=PowTheme.Teal;status.Text=(eqLinkNote!=""?eqLinkNote+" ":"")+(linkNote!=""?linkNote+" ":"")+(windNote!=""?windNote+" ":"")+list.Count+" primary load cases, "+all.Count+" combinations: "+string.Join(", ",all.GroupBy(c=>c.Group).Select(g=>g.Key+" "+g.First().No+"–"+g.Last().No))+".";}
   catch(Exception ex){status.ForeColor=Color.Firebrick;status.Text=ex.Message;output.Text="";}}
  protected override string BuildReport(){var list=StaadCombinations.Parse(Value("Primary"));var s=Settings();var all=StaadCombinations.Build(list,s);var b=new StringBuilder();
   b.AppendLine("LOAD COMBINATIONS - NSCP 2015");b.AppendLine();b.AppendLine("## 01  PRIMARY LOAD CASES");foreach(var p in list)b.AppendLine(p.No+" "+p.Title+": "+Used(p.Kind));
@@ -89,7 +95,7 @@ partial class LoadCombinationsForm:DesignSheetForm {
   if(IrregularReport(rep,sec))sec++;
   rep.Heading(sec+"  LOAD COMBINATIONS");foreach(var g in all.GroupBy(c=>c.Group)){rep.Paragraph(g.Key,false,true);rep.Table(new[]{"No.","Eq.","Combination","Factors (load case x factor)"},g.Select(c=>new[]{c.No.ToString(),c.Eq,c.Title,string.Join("  ",c.Terms.OrderBy(t=>t.Key.No).Select(t=>t.Key.No+" x "+StaadCombinations.F(t.Value)))}),new float[]{9,14,42,35});}
   return rep.Build();}
- protected override bool OptionalSavedInput(string key){return key.StartsWith("Rho")&&key!="Rho"||key=="AutoPrimary"||key=="LiveCases"||key=="RoofLive"||key=="WindCases"||key=="EqCommand"||key=="Acc"||key=="Ax"||key=="DriftGravity"||key=="AxDisplacements"||key=="PrintReports"||key.StartsWith("Reg")||key=="EqLinked"||key=="PerformChange"||key=="LlLinked";}
+ protected override bool OptionalSavedInput(string key){return key.StartsWith("Rho")&&key!="Rho"||key=="AutoPrimary"||key=="LiveCases"||key=="RoofLive"||key=="WindCases"||key=="EqCommand"||key=="Acc"||key=="Ax"||key=="DriftGravity"||key=="AxDisplacements"||key=="PrintReports"||key.StartsWith("Reg")||key=="EqLinked"||key=="PerformChange"||key=="LlLinked"||key=="WindLinked";}
  /* sheets saved before the automatic primary loads keep their pasted primary loads */
  bool legacyPrimary;protected override void ReadAdditionalState(System.Xml.XmlElement root){legacyPrimary=root.SelectSingleNode("Input[@key='AutoPrimary']")==null;}
  protected override void AfterRestore(){base.AfterRestore();if(legacyPrimary)((CheckBox)Inputs["AutoPrimary"]).Checked=false;Refresh0();}
