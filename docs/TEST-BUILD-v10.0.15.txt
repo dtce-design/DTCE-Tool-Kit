@@ -1,0 +1,8 @@
+DTCE Tool Kit v10.0.15 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.7).
+
+PATCH - Live Loads / Load Combinations (owner: "ilagay if LL1 or LL2 yung live load ipaghiwalay"):
+- Live Loads shows the STAAD load case of each space: LL1 (f1 = 0.5) or LL2 (f1 = 1.0: places of public assembly, live loads over 4.8 kPa,
+  garages); the report lists LL1 and LL2 in separate tables (roofs apart).
+- Load Combinations takes f1 = 1.0 for LL2 by default ("Live cases with f1 = 1.0" = LL2), matching the Live Loads split.
+Tests: LiveLoadsTests 545.
+Includes everything of v10.0.14.
