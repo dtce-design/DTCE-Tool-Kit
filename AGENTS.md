@@ -383,7 +383,9 @@ off (older STAAD only); titles with + / - inside are bracketed (1.3(EQ+X+E)). v1
 ACC = 0.05 Ax (Ax input 1.0-3.0); seismic drift 1.0 Eh by default, "D + 0.5L + 1.0 Eh" choice for P-Delta (owner: "sure ka na eq loads lang?"). v10.0.12 (owner: "automatic computation of torsional amplification factor ... 1 muna ...
 after run papalitan ... include lahat sa report"): "Torsional amplification Ax" tab (src/TorsionAmplification.cs) - Ax = 1.0 until the STAAD joint
 displacements are pasted, then Ax = (dmax / 1.2 davg)^2 (1.0-3.0) per EQ case / level from the edge displacements replaces it (ACC = 0.05 Ax);
-reported with the table, and the basis table lists all the new settings. Owner ("ikaw na bahala sa redundancy basta paste ko na lang yung required",
+reported with the table, and the basis table lists all the new settings. v10.0.13: DEFINE ENVELOPE per group at the end (strength / special
+STRENGTH, ASD / drift SERVICEABILITY) and an analysis + print block (CG, DIAPHRAGM CR, STORY STIFFNESS, STORY DRIFT of the drift cases, EQ
+displacements / member forces, reactions) with LOAD LISTs (owner: "add define envelope"; "include also the reports needed to print"). Owner ("ikaw na bahala sa redundancy basta paste ko na lang yung required",
 v8.0.7): the owner only pastes - the boxes are recognised either way (.ANL echo too), EQ cases / directions come from the input's LOAD cases,
 the lateral system is automatic (braces = floor-to-floor inclined members, rafters excluded), and the computed ρ goes into Factors by itself.
 Owner (26 November 2026, "Put Windload and Earthquake in a new main tab Design Loads including Load Combinations as sub tab"): the Design Sheets

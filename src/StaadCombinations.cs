@@ -21,7 +21,7 @@ sealed class StaadCombo {public int No;public string Title,Group,Eq="";public Li
    torsion, each alone), "C" irregular and unsymmetrical (orthogonal effects: eight REPEAT LOAD cases 1.0(EQ +X) + 0.3(EQ +Z) ..., Load Type
    Seismic, built from the EQ cases of Load Type None) - the owner's STAAD notes. F1One: titles of the live cases with f1 = 1.0 (owner:
    "hiwalay yung LL1 at LL2 yung f1 niya"); other live cases f1 = 0.5. */
-sealed class StaadCombinationSettings {/* automatic primary loads and their STAAD section (owner, 26 November 2026: "automatic na sana di na ako maglalagay ng primary loads"; "perform analysis change every eq primary case") */public bool AutoPrimary,PerformChange=false;public string EqCommand="UBC LOAD";public double Acc=0.05,Ax=1.0;public double Rho=1.0,Ca=0.44,I=1.0;public bool IncludeEv=true,Lrfd=true,Asd=false,EvInAsd=false;public string Structure="C";
+sealed class StaadCombinationSettings {/* automatic primary loads and their STAAD section (owner, 26 November 2026: "automatic na sana di na ako maglalagay ng primary loads"; "perform analysis change every eq primary case") */public bool AutoPrimary,PerformChange=false;public bool PrintReports=true;public string EqCommand="UBC LOAD";public double Acc=0.05,Ax=1.0;public double Rho=1.0,Ca=0.44,I=1.0;public bool IncludeEv=true,Lrfd=true,Asd=false,EvInAsd=false;public string Structure="C";
  /* drift checks (owner, 25 November 2026: "also for drift check wind and seismic"): 7000 wind drift D + 0.5L + kW (k = DriftWind, 0.6 =
     service-level wind of the NSCP 2015 ultimate wind speeds), 8000 seismic drift 1.0 Eh of every seismic case (Section 208.6.4: the
     design-level displacement of the design seismic forces, then dM = 0.7 R dS against 0.025h / 0.020h) */public bool Drift=true,DriftGravity=false;public double DriftWind=0.6;
@@ -119,6 +119,8 @@ static class StaadCombinations {
  /* "1.2DL+1.2SDL+1.6LL+0.5LR", "0.9DL-1.0EQ+X-0.3EQ+Z" with the STAAD titles */
  static string Title(List<KeyValuePair<StaadPrimary,double>> terms){var b=new StringBuilder();foreach(var t in terms.OrderBy(t=>Order(t.Key.Kind)).ThenBy(t=>t.Key.No)){string f=F(Math.Abs(t.Value));b.Append(t.Value<0?"-":b.Length>0?"+":"").Append(f=="1"?"":f).Append(t.Key.Repeat!=null&&f!="1"?"["+t.Key.Title.Replace(" ","")+"]":Paren(t.Key));}return b.ToString();}
  /* a title with + / - inside is bracketed, so 1.3(EQ+X+E) and +(WL-Z) read as one load */
+ /* load numbers as STAAD lists: 1001 TO 1031, single numbers apart */
+ static string Ranges(List<int> nos){var parts=new List<string>();for(int i=0;i<nos.Count;){int j=i;while(j+1<nos.Count&&nos[j+1]==nos[j]+1)j++;parts.Add(j>i?nos[i]+" TO "+nos[j]:nos[i].ToString(Ci));i=j+1;}return string.Join(" ",parts);}
  static string Paren(StaadPrimary p){string n=p.Title.Replace(" ","");return p.Repeat==null&&Regex.IsMatch(n,@".[+\-]")?"("+n+")":n;}
  static int Order(string k){return k=="D"?0:k=="L"?1:k=="Lr"?2:k=="W"?3:k=="E"?4:5;}
  /* the primary load cases of the structure class, earthquake cases first: A EQ +X -X +Z -Z; B the same with accidental torsion
@@ -158,7 +160,20 @@ static class StaadCombinations {
    if(c.Eq!=""&&(combos.IndexOf(c)==0||combos[combos.IndexOf(c)-1].Eq!=c.Eq))b.Append("\n* ").Append(c.Eq.StartsWith("203-")?"Eq. "+c.Eq:c.Eq);
    b.Append("\nLOAD COMBINATION ").Append(c.No).Append(" ").Append(c.Title);
    b.Append("\n").Append(string.Join(" ",c.Terms.OrderBy(t=>t.Key.No).Select(t=>t.Key.No.ToString(Ci)+" "+F(t.Value))));}
-  if(s.AutoPrimary)b.Append("\n* Then PERFORM ANALYSIS once, after all loads and combinations.");
+  /* one envelope per group at the end (owner, 26 November 2026: "add define envelope at the end of load combo"): strength design and special
+     seismic as STRENGTH, the ASD and drift groups as SERVICEABILITY */
+  if(combos.Count>0){b.Append("\n* ---- ENVELOPES ----\nDEFINE ENVELOPE");int env=0;
+   foreach(var g in combos.GroupBy(c=>c.Group)){var nos=g.Select(c=>c.No).OrderBy(x=>x).ToList();string type=g.Key.StartsWith("Strength")||g.Key.StartsWith("Special")?"STRENGTH":"SERVICEABILITY";
+    b.Append("\n* ").Append(g.Key);b.Append("\n").Append(Ranges(nos)).Append(" ENVELOPE ").Append(++env).Append(" TYPE ").Append(type);}
+   b.Append("\nEND DEFINE ENVELOPE");}
+  /* analysis and the reports to print (owner: "include also the reports needed to print like print story drift, load list, print dia cr, print
+     story stiffness etc."): the drift cases for the story drift, the EQ cases for the displacements (Ax) and member forces (rho) */
+  if(s.PrintReports){var eqNos=cases.Where(p=>p.Kind=="E").Select(p=>p.No).OrderBy(x=>x).ToList();var drift=combos.Where(c=>c.Group=="Seismic drift").Select(c=>c.No).ToList();
+   b.Append("\n* ---- ANALYSIS AND REPORTS ----\nPERFORM ANALYSIS PRINT LOAD DATA\n* centre of mass, centre of rigidity, story stiffness (soft story)\nPRINT CG\nPRINT DIAPHRAGM CR\nPRINT STORY STIFFNESS");
+   if(drift.Count>0)b.Append("\n* story drift of the seismic drift cases (dS; dM = 0.7 R dS)\nLOAD LIST ").Append(Ranges(drift)).Append("\nPRINT STORY DRIFT");
+   if(eqNos.Count>0)b.Append("\n* EQ cases: joint displacements (Ax) and member forces (rho)\nLOAD LIST ").Append(Ranges(eqNos)).Append("\nPRINT JOINT DISPLACEMENTS ALL\nPRINT MEMBER FORCES ALL");
+   b.Append("\n* all cases: support reactions (foundations)\nLOAD LIST ALL\nPRINT SUPPORT REACTION ALL");}
+  else if(s.AutoPrimary)b.Append("\n* Then PERFORM ANALYSIS once, after all loads and combinations.");
   return StaadLines.Wrap(b.ToString());}
  /* the owner's STAAD titles: DL, LL, LLR, EQ+X ..., WL+X ... (Seismic-H load type) */
  internal const string Example="LOAD 1 LOADTYPE DEAD TITLE DL\nLOAD 2 LOADTYPE LIVE TITLE LL1\nLOAD 3 LOADTYPE LIVE TITLE LL2\nLOAD 4 LOADTYPE ROOF LIVE TITLE LLR\nLOAD 5 LOADTYPE SEISMIC-H TITLE EQ+X\nLOAD 6 LOADTYPE SEISMIC-H TITLE EQ-X\nLOAD 7 LOADTYPE SEISMIC-H TITLE EQ+Z\nLOAD 8 LOADTYPE SEISMIC-H TITLE EQ-Z\nLOAD 9 LOADTYPE WIND TITLE WL+X\nLOAD 10 LOADTYPE WIND TITLE WL-X\nLOAD 11 LOADTYPE WIND TITLE WL+Z\nLOAD 12 LOADTYPE WIND TITLE WL-Z";
