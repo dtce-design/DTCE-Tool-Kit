@@ -16,11 +16,11 @@ class ProjectPackageTests {
    Check(Parts(file).Contains("design:loads"),"Design Loads saved into the one project file");
    /* Bill of Quantities: its default path is the project's working copy; saving packs it in */
    string boqPath=ProjectPackage.PathFor("boq",null);Check(ProjectPackage.IsWorking(boqPath)&&boqPath.EndsWith(".boq.xml"),"the Bill of Quantities saves to the project's working copy");
-   var boq=new ProgramOfWorksForm();boq.Show();Pump(200);boq.SaveTo(boqPath);ProjectFiles.Remember("boq",boqPath);if(Environment.OSVersion.Platform==PlatformID.Win32NT)boq.Dispose();else boq.Hide();
+   /* not shown (Windows runner tooltip crash) */var boq=new ProgramOfWorksForm();boq.SaveTo(boqPath);ProjectFiles.Remember("boq",boqPath);
    var parts=Parts(file);Check(parts.Contains("boq")&&parts.Contains("design:loads")&&parts.Count==2,"one file holds both workspaces");
    /* Splice, Development & Hooks and the Bar Bending Schedule go into the same file */
-   var rl=new RebarLengthForm();rl.Show();Pump(200);typeof(RebarLengthForm).GetMethod("WriteProject",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(rl,new object[]{ProjectPackage.PathIfOpen("lengths")});
-   var bbs=new CuttingListForm();bbs.Show();Pump(200);typeof(CuttingListForm).GetMethod("WriteTo",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(bbs,new object[]{ProjectPackage.PathIfOpen("bbs")});
+   var rl=new RebarLengthForm();typeof(RebarLengthForm).GetMethod("WriteProject",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(rl,new object[]{ProjectPackage.PathIfOpen("lengths")});
+   var bbs=new CuttingListForm();typeof(CuttingListForm).GetMethod("WriteTo",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(bbs,new object[]{ProjectPackage.PathIfOpen("bbs")});
    parts=Parts(file);Check(parts.Contains("lengths")&&parts.Contains("bbs")&&parts.Count==4,"the other tabs are in the project file too");
    /* an older loose file still opens and saves back to itself, not into the project file */
    string loose=System.IO.Path.Combine(dir,"old-sheet.design.xml");typeof(DesignSheetForm).GetField("designLoadsPath",BindingFlags.Static|BindingFlags.NonPublic).SetValue(null,null);

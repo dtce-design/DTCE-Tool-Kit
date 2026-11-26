@@ -9,12 +9,11 @@ class OpenSavedProjectTests {
   string path=System.IO.Path.Combine(System.IO.Path.GetTempPath(),"open-saved-project-"+Guid.NewGuid().ToString("N")+".boq.xml");
   try{
    ProjectInfoStore.Save("Two-Storey Office Building","Baguio City","DPWH District Office","Engineers Hill","2026-11-01","2027","4950000");
-   var f=new ProgramOfWorksForm();f.Show();Pump(200);f.SaveTo(path);/* Windows: close it (a hidden second window crashed in its tooltip); Mono cannot dispose this window */if(Environment.OSVersion.Platform==PlatformID.Win32NT)f.Dispose();else f.Hide();
+   /* the windows are not shown: a shown Bill of Quantities window crashed in its tooltip on the Windows runner (other BOQ tests do the same) */var f=new ProgramOfWorksForm();f.SaveTo(path);
    Check(System.IO.File.Exists(path),"Bill of Quantities saved");
    ProjectInfoStore.ClearProject();Check(ProjectInfoStore.Read().Name=="","project cleared before opening");
    var info=LauncherForm.ProjectInFile(path);Check(info!=null&&info.Name=="Two-Storey Office Building"&&info.Complete,"the file carries the complete project information");
-   var f2=new ProgramOfWorksForm();f2.Show();Pump(200);f2.OpenPath(path);
-   var opening=typeof(ProgramOfWorksForm).GetField("openingPow",BindingFlags.Instance|BindingFlags.NonPublic);for(int i=0;i<300&&(bool)opening.GetValue(f2);i++)Pump(50);
+   var f2=new ProgramOfWorksForm();f2.OpenFrom(path);
    Check(ProjectInfoStore.Read().Name=="Two-Storey Office Building"&&ProjectInfoStore.Read().Location=="Baguio City","opening the file makes it the current project");
    string current=(string)typeof(ProgramOfWorksForm).GetField("currentPowPath",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(f2);
    Check(current==System.IO.Path.GetFullPath(path),"Save writes back to the opened file");
