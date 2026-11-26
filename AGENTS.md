@@ -321,6 +321,9 @@ Done 26 November 2026: v10.0.7 merged to main (PR #27; GitHub release v10.0.7-bu
 (1152921505702510936; visibility Public) and Admin (1152921505702511099; visibility Private) submissions were created and committed, replacing the
 v10.0.6 submissions (the owner had cancelled them in Partner Center); Partner Center reported "accepted for processing". Certification is not
 guaranteed. v10.0.8 and later need a new explicit request. Later versions again need a new explicit request.
+New owner request (26 November 2026, "publish to microsoft store"): publish v10.0.18 (User and Admin) after its Windows CI passes (PR to main
+for the GitHub release, then publish_microsoft_store=true). Asked whether to replace the pending v10.0.7 submissions, the owner gave no
+preference, so replace_pending_store_submission stays false; User visibility stays Public. Later versions again need a new explicit request.
 
 ## Shared settings and the open project (23 November 2026)
 
