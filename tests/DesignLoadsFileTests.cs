@@ -1,4 +1,4 @@
-using System;using System.Linq;using System.Reflection;using System.Windows.Forms;using BeamScheduleFormatter;
+using System.Collections.Generic;using System;using System.Linq;using System.Reflection;using System.Windows.Forms;using BeamScheduleFormatter;
 class DesignLoadsFileTests{static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}static void Pump(){for(int i=0;i<20;i++){Application.DoEvents();System.Threading.Thread.Sleep(30);}}
  [STAThread]static void Main(){Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);AccessCodes.Granted=true;var lc=new LoadCombinationsForm();lc.Show();var dl=new DeadLoadsForm();dl.Show();Pump();
   var inputs=(System.Collections.IDictionary)typeof(DesignSheetForm).GetField("Inputs",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(lc);((ComboBox)inputs["Structure"]).SelectedIndex=1;
@@ -9,4 +9,14 @@ class DesignLoadsFileTests{static int checks;static void Check(bool ok,string wh
   /* a sheet opened later gets its part */lc.Dispose();var xml2=xml;DesignLoadsFile.Open(xml2,dl);var lc2=new LoadCombinationsForm();lc2.Show();Pump();var in2=(System.Collections.IDictionary)typeof(DesignSheetForm).GetField("Inputs",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(lc2);Check(((ComboBox)in2["Structure"]).Text.StartsWith("B"),"a sheet opened later gets its part");
   var s=new StaticLateralResult{Ca=0.36,I=1.25,Omega=2.5,Rho=1.0,R=8.5,Zone=4};EarthquakeLink.Save(s);var lc3=new LoadCombinationsForm();lc3.Show();Pump();var in3=(System.Collections.IDictionary)typeof(DesignSheetForm).GetField("Inputs",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(lc3);
   Check(((Control)in3["Ca"]).Text=="0.36"&&((Control)in3["I"]).Text=="1.25"&&((Control)in3["Omega0"]).Text=="2.5"&&!((Control)in3["Ca"]).Enabled,"Ca, I, Omega0 from the Earthquake Load sheet, locked");
+  /* links between the sheets (v10.0.16) */
+  Check(LoadCombinationsForm.WeightsFromLevels("3.5@1200, 7@1200, 10.5@900")=="3.5 1200\r\n7 1200\r\n10.5 900","Earthquake levels become the irregularity weights");
+  int n;string one;LoadCombinationsForm.LiveCasesFor("LL1,LL2",out n,out one);Check(n==2&&one=="LL2","LL1 and LL2 spaces: two live cases, f1 1.0 for LL2");
+  LoadCombinationsForm.LiveCasesFor("LL1",out n,out one);Check(n==1&&one=="","only LL1 spaces: one live case LL, f1 0.5");LoadCombinationsForm.LiveCasesFor("LL2",out n,out one);Check(n==1&&one=="LL","only LL2 spaces: one live case LL, f1 1.0");
+  DesignLoadsLink.Set("live-loads",new Dictionary<string,string>{{"cases","LL1,LL2"}});DesignLoadsLink.Set("earthquake-levels",new Dictionary<string,string>{{"levels","3.5@1200, 7@900"}});
+  var lc4=new LoadCombinationsForm();lc4.Show();Pump();var in4=(System.Collections.IDictionary)typeof(DesignSheetForm).GetField("Inputs",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(lc4);
+  Check(((Control)in4["LiveCases"]).Text=="2"&&((Control)in4["F1One"]).Text=="LL2"&&!((Control)in4["LiveCases"]).Enabled,"live cases and f1 from the Live Loads sheet, locked");
+  Check(((Control)in4["RegWeights"]).Text=="3.5 1200\r\n7 900","storey weights from the Earthquake Load sheet");
+  var lcl=DesignLoadsLink.Get("load-combinations");Check(lcl!=null&&lcl["structure"].Length==1,"the structure class goes to the Earthquake Load sheet");
+  DesignLoadsLink.Set("live-loads",new Dictionary<string,string>{{"cases",""}});
   Console.WriteLine("DesignLoadsFileTests passed: "+checks+" checks");Environment.Exit(0);}}

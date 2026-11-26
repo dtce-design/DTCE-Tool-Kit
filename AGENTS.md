@@ -389,7 +389,7 @@ displacements / member forces, reactions) with LOAD LISTs (owner: "add define en
 STAAD data + short inputs, suggested structure class; src/StructuralIrregularity.cs); options on a "STAAD output" tab as ordinary fields (owner:
 "apakagulo naman nito"); Ca, I, Omega0 linked from the Earthquake Load sheet (EarthquakeLink, "EqLinked" default on); Design Loads saved / opened as
 one file <DesignLoads> with the five sheets (src/DesignLoadsFile.cs; owner: "isang xml sheet na lang yung design loads"). v10.0.15: Live Loads marks each space LL1 (f1 0.5) or
-LL2 (f1 1.0) and reports them apart; Load Combinations' f1 = 1.0 default is LL2 (owner: "ilagay if LL1 or LL2 ... ipaghiwalay"). Owner ("ikaw na bahala sa redundancy basta paste ko na lang yung required",
+LL2 (f1 1.0) and reports them apart; Load Combinations' f1 = 1.0 default is LL2 (owner: "ilagay if LL1 or LL2 ... ipaghiwalay"). v10.0.16 (owner: "link mo lahat ng kailangan inputs sa isat isa"): DesignLoadsLink (Links\<name>-link.xml) - Load Combinations sends the computed ρ and the structure class to Earthquake (Rho / Regularity, "LcLinked"), Earthquake Levels fill RegWeights, Live Loads checked spaces set LiveCases / F1One ("LlLinked"); linked fields are locked. Owner ("ikaw na bahala sa redundancy basta paste ko na lang yung required",
 v8.0.7): the owner only pastes - the boxes are recognised either way (.ANL echo too), EQ cases / directions come from the input's LOAD cases,
 the lateral system is automatic (braces = floor-to-floor inclined members, rafters excluded), and the computed ρ goes into Factors by itself.
 Owner (26 November 2026, "Put Windload and Earthquake in a new main tab Design Loads including Load Combinations as sub tab"): the Design Sheets

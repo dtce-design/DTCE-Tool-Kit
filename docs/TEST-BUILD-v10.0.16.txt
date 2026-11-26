@@ -1,0 +1,15 @@
+DTCE Tool Kit v10.0.16 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.7).
+
+PATCH - Design Loads sheets linked to each other (owner: "link mo lahat ng kailangan inputs sa isat isa"):
+- Earthquake Load -> Load Combinations: Ca, I and Omega0 (already in v10.0.14, "EqLinked"); the storey heights and weights
+  (Levels "h@W") fill the storey weights of the Structural irregularities tab (while that box is empty or still the linked values).
+- Load Combinations -> Earthquake Load: the computed redundancy factor rho and the structure class (C = irregular, A / B = regular)
+  fill Rho and Structure regularity; both are locked while linked (new check "rho and regularity from the Load Combinations sheet",
+  default on). A rho that was not computed from STAAD is not sent; the Earthquake value stays as typed.
+- Live Loads -> Load Combinations: the checked spaces set the live load cases and f1 (LL1 and LL2 -> 2 cases, f1 1.0 for LL2;
+  only LL1 -> 1 case LL, f1 0.5; only LL2 -> 1 case LL, f1 1.0); LiveCases and f1 are locked while linked (new check on the STAAD
+  output tab, default on, only with automatic primary loads).
+- The links are kept in Documents\DTCE Tool Kit\Links, so they also hold when the sheets are opened in another session.
+Tests: DesignLoadsFileTests 11 (7 new), StaadCombinationsTests 36, LiveLoadsTests 545, RsaCurveTests 21, StaticLateralForceTests 27,
+StructuralIrregularityTests 11.
+Includes everything of v10.0.15.

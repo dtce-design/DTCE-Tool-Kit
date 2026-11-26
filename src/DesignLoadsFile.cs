@@ -37,3 +37,13 @@ static class EarthquakeLink {
    return new EarthquakeLinkData{Ca=d("ca"),I=d("i"),Omega=d("omega"),Rho=d("rho"),R=d("r"),Zone=(int)d("zone"),Saved=DateTime.Parse((string)x.Attribute("saved"),Ci,System.Globalization.DateTimeStyles.RoundtripKind)};}catch(Exception){return null;}}
 }
 }
+namespace BeamScheduleFormatter {
+/* values passed between the Design Loads sheets (owner, 26 November 2026: "link mo lahat ng kailangan inputs sa isat isa"): a small file per
+   sheet in the shared Links folder, so the link also holds across sessions */
+static class DesignLoadsLink {
+ static string PathOf(string name){return System.IO.Path.Combine(SharedData.Folder("Links",System.IO.Path.Combine("DTCE Tool Kit","Links")),name+"-link.xml");}
+ internal static void Set(string name,System.Collections.Generic.Dictionary<string,string> values){try{var x=new System.Xml.Linq.XElement("Link",new System.Xml.Linq.XAttribute("saved",DateTime.Now.ToString("o",System.Globalization.CultureInfo.InvariantCulture)));
+   foreach(var kv in values)x.Add(new System.Xml.Linq.XAttribute(kv.Key,kv.Value??""));var path=PathOf(name);if(System.IO.File.Exists(path)){var old=System.Xml.Linq.XElement.Load(path);bool same=values.All(kv=>(string)old.Attribute(kv.Key)==(kv.Value??""));if(same)return;}x.Save(path);}catch(Exception){}}
+ internal static System.Collections.Generic.Dictionary<string,string> Get(string name){try{var path=PathOf(name);if(!System.IO.File.Exists(path))return null;var x=System.Xml.Linq.XElement.Load(path);return x.Attributes().ToDictionary(a=>a.Name.LocalName,a=>a.Value);}catch(Exception){return null;}}
+}
+}

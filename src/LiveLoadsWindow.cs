@@ -16,7 +16,10 @@ sealed class LiveLoadsForm:DesignSheetForm {
  static string Case(string f1){return f1=="1.0"?"LL2":f1=="0.5"?"LL1":"-";}
  HashSet<string> Checked(){return new HashSet<string>(included.Text.Replace("\r","").Split('\n').Where(x=>x.Trim()!=""));}
  internal bool Included(string[] row){return Checked().Contains(Key(row));}
- internal void SetIncluded(IEnumerable<string[]> rows,bool on){var set=Checked();foreach(var row in rows){if(on)set.Add(Key(row));else set.Remove(Key(row));}included.Text=string.Join("\r\n",set.OrderBy(x=>x));}
+ internal void SetIncluded(IEnumerable<string[]> rows,bool on){var set=Checked();foreach(var row in rows){if(on)set.Add(Key(row));else set.Remove(Key(row));}included.Text=string.Join("\r\n",set.OrderBy(x=>x));SaveLink();}
+ /* the live cases of the checked spaces for the Load Combinations sheet (LL1 / LL2) */
+ internal string CheckedCases(){return string.Join(",",Rows().Where(Included).Select(r=>r[4]).Where(c=>c=="LL1"||c=="LL2").Distinct().OrderBy(c=>c));}
+ void SaveLink(){DesignLoadsLink.Set("live-loads",new Dictionary<string,string>{{"cases",CheckedCases()}});}
  IEnumerable<string[]> ShownRows(){string q=spaceSearch.Text.Trim();return Rows().Where(r=>q==""||Matches(r,q));}
  static Control SearchBar(TextBox box,string hint){var bar=new FlowLayoutPanel{Dock=DockStyle.Top,Height=44,Padding=new Padding(6,8,6,4)};bar.Controls.Add(new Label{Text="Search",AutoSize=true,Padding=new Padding(0,4,6,0),Font=ModernUi.Strong});bar.Controls.Add(box);
   var clear=new Button{Text="Clear",AutoSize=true};clear.Click+=(s,e)=>box.Clear();bar.Controls.Add(clear);bar.Controls.Add(new Label{Text=hint,AutoSize=true,Padding=new Padding(8,4,0,0),ForeColor=PowTheme.Ink});return bar;}
@@ -44,7 +47,7 @@ sealed class LiveLoadsForm:DesignSheetForm {
   foreach(var g in new[]{spaces,table,roofs})GridAppearance.Apply(g);
   FillTable();spaceSearch.TextChanged+=(s,e)=>Fill();tableSearch.TextChanged+=(s,e)=>FillTable();foreach(var r in NscpLiveLoads.RoofTable)roofs.Rows.Add(r);
   foreach(var c in Inputs.Values){var co=c as ComboBox;if(co!=null)co.SelectedIndexChanged+=(s,e)=>{if(!Restoring)Fill();};var cb=c as CheckBox;if(cb!=null)cb.CheckedChanged+=(s,e)=>{if(!Restoring)Fill();};}
-  Shown+=(s,e)=>Fill();}
+  Shown+=(s,e)=>{Fill();SaveLink();};}
  protected override void AfterRestore(){base.AfterRestore();Fill();}
  protected override bool OptionalSavedInput(string key){return key=="Included";}protected override bool RetiredInput(string key){return key=="Excluded";}
  /* every space of every building type once (same name and same code row), sorted by name */
