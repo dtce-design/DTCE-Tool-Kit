@@ -67,7 +67,7 @@ class AdminForm:MainForm {
  public void OpenGenerator(){if(generator==null||generator.IsDisposed){generator=new CodeGeneratorForm();generator.Show(this);}else{generator.Show();generator.BringToFront();}}
 }
 partial class CodeGeneratorForm:Form {
- internal static int SelectedPrograms(CheckedListBox apps){int selected=0;for(int n=0;n<ProgramAccess.Ids.Length;n++)if(apps.GetItemChecked(n))selected|=ProgramAccess.Ids[n];return selected;}
+ internal static int SelectedPrograms(CheckedListBox apps){int selected=0;for(int n=0;n<ProgramAccess.Choices.Length;n++)if(apps.GetItemChecked(n))selected|=ProgramAccess.Choices[n];return selected;}
  TextBox request,output;Label message;string privateKey;
  public CodeGeneratorForm(){AppBrand.Apply(this);
   Text="DTCE Tool Kit Admin - Code Generator";ClientSize=new Size(940,640);/* one screen, no scrolling (owner, 20 November 2026: "gawin 1 screen kasya sa lahat") */StartPosition=FormStartPosition.CenterScreen;FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;Font=new Font("Segoe UI",9.25f);BackColor=Color.FromArgb(245,248,251);
@@ -75,7 +75,7 @@ partial class CodeGeneratorForm:Form {
   Controls.Add(new Label{Text="Paste the request from the user's currently open app.",Location=new Point(345,58),Size=new Size(565,24)});
   request=new TextBox{Location=new Point(345,84),Size=new Size(565,60),Multiline=true,MaxLength=200};Controls.Add(request);
   Controls.Add(new Label{Text="APPS ALLOWED",Location=new Point(25,58),Size=new Size(300,24),Font=new Font("Segoe UI",11,FontStyle.Bold)});Controls.Add(new Label{Text="GENERATED ACCESS CODE",Location=new Point(345,154),Size=new Size(565,24),Font=new Font("Segoe UI",11,FontStyle.Bold)});
-  var apps=new CheckedListBox{Location=new Point(25,84),Size=new Size(300,272),CheckOnClick=true,BorderStyle=BorderStyle.FixedSingle,BackColor=Color.White,Font=new Font("Segoe UI",11),IntegralHeight=false,HorizontalScrollbar=true};apps.Items.AddRange(ProgramAccess.Names);Controls.Add(apps);Controls.Add(new Label{Text="Project Information is included automatically with valid access.",Location=new Point(25,360),Size=new Size(300,36)});apps.ItemCheck+=(o,e)=>output.Clear();
+  var apps=new CheckedListBox{Location=new Point(25,84),Size=new Size(300,272),CheckOnClick=true,BorderStyle=BorderStyle.FixedSingle,BackColor=Color.White,Font=new Font("Segoe UI",11),IntegralHeight=false,HorizontalScrollbar=true};apps.Items.AddRange(ProgramAccess.ChoiceNames);Controls.Add(apps);Controls.Add(new Label{Text="Project Information is included automatically with valid access.",Location=new Point(25,360),Size=new Size(300,36)});apps.ItemCheck+=(o,e)=>output.Clear();
   var generate=new Button{Text="Generate selected app access",Location=new Point(25,400),Size=new Size(300,40)};Controls.Add(generate);
   output=new TextBox{Location=new Point(345,180),Size=new Size(565,150),Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical,Font=new Font("Consolas",10),BackColor=Color.White};Controls.Add(output);
   var copy=new Button{Text="Copy access code",Location=new Point(345,338),Size=new Size(277,36)};copy.Click+=(o,e)=>{if(output.Text!="")LoginForm.Copy(output.Text);};Controls.Add(copy);

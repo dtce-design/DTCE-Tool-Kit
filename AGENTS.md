@@ -365,7 +365,9 @@ columns, 70 % interior; brace horizontal component; dual 80 %; walls typed), A_B
 with the limits; "Use ρ" fills Factors; reported as its own section (v8.0.4).
 Owner (26 November 2026, "Put Windload and Earthquake in a new main tab Design Loads including Load Combinations as sub tab"): the Design Sheets
 window has a main tab "Design Loads" with the sub tabs Wind Load, Earthquake Load & RSA Curve Builder and Load Combinations (src/Launcher.cs
-loadTabs / LoadSheets); each keeps its own program access (v8.0.5).
+loadTabs / LoadSheets) (v8.0.5). Owner ("Design Loads isang access code", v8.0.6): Design Loads is one grant - ProgramAccess.DesignLoads =
+WindDesign | EarthquakeRsa | LoadCombinations; any of the three bits opens all three (Allows), and the desktop generator lists one "Design Loads"
+choice (ProgramAccess.Choices / ChoiceNames). The iPhone app and web generator still list the three separately (unchanged; each opens all three).
 
 ## Door hardware (23 November 2026)
 
