@@ -102,7 +102,7 @@ class LauncherForm:Form {
  /* full use, view only (User edition without access for that app: tabs and scrolling only), or not at all */
  enum Use{None,Full,View}
  /* the Access Code card: copy the request for the owner, paste the code; apps opened view only before are reopened usable */
- void EnterAccessCode(){using(var login=new LoginForm())if(login.ShowDialog(this)==DialogResult.OK){ViewOnly.LoginDeclined=false;MessageBox.Show(this,"Access code accepted. Apps included in the code can now be used; close and reopen any app that is open view only.","Access code");}}
+ void EnterAccessCode(){using(var login=new LoginForm())if(login.ShowDialog(this)==DialogResult.OK){ViewOnly.LoginDeclined=false;int n=ViewOnly.UnlockAllowed();MessageBox.Show(this,"Access code accepted. Apps included in the code can now be used"+(n>0?"; "+n+" open app"+(n>1?"s are":" is")+" unlocked - no need to close "+(n>1?"them":"it"):"")+".","Access code");}}
  Use Authorize(int app){if(!AccessCodes.CanUseFormatter&&!(ViewOnly.Supported&&ViewOnly.LoginDeclined)){using(var login=new LoginForm())if(login.ShowDialog(this)!=DialogResult.OK){if(!ViewOnly.Supported)return Use.None;ViewOnly.LoginDeclined=true;return Use.View;}}
   if(!AccessCodes.CanUseApp(app)){if(ViewOnly.Supported)return Use.View;MessageBox.Show(this,"This workspace is not included in your approved access.","App access");return Use.None;}return Use.Full;}
  /* a view-only copy is replaced once the access code allows the app, and a usable copy once access is gone */

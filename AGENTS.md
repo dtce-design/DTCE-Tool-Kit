@@ -533,7 +533,7 @@ automatically (bolts: member and gusset paths; welded angles: gusset around the 
 apps without access open view only (src/ViewOnly.cs; tabs and scrolling, no input or commands, "Enter access code" banner) (v7.2.0).
 Owner (24 November 2026, "pwede nila maaccess yung app pero di nila pwede mag input, mag request na lang sila ng code sa workspace"): the
 User edition never asks for the access code at start or when an app opens; without a code everything is view only, and the code is
-requested / entered from the "Access Code" card of the Workspaces window (or the banner) (v7.2.6).
+requested / entered from the "Access Code" card of the Workspaces window (or the banner) (v7.2.6). Owner (27 November 2026, "bat kapag nag input na ako ng code e, kailangan pang iclose ulit yung window"): an accepted code unlocks the open view-only windows in place (ViewOnly.UnlockAllowed; each locked control remembers its state), from the banner or the Workspaces card (v10.0.49).
 
 ## Complete reports (23 November 2026)
 

@@ -38,6 +38,11 @@ class TrussConnectionLayoutTests {
   Check(all(v).OfType<Button>().Where(x=>x.Text=="Calculate"||x.Text.StartsWith("Export")||x.Text.StartsWith("Save")).All(x=>!x.Enabled),"commands locked");
   Check(all(v).OfType<Button>().Any(x=>x.Text=="Enter access code"&&x.Enabled),"access-code banner");
   vp.SelectedIndex=1;Application.DoEvents();Check(vp.SelectedIndex==1,"tabs browsable");
+  /* v10.0.49 (owner: "bat kapag nag input na ako ng code e, kailangan pang iclose ulit yung window"): a code entered later unlocks the open window */
+  AccessCodes.Granted=true;int un=ViewOnly.UnlockAllowed();Application.DoEvents();
+  Check(un>=1&&!ViewOnly.IsLocked(v)&&!((TextBox)vin["Tension"]).ReadOnly&&vin["Family"].Enabled,"unlocked in place: inputs editable ("+un+" window)");
+  Check(all(v).OfType<Button>().Where(x=>x.Text=="Calculate").All(x=>x.Enabled)&&!all(v).Any(x=>x.Name=="ViewOnlyBanner"),"commands back, banner gone");
+  ((TextBox)vin["Tension"]).ReadOnly=false;Check(!((TextBox)vin["Tension"]).ReadOnly,"no re-locking after the unlock");
   #endif
   Console.WriteLine("PASS: "+checks+" truss connection layout checks");Environment.Exit(0);}
 }

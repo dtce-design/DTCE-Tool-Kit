@@ -1,0 +1,12 @@
+DTCE Tool Kit v10.0.49 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store upload is on hold).
+
+PATCH - User edition: entering the access code unlocks the open apps at once ("bat kapag nag input na ako ng code e, kailangan pang
+iclose ulit yung window"):
+- A view-only app remembered nothing of its state and re-locked itself, so after the code was accepted it had to be closed and opened
+  again. Now every locked input, table, dropdown, check box, button, toolbar and menu keeps its own earlier state (ViewOnly.Remember),
+  and a code entered later unlocks the open windows in place (ViewOnly.UnlockAllowed / Unlock): the banner goes away, inputs become
+  editable and the commands come back, with whatever the window shows kept.
+- Works from the window's "Enter access code" banner and from the Workspaces window's Access Code card; every open app the code
+  includes is unlocked, the others stay view only. The Admin edition is unchanged (no view-only mode).
+Tests: TrussConnectionLayoutTests 19 (view only, then unlocked in place, no re-locking).
+Includes everything of v10.0.48.
