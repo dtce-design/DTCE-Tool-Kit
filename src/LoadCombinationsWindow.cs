@@ -105,6 +105,8 @@ partial class LoadCombinationsForm:DesignSheetForm {
   string mt=Value("StaadInput")+"\u0001"+Value("StaadBeams")+"\u0001"+On("WindAllCases")+On("WindTorsionExempt"),ft;string key=string.Join(";",link.OrderBy(k=>k.Key).Select(k=>k.Key+"="+k.Value))+"#"+mt.Length+"#"+mt.GetHashCode();
   if(key!=windKey){string n,err;var m=InputModel(out err);if(m==null){RhoTexts(out mt,out ft);if(RedundancyFactor.HasModel(mt))m=RedundancyFactor.ReadModel(mt);}windTypes=link.Where(k=>k.Key.Length==2).ToDictionary(k=>k.Key,k=>k.Value);windModel=m;windCache=WindEdgeLoads.CaseTexts(windTypes,m,out n,On("WindAllCases"),!On("WindTorsionExempt"));windKey=key;windCacheNote=(err!=""?err+" ":"")+n;}windNote="Wind cases: "+windCacheNote.Replace("Paste the STAAD input on the Redundancy factor tab","Paste the STAAD input on the Primary loads tab");return windCache;}
  string windCacheNote="";
+ /* the Wind sheet sends roof pressures: Case 1 gets its -GCpi twin WL1B */
+ bool RoofWind(){if(!On("WindLinked"))return false;var l=DesignLoadsLink.Get("wind-staad");if(l==null)return false;return l.Where(k=>k.Key.Length==2).Any(k=>{var t=WindFaceTypes.Unpack(k.Key,k.Value);return t!=null&&t.HasRoof;});}
  /* the figures of the wind cases (owner, 26 November 2026: "isama mo din yung figure sa wind load loading"), from the model of the
     Primary loads tab and the Wind sheet's types; shown on the Wind load cases tab and in the report */
  StaadModel windModel;Dictionary<string,string> windTypes;WindDesignCasesFigure windDesign;List<WindCaseFigure> windFigs=new List<WindCaseFigure>();string windFigKey="";
@@ -127,7 +129,7 @@ partial class LoadCombinationsForm:DesignSheetForm {
    if(string.IsNullOrWhiteSpace(nodes)&&string.IsNullOrWhiteSpace(beams))return null;if(string.IsNullOrWhiteSpace(beams)){error="Paste the STAAD Beams table in box 2 too.";return null;}if(string.IsNullOrWhiteSpace(nodes)){error="Paste the STAAD Nodes table in box 1 too.";return null;}
    return RedundancyFactor.ReadTables(nodes,beams);}catch(Exception ex){error="STAAD model: "+ex.Message;return null;}}
  void Refresh0(){if(!Restoring&&(ApplyEqLink()|ApplyOtherLinks()))return;cases.Rows.Clear();combos.Rows.Clear();
-  if(On("AutoPrimary")&&!Restoring){string auto=StaadCombinations.AutoPrimary(Value("Structure").Substring(0,1),int.Parse(Value("LiveCases")),On("RoofLive"),On("WindCases"),On("WindAllCases"),!On("WindTorsionExempt")).Replace("\n","\r\n");if(Inputs["Primary"].Text!=auto){Inputs["Primary"].Text=auto;return;}}
+  if(On("AutoPrimary")&&!Restoring){string auto=StaadCombinations.AutoPrimary(Value("Structure").Substring(0,1),int.Parse(Value("LiveCases")),On("RoofLive"),On("WindCases"),On("WindAllCases"),!On("WindTorsionExempt"),RoofWind()).Replace("\n","\r\n");if(Inputs["Primary"].Text!=auto){Inputs["Primary"].Text=auto;return;}}
   try{var list=StaadCombinations.Parse(Value("Primary"));var s=Settings();if(s.Rho<1)throw new Exception("ρ must be at least 1.0.");
    foreach(var p in list)cases.Rows.Add(p.No,p.Title,Used(p.Kind)+(p.Kind=="L"?", f1 = "+StaadCombinations.F(s.F1(p)):"")+(p.Kind=="E"?(p.Axis==""?" (no X / Z in the title: ± used)":" "+p.Axis+(p.Sign>0?" +":p.Sign<0?" −":" ±")):""));
    /* the wind cases for the Wind Load sheet's STAAD commands (owner: "yung loading niya sa building na copy paste ko na lang sa command") */

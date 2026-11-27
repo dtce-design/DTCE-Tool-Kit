@@ -12,7 +12,7 @@ static class WindStaadInput {
   return rows;}
  // Windward external pressure at the top of each band plus the leeward suction magnitude; internal pressure cancels across the two walls.
  internal static List<WindStaadBand> WallBands(WindBuildingInput building,double speed,IList<WindDirection> directions){
-  var rows=WindBuildingLoads.Calculate(building,speed,directions).Where(r=>r.GCpi>0).ToList();var bands=new List<WindStaadBand>();int type=0;
+  var all=WindBuildingLoads.Calculate(building,speed,directions);var rows=all.Where(r=>r.GCpi>0).ToList();var bands=new List<WindStaadBand>();int type=0;
   foreach(var axis in rows.GroupBy(r=>r.Direction)){type++;var lee=axis.FirstOrDefault(r=>r.Surface=="Leeward wall");if(lee==null)continue;double leeward=lee.Qh*lee.G*lee.Cp;
    foreach(var w in axis.Where(r=>r.Surface=="Windward wall"&&r.Z>1e-9).OrderBy(r=>r.Z)){double windward=w.Q*w.G*w.Cp;bands.Add(new WindStaadBand{Axis=axis.Key,Type=type,Top=w.Z,Windward=windward,Leeward=leeward,Combined=windward+Math.Abs(leeward)});}}
   return bands;}
@@ -67,7 +67,7 @@ static class WindStaadInput {
     (leeward wall, uniform qh·G·Cp) and an SW type (side walls, uniform qh·G·(-0.7)); intensities are positive magnitudes, the direction
     is in the name and the comment; internal pressure ±qi·GCpi is listed per direction for the user's own load cases */
  internal static string FaceCommands(WindBuildingInput building,double speed,IList<WindDirection> directions,double xBearing=-1){var ci=System.Globalization.CultureInfo.InvariantCulture;Func<double,string> f=v=>v.ToString("0.###",ci);
-  var rows=WindBuildingLoads.Calculate(building,speed,directions).Where(r=>r.GCpi>0).ToList();string[] dir={"N","NE","E","SE","S","SW","W","NW"};var b=new StringBuilder("UNIT METER KN\nDEFINE WIND LOAD");int n=0,type=0;double top=Math.Max(building.Eave,building.Apex);
+  var all=WindBuildingLoads.Calculate(building,speed,directions);var rows=all.Where(r=>r.GCpi>0).ToList();string[] dir={"N","NE","E","SE","S","SW","W","NW"};var b=new StringBuilder("UNIT METER KN\nDEFINE WIND LOAD");int n=0,type=0;double top=Math.Max(building.Eave,building.Apex);
   b.Append("\n* One type per face: WW = windward wall (by height), LW = leeward wall, SW = side walls. INT = external q.G.Cp in kN/m2 as a positive");
   b.Append("\n* magnitude: WW pushes on the wall, LW and SW pull away from it (suction). Heights from the ground; the last HEIG is the building top.");
   if(xBearing>=0)b.Append("\n* Model axes: +X = ").Append(BN(xBearing)).Append(", +Z = ").Append(BN(xBearing+90)).Append(" (Y up).");
@@ -93,12 +93,22 @@ static class WindStaadInput {
   return b.ToString();}
  /* the TYPE numbers and intensities FaceCommands writes, by direction of travel, for the Load Combinations wind cases */
  internal static List<WindFaceTypes> FaceTypes(WindBuildingInput building,double speed,IList<WindDirection> directions,double xBearing){var list=new List<WindFaceTypes>();if(xBearing<0)return list;
-  var rows=WindBuildingLoads.Calculate(building,speed,directions).Where(r=>r.GCpi>0).ToList();int type=0;double top=Math.Max(building.Eave,building.Apex);string[] order={"+X","-X","+Z","-Z"};
+  var all=WindBuildingLoads.Calculate(building,speed,directions);var rows=all.Where(r=>r.GCpi>0).ToList();int type=0;double top=Math.Max(building.Eave,building.Apex);string[] order={"+X","-X","+Z","-Z"};
   var groups=rows.GroupBy(r=>r.Direction).OrderBy(gr=>{int k=Array.IndexOf(order,AxisOf(gr.First().Bearing+180,xBearing));return k<0?9:k;}).ToList();
   foreach(var axis in groups){var first=axis.First();var ww=axis.Where(r=>r.Surface=="Windward wall"&&r.Z>1e-9).OrderBy(r=>r.Z).ToList();var lw=axis.FirstOrDefault(r=>r.Surface=="Leeward wall");var sw=axis.FirstOrDefault(r=>r.Surface=="Side walls");if(ww.Count==0||lw==null||sw==null)continue;
    string travel=AxisOf(first.Bearing+180,xBearing);var t=new WindFaceTypes{Travel=travel,Ww=++type,Lw=++type,Sw=++type,Top=top,Leeward=Math.Abs(lw.Qh*lw.G*lw.Cp),Side=Math.Abs(sw.Qh*sw.G*sw.Cp)};
-   foreach(var r in ww){t.WwInt.Add(Math.Abs(r.Q*r.G*r.Cp));t.WwHeig.Add(r.Z);}if(travel!="")list.Add(t);}
+   foreach(var r in ww){t.WwInt.Add(Math.Abs(r.Q*r.G*r.Cp));t.WwHeig.Add(r.Z);}Roof(t,building,all.Where(r=>r.Direction==first.Direction).ToList());if(travel!="")list.Add(t);}
   return list;}
+ /* the roof pressures of one wind direction for the STAAD wind cases (owner, 27 November 2026: "add the roof, determine also the overhangs"):
+    net of the internal pressure (both GCpi signs and both Cp branches enveloped: A = most negative, B = most positive); the overhang top
+    surface without internal pressure and the windward overhang underside 0.8 qh G (NSCP 2015 207B.4.4) */
+ static void Roof(WindFaceTypes t,WindBuildingInput b,List<WindPressureRow> rows){var roof=rows.Where(r=>r.Surface.Contains("roof")||r.Surface.StartsWith("Roof zone")).ToList();if(roof.Count==0)return;
+  t.HasRoof=true;t.Angle=b.Angle;var first=roof[0];t.OhUnder=0.8*first.Qh*first.G;Func<WindPressureRow,double> ext=r=>r.Q*r.G*r.Cp;
+  var wr=roof.Where(r=>r.Surface=="Windward roof").ToList();var lr=roof.Where(r=>r.Surface=="Leeward roof").ToList();
+  if(wr.Count>0&&lr.Count>0){t.RoofNormal=true;t.WrA=wr.Min(r=>r.P);t.WrB=wr.Max(r=>r.P);t.LrA=lr.Min(r=>r.P);t.LrB=lr.Max(r=>r.P);t.OhWwA=wr.Min(ext);t.OhWwB=wr.Max(ext);t.OhLwA=lr.Min(ext);t.OhLwB=lr.Max(ext);return;}
+  double h=b.Height;double[] start={0,h/2,h,2*h};double depth=rows[0].Direction.EndsWith("normal")?b.Width:b.Length;
+  for(int z=0;z<4;z++){var zr=roof.Where(r=>r.Surface=="Roof zone "+(z+1)).ToList();if(zr.Count==0)continue;double end=z<3?Math.Min(depth,start[z+1]):depth;if(z==3)end=Math.Max(depth,start[3])+1e6;/* the last zone runs to the leeward edge */
+   t.Zones.Add(new[]{start[z],end,zr.Min(r=>r.P),zr.Max(r=>r.P),zr.Min(ext),zr.Max(ext)});if(z==0){t.OhWwA=zr.Min(ext);t.OhWwB=zr.Max(ext);}t.OhLwA=zr.Min(ext);t.OhLwB=zr.Max(ext);}}
  internal static string Commands(IEnumerable<WindStaadBand> bands){var b=new StringBuilder("UNIT METER KN\nDEFINE WIND LOAD");foreach(var axis in bands.GroupBy(x=>x.Type)){var list=axis.OrderBy(x=>x.Top).ToList();b.Append("\nTYPE ").Append(axis.Key).Append(" ").Append(TypeName(axis.Key,list[0].Axis)).Append("\n* ").Append(TypeName(axis.Key,list[0].Axis)).Append(", ").Append(Relation(list[0].Axis)).Append(": windward + leeward walls, kN/m2, heights from ground\nINT ").Append(string.Join(" ",list.Select(x=>F(x.Combined)))).Append(" HEIG ").Append(string.Join(" ",list.Select(x=>F(x.Top))));}return b.ToString();}
 }
 }

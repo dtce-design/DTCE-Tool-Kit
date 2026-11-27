@@ -2,12 +2,22 @@ using System;using System.Collections.Generic;using System.Globalization;using S
 namespace BeamScheduleFormatter {
 /* the DEFINE WIND LOAD types of one STAAD direction of travel (+X, -X, +Z, -Z), as the Wind Load sheet numbers them */
 sealed class WindFaceTypes {public string Travel="";public int Ww,Lw,Sw;public double Top,Leeward,Side;public List<double> WwInt=new List<double>(),WwHeig=new List<double>();
+ /* the roof for this wind (NSCP 2015 Figure 207B.4-1, net of the internal pressure, kPa, + toward the surface): RoofNormal - wind normal to a
+    ridge of 10 degrees or more: windward / leeward slope; otherwise zones from the windward edge (start, end, A, B). A = the most negative
+    (uplift: Cp branch 1, +GCpi), B = the most positive (Cp branch 2, -GCpi). Overhangs (207B.4.4): top surface external only (no internal
+    pressure), OhUnder = 0.8 qh G pushing up on the underside of the windward overhang. Angle = roof slope (degrees). */
+ public bool HasRoof,RoofNormal;public double Angle,WrA,WrB,LrA,LrB,OhWwA,OhWwB,OhLwA,OhLwB,OhUnder;public List<double[]> Zones=new List<double[]>();
  static readonly CultureInfo Ci=CultureInfo.InvariantCulture;
  /* windward intensity at height z (the HEIG band that holds z, as STAAD reads INT / HEIG) */
  internal double WindwardAt(double z){for(int i=0;i<WwHeig.Count;i++)if(z<=WwHeig[i]+1e-9)return WwInt[i];return WwInt.Count>0?WwInt[WwInt.Count-1]:0;}
- internal string Pack(){return string.Join("|",new[]{Ww.ToString(Ci),Lw.ToString(Ci),Sw.ToString(Ci),Top.ToString("R",Ci),Leeward.ToString("R",Ci),Side.ToString("R",Ci),string.Join(",",WwInt.Select((v,i)=>v.ToString("R",Ci)+"@"+WwHeig[i].ToString("R",Ci)))});}
+ internal string Pack(){var parts=new List<string>{Ww.ToString(Ci),Lw.ToString(Ci),Sw.ToString(Ci),Top.ToString("R",Ci),Leeward.ToString("R",Ci),Side.ToString("R",Ci),string.Join(",",WwInt.Select((v,i)=>v.ToString("R",Ci)+"@"+WwHeig[i].ToString("R",Ci)))};
+  if(HasRoof)parts.Add((RoofNormal?"N":"P")+","+string.Join(",",new[]{Angle,WrA,WrB,LrA,LrB,OhWwA,OhWwB,OhLwA,OhLwB,OhUnder}.Select(v=>v.ToString("R",Ci)))+(Zones.Count>0?","+string.Join(",",Zones.Select(z=>string.Join(":",z.Select(v=>v.ToString("R",Ci))))):""));
+  return string.Join("|",parts);}
  internal static WindFaceTypes Unpack(string travel,string text){try{var p=(text??"").Split('|');if(p.Length<7)return null;var t=new WindFaceTypes{Travel=travel,Ww=int.Parse(p[0],Ci),Lw=int.Parse(p[1],Ci),Sw=int.Parse(p[2],Ci),Top=double.Parse(p[3],Ci),Leeward=double.Parse(p[4],Ci),Side=double.Parse(p[5],Ci)};
-   foreach(var pair in p[6].Split(new[]{','},StringSplitOptions.RemoveEmptyEntries)){var q=pair.Split('@');t.WwInt.Add(double.Parse(q[0],Ci));t.WwHeig.Add(double.Parse(q[1],Ci));}return t;}catch(Exception){return null;}}}
+   foreach(var pair in p[6].Split(new[]{','},StringSplitOptions.RemoveEmptyEntries)){var q=pair.Split('@');t.WwInt.Add(double.Parse(q[0],Ci));t.WwHeig.Add(double.Parse(q[1],Ci));}
+   if(p.Length>7&&p[7].Length>2){var r=p[7].Split(',');t.HasRoof=true;t.RoofNormal=r[0]=="N";var v=r.Skip(1).Take(10).Select(x=>double.Parse(x,Ci)).ToArray();t.Angle=v[0];t.WrA=v[1];t.WrB=v[2];t.LrA=v[3];t.LrB=v[4];t.OhWwA=v[5];t.OhWwB=v[6];t.OhLwA=v[7];t.OhLwB=v[8];t.OhUnder=v[9];
+    foreach(var z in r.Skip(11))t.Zones.Add(z.Split(':').Select(x=>double.Parse(x,Ci)).ToArray());}
+   return t;}catch(Exception){return null;}}}
 /* a face of the floor outline at one level: x / z of its two ends, the outward normal ("+X" ...) and the height band it carries */
 sealed class WindEdgeFace {public double Level,Bottom,TopBand,A1,A2,At;public string Normal="";public bool Shielded;
  /* the level below (or the base), its index among the levels, the topmost level, the clear distance (m) along the normal to the next part
@@ -140,10 +150,12 @@ static class WindEdgeLoads {
  internal static Dictionary<string,string> CaseTexts(Dictionary<string,string> link,StaadModel model,out string note){return CaseTexts(link,model,out note,false,true);}
  internal static Dictionary<string,string> CaseTexts(Dictionary<string,string> link,StaadModel model,out string note,bool allCases,bool torsion){note="";var map=new Dictionary<string,string>();if(link==null)return map;
   List<WindEdgeFace> faces=null;double baseY=0;
-  int recess=0;var types=new Dictionary<string,WindFaceTypes>();var recessLines=new Dictionary<string,List<WindRecessLine>>();
+  int recess=0;var types=new Dictionary<string,WindFaceTypes>();List<WindPlanLevel> roofPlans=null;string roofNote="";var recessLines=new Dictionary<string,List<WindRecessLine>>();
   foreach(var travel in new[]{"+X","-X","+Z","-Z"}){string packed;if(!link.TryGetValue(travel,out packed))continue;var t=WindFaceTypes.Unpack(travel,packed);if(t==null)continue;types[travel]=t;
    var b=new StringBuilder(WindLoadLines(t,baseY));
    if(model!=null){if(faces==null){string n;faces=Faces(model,baseY,t.Top,out n);if(n!="")note=n;}var rl=RecessLines(faces,t);recessLines[travel]=rl;recess+=rl.Count;string r=RecessText(rl,t.Travel,1);if(r!="")b.Append("\n").Append(r);}
+   if(model!=null&&t.HasRoof){if(roofPlans==null){string n3;roofPlans=Plans(model,baseY,t.Top,out n3);}string rn;string roofA=RoofText(model,roofPlans,t,true,baseY,out rn);
+    if(roofA!=""){roofNote=rn;string walls=b.ToString();b.Append("\n").Append(roofA);map["1B"+travel]=walls+"\n"+RoofText(model,roofPlans,t,false,baseY,out rn);}}
    map[travel]=b.ToString();}
   if(allCases&&types.Count>0){List<WindPlanLevel> plans=null;if(model!=null){string n2;plans=Plans(model,baseY,types.Values.Max(x=>x.Top),out n2);}
    Func<string,double,string> part=(travel,f)=>{var t=types[travel];var ln=WindLoadLines(t,baseY).Split('\n');var b=new StringBuilder();b.Append(Scale(ln[0],f)).Append("\n").Append(Scale(ln[1],f));
@@ -153,8 +165,95 @@ static class WindEdgeLoads {
    foreach(var x in new[]{"+X","-X"})foreach(var z in new[]{"+Z","-Z"}){if(!types.ContainsKey(x)||!types.ContainsKey(z))continue;
     map["3"+x+z]=part(x,0.75)+"\n"+part(z,0.75);
     if(torsion)foreach(var sg in new[]{1,-1})map["4"+x+z+(sg>0?"+T":"-T")]=part(x,0.563)+"\n"+part(z,0.563)+"\n"+twist(new[]{x,z},0.563,sg);}}
-  if(map.Count>0)note=(note!=""?note+" ":"")+(model==null?"Paste the STAAD Nodes and Beams tables (or the .std file) on the Primary loads tab to load the recessed faces too.":recess>0?faces.Where(f=>f.Shielded&&f.Covered).Select(f=>f.Key).Distinct().Count()+" recessed walls loaded with WIND LOAD ranges: "+string.Join("; ",faces.Where(f=>f.Shielded&&f.Covered).GroupBy(f=>f.Normal[1]+"="+F(f.At)+" m, "+(f.Normal[1]=='X'?"Z ":"X ")+F(f.A1)+"-"+F(f.A2)+" m").Select(g=>g.Key+" (levels "+string.Join(", ",g.Select(f=>F(f.Level)).Distinct())+")"))+".":"No recessed walls in the model.");
+  if(map.Count>0)note=(note!=""?note+" ":"")+(model==null?"Paste the STAAD Nodes and Beams tables (or the .std file) on the Primary loads tab to load the recessed faces too.":recess>0?faces.Where(f=>f.Shielded&&f.Covered).Select(f=>f.Key).Distinct().Count()+" recessed walls loaded with WIND LOAD ranges: "+string.Join("; ",faces.Where(f=>f.Shielded&&f.Covered).GroupBy(f=>f.Normal[1]+"="+F(f.At)+" m, "+(f.Normal[1]=='X'?"Z ":"X ")+F(f.A1)+"-"+F(f.A2)+" m").Select(g=>g.Key+" (levels "+string.Join(", ",g.Select(f=>F(f.Level)).Distinct())+")"))+".":"No recessed walls in the model.")+(roofNote!=""?" Roof: "+roofNote+".":"");
   return map;}
+ /* ---- the roof (owner, 27 November 2026: "add the roof, determine also the overhangs") ----
+    Slab roofs: the cells of each level with no floor above them get a FLOOR LOAD (GY) per cell group; trusses: the top chords (the members on
+    top of each truss plane above the top floor) get MEMBER LOADs normal to the roof (local Y), pressure x the spacing of the trusses.
+    Pressures from the Wind sheet (Figure 207B.4-1): windward / leeward slope for wind normal to a ridge of 10 degrees or more, otherwise the
+    zones from the windward edge; a cell or chord over two zones takes the worse one. Overhangs - roof beyond the supporting columns - take
+    the top-surface pressure without internal pressure and, at the windward edge, the underside 0.8 qh G pushing up (207B.4.4). */
+ internal static string RoofText(StaadModel m,List<WindPlanLevel> plans,WindFaceTypes t,bool upliftCase,double baseY,out string note){note="";if(m==null||t==null||!t.HasRoof||plans.Count==0)return "";
+  double k=m.ToMetre;char ax=t.Travel[1];int sign=t.Travel[0]=='+'?1:-1;var b=new StringBuilder();
+  /* columns: (x, z) of the top joints of vertical members, by level */
+  var colTops=new HashSet<string>();foreach(var mem in m.Members.Values){StaadJoint a,c;if(!m.Joints.TryGetValue(mem.A,out a)||!m.Joints.TryGetValue(mem.B,out c))continue;
+   if(Math.Abs(m.P1(a)-m.P1(c))*k>1e-3||Math.Abs(m.P2(a)-m.P2(c))*k>1e-3||Math.Abs(m.H(a)-m.H(c))*k<1e-3)continue;var tp=m.H(a)>m.H(c)?a:c;colTops.Add(Key(m.P1(tp)*k,m.H(tp)*k,m.P2(tp)*k));}
+  var floor=new StringBuilder();int cells=0,ohCells=0;
+  var ordered=plans.Where(p=>p.Y>baseY+1e-3).OrderBy(p=>p.Y).ToList();
+  /* trusses above the top floor first: the floor under them is a ceiling, not the roof */
+  double[] cover;string truss=TrussRoof(m,ordered.Count>0?ordered[ordered.Count-1].Y:baseY,t,upliftCase,colTops,ref note,out cover);
+  for(int li=0;li<ordered.Count;li++){var p=ordered[li];var above=li+1<ordered.Count?ordered[li+1]:null;int nx=p.Xs.Count-1,nz=p.Zs.Count-1;
+   double xmin=double.MaxValue,xmax=double.MinValue,zmin=double.MaxValue,zmax=double.MinValue;for(int i=0;i<nx;i++)for(int j=0;j<nz;j++)if(p.Inside[i,j]){xmin=Math.Min(xmin,p.Xs[i]);xmax=Math.Max(xmax,p.Xs[i+1]);zmin=Math.Min(zmin,p.Zs[j]);zmax=Math.Max(zmax,p.Zs[j+1]);}
+   double e0=ax=='X'?(sign>0?xmin:xmax):(sign>0?zmin:zmax),depth=ax=='X'?xmax-xmin:zmax-zmin;
+   var val=new double?[nx,nz];
+   for(int i=0;i<nx;i++)for(int j=0;j<nz;j++){if(!p.Inside[i,j])continue;double cx=(p.Xs[i]+p.Xs[i+1])/2,cz=(p.Zs[j]+p.Zs[j+1])/2;if(above!=null&&InsideAt(above,cx,cz))continue;if(above==null&&cover!=null&&cx>cover[0]-1e-6&&cx<cover[1]+1e-6&&cz>cover[2]-1e-6&&cz<cover[3]+1e-6)continue;
+    double u1=ax=='X'?p.Xs[i]:p.Zs[j],u2=ax=='X'?p.Xs[i+1]:p.Zs[j+1];double d1=Math.Min(Math.Abs(u1-e0),Math.Abs(u2-e0)),d2=Math.Max(Math.Abs(u1-e0),Math.Abs(u2-e0));
+    double net=Pressure(t,d1,d2,depth,upliftCase,false);
+    /* overhang: an edge cell whose outer edge has no column under either end */
+    foreach(var d in new[]{new[]{-1,0},new[]{1,0},new[]{0,-1},new[]{0,1}}){int ii=i+d[0],jj=j+d[1];if(ii>=0&&jj>=0&&ii<nx&&jj<nz&&p.Inside[ii,jj])continue;
+     double ex1,ez1,ex2,ez2;if(d[0]!=0){ex1=ex2=d[0]<0?p.Xs[i]:p.Xs[i+1];ez1=p.Zs[j];ez2=p.Zs[j+1];}else{ez1=ez2=d[1]<0?p.Zs[j]:p.Zs[j+1];ex1=p.Xs[i];ex2=p.Xs[i+1];}
+     string normal=(d[0]+d[1]>0?"+":"-")+(d[0]!=0?"X":"Z");double at=d[0]!=0?ex1:ez1,s1=d[0]!=0?ez1:ex1,s2=d[0]!=0?ez2:ex2;
+     /* the outline face this side belongs to: supported when a column stands anywhere along it (a cantilever edge has none) */
+     var face=p.Faces.FirstOrDefault(fc=>fc.Normal==normal&&Math.Abs(fc.At-at)<1e-6&&fc.A1<=s1+1e-6&&fc.A2>=s2-1e-6);double f1=face!=null?face.A1:s1,f2=face!=null?face.A2:s2;
+     if(colTops.Any(key=>{var v=key.Split(',');double cx0=double.Parse(v[0],Ci),cy0=double.Parse(v[1],Ci),cz0=double.Parse(v[2],Ci);if(Math.Abs(cy0-p.Y)>0.011)return false;double line=normal[1]=='X'?cx0:cz0,along=normal[1]=='X'?cz0:cx0;return Math.Abs(line-at)<0.011&&along>=f1-0.011&&along<=f2+0.011;}))continue;bool windwardEdge=normal[1]==ax&&(normal[0]=='+'?1:-1)==-sign;
+     net=Pressure(t,d1,d2,depth,upliftCase,true)-(windwardEdge?t.OhUnder:0);ohCells++;break;}
+    val[i,j]=net;cells++;}
+   /* merge cells of equal pressure: runs along Z, then equal runs in neighbouring X strips */
+   var rects=new List<double[]>();for(int i=0;i<nx;i++){int j=0;while(j<nz){if(val[i,j]==null){j++;continue;}int j2=j;while(j2+1<nz&&val[i,j2+1]!=null&&Math.Abs(val[i,j2+1].Value-val[i,j].Value)<1e-9)j2++;
+     var r=new[]{p.Xs[i],p.Xs[i+1],p.Zs[j],p.Zs[j2+1],val[i,j].Value};var prev=rects.FirstOrDefault(q=>Math.Abs(q[1]-r[0])<1e-9&&Math.Abs(q[2]-r[2])<1e-9&&Math.Abs(q[3]-r[3])<1e-9&&Math.Abs(q[4]-r[4])<1e-9);if(prev!=null)prev[1]=r[1];else rects.Add(r);j=j2+1;}}
+   foreach(var r in rects)floor.Append("\nYRANGE ").Append(F(p.Y-0.05)).Append(" ").Append(F(p.Y+0.05)).Append(" FLOAD ").Append(F(-r[4])).Append(" XRANGE ").Append(F(r[0]-0.01)).Append(" ").Append(F(r[1]+0.01)).Append(" ZRANGE ").Append(F(r[2]-0.01)).Append(" ").Append(F(r[3]+0.01)).Append(" GY");}
+  if(floor.Length==0&&truss=="")return "";
+  b.Append("* roof (Figure 207B.4-1, net of internal pressure ").Append(upliftCase?"+GCpi, uplift":"-GCpi, downward").Append("); overhangs 207B.4.4");
+  if(floor.Length>0)b.Append("\nUNIT METER KN\nFLOOR LOAD").Append(floor);if(truss!="")b.Append("\n").Append(truss);
+  note=cells+" roof cells"+(ohCells>0?", "+ohCells+" overhang cells":"")+(note!=""?"; "+note:"");return b.ToString();}
+ static string Key(double x,double y,double z){return Math.Round(x,2).ToString("0.00",Ci)+","+Math.Round(y,2).ToString("0.00",Ci)+","+Math.Round(z,2).ToString("0.00",Ci);}
+ static bool InsideAt(WindPlanLevel p,double x,double z){for(int i=0;i+1<p.Xs.Count;i++)if(x>p.Xs[i]&&x<p.Xs[i+1])for(int j=0;j+1<p.Zs.Count;j++)if(z>p.Zs[j]&&z<p.Zs[j+1])return p.Inside[i,j];return false;}
+ /* the roof pressure (kPa, + toward the surface) for a strip d1-d2 from the windward edge of a roof of this depth; external only for overhangs */
+ static double Pressure(WindFaceTypes t,double d1,double d2,double depth,bool uplift,bool external){
+  if(t.RoofNormal){bool windward=(d1+d2)/2<depth/2;if(external)return windward?(uplift?t.OhWwA:t.OhWwB):(uplift?t.OhLwA:t.OhLwB);return windward?(uplift?t.WrA:t.WrB):(uplift?t.LrA:t.LrB);}
+  double? v=null;foreach(var z in t.Zones){if(z[1]<=d1+1e-9||z[0]>=d2-1e-9)continue;double q=external&&z.Length>5?(uplift?z[4]:z[5]):(uplift?z[2]:z[3]);v=v==null?q:uplift?Math.Min(v.Value,q):Math.Max(v.Value,q);}
+  if(v==null&&t.Zones.Count>0){var z=t.Zones[t.Zones.Count-1];v=external&&z.Length>5?(uplift?z[4]:z[5]):(uplift?z[2]:z[3]);}return v??0;}
+ /* top chords of the trusses above the top floor: members in the truss planes (no extent along the ridge) on top of their plane */
+ static string TrussRoof(StaadModel m,double topY,WindFaceTypes t,bool uplift,HashSet<string> colTops,ref string note){double[] cover;return TrussRoof(m,topY,t,uplift,colTops,ref note,out cover);}
+ /* cover = x1, x2, z1, z2 of the trussed roof (the ceiling under it takes no roof FLOOR LOAD) */
+ static string TrussRoof(StaadModel m,double topY,WindFaceTypes t,bool uplift,HashSet<string> colTops,ref string note,out double[] cover){double k=m.ToMetre;cover=null;
+  var mem=new List<double[]>();/* no, x1, y1, z1, x2, y2, z2, joint A, joint B */var near=new List<double[]>();
+  foreach(var mm in m.Members.Values){StaadJoint a,c;if(!m.Joints.TryGetValue(mm.A,out a)||!m.Joints.TryGetValue(mm.B,out c))continue;double ya=m.H(a)*k,yc=m.H(c)*k;
+   double dx=Math.Abs(m.P1(a)-m.P1(c))*k,dz=Math.Abs(m.P2(a)-m.P2(c))*k;if(dx<1e-3&&dz<1e-3)continue;var row=new[]{mm.No,m.P1(a)*k,ya,m.P2(a)*k,m.P1(c)*k,yc,m.P2(c)*k,mm.A,mm.B};
+   if(Math.Min(ya,yc)>=topY-1e-3&&Math.Max(ya,yc)>topY+1e-3)mem.Add(row);
+   /* sloped members just below (eave overhangs of the top chords hang below the eave) - kept when they meet the roof members */
+   else if(Math.Abs(ya-yc)>1e-3&&Math.Max(ya,yc)>=topY-1e-3&&Math.Min(ya,yc)>=topY-3)near.Add(row);}
+  var roofJoints=new HashSet<double>(mem.SelectMany(r=>new[]{r[7],r[8]}));foreach(var r in near)if(roofJoints.Contains(r[7])||roofJoints.Contains(r[8]))mem.Add(r);
+  var sloped=mem.Where(r=>Math.Abs(r[2]-r[5])>1e-3).ToList();if(sloped.Count==0)return "";
+  /* truss planes: X-Y (dz = 0) or Z-Y (dx = 0), whichever the sloped members follow */
+  bool spanX=sloped.Count(r=>Math.Abs(r[3]-r[6])<1e-3)>=sloped.Count(r=>Math.Abs(r[1]-r[4])<1e-3);
+  Func<double[],double> plane=r=>spanX?r[3]:r[1];Func<double[],double> u1=r=>spanX?r[1]:r[3];Func<double[],double> u2=r=>spanX?r[4]:r[6];
+  var inPlane=mem.Where(r=>spanX?Math.Abs(r[3]-r[6])<1e-3:Math.Abs(r[1]-r[4])<1e-3).ToList();
+  var planes=inPlane.GroupBy(r=>Math.Round(plane(r),2)).OrderBy(g=>g.Key).ToList();if(planes.Count==0)return "";
+  var coords=planes.Select(g=>g.Key).ToList();char ax=t.Travel[1];int sign=t.Travel[0]=='+'?1:-1;bool alongSpan=(ax=='X')==spanX;
+  double uMin=inPlane.Min(r=>Math.Min(u1(r),u2(r))),uMax=inPlane.Max(r=>Math.Max(u1(r),u2(r))),cMin=coords.First(),cMax=coords.Last();
+  cover=spanX?new[]{uMin,uMax,cMin,cMax}:new[]{cMin,cMax,uMin,uMax};
+  var lines=new List<string>();int chords=0,oh=0;
+  for(int pi=0;pi<planes.Count;pi++){var g=planes[pi].ToList();double c=planes[pi].Key;double trib=((pi+1<coords.Count?coords[pi+1]:c)-(pi>0?coords[pi-1]:c))/2;if(coords.Count==1)trib=1;
+   /* wall line of this truss: the columns in the plane */
+   var cols=colTops.Select(s=>s.Split(',').Select(v=>double.Parse(v,Ci)).ToArray()).Where(v=>Math.Abs((spanX?v[2]:v[0])-c)<0.02&&v[1]<=topY+0.02&&v[1]>=topY-0.5).Select(v=>spanX?v[0]:v[2]).ToList();
+   double w0=cols.Count>0?cols.Min():double.MinValue,w1=cols.Count>0?cols.Max():double.MaxValue;
+   foreach(var r in g){double a=u1(r),bb=u2(r),ya=r[2],yb=r[5];double um=(a+bb)/2,ym=(ya+yb)/2;
+    bool top=!g.Any(o=>o!=r&&Math.Min(u1(o),u2(o))<=um+1e-6&&Math.Max(u1(o),u2(o))>=um-1e-6&&Math.Abs(u2(o)-u1(o))>1e-6&&o[2]+(o[5]-o[2])*(um-u1(o))/(u2(o)-u1(o))>ym+0.02);if(!top)continue;chords++;
+    double L=Math.Sqrt((bb-a)*(bb-a)+(yb-ya)*(yb-ya)+0.0);
+    Func<double,double,double> pr=(s1,s2)=>{/* s1 / s2 along the span */double d1,d2,depth;bool ext=false;
+      if(alongSpan){double e0=sign>0?uMin:uMax;d1=Math.Min(Math.Abs(s1-e0),Math.Abs(s2-e0));d2=Math.Max(Math.Abs(s1-e0),Math.Abs(s2-e0));depth=uMax-uMin;
+       if(t.RoofNormal){/* windward slope rises along the travel */double rise=(yb-ya)*(bb-a)*sign;bool ww=rise>0||Math.Abs(yb-ya)<1e-6&&(d1+d2)/2<depth/2;return uplift?(ww?t.WrA:t.LrA):(ww?t.WrB:t.LrB);}}
+      else{double e0=sign>0?cMin:cMax;d1=Math.Abs(c-e0)-Math.Abs(trib)/2;d2=Math.Abs(c-e0)+Math.Abs(trib)/2;d1=Math.Max(0,d1);depth=cMax-cMin;}
+      return Pressure(t,d1,d2,depth,uplift,ext);};
+    double p=pr(a,bb);lines.Add(F(r[0])+" UNI Y "+F(-p*Math.Abs(trib)));
+    /* overhang parts beyond the wall line */
+    foreach(var side in new[]{-1,1}){double edge=side<0?w0:w1;if(Math.Abs(edge)>1e8)continue;double lo=Math.Min(a,bb),hi=Math.Max(a,bb);double s1=side<0?lo:Math.Max(lo,edge),s2=side<0?Math.Min(hi,edge):hi;if(s2-s1<1e-3)continue;
+     bool windwardEnd=alongSpan&&((sign>0&&side<0)||(sign<0&&side>0));double ext=Pressure(t,0,0.001,1,uplift,true);if(t.RoofNormal&&alongSpan)ext=windwardEnd?(uplift?t.OhWwA:t.OhWwB):(uplift?t.OhLwA:t.OhLwB);
+     double extra=(ext-(windwardEnd?t.OhUnder:0))-p;/* replaces the net pressure on that part */
+     double f1=Math.Abs(s1-a)/Math.Abs(bb-a)*L,f2=Math.Abs(s2-a)/Math.Abs(bb-a)*L;lines.Add(F(r[0])+" UNI Y "+F(-extra*Math.Abs(trib))+" "+F(Math.Min(f1,f2))+" "+F(Math.Max(f1,f2)));oh++;}}}
+  if(lines.Count==0)return "";note=chords+" truss top chords"+(oh>0?", "+oh+" overhang parts":"");
+  return "* trusses: top chords, w = p x truss spacing, normal to the roof (local Y)\nUNIT METER KN\nMEMBER LOAD\n"+string.Join("\n",lines);}
  static string RecessText(List<WindRecessLine> lines,string travel,double f){if(lines.Count==0)return "";
   return "* recessed walls the wind does not reach along "+travel+" (from the model edges): the range\n* makes STAAD load only that wall\n"+string.Join("\n",lines.Select(l=>"* "+l.Comment+"\n"+Scale(l.Text,f)));}
  /* "WIND LOAD X 1 TYPE 1 ..." with the factor scaled (the sign of the factor kept) */

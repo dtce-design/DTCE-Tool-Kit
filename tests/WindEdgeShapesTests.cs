@@ -54,6 +54,35 @@ static class WindEdgeShapesTests {
    Check(lx.Count==4&&lx.Count(l=>l.Text.Contains("ZR 11.95 18.05 YR -0.05 4.05"))==2&&lx.Count(l=>l.Text.Contains("ZR 5.95 18.05 YR 3.95 12.05"))==2&&!lx.Any(l=>l.Text.EndsWith("YR -0.05 0.05")),"outline changing with height: "+string.Join(" / ",lx.Select(l=>l.Text)));
    var figs=WindCaseFigure.Build(RedundancyFactor.ReadModel(md),new Dictionary<string,string>{{"+X",T("+X",1,2,3,12).Pack()}},null);
    Check(figs.Count==2&&figs[0].Levels.Select(l=>l.Y).SequenceEqual(new[]{4.0})&&figs[1].Levels.Select(l=>l.Y).SequenceEqual(new[]{8.0,12.0})&&figs.All(f=>f.Lines.Count==2),"one figure per outline, ground beams not drawn");}
+  /* 10 roof: gable trusses spanning X (0-12 m, eave 4 m, apex 6 m) at Z = 0, 6, 12, top chords overhanging 1 m beyond the columns, wind +X
+        normal to the ridge: windward slope WrA, leeward LrA, overhangs top-surface pressure, the windward one minus 0.8 qh G */
+  {var b=new StringBuilder("STAAD SPACE\nUNIT METER KN\nJOINT COORDINATES\n");int jn=0;var J=new Dictionary<string,int>();Func<double,double,double,int> P=(x,y,z)=>{string kk=x+","+y+","+z;int v;if(!J.TryGetValue(kk,out v)){v=++jn;J[kk]=v;b.Append(v+" "+x.ToString(Ci)+" "+y.ToString(Ci)+" "+z.ToString(Ci)+";\n");}return v;};
+   var mm=new List<int[]>();foreach(var z in new[]{0.0,6,12}){mm.Add(new[]{P(0,0,z),P(0,4,z)});mm.Add(new[]{P(12,0,z),P(12,4,z)});mm.Add(new[]{P(0,4,z),P(12,4,z)});
+    mm.Add(new[]{P(-1,4-1.0/3,z),P(0,4,z)});mm.Add(new[]{P(0,4,z),P(6,6,z)});mm.Add(new[]{P(6,6,z),P(12,4,z)});mm.Add(new[]{P(12,4,z),P(13,4-1.0/3,z)});mm.Add(new[]{P(6,4,z),P(6,6,z)});mm.Add(new[]{P(3,4,z),P(6,6,z)});}
+   foreach(var x in new[]{0.0,12})foreach(var z in new[]{0.0,6}){mm.Add(new[]{P(x,4,z),P(x,4,z+6)});mm.Add(new[]{P(x,0,z),P(x,0,z+6)});}foreach(var z in new[]{0.0,12}){mm.Add(new[]{P(0,0,z),P(12,0,z)});}
+   b.Append("MEMBER INCIDENCES\n");for(int i=0;i<mm.Count;i++)b.Append((i+1)+" "+mm[i][0]+" "+mm[i][1]+";\n");b.Append("SUPPORTS\n");var model=RedundancyFactor.ReadModel(b.ToString());
+   var t=T("+X",1,2,3,6);t.HasRoof=true;t.RoofNormal=true;t.Angle=18.4;t.WrA=-1.0;t.WrB=0.4;t.LrA=-1.2;t.LrB=-0.3;t.OhWwA=-0.8;t.OhWwB=0.6;t.OhLwA=-1.0;t.OhLwB=-0.5;t.OhUnder=0.9;
+   string rn;var plans=WindEdgeLoads.Plans(model,0,6,out rn);var roof=WindEdgeLoads.RoofText(model,plans,t,true,0,out rn);
+   Func<int,int,int> no=(a2,b2)=>mm.FindIndex(q=>q[0]==a2&&q[1]==b2)+1;
+   int ww=no(P(0,4,6),P(6,6,6)),lw=no(P(6,6,6),P(12,4,6)),ohw=no(P(-1,4-1.0/3,6),P(0,4,6)),ohl=no(P(12,4,6),P(13,4-1.0/3,6)),web=no(P(3,4,6),P(6,6,6));
+   /* middle truss: spacing 6 -> windward 1.0 x 6 = 6 up, leeward 1.2 x 6 = 7.2 up */
+   Check(roof.Contains("\n"+ww+" UNI Y 6\n")&&roof.Contains("\n"+lw+" UNI Y 7.2\n"),"truss top chords: windward / leeward slope: "+roof.Replace("\n"," / "));
+   Check(!roof.Contains("\n"+web+" UNI"),"webs not loaded");
+   /* windward overhang: (-0.8 - 0.9) - (-1.0) = -0.7 extra over the whole member -> 4.2 up; leeward overhang: -1.0 - (-1.2) = +0.2 -> -1.2 */
+   Check(roof.Contains("\n"+ohw+" UNI Y 6\n")&&roof.Contains("\n"+ohw+" UNI Y 4.2 0 1.054")&&roof.Contains("\n"+ohl+" UNI Y -1.2 0 1.054"),"overhang chords: windward underside 0.8 qh G, leeward top only");
+   Check(!roof.Contains("FLOOR LOAD"),"the ceiling under the trusses takes no roof floor load");
+   var end=no(P(0,4,0),P(6,6,0));Check(roof.Contains("\n"+end+" UNI Y 3\n"),"end truss: half spacing");}
+  /* 11 flat slab roof with a cantilever edge: the edge without columns is an overhang */
+  {string[] p={"###","###"};var md=Model(new double[]{0,4},p,p);var m=RedundancyFactor.ReadModel(md);
+   /* cantilever: beams at level 4 from X 18 to 21 (no column at X 21) */
+   int top=m.Joints.Values.Max(j=>j.No);var j1=m.Joints.Values.First(j=>j.X==18&&j.Y==4&&j.Z==0);var j2=m.Joints.Values.First(j=>j.X==18&&j.Y==4&&j.Z==6);var j3=m.Joints.Values.First(j=>j.X==18&&j.Y==4&&j.Z==12);
+   m.Joints[top+1]=new StaadJoint{No=top+1,X=21,Y=4,Z=0};m.Joints[top+2]=new StaadJoint{No=top+2,X=21,Y=4,Z=6};m.Joints[top+3]=new StaadJoint{No=top+3,X=21,Y=4,Z=12};int mn=m.Members.Keys.Max();
+   foreach(var pr in new[]{new[]{j1.No,top+1},new[]{j2.No,top+2},new[]{j3.No,top+3},new[]{top+1,top+2},new[]{top+2,top+3}})m.Members[++mn]=new StaadMember{No=mn,A=pr[0],B=pr[1]};
+   var t=T("-X",4,5,6,4);t.HasRoof=true;t.Zones.Add(new[]{0,2.0,-2,0.2,-1.5,-0.1});t.Zones.Add(new[]{2,1e6,-1,0.1,-0.6,-0.1});t.OhWwA=-1.5;t.OhWwB=-0.1;t.OhLwA=-0.6;t.OhLwB=-0.1;t.OhUnder=0.9;
+   string rn;var plans=WindEdgeLoads.Plans(m,0,4,out rn);var roof=WindEdgeLoads.RoofText(m,plans,t,true,0,out rn);
+   /* wind -X: the cantilever X 18-21 is the windward edge: zone 1 top -1.5 - 0.9 = -2.4 -> FLOAD 2.4; the rest -1 beyond 2 m, -2 within */
+   Check(roof.Contains("FLOAD 2.4 XRANGE 17.99 21.01")&&rn.Contains("1 overhang")||roof.Contains("FLOAD 2.4 XRANGE 17.99 21.01")&&rn.Contains("overhang"),"cantilever slab edge as overhang (windward): "+roof.Replace("\n"," / ")+" "+rn);
+   Check(roof.Contains("FLOAD 1 XRANGE"),"interior roof cells in zone 2");}
   /* 8  rectangle: nothing recessed */
   {string[] p={"###","###"};Check(Lines(Model(new double[]{0,4},p,p),T("+X",1,2,3,4),4,out note).Count==0,"plain rectangle: no recess lines");}
   Console.WriteLine("WindEdgeShapesTests passed: "+checks+" checks");}

@@ -67,5 +67,13 @@ static class WindEdgeLoadsTests {
    Check(StaadCombinations.WindKey("WL2+X+T")=="2+X+T"&&StaadCombinations.WindKey("WL3-X+Z")=="3-X+Z"&&StaadCombinations.WindKey("WL4+X-Z-T")=="4+X-Z-T"&&StaadCombinations.WindKey("WL+X")=="+X","case keys from the titles");
    var ap=StaadCombinations.Parse(StaadCombinations.AutoPrimary("A",1,false,true,true,true));Check(ap.Count(p=>p.Kind=="W")==24&&ap.Any(p=>p.Title=="WL4-X+Z-T"),"automatic primaries carry the 24 wind cases");
    Check(StaadCombinations.Parse(StaadCombinations.AutoPrimary("A",1,false,true,true,false)).Count(p=>p.Kind=="W")==8,"exempt: 8 wind primaries");}
+  /* roof data through the link and the -GCpi twin of Case 1 */
+  {var r=new WindFaceTypes{Travel="+X",Ww=1,Lw=2,Sw=3,Top=8,Leeward=1,Side=2,HasRoof=true,RoofNormal=false,Angle=3,OhUnder=0.9,OhWwA=-1.5,OhWwB=-0.1,OhLwA=-0.6,OhLwB=-0.1};r.WwInt.Add(3);r.WwHeig.Add(8);r.Zones.Add(new[]{0,4.0,-2,0.2,-1.5,-0.1});r.Zones.Add(new[]{4,1e6,-1,0.1,-0.6,-0.1});
+   var rb=WindFaceTypes.Unpack("+X",r.Pack());Check(rb.HasRoof&&!rb.RoofNormal&&rb.Zones.Count==2&&Math.Abs(rb.Zones[1][3]-0.1)<1e-12&&Math.Abs(rb.OhUnder-0.9)<1e-12,"roof data round trip");
+   Check(WindFaceTypes.Unpack("+X",t.Pack()).HasRoof==false,"older links without roof");
+   string n5;var withRoof=WindEdgeLoads.CaseTexts(new Dictionary<string,string>{{"+X",r.Pack()}},model,out n5,false,true);
+   Check(withRoof.ContainsKey("1B+X")&&withRoof["+X"].Contains("FLOOR LOAD")&&withRoof["1B+X"].Contains("FLOOR LOAD")&&withRoof["+X"].Contains("+GCpi")&&withRoof["1B+X"].Contains("-GCpi")&&n5.Contains("Roof:"),"Case 1 with the roof: uplift (+GCpi) and downward (-GCpi) twin");
+   Check(StaadCombinations.WindKey("WL1B+X")=="1B+X","WL1B key");
+   Check(StaadCombinations.Parse(StaadCombinations.AutoPrimary("A",1,false,true,true,true,true)).Count(p=>p.Kind=="W")==28,"28 wind cases with the roof twins");}
   Console.WriteLine("WindEdgeLoadsTests passed: "+checks+" checks");}
 }
