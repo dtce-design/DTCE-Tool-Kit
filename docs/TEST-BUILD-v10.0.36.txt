@@ -1,0 +1,9 @@
+DTCE Tool Kit v10.0.36 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store upload is on hold).
+
+PATCH - tab colours and command bars:
+- A fourth level of tabs has its own colour ("ibang color yung pang apat na sub tab"): main tabs navy, sub tabs green, third level brown,
+  fourth and deeper a muted slate-violet (dark theme too).
+- The commands common to a sheet (Calculate, Print preview, Save project, Export) sit right above the sheet's own tabs ("yung mga button na
+  common per group tabbed ilipat sa taas nila para maayos") instead of inside the innermost tab page; app-wide (TopTabLayout).
+Tests: DesignLoadsFileTests 22, WindCasesTabTests 9, TrussSupportTests 39, StaircaseTests 44, DesignLoadsReportTests 5.
+Includes everything of v10.0.35.
