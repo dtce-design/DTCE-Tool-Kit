@@ -1,0 +1,7 @@
+DTCE Tool Kit v10.0.55 (27 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - no DEFINE UBC LOAD in the Load Combinations output (owner: "huwag mo isama yung define ubc sa load combo"):
+- The STAAD output of Load Combinations no longer writes DEFINE UBC LOAD (added in v10.0.52); the seismic definition stays in the
+  owner's own STAAD input, above the primary loads. The primary section keeps the reminder comment.
+Tests: StaadCombinationsTests 37.
+Includes everything of v10.0.54.
