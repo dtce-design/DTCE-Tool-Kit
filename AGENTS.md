@@ -341,7 +341,10 @@ Checked 27 November 2026 (read-only store_status, run 45915650622): v10.0.24 is 
 (1152921505702516812); nothing pending; the public catalog lists DTCE.DTCEToolKit_10.0.24.0 / DTCE.DTCEToolKit-Admin_10.0.24.0.
 New owner request (27 November 2026, "publish mo na den sa staadf" = Microsoft Store, confirmed): publish v10.0.33 (User and Admin) after its
 Windows CI passes (PR to main for the GitHub release, then publish_microsoft_store=true; nothing is pending, so replace_pending_store_submission
-stays false; User visibility stays Public). Later versions again need a new explicit request.
+stays false; User visibility stays Public). Later versions again need a new explicit request. That v10.0.33 upload was never run (PR #30 stayed open).
+New owner request (27 November 2026, "uplaod sa store"): publish v10.0.58 (User and Admin; Windows CI of v10.0.58 passed, run 45955849543) instead of
+v10.0.33: merge PR #30 to main for the GitHub release, then publish_microsoft_store=true; nothing is pending (v10.0.24 Published), so
+replace_pending_store_submission stays false; User visibility stays Public. Later versions again need a new explicit request.
 Checked 26 November 2026 (read-only store_status job, run 45825954870): v10.0.18 is Published for User and Admin; no submission pending;
 the public catalog lists DTCE.DTCEToolKit_10.0.18.0 / DTCE.DTCEToolKit-Admin_10.0.18.0.
 Update check (owner, 26 November 2026: "di namang gumagana yung pagcheck ng updates"; "ayaw ko ng check for updates, gusto ko automatic na",
