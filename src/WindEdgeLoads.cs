@@ -221,6 +221,8 @@ static class WindEdgeLoads {
   if(floor.Length>0)b.Append("\nUNIT METER KN\nFLOOR LOAD").Append(floor);if(truss!="")b.Append("\n").Append(truss);
   note=cells+" roof cells"+(ohCells>0?", "+ohCells+" overhang cells":"")+(note!=""?"; "+note:"");return b.ToString();}
  static string Key(double x,double y,double z){return Math.Round(x,2).ToString("0.00",Ci)+","+Math.Round(y,2).ToString("0.00",Ci)+","+Math.Round(z,2).ToString("0.00",Ci);}
+ /* inside a level's outline or on its edge (tolerance 2 cm) */
+ internal static bool OnPlan(WindPlanLevel p,double x,double z){const double t=0.02;for(int i=0;i+1<p.Xs.Count;i++){if(x<p.Xs[i]-t||x>p.Xs[i+1]+t)continue;for(int j=0;j+1<p.Zs.Count;j++)if(z>=p.Zs[j]-t&&z<=p.Zs[j+1]+t&&p.Inside[i,j])return true;}return false;}
  internal static bool InsideAt(WindPlanLevel p,double x,double z){for(int i=0;i+1<p.Xs.Count;i++)if(x>p.Xs[i]&&x<p.Xs[i+1])for(int j=0;j+1<p.Zs.Count;j++)if(z>p.Zs[j]&&z<p.Zs[j+1])return p.Inside[i,j];return false;}
  /* the roof pressure (kPa, + toward the surface) for a strip d1-d2 from the windward edge of a roof of this depth; external only for overhangs */
  static double Pressure(WindFaceTypes t,double d1,double d2,double depth,bool uplift,bool external){
@@ -229,12 +231,23 @@ static class WindEdgeLoads {
   if(v==null&&t.Zones.Count>0){var z=t.Zones[t.Zones.Count-1];v=external&&z.Length>5?(uplift?z[4]:z[5]):(uplift?z[2]:z[3]);}return v??0;}
  /* the top chords of the trusses above the top floor (for the roof live load, RoofLiveLoads): same detection as TrussRoof */
  internal sealed class TrussChord {public double No,Plane,Trib,U1,U2,Y1,Y2;public bool SpanX;}
- internal static List<TrussChord> TrussTopChords(StaadModel m,double topY,out double[] cover){double k=m.ToMetre;cover=null;var res=new List<TrussChord>();
+ internal static List<TrussChord> TrussTopChords(StaadModel m,double topY,out double[] cover){return TrussTopChords(m,topY,null,out cover);}
+ /* at any level (owner, 27 November 2026: "madetermine niya sana yung mga ibat ibang levels based din sa model"): the sloped members rising
+    from this level; a group of connected members that reaches a higher floor over its own footprint is a stair or a ramp, not a roof */
+ internal static List<TrussChord> TrussTopChords(StaadModel m,double topY,List<WindPlanLevel> floors,out double[] cover){double k=m.ToMetre;cover=null;var res=new List<TrussChord>();
   var mem=new List<double[]>();var near=new List<double[]>();
   foreach(var mm in m.Members.Values){StaadJoint a,c;if(!m.Joints.TryGetValue(mm.A,out a)||!m.Joints.TryGetValue(mm.B,out c))continue;double ya=m.H(a)*k,yc=m.H(c)*k;
    double dx=Math.Abs(m.P1(a)-m.P1(c))*k,dz=Math.Abs(m.P2(a)-m.P2(c))*k;if(dx<1e-3&&dz<1e-3)continue;var row=new[]{mm.No,m.P1(a)*k,ya,m.P2(a)*k,m.P1(c)*k,yc,m.P2(c)*k,mm.A,mm.B};
    if(Math.Min(ya,yc)>=topY-1e-3&&Math.Max(ya,yc)>topY+1e-3)mem.Add(row);else if(Math.Abs(ya-yc)>1e-3&&Math.Max(ya,yc)>=topY-1e-3&&Math.Min(ya,yc)>=topY-3)near.Add(row);}
   var roofJoints=new HashSet<double>(mem.SelectMany(r=>new[]{r[7],r[8]}));foreach(var r in near)if(roofJoints.Contains(r[7])||roofJoints.Contains(r[8]))mem.Add(r);
+  if(floors!=null&&mem.Count>0){/* connected groups (shared joints); drop the ones that reach a higher floor covering them (stairs, ramps) */
+   var parent=new Dictionary<double,double>();Func<double,double> find=null;find=x=>{double v;if(!parent.TryGetValue(x,out v)){parent[x]=x;return x;}if(v==x)return x;var r0=find(v);parent[x]=r0;return r0;};
+   foreach(var r in mem){var a=find(r[7]);var c=find(r[8]);if(a!=c)parent[a]=c;}
+   /* floor beams of a higher floor are not roof members */
+   var higher=floors.Where(f=>f.Y>topY+0.5).ToList();mem=mem.Where(r=>!(Math.Abs(r[2]-r[5])<1e-3&&higher.Any(f=>Math.Abs(f.Y-r[2])<0.02))).ToList();
+   parent.Clear();foreach(var r in mem){var a=find(r[7]);var c=find(r[8]);if(a!=c)parent[a]=c;}
+   /* a group with a joint on a higher floor (inside its outline or on its edge) climbs to it: a stair or a ramp */
+   mem=mem.GroupBy(r=>find(r[7])).Where(g=>!g.SelectMany(r=>new[]{new[]{r[1],r[2],r[3]},new[]{r[4],r[5],r[6]}}).Any(pt=>higher.Any(f=>Math.Abs(f.Y-pt[1])<0.02&&OnPlan(f,pt[0],pt[2])))).SelectMany(g=>g).ToList();}
   var sloped=mem.Where(r=>Math.Abs(r[2]-r[5])>1e-3).ToList();if(sloped.Count==0)return res;
   bool spanX=sloped.Count(r=>Math.Abs(r[3]-r[6])<1e-3)>=sloped.Count(r=>Math.Abs(r[1]-r[4])<1e-3);
   Func<double[],double> plane=r=>spanX?r[3]:r[1];Func<double[],double> u1=r=>spanX?r[1]:r[3];Func<double[],double> u2=r=>spanX?r[4]:r[6];
