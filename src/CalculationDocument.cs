@@ -2,7 +2,7 @@ using System;using System.IO;using System.Linq;using System.Text;using System.Co
 namespace BeamScheduleFormatter {
 sealed partial class CalculationDocument:IDisposable {
  internal readonly List<Action<Graphics>> Sheets=new List<Action<Graphics>>();readonly List<IDisposable> owned=new List<IDisposable>();
- internal bool FullPage;internal EngineeringReport ReportFile;internal string Title;internal readonly ProjectInformation Project;
+ internal bool FullPage;internal EngineeringReport ReportFile;internal string Title;/* a title per page when reports are put together (Design Loads report) */internal List<string> PageTitles;internal readonly ProjectInformation Project;
  readonly int projectCoverCount;
  /* page size in points: A4 portrait by default; A3 landscape for drawings (owner, 19 November 2026: "Gamit ng A3 para ok") */
  internal float PageWidth=595.28f,PageHeight=841.89f;internal bool A3{get{return PageWidth>1000||PageHeight>1000;}}
@@ -16,7 +16,7 @@ sealed partial class CalculationDocument:IDisposable {
  internal static void Section(Graphics g,string title,float y){using(var brush=new SolidBrush(ModernUi.Soft))g.FillRectangle(brush,L,y,CW,26);using(var brush=new SolidBrush(PowTheme.Teal))g.FillRectangle(brush,L,y,3,26);Text(g,title,L+10,y+5,CW-23,20,10,true);}
  internal static void Table(Graphics g,string[] headers,IList<string[]> rows,float y,float[] widths,float rowHeight=30){/* column widths made for the old 523 pt line fit the narrower line */float sum=0;foreach(var w0 in widths)sum+=w0;if(sum>CW+.5f){var k=CW/sum;widths=(float[])widths.Clone();for(int i=0;i<widths.Length;i++)widths[i]*=k;}float x=L;for(int c=0;c<headers.Length;c++){using(var brush=new SolidBrush(PowTheme.Ink))g.FillRectangle(brush,x,y,widths[c],34);Text(g,headers[c],x+5,y+4,widths[c]-8,29,7,true,Color.White);x+=widths[c];}y+=34;for(int r=0;r<rows.Count;r++){x=L;for(int c=0;c<headers.Length;c++){using(var brush=new SolidBrush(r%2==0?Color.White:ModernUi.Soft))g.FillRectangle(brush,x,y,widths[c],rowHeight);Text(g,c<rows[r].Length?rows[r][c]:"",x+5,y+4,widths[c]-8,rowHeight-5,7);x+=widths[c];}using(var pen=new Pen(PowTheme.Line,.5f))g.DrawLine(pen,L,y+rowHeight,L+CW,y+rowHeight);y+=rowHeight;}}
  internal void Draw(Graphics g,int page){using(var paper=new ReportPaperScope()){var saved=g.Save();try{g.PageUnit=GraphicsUnit.Point;g.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;g.TextRenderingHint=System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;g.Clear(Color.White);if(FullPage||page<projectCoverCount){Sheets[page](g);return;}PdfBrand.Draw(g,PageWidth,PageHeight);float W=PageWidth,H=PageHeight;
-  using(var brush=new SolidBrush(PowTheme.Teal))g.FillRectangle(brush,L,28,30,3);Text(g,"DTCE / CALCULATION REPORT",L+40,23,W-L-76,18,8,true,PowTheme.Muted);Text(g,Title,L,47,W-L-36,28,16,true);
+  using(var brush=new SolidBrush(PowTheme.Teal))g.FillRectangle(brush,L,28,30,3);Text(g,"DTCE / CALCULATION REPORT",L+40,23,W-L-76,18,8,true,PowTheme.Muted);Text(g,PageTitles!=null&&page<PageTitles.Count&&PageTitles[page]!=null?PageTitles[page]:Title,L,47,W-L-36,28,16,true);
   float projectY=80;if(projectCoverCount>0)Text(g,"Project information: see opening project information pages.",L,projectY,W-L-36,16,8);else foreach(string line in ProjectReportHeader.Lines(Project,W-L-44)){Text(g,line,L,projectY,W-L-36,12,8);projectY+=10;}
   Sheets[page](g);using(var pen=new Pen(PowTheme.Line))g.DrawLine(pen,L,H-39,W-36,H-39);Text(g,"DTCE Tool Kit v"+Engine.Version+" · "+DateTime.Now.ToString("yyyy-MM-dd")+(A3?" · A3":""),L,H-30,400,16,7,false,PowTheme.Muted);/* the page number ends at the right end of the footer line (owner, 26 November 2026: "PAGE ILAGAY SA PINAKA RIGHT NG FOOTER", all reports) */using(var font=new Font("Segoe UI",8,FontStyle.Bold,GraphicsUnit.Point))using(var brush=new SolidBrush(PowTheme.Ink))using(var far=new StringFormat{Alignment=StringAlignment.Far,LineAlignment=StringAlignment.Near}){g.DrawString((page+1)+" / "+Sheets.Count,font,brush,new RectangleF(W-36-160,H-30,160,16),far);}
  }finally{g.Restore(saved);}}}
@@ -34,7 +34,7 @@ sealed partial class CalculationDocument:IDisposable {
  public void Dispose(){foreach(var item in owned)item.Dispose();owned.Clear();}
 }
 class CalculationReportView:ScrollableControl {
- CalculationDocument document;bool owns;float scale;int pw,ph;internal int PageCount{get{return document==null?0:document.Sheets.Count;}}
+ CalculationDocument document;bool owns;float scale;int pw,ph;internal CalculationDocument Document{get{return document;}}internal int PageCount{get{return document==null?0:document.Sheets.Count;}}
  internal CalculationReportView(){DoubleBuffered=true;ResizeRedraw=true;AutoScroll=true;TabStop=true;SetStyle(ControlStyles.Selectable,true);BackColor=Color.FromArgb(224,230,236);}
  internal void SetDocument(CalculationDocument value,bool own=true){if(owns&&document!=null)document.Dispose();document=value;owns=own;AutoScrollPosition=Point.Empty;LayoutPages();}
  void LayoutPages(){float W=document==null?595.28f:document.PageWidth,H=document==null?841.89f:document.PageHeight;scale=Math.Max(.3f,Math.Min(1.8f,(ClientSize.Width-44)/W));pw=(int)(W*scale);ph=(int)(H*scale);AutoScrollMinSize=new Size(pw+40,PageCount*(ph+24)+24);Invalidate();}

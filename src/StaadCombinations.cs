@@ -121,7 +121,10 @@ static class StaadCombinations {
  /* a title with + / - inside is bracketed, so 1.3(EQ+X+E) and +(WL-Z) read as one load */
  /* load numbers as STAAD lists: 1001 TO 1031, single numbers apart */
  static string Ranges(List<int> nos){var parts=new List<string>();for(int i=0;i<nos.Count;){int j=i;while(j+1<nos.Count&&nos[j+1]==nos[j]+1)j++;parts.Add(j>i?nos[i]+" TO "+nos[j]:nos[i].ToString(Ci));i=j+1;}return string.Join(" ",parts);}
- static string Paren(StaadPrimary p){string n=p.Title.Replace(" ","");return p.Repeat==null&&Regex.IsMatch(n,@".[+\-]")?"("+n+")":n;}
+ /* the short name of a wind case in the combination titles: WL+X CASE 1 -> WL+X, CASE 1 -GCPI -> WL1B+X, CASE 2 +T -> WL2+X+T ... */
+ static string Short(string title){var k=Regex.Match((title??"").Trim(),@"^WL((?:[+-][XZ]){1,2})\s+CASE\s+([1-4])(\s+-GCPI)?(?:\s+([+-])T)?$",RegexOptions.IgnoreCase);if(!k.Success)return title;
+  string d=k.Groups[1].Value.ToUpperInvariant(),c=k.Groups[2].Value;return c=="1"?(k.Groups[3].Success?"WL1B"+d:"WL"+d):"WL"+c+d+(k.Groups[4].Success?k.Groups[4].Value+"T":"");}
+ static string Paren(StaadPrimary p){string n=Short(p.Title).Replace(" ","");return p.Repeat==null&&Regex.IsMatch(n,@".[+\-]")?"("+n+")":n;}
  static int Order(string k){return k=="D"?0:k=="L"?1:k=="Lr"?2:k=="W"?3:k=="E"?4:5;}
  /* the primary load cases of the structure class, earthquake cases first: A EQ +X -X +Z -Z; B the same with accidental torsion
     +E / -E (8 cases); C EQ +X -X +Z -Z with Load Type None (the orthogonal REPEAT LOAD cases are seismic); then DL, LL1..n, LLR, WL */

@@ -125,7 +125,27 @@ class LauncherForm:Form {
  void AddFormatterEntry(string title,Action open){formatterLoaders.Add(title,open);formatterTabs.TabPages.Add(new TabPage(title));}
  /* Design Loads: Wind, Earthquake and Load Combinations as sub tabs of one main tab */
  void AddLoadsGroup(){var group=new TabPage(DesignLoads);group.Controls.Add(loadTabs);designTabs.TabPages.Add(group);
-  /* owner, 26 November 2026: live loads of government buildings per space *//* owner: "ANOTHER SUB TAB FOR DEAD LOAD" */AddLoadEntry("Dead Loads (NSCP 2015)",()=>OpenDesign("Dead Loads (NSCP 2015)",()=>new DeadLoadsForm()));AddLoadEntry("Live Loads (NSCP 2015)",()=>OpenDesign("Live Loads (NSCP 2015)",()=>new LiveLoadsForm()));AddLoadEntry("Wind Load (NSCP 2015)",()=>OpenDesign("Wind Load (NSCP 2015)",()=>new WindDesignForm()));AddLoadEntry("Earthquake Load & RSA Curve Builder",()=>OpenDesign("Earthquake Load & RSA Curve Builder",()=>new RsaCurveForm()));AddLoadEntry("Load Combinations (NSCP 2015)",()=>OpenDesign("Load Combinations (NSCP 2015)",()=>new LoadCombinationsForm()));}
+  /* owner, 26 November 2026: live loads of government buildings per space *//* owner: "ANOTHER SUB TAB FOR DEAD LOAD" */AddLoadEntry("Dead Loads (NSCP 2015)",()=>OpenDesign("Dead Loads (NSCP 2015)",()=>new DeadLoadsForm()));AddLoadEntry("Live Loads (NSCP 2015)",()=>OpenDesign("Live Loads (NSCP 2015)",()=>new LiveLoadsForm()));AddLoadEntry("Wind Load (NSCP 2015)",()=>OpenDesign("Wind Load (NSCP 2015)",()=>new WindDesignForm()));AddLoadEntry("Earthquake Load & RSA Curve Builder",()=>OpenDesign("Earthquake Load & RSA Curve Builder",()=>new RsaCurveForm()));AddLoadEntry("Load Combinations (NSCP 2015)",()=>OpenDesign("Load Combinations (NSCP 2015)",()=>new LoadCombinationsForm()));
+  /* owner (27 November 2026): "calculation report sa tabi ng load combo, nandon lahat ng design loads" */AddLoadEntry(LoadsReport,ShowLoadsReport);}
+ const string LoadsReport="Calculation report";
+ CalculationReportView loadsView;Label loadsStatus;bool loadsBuilding;
+ void ShowLoadsReport(){var page=loadTabs.TabPages.Cast<TabPage>().First(p=>p.Text==LoadsReport);
+  if(loadsView==null||loadsView.IsDisposed){page.Controls.Clear();loadsView=new CalculationReportView{Dock=DockStyle.Fill};loadsStatus=new Label{Dock=DockStyle.Top,Height=30,Padding=new Padding(10,6,10,0),ForeColor=PowTheme.Ink};
+   var tools=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,Padding=new Padding(8),WrapContents=true};Func<string,Action,Button> btn=(t,a)=>{var b=new Button{Text=t,AutoSize=true,Height=38};b.Click+=(s,e)=>{try{a();}catch(Exception ex){loadsStatus.ForeColor=Color.Firebrick;loadsStatus.Text=ex.Message;}};tools.Controls.Add(b);return b;};
+   btn("Refresh report",()=>BuildLoadsReport());btn("Print preview",()=>{var d=loadsView.Document;if(d!=null)CalculationReportView.ShowReport(this,d);});
+   btn("Export PDF…",()=>{var d=loadsView.Document;if(d==null)return;using(var dialog=new SaveFileDialog{Filter="PDF|*.pdf",FileName="Design-Loads.pdf"})if(dialog.ShowDialog(this)==DialogResult.OK){d.WritePdf(dialog.FileName);loadsStatus.Text="Saved "+dialog.FileName;}});
+   page.Controls.Add(loadsView);page.Controls.Add(loadsStatus);page.Controls.Add(tools);}
+  BuildLoadsReport();}
+ /* opens the five sheets that are not open yet (their saved inputs come with them), then puts their reports together */
+ async void BuildLoadsReport(){if(loadsBuilding)return;loadsBuilding=true;var page=loadTabs.TabPages.Cast<TabPage>().First(p=>p.Text==LoadsReport);
+  try{loadsStatus.ForeColor=PowTheme.Ink;loadsStatus.Text="Putting the Design Loads report together…";
+   foreach(var title in LoadSheets){Form f;if(designModules.TryGetValue(title,out f)&&f!=null&&!f.IsDisposed)continue;Action open;if(designLoaders.TryGetValue(title,out open)){bool was=loadingDesign;loadingDesign=true;try{open();}finally{loadingDesign=was;}}}
+   {bool was=loadingDesign;loadingDesign=true;try{loadTabs.SelectedTab=page;}finally{loadingDesign=was;}}
+   var sheets=LoadSheets.Select(t=>{Form f;designModules.TryGetValue(t,out f);return new KeyValuePair<string,DesignSheetForm>(t,f as DesignSheetForm);}).ToList();var problems=new List<string>();
+   var doc=await DesignLoadsReport.Build(sheets,problems);loadsView.SetDocument(doc);
+   loadsStatus.ForeColor=problems.Count>0?Color.Firebrick:PowTheme.Teal;loadsStatus.Text=doc.Sheets.Count+" pages"+(problems.Count>0?" - not included: "+string.Join("; ",problems):": Dead, Live, Wind, Earthquake and Load Combinations.");}
+  catch(Exception ex){loadsStatus.ForeColor=Color.Firebrick;loadsStatus.Text="Report: "+ex.Message;}
+  finally{loadsBuilding=false;}}
  void AddLoadEntry(string title,Action open){designLoaders.Add(title,open);var page=new TabPage(title);page.Controls.Add(new Label{Text="This design sheet requires its own program access.",Dock=DockStyle.Top,Height=60,Padding=new Padding(20)});loadTabs.TabPages.Add(page);}
  void AddDesignEntry(string title,Action open){designLoaders.Add(title,open);var page=new TabPage(title);page.Controls.Add(new Label{Text="This design sheet requires its own program access.",Dock=DockStyle.Top,Height=60,Padding=new Padding(20)});designTabs.TabPages.Add(page);}
  void AddCard(FlowLayoutPanel panel,string title,string description,Action action){var card=new ToolModuleButton{ModuleIndex=panel.Controls.Count,Text=title,Description=description,Height=86,Width=330,Margin=new Padding(0,0,14,12)};card.Click+=(s,e)=>action();panel.Controls.Add(card);}

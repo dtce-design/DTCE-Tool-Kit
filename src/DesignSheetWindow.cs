@@ -88,6 +88,8 @@ abstract class DesignSheetForm:Form,IProjectWorkspace {
  internal void OpenFile(string path){string xml=File.ReadAllText(path);SavedPath=path;if(DesignLoadsFile.Kinds.Contains(kind)){string msg=DesignLoadsFile.Open(xml,this);status.ForeColor=PowTheme.Teal;status.Text=msg;}else Restore(xml);MarkSaved();}
  protected override bool ProcessCmdKey(ref Message msg,Keys keyData){if(keyData==(Keys.Control|Keys.S)){SaveProjectAll();return true;}if(keyData==(Keys.Control|Keys.Shift|Keys.S)){Save(true);return true;}if(keyData==(Keys.Control|Keys.O)){Open();return true;}return base.ProcessCmdKey(ref msg,keyData);}
  void Save(){Save(false);}
+ /* the full report of this sheet, for the Design Loads report */
+ internal async Task<CalculationDocument> ReportForBundle(){await PrepareDocumentAsync();return BuildDocument();}
  /* IProjectWorkspace: Design Loads (five sheets) are one part */
  bool LoadsKind{get{return DesignLoadsFile.Kinds.Contains(kind);}}
  public string ProjectKind{get{return LoadsKind?"design:loads":"design:"+kind;}}
