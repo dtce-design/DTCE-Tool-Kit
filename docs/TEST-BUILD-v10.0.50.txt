@@ -1,0 +1,11 @@
+DTCE Tool Kit v10.0.50 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store upload is on hold).
+
+PATCH - DEFINE ENVELOPE before the primary load cases (owner's STAAD run: "ERROR: "DEFINE" COMMANDS FOR LOAD GENERATION SHOULD BE
+PROVIDED BEFORE SPECIFYING PRIMARY LOAD CASES" at DEFINE ENVELOPE):
+- STAAD reads every DEFINE block before the first LOAD case. The Load Combinations output wrote DEFINE ENVELOPE after the combinations;
+  it now comes first (the envelopes may name combination numbers defined further down), then the primary loads (automatic primary
+  loads), the combinations, and PERFORM ANALYSIS with the print commands at the end. Without automatic primary loads the block's comment
+  says to paste it above the first LOAD of the input.
+- The "fx fy fz wind forces" warnings of that run are STAAD's report of the wind loads it generated, not errors.
+Tests: StaadCombinationsTests 37, WindEdgeLoadsTests 42, RoofLiveLoadsTests 22.
+Includes everything of v10.0.49.

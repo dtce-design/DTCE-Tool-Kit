@@ -166,6 +166,14 @@ static class StaadCombinations {
    else b.Append("\n* add the ").Append(p.Kind=="W"?"wind":p.Kind=="Lr"?"roof live":p.Kind=="L"?"live":"").Append(" loads here");}
   return b.ToString();}
  internal static string Staad(List<StaadCombo> combos,List<StaadPrimary> cases,StaadCombinationSettings s){var b=new StringBuilder();
+  /* one envelope per group (owner, 26 November 2026: "add define envelope"): strength design and special seismic as STRENGTH, the ASD and
+     drift groups as SERVICEABILITY. STAAD reads every DEFINE block before the primary load cases ("DEFINE" COMMANDS FOR LOAD GENERATION
+     SHOULD BE PROVIDED BEFORE SPECIFYING PRIMARY LOAD CASES, owner's STAAD run, 27 November 2026), so the envelopes come first; they may
+     name combination numbers that are defined further down. */
+  if(combos.Count>0){b.Append("* ---- ENVELOPES (a DEFINE block: STAAD needs it before the first LOAD case").Append(s.AutoPrimary?"":"; paste it above the first LOAD of your input").Append(") ----\nDEFINE ENVELOPE");int env=0;
+   foreach(var g in combos.GroupBy(c=>c.Group)){var nos=g.Select(c=>c.No).OrderBy(x=>x).ToList();string type=g.Key.StartsWith("Strength")||g.Key.StartsWith("Special")?"STRENGTH":"SERVICEABILITY";
+    b.Append("\n* ").Append(g.Key);b.Append("\n").Append(Ranges(nos)).Append(" ENVELOPE ").Append(++env).Append(" TYPE ").Append(type);}
+   b.Append("\nEND DEFINE ENVELOPE\n");}
   if(s.AutoPrimary){b.Append(PrimarySection(cases,s)).Append("\n");}
   b.Append("* ---- LOAD COMBINATIONS, NSCP 2015 (superstructure) ----");
   b.Append("\n* 1000 strength design (203.3.1), 2000 alternate basic ASD (203.4.2),");
@@ -181,12 +189,6 @@ static class StaadCombinations {
    if(c.Eq!=""&&(combos.IndexOf(c)==0||combos[combos.IndexOf(c)-1].Eq!=c.Eq))b.Append("\n* ").Append(c.Eq.StartsWith("203-")?"Eq. "+c.Eq:c.Eq);
    b.Append("\nLOAD COMBINATION ").Append(c.No).Append(" ").Append(c.Title);
    b.Append("\n").Append(string.Join(" ",c.Terms.OrderBy(t=>t.Key.No).Select(t=>t.Key.No.ToString(Ci)+" "+F(t.Value))));}
-  /* one envelope per group at the end (owner, 26 November 2026: "add define envelope at the end of load combo"): strength design and special
-     seismic as STRENGTH, the ASD and drift groups as SERVICEABILITY */
-  if(combos.Count>0){b.Append("\n* ---- ENVELOPES ----\nDEFINE ENVELOPE");int env=0;
-   foreach(var g in combos.GroupBy(c=>c.Group)){var nos=g.Select(c=>c.No).OrderBy(x=>x).ToList();string type=g.Key.StartsWith("Strength")||g.Key.StartsWith("Special")?"STRENGTH":"SERVICEABILITY";
-    b.Append("\n* ").Append(g.Key);b.Append("\n").Append(Ranges(nos)).Append(" ENVELOPE ").Append(++env).Append(" TYPE ").Append(type);}
-   b.Append("\nEND DEFINE ENVELOPE");}
   /* analysis and the reports to print (owner: "include also the reports needed to print like print story drift, load list, print dia cr, print
      story stiffness etc."): the drift cases for the story drift, the EQ cases for the displacements (Ax) and member forces (rho) */
   if(s.PrintReports){var eqNos=cases.Where(p=>p.Kind=="E").Select(p=>p.No).OrderBy(x=>x).ToList();var drift=combos.Where(c=>c.Group=="Seismic drift").Select(c=>c.No).ToList();
