@@ -1,0 +1,10 @@
+DTCE Tool Kit v10.0.37 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store upload is on hold).
+
+PATCH - terrain aligned with the building by itself:
+- Wind Load sheet ("yung totoo naka align na ba ito sa building? bakit naka N, NE?"; "pati sa kzt"): with building pressures on, the
+  eight directions of the terrain are taken from the ridge azimuth (faces and diagonals, since v7.2.37) - but a terrain loaded before the
+  ridge azimuth was set (or an older saved sheet) stayed at N, NE, E ... and only showed a message. Now the terrain is loaded again by
+  itself whenever its directions do not follow the building, so the exposure and Kzt of each face, the terrain profiles and the report
+  pages use the building's own directions (e.g. ridge at 053 deg: 008, 053, 098 ... deg).
+Tests: WindAuditTests 79, WindBuildingLoadsTests 42, WindCasesTabTests 9.
+Includes everything of v10.0.36.
