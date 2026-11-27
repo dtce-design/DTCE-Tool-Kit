@@ -348,6 +348,10 @@ replace_pending_store_submission stays false; User visibility stays Public. Late
 Result 27 November 2026: PR #30 merged to main (GitHub release of v10.0.58, run 45961176481). Owner then: "pero paki ayos muna yung workflow sa design
 loads" - Store run 45961238431 was cancelled before any job started; nothing was uploaded and nothing changed in Partner Center. v10.0.59 adds the
 Design Loads steps tab; the Store upload waits for the owner's go-ahead on the new build.
+New owner request (27 November 2026, "publish sa microsoft store"; then, before it ran, "huwag auto load yung DL at LL" and "alisin na yung options
+na required talaga"): the Store release is v10.0.60 (User and Admin) after its Windows CI passes (PR #31 to main for the GitHub release, then
+publish_microsoft_store=true; nothing is pending, so replace_pending_store_submission stays false; User visibility stays Public). Later versions
+again need a new explicit request.
 Checked 26 November 2026 (read-only store_status job, run 45825954870): v10.0.18 is Published for User and Admin; no submission pending;
 the public catalog lists DTCE.DTCEToolKit_10.0.18.0 / DTCE.DTCEToolKit-Admin_10.0.18.0.
 Update check (owner, 26 November 2026: "di namang gumagana yung pagcheck ng updates"; "ayaw ko ng check for updates, gusto ko automatic na",
