@@ -1,0 +1,8 @@
+DTCE Tool Kit v10.0.53 (27 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - envelope and analysis order (owner: "yung define envelope after ng load combo tapos after non may perform analysis"; "bat kasi
+perform analysis print load data"):
+- DEFINE ENVELOPE ... END DEFINE ENVELOPE right after the last LOAD COMBINATION, then PERFORM ANALYSIS, then the print commands.
+- PERFORM ANALYSIS without PRINT LOAD DATA (it only echoed every generated load into the output file).
+Tests: StaadCombinationsTests.
+Includes everything of v10.0.52.
