@@ -17,10 +17,19 @@ static class WindCasesTabTests {
   var form=new WindDesignForm();form.Show();for(int i=0;i<20;i++)Application.DoEvents();
   typeof(WindDesignForm).GetMethod("UpdateWindCases",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(form,new object[]{types});
   var panel=(FlowLayoutPanel)typeof(WindDesignForm).GetField("windCasePanel",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(form);
-  Check(panel.Controls.Count==5,"design cases figure + one figure per wind case on the tab ("+panel.Controls.Count+")");
+  Check(panel.Controls.Count==24,"one figure per wind load case on the tab: Case 1 x 4, Case 2 x 8, Case 3 x 4, Case 4 x 8 ("+panel.Controls.Count+")");
+  /* each figure is its own case, read from its STAAD text (v10.0.39, owner: "isa isahin mo based din kung ilan wind load cases") */
+  {var figs=(List<WindLoadCaseFigure>)typeof(WindDesignForm).GetField("loadFigs",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(form);
+   Check(figs.Select(f=>f.Key).Distinct().Count()==24&&figs[0].Key=="+X"&&figs[0].Title=="LOAD 13 WL+X CASE 1","case keys in load case order, linked titles");
+   Check(figs.Where(f=>f.Key.StartsWith("2")||f.Key.StartsWith("4")).All(f=>f.Text.Contains("JOINT LOAD")),"Cases 2 and 4 carry their torsion couple");
+   Check(figs.Where(f=>f.Key.StartsWith("3")).All(f=>!f.Text.Contains("JOINT LOAD")),"Case 3 has no torsion");
+   using(var b0=new System.Drawing.Bitmap(1,1))using(var g0=System.Drawing.Graphics.FromImage(b0))foreach(var f in figs){float h=f.Height(g0,600,10);Check(h>100&&h<2000,"figure height "+f.Key+" "+h);}
+   foreach(var f in figs){var bmp=new System.Drawing.Bitmap(620,1400);using(var g=System.Drawing.Graphics.FromImage(bmp)){g.Clear(System.Drawing.Color.White);f.Draw(g,new System.Drawing.RectangleF(10,10,600,1380),10);}
+    if(Environment.GetEnvironmentVariable("WC_SHOT")!=null)bmp.Save(Environment.GetEnvironmentVariable("WC_SHOT")+"/case"+f.Key.Replace("+","p").Replace("-","m")+".png");bmp.Dispose();}checks++;}
   var pages=(TabControl)typeof(DesignSheetForm).GetField("Pages",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(form);Check(pages.TabPages.Cast<TabPage>().Any(p=>p.Text=="Wind load cases"),"Wind load cases tab in the Wind Load sheet");
   var doc=new CalculationDocument("t");typeof(WindDesignForm).GetMethod("AddWindCasePages",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(form,new object[]{doc});
-  Check(doc.Sheets.Count>=6,"report pages: design cases, four wind cases, torsion ("+doc.Sheets.Count+")");
+  Check(doc.Sheets.Count>=8&&doc.Sheets.Count<=26,"report pages: the 24 cases flow over the pages, then the torsion table ("+doc.Sheets.Count+")");
+  if(Environment.GetEnvironmentVariable("WC_SHOT")!=null)for(int k=0;k<doc.Sheets.Count;k++)using(var pb=new System.Drawing.Bitmap(1190,1684)){using(var g=System.Drawing.Graphics.FromImage(pb)){g.Clear(System.Drawing.Color.White);g.ScaleTransform(2,2);doc.Sheets[k](g);}pb.Save(Environment.GetEnvironmentVariable("WC_SHOT")+"/page"+k+".png");}
   using(var bmp=new System.Drawing.Bitmap(595,842))using(var g=System.Drawing.Graphics.FromImage(bmp))foreach(var s in doc.Sheets)s(g);checks++;
   var lc=new LoadCombinationsForm();lc.Show();for(int i=0;i<20;i++)Application.DoEvents();
   var lp=(TabControl)typeof(DesignSheetForm).GetField("Pages",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(lc);Check(!lp.TabPages.Cast<TabPage>().Any(p=>p.Text=="Wind load cases"),"no Wind load cases tab in Load Combinations any more");
