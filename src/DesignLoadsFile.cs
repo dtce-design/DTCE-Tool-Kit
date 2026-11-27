@@ -28,13 +28,15 @@ static class DesignLoadsFile {
 }
 /* the Earthquake Load sheet's seismic values for the Load Combinations sheet (owner, 26 November 2026: "inputs for seismic are connected to
    earthquake load") */
-sealed class EarthquakeLinkData {public double Ca,I,Omega,Rho,R;public int Zone;public DateTime Saved;}
+sealed class EarthquakeLinkData {public double Ca,I,Omega,Rho,R,Na=1,Nv=1;public int Zone,Soil;public DateTime Saved;}
 static class EarthquakeLink {
  static readonly System.Globalization.CultureInfo Ci=System.Globalization.CultureInfo.InvariantCulture;
  static string FilePath{get{return System.IO.Path.Combine(SharedData.Folder("Links",System.IO.Path.Combine("DTCE Tool Kit","Links")),"earthquake-link.xml");}}
- internal static void Save(StaticLateralResult s){try{new System.Xml.Linq.XElement("EarthquakeLink",new System.Xml.Linq.XAttribute("ca",s.Ca.ToString("R",Ci)),new System.Xml.Linq.XAttribute("i",s.I.ToString("R",Ci)),new System.Xml.Linq.XAttribute("omega",s.Omega.ToString("R",Ci)),new System.Xml.Linq.XAttribute("rho",s.Rho.ToString("R",Ci)),new System.Xml.Linq.XAttribute("r",s.R.ToString("R",Ci)),new System.Xml.Linq.XAttribute("zone",s.Zone),new System.Xml.Linq.XAttribute("saved",DateTime.Now.ToString("o",Ci))).Save(FilePath);}catch(Exception){}}
+ internal static void Save(StaticLateralResult s){Save(s,0);}
+ /* soil = STAAD STYP (1 SA ... 5 SE), 0 = not known */
+ internal static void Save(StaticLateralResult s,int soil){try{new System.Xml.Linq.XElement("EarthquakeLink",new System.Xml.Linq.XAttribute("na",s.Na.ToString("R",Ci)),new System.Xml.Linq.XAttribute("nv",s.Nv.ToString("R",Ci)),new System.Xml.Linq.XAttribute("soil",soil),new System.Xml.Linq.XAttribute("ca",s.Ca.ToString("R",Ci)),new System.Xml.Linq.XAttribute("i",s.I.ToString("R",Ci)),new System.Xml.Linq.XAttribute("omega",s.Omega.ToString("R",Ci)),new System.Xml.Linq.XAttribute("rho",s.Rho.ToString("R",Ci)),new System.Xml.Linq.XAttribute("r",s.R.ToString("R",Ci)),new System.Xml.Linq.XAttribute("zone",s.Zone),new System.Xml.Linq.XAttribute("saved",DateTime.Now.ToString("o",Ci))).Save(FilePath);}catch(Exception){}}
  internal static EarthquakeLinkData Load(){try{if(!System.IO.File.Exists(FilePath))return null;var x=System.Xml.Linq.XElement.Load(FilePath);Func<string,double> d=n=>double.Parse((string)x.Attribute(n),Ci);
-   return new EarthquakeLinkData{Ca=d("ca"),I=d("i"),Omega=d("omega"),Rho=d("rho"),R=d("r"),Zone=(int)d("zone"),Saved=DateTime.Parse((string)x.Attribute("saved"),Ci,System.Globalization.DateTimeStyles.RoundtripKind)};}catch(Exception){return null;}}
+   return new EarthquakeLinkData{Ca=d("ca"),I=d("i"),Omega=d("omega"),Rho=d("rho"),R=d("r"),Zone=(int)d("zone"),Na=x.Attribute("na")!=null?d("na"):1,Nv=x.Attribute("nv")!=null?d("nv"):1,Soil=x.Attribute("soil")!=null?(int)d("soil"):0,Saved=DateTime.Parse((string)x.Attribute("saved"),Ci,System.Globalization.DateTimeStyles.RoundtripKind)};}catch(Exception){return null;}}
 }
 }
 namespace BeamScheduleFormatter {
