@@ -21,7 +21,7 @@ sealed class StaadCombo {public int No;public string Title,Group,Eq="";public Li
    torsion, each alone), "C" irregular and unsymmetrical (orthogonal effects: eight REPEAT LOAD cases 1.0(EQ +X) + 0.3(EQ +Z) ..., Load Type
    Seismic, built from the EQ cases of Load Type None) - the owner's STAAD notes. F1One: titles of the live cases with f1 = 1.0 (owner:
    "hiwalay yung LL1 at LL2 yung f1 niya"); other live cases f1 = 0.5. */
-sealed class StaadCombinationSettings {/* automatic primary loads and their STAAD section (owner, 26 November 2026: "automatic na sana di na ako maglalagay ng primary loads"; "perform analysis change every eq primary case") */public bool AutoPrimary,PerformChange=true;public bool PrintReports=true;public string EqCommand="UBC LOAD";/* wind case text by direction of travel ("+X" ...) from the Wind Load sheet */public Dictionary<string,string> WindText=new Dictionary<string,string>();/* the LLR body from the STAAD model (RoofLiveLoads) */public string RoofLiveText="";public double Acc=0.05,Ax=1.0;public double Rho=1.0,Ca=0.44,I=1.0;public bool IncludeEv=true,Lrfd=true,Asd=false,EvInAsd=false;public string Structure="C";
+sealed class StaadCombinationSettings {/* automatic primary loads and their STAAD section (owner, 26 November 2026: "automatic na sana di na ako maglalagay ng primary loads"; "perform analysis change every eq primary case") */public bool AutoPrimary,PerformChange=false;public bool PrintReports=true;public string EqCommand="UBC LOAD";/* wind case text by direction of travel ("+X" ...) from the Wind Load sheet */public Dictionary<string,string> WindText=new Dictionary<string,string>();/* the LLR body from the STAAD model (RoofLiveLoads) */public string RoofLiveText="";public double Acc=0.05,Ax=1.0;public double Rho=1.0,Ca=0.44,I=1.0;public bool IncludeEv=true,Lrfd=true,Asd=false,EvInAsd=false;public string Structure="C";
  /* drift checks (owner, 25 November 2026: "also for drift check wind and seismic"): 7000 wind drift D + 0.5L + kW (k = DriftWind, 0.6 =
     service-level wind of the NSCP 2015 ultimate wind speeds), 8000 seismic drift 1.0 Eh of every seismic case (Section 208.6.4: the
     design-level displacement of the design seismic forces, then dM = 0.7 R dS against 0.025h / 0.020h) */public bool Drift=true,DriftGravity=false;public double DriftWind=0.6;
@@ -145,7 +145,8 @@ static class StaadCombinations {
    foreach(var x in new[]{"+X","-X"})foreach(var z in new[]{"+Z","-Z"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL"+x+z+" CASE 3");
    if(torsion)foreach(var x in new[]{"+X","-X"})foreach(var z in new[]{"+Z","-Z"})foreach(var t in new[]{"+T","-T"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL"+x+z+" CASE 4 "+t);}
   return string.Join("\n",lines);}
- /* the STAAD primary load section: each EQ case with its seismic load command and PERFORM ANALYSIS / CHANGE (STAAD warns without them) */
+ /* the STAAD primary load section: each EQ case with its seismic load command; PERFORM ANALYSIS / CHANGE after each only when chosen (owner, 27
+    November 2026: "bat kapag trinansfer ko na sa rcdc di na maread yung analysis data" - RCDC reads one analysis only) */
  /* "WL+X" -> "+X" */
  internal static string WindKey(string title){var k=System.Text.RegularExpressions.Regex.Match((title??"").Trim(),@"^WL((?:[+-][XZ]){1,2})\s+CASE\s+([1-4])(\s+-GCPI)?(?:\s+([+-])T)?$",System.Text.RegularExpressions.RegexOptions.IgnoreCase);
   if(k.Success){string dirs=k.Groups[1].Value.ToUpperInvariant(),c0=k.Groups[2].Value;if(c0=="1")return (k.Groups[3].Success?"1B":"")+dirs;return c0+dirs+(k.Groups[4].Success?k.Groups[4].Value+"T":"");}
