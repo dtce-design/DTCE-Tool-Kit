@@ -66,7 +66,7 @@ partial class LoadCombinationsForm:DesignSheetForm {
   group("4  STAAD output");
   Toggle(set,"PrintReports","Analysis and print commands",true);tip("PrintReports","PERFORM ANALYSIS and the print commands: CG, DIAPHRAGM CR, STORY STIFFNESS, STORY DRIFT, displacements, member forces, reactions.");
   auto.CheckedChanged+=(s0,e0)=>{text.ReadOnly=auto.Checked;};text.ReadOnly=true;
-  EnableWhen(()=>On("AutoPrimary"),"RoofLive","WindCases","WindLinked","LlLinked","EqCommand");EnableWhen(()=>On("AutoPrimary")&&On("WindCases"),"WindAllCases");EnableWhen(()=>On("AutoPrimary")&&On("WindCases")&&On("WindAllCases"),"WindTorsionExempt");EnableWhen(()=>On("Ev"),"EvAsd");EnableWhen(()=>On("Drift"),"DriftWind","DriftGravity");EnableWhen(()=>Value("Structure").StartsWith("B"),"Acc");
+  /* automatic (owner, 27 November 2026: "automatic na dapat itong mga ito, dapat macheck na agad if need or hindi as per nscp 2015 code") */ShowWhen(()=>false,"WindAllCases","WindTorsionExempt","WindLinked");EnableWhen(()=>On("AutoPrimary"),"RoofLive","WindCases","WindLinked","LlLinked","EqCommand");EnableWhen(()=>On("Ev"),"EvAsd");EnableWhen(()=>On("Drift"),"DriftWind","DriftGravity");EnableWhen(()=>Value("Structure").StartsWith("B"),"Acc");
   /* linked or unused values are hidden, not repeated */
   ShowWhen(()=>!(On("AutoPrimary")&&On("LlLinked")&&LiveLink()!=null),"LiveCases","F1One");ShowWhen(()=>!On("EqLinked"),"Ca","I","Omega0");EnableWhen(()=>!On("EqLinked"),"Ca","I","Omega0");ShowWhen(()=>false,"Ax");ShowWhen(()=>Value("Structure").StartsWith("B"),"Acc");
   /* rho from the STAAD model (owner: "How do you compute redundancy or reliability factor" - "Yes with automatic staad computation") */AddRhoPage();/* owner: "add also automatic computation of torsional amplification factor" */AddAxPage();/* owner: "for structural irregularities check" */AddIrregularPage();
@@ -100,17 +100,29 @@ partial class LoadCombinationsForm:DesignSheetForm {
   return changed;}
  /* wind case text, cached by the model and the Wind sheet's types */
  string windNote="",windKey=null;Dictionary<string,string> windCache;
- Dictionary<string,string> WindTexts(){windNote="";if(!On("WindLinked"))return new Dictionary<string,string>();var link=DesignLoadsLink.Get("wind-staad");if(link==null){windNote="Wind cases: calculate the Wind Load sheet with building pressures and the STAAD +X set.";return new Dictionary<string,string>();}
-  string mt=Value("StaadInput")+"\u0001"+Value("StaadBeams")+"\u0001"+On("WindAllCases")+On("WindTorsionExempt"),ft;string key=string.Join(";",link.OrderBy(k=>k.Key).Select(k=>k.Key+"="+k.Value))+"#"+mt.Length+"#"+mt.GetHashCode();
-  if(key!=windKey){string n,err;var m=InputModel(out err);if(m==null){RhoTexts(out mt,out ft);if(RedundancyFactor.HasModel(mt))m=RedundancyFactor.ReadModel(mt);}windTypes=link.Where(k=>k.Key.Length==2).ToDictionary(k=>k.Key,k=>k.Value);windCache=WindEdgeLoads.CaseTexts(windTypes,m,out n,On("WindAllCases"),!On("WindTorsionExempt"));windKey=key;windCacheNote=(err!=""?err+" ":"")+n;}windNote="Wind cases: "+windCacheNote.Replace("Paste the STAAD input on the Redundancy factor tab","Paste the STAAD input on the Primary loads tab");return windCache;}
+ Dictionary<string,string> WindTexts(){windNote="";var link=DesignLoadsLink.Get("wind-staad");if(link==null){windNote="Wind cases: calculate the Wind Load sheet with building pressures and the STAAD +X set.";return new Dictionary<string,string>();}
+  string mt=Value("StaadInput")+"\u0001"+Value("StaadBeams")+"\u0001"+AllWindCases()+TorsionExempt(),ft;string key=string.Join(";",link.OrderBy(k=>k.Key).Select(k=>k.Key+"="+k.Value))+"#"+mt.Length+"#"+mt.GetHashCode();
+  if(key!=windKey){string n,err;var m=InputModel(out err);if(m==null){RhoTexts(out mt,out ft);if(RedundancyFactor.HasModel(mt))m=RedundancyFactor.ReadModel(mt);}windTypes=link.Where(k=>k.Key.Length==2).ToDictionary(k=>k.Key,k=>k.Value);windCache=WindEdgeLoads.CaseTexts(windTypes,m,out n,AllWindCases(),!TorsionExempt());windKey=key;windCacheNote=(err!=""?err+" ":"")+n;}TorsionExempt();windNote="Wind cases (NSCP 2015 Fig. 207B.4-8, Cases 1-4): "+torsionWhy+". "+windCacheNote.Replace("Paste the STAAD input on the Redundancy factor tab","Paste the STAAD input on the Primary loads tab");return windCache;}
  string windCacheNote="";
+ /* NSCP 2015 Figure 207B.4-8 (directional procedure): the design wind load cases are required for every building */
+ bool AllWindCases(){return true;}
+ /* exemption from the torsional cases (Cases 2 and 4), decided from the STAAD model: ASCE 7-10 Appendix D, D1.1 (NSCP 2015 is based on
+    ASCE 7-10) - a one-storey building with h <= 9.1 m (30 ft). The other D1.1 groups (two storeys or less of light-frame construction or
+    with flexible diaphragms) cannot be told from nodes and beams, so the torsional cases stay for them (the safe side). */
+ string torsionKey,torsionWhy="";bool torsionExempt;
+ bool TorsionExempt(){string nodes=Value("StaadInput"),beams=Value("StaadBeams");string key=nodes.Length+"#"+nodes.GetHashCode()+"#"+beams.GetHashCode();if(key==torsionKey)return torsionExempt;torsionKey=key;torsionExempt=false;
+  string err;var m=InputModel(out err);if(m==null){torsionWhy="torsional cases included (no STAAD model to check the exemption)";return false;}
+  string n;var plans=WindEdgeLoads.Plans(m,0,1e9,out n);double baseY=m.Joints.Values.Min(j=>m.H(j))*m.ToMetre,top=m.Joints.Values.Max(j=>m.H(j))*m.ToMetre;int storeys=plans.Count(p=>p.Y>baseY+0.5);double h=top-baseY;
+  torsionExempt=storeys<=1&&h<=9.144+1e-6;
+  torsionWhy=torsionExempt?"exempt from the torsional cases: one storey, h = "+StaadCombinations.F(h)+" m <= 9.1 m (ASCE 7-10 Appendix D, D1.1): Cases 1 and 3 only":
+   "torsional cases included: "+storeys+" storeys, h = "+StaadCombinations.F(h)+" m (the D1.1 exemption needs one storey with h <= 9.1 m)";return torsionExempt;}
  /* the Wind sheet sends roof pressures: Case 1 gets its -GCpi twin WL1B */
- bool RoofWind(){if(!On("WindLinked"))return false;var l=DesignLoadsLink.Get("wind-staad");if(l==null)return false;/* the roof needs the STAAD model (owner, 27 November 2026: "bat walang laman ito" - WL1B cases were empty without it) */string err;if(InputModel(out err)==null){string mt,ft;RhoTexts(out mt,out ft);if(!RedundancyFactor.HasModel(mt))return false;}
+ bool RoofWind(){var l=DesignLoadsLink.Get("wind-staad");if(l==null)return false;/* the roof needs the STAAD model (owner, 27 November 2026: "bat walang laman ito" - WL1B cases were empty without it) */string err;if(InputModel(out err)==null){string mt,ft;RhoTexts(out mt,out ft);if(!RedundancyFactor.HasModel(mt))return false;}
   return l.Where(k=>k.Key.Length==2).Any(k=>{var t=WindFaceTypes.Unpack(k.Key,k.Value);return t!=null&&t.HasRoof;});}
  Dictionary<string,string> windTypes;
  /* the STAAD model, the LOAD titles and the case settings for the Wind Load sheet's "Wind load cases" tab and report (link wind-model) */
  string windModelKey="";
- void UpdateWindFigures(Dictionary<string,string> titles){var d=new Dictionary<string,string>{{"nodes",Value("StaadInput")},{"beams",Value("StaadBeams")},{"all",On("WindAllCases")?"1":"0"},{"exempt",On("WindTorsionExempt")?"1":"0"},{"titles",string.Join("\n",titles.Select(k=>k.Key+"="+k.Value))}};
+ void UpdateWindFigures(Dictionary<string,string> titles){var d=new Dictionary<string,string>{{"nodes",Value("StaadInput")},{"beams",Value("StaadBeams")},{"all",AllWindCases()?"1":"0"},{"exempt",TorsionExempt()?"1":"0"},{"titles",string.Join("\n",titles.Select(k=>k.Key+"="+k.Value))}};
   if(string.IsNullOrWhiteSpace(d["nodes"])){string mt,ft;RhoTexts(out mt,out ft);if(RedundancyFactor.HasModel(mt))d["nodes"]=mt;}
   string key=string.Join("\u0001",d.Values);if(key==windModelKey)return;windModelKey=key;try{DesignLoadsLink.Set("wind-model",d);}catch(Exception){}}
  /* the model of the Primary loads tab: the .std / command file in the Nodes box, or the Nodes and Beams tables; null when not given */
@@ -118,7 +130,7 @@ partial class LoadCombinationsForm:DesignSheetForm {
    if(string.IsNullOrWhiteSpace(nodes)&&string.IsNullOrWhiteSpace(beams))return null;if(string.IsNullOrWhiteSpace(beams)){error="Paste the STAAD Beams table in box 2 too.";return null;}if(string.IsNullOrWhiteSpace(nodes)){error="Paste the STAAD Nodes table in box 1 too.";return null;}
    return RedundancyFactor.ReadTables(nodes,beams);}catch(Exception ex){error="STAAD model: "+ex.Message;return null;}}
  void Refresh0(){if(!Restoring&&(ApplyEqLink()|ApplyOtherLinks()))return;cases.Rows.Clear();combos.Rows.Clear();
-  if(On("AutoPrimary")&&!Restoring){string auto=StaadCombinations.AutoPrimary(Value("Structure").Substring(0,1),int.Parse(Value("LiveCases")),On("RoofLive"),On("WindCases"),On("WindAllCases"),!On("WindTorsionExempt"),RoofWind()).Replace("\n","\r\n");if(Inputs["Primary"].Text!=auto){Inputs["Primary"].Text=auto;return;}}
+  if(On("AutoPrimary")&&!Restoring){string auto=StaadCombinations.AutoPrimary(Value("Structure").Substring(0,1),int.Parse(Value("LiveCases")),On("RoofLive"),On("WindCases"),AllWindCases(),!TorsionExempt(),RoofWind()).Replace("\n","\r\n");if(Inputs["Primary"].Text!=auto){Inputs["Primary"].Text=auto;return;}}
   try{var list=StaadCombinations.Parse(Value("Primary"));var s=Settings();if(s.Rho<1)throw new Exception("ρ must be at least 1.0.");
    foreach(var p in list)cases.Rows.Add(p.No,p.Title,Used(p.Kind)+(p.Kind=="L"?", f1 = "+StaadCombinations.F(s.F1(p)):"")+(p.Kind=="E"?(p.Axis==""?" (no X / Z in the title: ± used)":" "+p.Axis+(p.Sign>0?" +":p.Sign<0?" −":" ±")):""));
    /* the wind cases for the Wind Load sheet's STAAD commands (owner: "yung loading niya sa building na copy paste ko na lang sa command") */
@@ -138,7 +150,7 @@ partial class LoadCombinationsForm:DesignSheetForm {
   rep.KeyValues(new[]{new[]{"Ω0 (special seismic)",StaadCombinations.F(s.Omega0)},new[]{"f1","1.0 for "+(s.F1One.Count==0?"no live case":string.Join(", ",s.F1One))+"; 0.5 for the other live cases"},new[]{"Structure",Value("Structure")},new[]{"ρ",StaadCombinations.F(s.Rho)},new[]{"Ca, I",s.IncludeEv?StaadCombinations.F(s.Ca)+", "+StaadCombinations.F(s.I):"(Ev not included)"},new[]{"0.5 Ca I",s.IncludeEv?StaadCombinations.F(0.5*s.Ca*s.I):"-"},
    new[]{"Primary load cases",s.AutoPrimary?"automatic from the structure class, earthquake cases first":"pasted"},new[]{"Seismic load command",s.EqCommand+(s.PerformChange?", PERFORM ANALYSIS / CHANGE after each EQ case":"")},
    new[]{"Torsion (case B)",s.Structure=="B"?"natural (centre of mass offset, rigid diaphragms) + accidental ACC = 0.05 × Ax = "+StaadCombinations.F(s.Acc*s.Ax)+" (Ax = "+StaadCombinations.F(s.Ax)+")":"-"},
-   new[]{"Seismic drift",s.DriftGravity?"D + 0.5L + 1.0 Eh (P-Delta)":"1.0 Eh"},new[]{"Ca, I, Ω0",On("EqLinked")?(eqLinkNote==""?"from the Earthquake Load sheet":eqLinkNote):"typed"}});
+   new[]{"Seismic drift",s.DriftGravity?"D + 0.5L + 1.0 Eh (P-Delta)":"1.0 Eh"},new[]{"Wind load cases","NSCP 2015 Fig. 207B.4-8 Cases 1-4 (directional procedure); "+(TorsionExempt()?"":"")+torsionWhy},new[]{"Ca, I, Ω0",On("EqLinked")?(eqLinkNote==""?"from the Earthquake Load sheet":eqLinkNote):"typed"}});
   bool hasRho=Value("RhoForces").Trim()!=""||Value("RhoModel").Trim()!=""||Value("RhoWalls").Trim()!="";int sec=2;
   rep.Heading(sec+++"  PRIMARY LOAD CASES").Table(new[]{"No.","Title (STAAD)","Used as"},list.Select(p=>new[]{p.No.ToString(),p.Title,Used(p.Kind)+(p.Kind=="L"?", f1 = "+StaadCombinations.F(s.F1(p)):"")}),new float[]{12,40,48});
   var rpt=StaadCombinations.RepeatCases(all);if(rpt.Count>0)rep.Paragraph("Orthogonal seismic load cases (REPEAT LOAD, Load Type Seismic)",false,true).Table(new[]{"No.","Title","Repeat load"},rpt.Select(r=>new[]{r.No.ToString(),r.Title,string.Join("  ",r.Repeat.Select(t=>t.Key.No+" x "+StaadCombinations.F(t.Value)))}),new float[]{12,44,44});

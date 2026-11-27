@@ -25,7 +25,15 @@ PATCH - one "Save project", wind case fixes:
 - The "Wind load cases" tab and its report section moved from Load Combinations to the Wind Load sheet ("move the tab and yung report
   doon sa windload na section ilagay"): design cases of Fig. 207B.4-8, a plan of every wind case and the torsion of each level. Load
   Combinations keeps the model input and the STAAD output and passes the model and the LOAD titles to the Wind sheet (link wind-model).
-Tests: WindCasesTabTests 6 (new), WindEdgeShapesTests 23, WindEdgeLoadsTests 41,
+- Automatic wind settings ("automatic na dapat itong mga ito, dapat macheck na agad if need or hindi as per nscp 2015 code"): the design
+  wind load cases 1-4 (Fig. 207B.4-8) and the WIND LOAD lines of the Wind sheet are always used - no check boxes. The exemption from the
+  torsional cases is decided from the STAAD model: one storey with h <= 9.1 m (ASCE 7-10 Appendix D, D1.1; NSCP 2015 follows ASCE 7-10)
+  gives Cases 1 and 3 only; otherwise Cases 2 and 4 stay (light-frame / flexible-diaphragm buildings cannot be told from nodes and beams).
+  The decision and its reason are in the status line and in the report basis table.
+- One model for Load Combinations ("bat kailangan kong magpaste ng multiple std file?"): Redundancy rho, Torsional amplification Ax and the
+  irregularity checks use the model of the Primary loads tab; their tabs ask only for the results after the run (member end forces /
+  joint displacements). The old STAAD input box on the rho tab shows only for older sheets that have text in it.
+Tests: WindCasesTabTests 9 (new), WindEdgeShapesTests 23, WindEdgeLoadsTests 41,
 WindEdgeLoadsTests 39, WindEdgeShapesTests 21, StaadCombinationsTests 36, DesignLoadsFileTests 22, WindAuditTests 79,
 WindBuildingLoadsTests 42, ProjectPackageTests 12, ProjectFilesTests 6.
 Includes everything of v10.0.33.

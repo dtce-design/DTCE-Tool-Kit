@@ -17,7 +17,10 @@ partial class LoadCombinationsForm {
   var model=box("RhoModel","");var forces=box("RhoForces","");var walls=box("RhoWalls","");Inputs.Add("RhoSystem",system);Inputs.Add("RhoZone",zone);Inputs.Add("RhoArea",area);
   Func<string,Control,Control> titled=(t,c)=>{var p=new Panel{Dock=DockStyle.Fill,Padding=new Padding(4)};p.Controls.Add(c);p.Controls.Add(new Label{Text=t,Dock=DockStyle.Top,Height=34,ForeColor=PowTheme.Ink});return p;};
   var pastes=new TableLayoutPanel{Dock=DockStyle.Top,Height=260,ColumnCount=3};for(int k=0;k<3;k++)pastes.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,k==2?20:40));
-  pastes.Controls.Add(titled("1  Paste the STAAD input (.std): Edit > Input file, select all, copy",model),0,0);pastes.Controls.Add(titled("2  Paste the member end forces: Post-processing > Beam > End Forces table, select all, copy (or the .ANL output)",forces),1,0);
+  /* one model for the whole sheet (owner, 27 November 2026: "bat kailangan kong magpaste ng multiple std file?"): the model of the Primary
+     loads tab; this box stays hidden unless an older sheet has its own STAAD input in it */
+  var modelPanel=titled("STAAD input of an older sheet (the model now comes from the Primary loads tab)",model);pastes.Controls.Add(modelPanel,0,0);pastes.Controls.Add(titled("Paste the member end forces after the run: Post-processing > Beam > End Forces table, select all, copy (or the .ANL output). The model is the one on the Primary loads tab.",forces),1,0);
+  Action showModel=()=>{bool on=model.Text.Trim()!="";modelPanel.Visible=on;pastes.ColumnStyles[0].Width=on?40:0;pastes.ColumnStyles[1].Width=on?40:80;};model.TextChanged+=(s0,e0)=>showModel();showModel();
   pastes.Controls.Add(titled("Shear walls only (lateral system Shear walls): bottom m; story shear kN; wall shear kN; lw m",walls),2,0);
   foreach(var h in new[]{"Load case","Story from (m)","to (m)","Story shear","Governing element","Element shear","r_i","≤ 2/3 h"})rhoGrid.Columns.Add(h,h);rhoGrid.Columns[4].FillWeight=330;GridAppearance.Apply(rhoGrid);
   var body=new Panel{Dock=DockStyle.Fill};body.Controls.Add(rhoGrid);body.Controls.Add(rhoStatus);body.Controls.Add(pastes);body.Controls.Add(bar);if(tab!=null){tab.Controls.Clear();tab.Controls.Add(body);}
@@ -25,7 +28,7 @@ partial class LoadCombinationsForm {
   foreach(Control c in new Control[]{model,forces,walls,system,zone,area})c.TextChanged+=(s,e)=>{if(Restoring)return;rhoTimer.Stop();rhoTimer.Start();};Disposed+=(s,e)=>rhoTimer.Dispose();}
  static readonly CultureInfo Ci=CultureInfo.InvariantCulture;
  static string Fr(double v,string f="0.###"){return v.ToString(f,Ci);}
- internal void ComputeRho(){rhoGrid.Rows.Clear();rhoFound=double.NaN;bool walls=Value("RhoSystem").StartsWith("Shear");if(walls?Value("RhoWalls").Trim()=="":Value("RhoModel").Trim()==""&&Value("RhoForces").Trim()==""){rhoStatus.ForeColor=PowTheme.Ink;rhoStatus.Text="Paste the STAAD input and the member end forces; ρ is computed and put into Factors automatically.";return;}
+ internal void ComputeRho(){rhoGrid.Rows.Clear();rhoFound=double.NaN;bool walls=Value("RhoSystem").StartsWith("Shear");if(walls?Value("RhoWalls").Trim()=="":Value("RhoForces").Trim()==""){rhoStatus.ForeColor=PowTheme.Ink;rhoStatus.Text="After the STAAD run, paste the member end forces; ρ is computed with the model of the Primary loads tab and put into Factors automatically (ρ = 1.0 until then).";return;}
   /* the primary loads follow the pasted model while they are still the example (or empty) */string mt,ft;RhoTexts(out mt,out ft);var heads=PrimaryLines(mt);string prim=Value("Primary").Replace("\r","").Trim();if(heads!=""&&(prim==""||prim==StaadCombinations.Example.Trim()))Inputs["Primary"].Text=heads.Replace("\n","\r\n");
   string text;rhoFound=ComputeRho(out text,true);rhoStatus.ForeColor=double.IsNaN(rhoFound)?Color.Firebrick:PowTheme.Teal;
   /* the computed ρ goes straight into the combinations */if(!double.IsNaN(rhoFound)){string v=Fr(rhoFound,"0.0##");if(Value("Rho")!=v)Inputs["Rho"].Text=v;text+="\nρ = "+v+" is used in the combinations (Factors).";}rhoStatus.Text=text;}
@@ -33,7 +36,13 @@ partial class LoadCombinationsForm {
  internal static string PrimaryLines(string text){var lines=new List<string>();foreach(var raw in (text??"").Replace("\r","").Split('\n')){string line=System.Text.RegularExpressions.Regex.Replace(raw.Trim(),@"^\d+\.\s+","");if(System.Text.RegularExpressions.Regex.IsMatch(line,@"^LOAD\s+\d+",System.Text.RegularExpressions.RegexOptions.IgnoreCase)&&!System.Text.RegularExpressions.Regex.IsMatch(line,@"\bCOMB",System.Text.RegularExpressions.RegexOptions.IgnoreCase))lines.Add(line);}return string.Join("\n",lines);}
  /* which box holds the model and which the end forces, whatever the order they were pasted in (an .ANL holds both) */
  void RhoTexts(out string modelText,out string forceText){string a=Value("RhoModel"),b=Value("RhoForces");bool am=RedundancyFactor.HasModel(a),bm=RedundancyFactor.HasModel(b);
-  if(!am&&bm){modelText=b;forceText=a.Trim()!=""?a:b;}else{modelText=a;forceText=b.Trim()!=""?b:a;}}
+  if(!am&&bm){modelText=b;forceText=a.Trim()!=""?a:b;}else{modelText=a;forceText=b.Trim()!=""?b:a;}
+  /* the model of the Primary loads tab when no other is given */if(!RedundancyFactor.HasModel(modelText)){string pm=PrimaryModelText();if(pm!="")modelText=pm;}}
+ /* the Primary loads tab's model as STAAD input text: the .std as given, or the Nodes / Beams tables written as JOINT COORDINATES and MEMBER
+    INCIDENCES with the primary LOAD lines (the EQ cases) */
+ string PrimaryModelText(){string nodes=Value("StaadInput");if(RedundancyFactor.HasModel(nodes))return nodes;string err;var m=InputModel(out err);if(m==null)return "";var ci=System.Globalization.CultureInfo.InvariantCulture;
+  var b=new System.Text.StringBuilder("STAAD SPACE\nUNIT METER KN\nJOINT COORDINATES\n");foreach(var j in m.Joints.Values.OrderBy(j=>j.No))b.Append(j.No).Append(" ").Append(j.X.ToString("R",ci)).Append(" ").Append(j.Y.ToString("R",ci)).Append(" ").Append(j.Z.ToString("R",ci)).Append(";\n");
+  b.Append("MEMBER INCIDENCES\n");foreach(var mm in m.Members.Values.OrderBy(x=>x.No))b.Append(mm.No).Append(" ").Append(mm.A).Append(" ").Append(mm.B).Append(";\n");b.Append(Value("Primary").Replace("\r","")).Append("\nFINISH\n");return b.ToString();}
  /* the governing ρ (NaN on error); fills the grid when asked */
  internal double ComputeRho(out string summary,bool fill){summary="";rhoRows=new List<string[]>();try{
    string sys=Value("RhoSystem");string kind=sys.StartsWith("Automatic")?"Auto":sys.StartsWith("Special")?"Moment SMRF":sys.StartsWith("Moment")?"Moment":sys.StartsWith("Braced")?"Braced":sys.StartsWith("Dual")?"Dual":"Walls";bool zone2=Value("RhoZone")=="Zone 2";

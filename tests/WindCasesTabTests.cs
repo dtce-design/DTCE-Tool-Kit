@@ -24,6 +24,14 @@ static class WindCasesTabTests {
   using(var bmp=new System.Drawing.Bitmap(595,842))using(var g=System.Drawing.Graphics.FromImage(bmp))foreach(var s in doc.Sheets)s(g);checks++;
   var lc=new LoadCombinationsForm();lc.Show();for(int i=0;i<20;i++)Application.DoEvents();
   var lp=(TabControl)typeof(DesignSheetForm).GetField("Pages",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(lc);Check(!lp.TabPages.Cast<TabPage>().Any(p=>p.Text=="Wind load cases"),"no Wind load cases tab in Load Combinations any more");
+  /* automatic torsion exemption (ASCE 7-10 Appendix D, D1.1): one storey with h <= 9.1 m only */
+  {var li=(System.Collections.IDictionary)typeof(DesignSheetForm).GetField("Inputs",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(lc);var ex=typeof(LoadCombinationsForm).GetMethod("TorsionExempt",BindingFlags.Instance|BindingFlags.NonPublic);
+   ((Control)li["StaadInput"]).Text=nodes.ToString().Replace("\n","\r\n");((Control)li["StaadBeams"]).Text=beams.ToString().Replace("\n","\r\n");Check(!(bool)ex.Invoke(lc,null),"three levels, 8 m: torsional cases included");
+   /* one model for the sheet: redundancy / torsion read the Primary loads tab's tables */
+   var rt=typeof(LoadCombinationsForm).GetMethod("RhoTexts",BindingFlags.Instance|BindingFlags.NonPublic);var args=new object[]{null,null};rt.Invoke(lc,args);var mt=(string)args[0];
+   Check(RedundancyFactor.HasModel(mt)&&RedundancyFactor.ReadModel(mt).Joints.Count==n&&RedundancyFactor.ReadModel(mt).Members.Count==m,"rho / Ax use the model of the Primary loads tab");
+   var one=new StringBuilder("STAAD SPACE\nUNIT METER KN\nJOINT COORDINATES\n1 0 0 0; 2 12 0 0; 3 12 0 8; 4 0 0 8; 5 0 4 0; 6 12 4 0; 7 12 4 8; 8 0 4 8;\nMEMBER INCIDENCES\n1 1 5; 2 2 6; 3 3 7; 4 4 8; 5 5 6; 6 6 7; 7 7 8; 8 8 5;\nSUPPORTS\n");
+   ((Control)li["StaadBeams"]).Text="";((Control)li["StaadInput"]).Text=one.ToString().Replace("\n","\r\n");Check((bool)ex.Invoke(lc,null),"one storey, 4 m: exempt (Cases 1 and 3 only)");}
   foreach(Form f in Application.OpenForms.Cast<Form>().ToList())f.Close();form.Dispose();lc.Dispose();
   Console.WriteLine("WindCasesTabTests passed: "+checks+" checks");Environment.Exit(0);}
 }
