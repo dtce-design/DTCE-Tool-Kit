@@ -17,6 +17,15 @@ PATCH - one "Save project", wind case fixes:
   WL+X CASE 2 +T, WL+X+Z CASE 3, WL+X+Z CASE 4 +T ..., each with a comment line saying what it applies. Older titles still work.
 - Wind Load sheet, STAAD Wind Input: DEFINE WIND LOAD only ("huwag ilagay doon yung wind load cases"); the wind load cases are in Load
   Combinations > STAAD load combinations.
-Tests: WindEdgeLoadsTests 39, WindEdgeShapesTests 21, StaadCombinationsTests 36, DesignLoadsFileTests 22, WindAuditTests 79,
+- STAAD Nodes / Beams tables pasted as STAAD copies them - without the header row - are read ("bat di nababasa if nagpaste ako ng node at
+  beam data. mas nababasa niya if nag open ako ng std file"): node, X, Y, Z and beam, node A, node B (the other columns are skipped).
+- Roofs at every level ("kapag may different level ako ng roofing bat hindi naisasama?"): small roofs (penthouse, stair roof, a lower roof
+  at a setback) are found from every level with beams around cells; a cell is roof where no higher level covers it. Owner's sample: the
+  penthouse roof at 12.6 m is loaded and the 9.6 m slab under it is no longer.
+- The "Wind load cases" tab and its report section moved from Load Combinations to the Wind Load sheet ("move the tab and yung report
+  doon sa windload na section ilagay"): design cases of Fig. 207B.4-8, a plan of every wind case and the torsion of each level. Load
+  Combinations keeps the model input and the STAAD output and passes the model and the LOAD titles to the Wind sheet (link wind-model).
+Tests: WindCasesTabTests 6 (new), WindEdgeShapesTests 23, WindEdgeLoadsTests 41,
+WindEdgeLoadsTests 39, WindEdgeShapesTests 21, StaadCombinationsTests 36, DesignLoadsFileTests 22, WindAuditTests 79,
 WindBuildingLoadsTests 42, ProjectPackageTests 12, ProjectFilesTests 6.
 Includes everything of v10.0.33.

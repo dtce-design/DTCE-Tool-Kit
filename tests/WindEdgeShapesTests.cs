@@ -83,6 +83,11 @@ static class WindEdgeShapesTests {
    /* wind -X: the cantilever X 18-21 is the windward edge: zone 1 top -1.5 - 0.9 = -2.4 -> FLOAD 2.4; the rest -1 beyond 2 m, -2 within */
    Check(roof.Contains("FLOAD 2.4 XRANGE 17.99 21.01")&&rn.Contains("1 overhang")||roof.Contains("FLOAD 2.4 XRANGE 17.99 21.01")&&rn.Contains("overhang"),"cantilever slab edge as overhang (windward): "+roof.Replace("\n"," / ")+" "+rn);
    Check(roof.Contains("FLOAD 1 XRANGE"),"interior roof cells in zone 2");}
+  /* 12 roofs at different levels: a small upper roof (one cell, under 20 % of the floor beams) over a 2 x 6 roof slab */
+  {string[] floor={"######","######"};var md=Model(new double[]{0,4,8},floor,floor,new[]{"#.....","......"});var m=RedundancyFactor.ReadModel(md);
+   var t=T("+X",1,2,3,8);t.HasRoof=true;t.Zones.Add(new[]{0,1e6,-1,0.1,-0.6,-0.1});t.OhUnder=0.9;string rn;var plans=WindEdgeLoads.Plans(m,0,8,out rn);var roof=WindEdgeLoads.RoofText(m,plans,t,true,0,out rn);
+   Check(roof.Contains("YRANGE 7.95 8.05 FLOAD 1 XRANGE -0.01 6.01 ZRANGE -0.01 6.01 GY"),"the small upper roof is loaded: "+roof.Replace("\n"," / "));
+   Check(!System.Text.RegularExpressions.Regex.IsMatch(roof,@"YRANGE 3\.95 4\.05 FLOAD 1 XRANGE -0\.01 \S+ ZRANGE -0\.01 6\.01")&&roof.Contains("YRANGE 3.95 4.05"),"the slab under it is not roof there");}
   /* 8  rectangle: nothing recessed */
   {string[] p={"###","###"};Check(Lines(Model(new double[]{0,4},p,p),T("+X",1,2,3,4),4,out note).Count==0,"plain rectangle: no recess lines");}
   Console.WriteLine("WindEdgeShapesTests passed: "+checks+" checks");}

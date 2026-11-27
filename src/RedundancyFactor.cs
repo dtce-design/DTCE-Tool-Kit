@@ -29,9 +29,15 @@ static class RedundancyFactor {
  /* the model from the STAAD Nodes table (Node, X, Y, Z) and Beams table (Beam, Node A, Node B) as copied from STAAD; coordinates in metres
     (a unit in the column headers is read) (owner, 26 November 2026: "2 inputs na lang joint from table and beams from table. or staad command
     file or .std") */
- internal static StaadModel ReadTables(string nodes,string beams){var data=new BeamDeflectionData();StaadDisplacements.Coordinates(data,nodes,"m");StaadDisplacements.Members(data,beams);
+ internal static StaadModel ReadTables(string nodes,string beams){var data=new BeamDeflectionData();try{StaadDisplacements.Coordinates(data,nodes,"m");}catch(Exception){}try{StaadDisplacements.Members(data,beams);}catch(Exception){}
   var m=new StaadModel{ToMetre=1};foreach(var n in data.Nodes.Values)m.Joints[n.Id]=new StaadJoint{No=n.Id,X=n.X,Y=n.Y,Z=n.Z};foreach(var b in data.Members.Values)m.Members[b.Id]=new StaadMember{No=b.Id,A=b.A,B=b.B};
+  /* STAAD copies its tables without the header row (owner, 27 November 2026: "hindi naisasama yung header ng table"): node, X, Y, Z (m, the
+     input unit) and beam, node A, node B, then property / material / beta / length, which are not needed */
+  if(m.Joints.Count==0)foreach(var row in Rows(nodes)){int id;double x,y,z;if(row.Length>=4&&int.TryParse(row[0],out id)&&D(row[1],out x)&&D(row[2],out y)&&D(row[3],out z))m.Joints[id]=new StaadJoint{No=id,X=x,Y=y,Z=z};}
+  if(m.Members.Count==0)foreach(var row in Rows(beams)){int id,a,b;if(row.Length>=3&&int.TryParse(row[0],out id)&&int.TryParse(row[1],out a)&&int.TryParse(row[2],out b))m.Members[id]=new StaadMember{No=id,A=a,B=b};}
   if(m.Joints.Count==0||m.Members.Count==0)throw new Exception("Paste the STAAD Nodes table (Node, X, Y, Z) and the Beams table (Beam, Node A, Node B).");return m;}
+ static IEnumerable<string[]> Rows(string text){foreach(var line in (text??"").Split('\n'))yield return line.Trim().Split(new[]{' ','\t',';',','},StringSplitOptions.RemoveEmptyEntries);}
+ static bool D(string s,out double v){return double.TryParse(s,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out v);}
  internal static StaadModel ReadModel(string text){var m=new StaadModel();string block="";double unit=1;
   foreach(var raw in (text??"").Replace("\r","").Split('\n')){/* the .ANL echoes the input with line numbers ("  12. JOINT COORDINATES") */string line=Regex.Replace(raw.Trim(),@"^\d+\.\s+","");if(line==""||line.StartsWith("*"))continue;string u=line.ToUpperInvariant();
    if(u.StartsWith("UNIT")){if(Regex.IsMatch(u,@"\bMMS?\b"))unit=0.001;else if(Regex.IsMatch(u,@"\bCMS?\b"))unit=0.01;else if(Regex.IsMatch(u,@"\b(METER|METRES?|METERS?|M)\b"))unit=1;else if(Regex.IsMatch(u,@"\b(FEET|FT)\b"))unit=0.3048;else if(Regex.IsMatch(u,@"\b(INCH|INCHES|IN)\b"))unit=0.0254;continue;}

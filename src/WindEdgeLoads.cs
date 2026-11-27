@@ -51,11 +51,13 @@ static class WindEdgeLoads {
  internal sealed class Seg {public int No;public double X1,Z1,X2,Z2,Y;public double Len{get{return Math.Sqrt((X2-X1)*(X2-X1)+(Z2-Z1)*(Z2-Z1));}}
   public bool Skewed{get{return Math.Abs(X2-X1)>1e-6&&Math.Abs(Z2-Z1)>1e-6;}}}
  /* the horizontal members of the model by level (m), levels that carry a real floor (at least 20 % of the longest level's beams) */
- internal static Dictionary<double,List<Seg>> Levels(StaadModel m){var all=new List<Seg>();double k=m.ToMetre;
+ internal static Dictionary<double,List<Seg>> Levels(StaadModel m){return Levels(m,0.2);}
+ /* minShare 0: every level with horizontal beams (roofs of any size, owner: "kapag may different level ako ng roofing bat hindi naisasama?") */
+ internal static Dictionary<double,List<Seg>> Levels(StaadModel m,double minShare){var all=new List<Seg>();double k=m.ToMetre;
   foreach(var mem in m.Members.Values){StaadJoint a,b;if(!m.Joints.TryGetValue(mem.A,out a)||!m.Joints.TryGetValue(mem.B,out b))continue;double ya=m.H(a)*k,yb=m.H(b)*k;if(Math.Abs(ya-yb)>1e-3)continue;
    var s=new Seg{No=mem.No,X1=R(m.P1(a)*k),Z1=R(m.P2(a)*k),X2=R(m.P1(b)*k),Z2=R(m.P2(b)*k),Y=R(ya)};if(s.Len>1e-6)all.Add(s);}
   var groups=all.GroupBy(s=>s.Y).ToDictionary(g=>g.Key,g=>g.ToList());if(groups.Count==0)return groups;double max=groups.Values.Max(l=>l.Sum(s=>s.Len));
-  return groups.Where(g=>g.Value.Sum(s=>s.Len)>=0.2*max).ToDictionary(g=>g.Key,g=>g.Value);}
+  return groups.Where(g=>g.Value.Sum(s=>s.Len)>=minShare*max).ToDictionary(g=>g.Key,g=>g.Value);}
  /* does a ray from (x, z) along +X / -X / +Z / -Z cross a beam of the level? */
  static bool Hits(List<Seg> segs,double x,double z,int dx,int dz){foreach(var s in segs){
    if(dz==0){if(Math.Min(s.Z1,s.Z2)>z||Math.Max(s.Z1,s.Z2)<z||Math.Abs(s.Z2-s.Z1)<1e-9)continue;double xi=s.X1+(s.X2-s.X1)*(z-s.Z1)/(s.Z2-s.Z1);if((xi-x)*dx>0)return true;}
@@ -90,9 +92,10 @@ static class WindEdgeLoads {
  /* the plans of the levels between the base and the top: cells inside the floor, the outline faces (a cell side between an inside and an
     outside cell), shielded when the floor continues beyond the face along its outward normal; faces without beams along them (skewed
     walls cut into steps by the grid, gaps) are marked not covered and are never loaded by a range */
- internal static List<WindPlanLevel> Plans(StaadModel m,double baseY,double top,out string note){note="";var plans=new List<WindPlanLevel>();
+ internal static List<WindPlanLevel> Plans(StaadModel m,double baseY,double top,out string note){return Plans(m,baseY,top,out note,false);}
+ internal static List<WindPlanLevel> Plans(StaadModel m,double baseY,double top,out string note,bool allLevels){note="";var plans=new List<WindPlanLevel>();
   if(m==null)return plans;if(m.ZUp){note="The model uses SET Z UP: recessed faces are not generated (Y up only).";return plans;}
-  var levels=Levels(m);var ys=levels.Keys.Where(y=>y>=baseY-1e-6&&y<=top+1e-6).OrderBy(y=>y).ToList();if(ys.Count==0){note="No floor level with beams between the base and the top of the building.";return plans;}
+  var levels=Levels(m,allLevels?0:0.2);var ys=levels.Keys.Where(y=>y>=baseY-1e-6&&y<=top+1e-6).OrderBy(y=>y).ToList();if(ys.Count==0){note="No floor level with beams between the base and the top of the building.";return plans;}
   var notes=new List<string>();
   for(int li=0;li<ys.Count;li++){double y=ys[li];var segs=levels[y];
    double lo=li==0?baseY:(ys[li-1]+y)/2,hi=li==ys.Count-1?top:(ys[li+1]+y)/2;
@@ -181,14 +184,16 @@ static class WindEdgeLoads {
   var colTops=new HashSet<string>();foreach(var mem in m.Members.Values){StaadJoint a,c;if(!m.Joints.TryGetValue(mem.A,out a)||!m.Joints.TryGetValue(mem.B,out c))continue;
    if(Math.Abs(m.P1(a)-m.P1(c))*k>1e-3||Math.Abs(m.P2(a)-m.P2(c))*k>1e-3||Math.Abs(m.H(a)-m.H(c))*k<1e-3)continue;var tp=m.H(a)>m.H(c)?a:c;colTops.Add(Key(m.P1(tp)*k,m.H(tp)*k,m.P2(tp)*k));}
   var floor=new StringBuilder();int cells=0,ohCells=0;
-  var ordered=plans.Where(p=>p.Y>baseY+1e-3).OrderBy(p=>p.Y).ToList();
+  var main=plans.Where(p=>p.Y>baseY+1e-3).OrderBy(p=>p.Y).ToList();
   /* trusses above the top floor first: the floor under them is a ceiling, not the roof */
-  double[] cover;string truss=TrussRoof(m,ordered.Count>0?ordered[ordered.Count-1].Y:baseY,t,upliftCase,colTops,ref note,out cover);
-  for(int li=0;li<ordered.Count;li++){var p=ordered[li];var above=li+1<ordered.Count?ordered[li+1]:null;int nx=p.Xs.Count-1,nz=p.Zs.Count-1;
+  double[] cover;string truss=TrussRoof(m,main.Count>0?main[main.Count-1].Y:baseY,t,upliftCase,colTops,ref note,out cover);
+  /* every level with beams around cells, small roofs included (penthouse, stair roof, a lower roof at a setback) */
+  double topMain=main.Count>0?main[main.Count-1].Y:baseY;string an;var ordered=Plans(m,baseY,1e9,out an,true).Where(p=>p.Y>baseY+1e-3&&p.Faces.Count>0).OrderBy(p=>p.Y).ToList();
+  for(int li=0;li<ordered.Count;li++){var p=ordered[li];var higher=ordered.Skip(li+1).ToList();int nx=p.Xs.Count-1,nz=p.Zs.Count-1;
    double xmin=double.MaxValue,xmax=double.MinValue,zmin=double.MaxValue,zmax=double.MinValue;for(int i=0;i<nx;i++)for(int j=0;j<nz;j++)if(p.Inside[i,j]){xmin=Math.Min(xmin,p.Xs[i]);xmax=Math.Max(xmax,p.Xs[i+1]);zmin=Math.Min(zmin,p.Zs[j]);zmax=Math.Max(zmax,p.Zs[j+1]);}
    double e0=ax=='X'?(sign>0?xmin:xmax):(sign>0?zmin:zmax),depth=ax=='X'?xmax-xmin:zmax-zmin;
    var val=new double?[nx,nz];
-   for(int i=0;i<nx;i++)for(int j=0;j<nz;j++){if(!p.Inside[i,j])continue;double cx=(p.Xs[i]+p.Xs[i+1])/2,cz=(p.Zs[j]+p.Zs[j+1])/2;if(above!=null&&InsideAt(above,cx,cz))continue;if(above==null&&cover!=null&&cx>cover[0]-1e-6&&cx<cover[1]+1e-6&&cz>cover[2]-1e-6&&cz<cover[3]+1e-6)continue;
+   for(int i=0;i<nx;i++)for(int j=0;j<nz;j++){if(!p.Inside[i,j])continue;double cx=(p.Xs[i]+p.Xs[i+1])/2,cz=(p.Zs[j]+p.Zs[j+1])/2;/* a roof where no higher level covers it; the top floor under trusses is their ceiling */if(higher.Any(h=>InsideAt(h,cx,cz)))continue;if(cover!=null&&Math.Abs(p.Y-topMain)<1e-3&&cx>cover[0]-1e-6&&cx<cover[1]+1e-6&&cz>cover[2]-1e-6&&cz<cover[3]+1e-6)continue;
     double u1=ax=='X'?p.Xs[i]:p.Zs[j],u2=ax=='X'?p.Xs[i+1]:p.Zs[j+1];double d1=Math.Min(Math.Abs(u1-e0),Math.Abs(u2-e0)),d2=Math.Max(Math.Abs(u1-e0),Math.Abs(u2-e0));
     double net=Pressure(t,d1,d2,depth,upliftCase,false);
     /* overhang: an edge cell whose outer edge has no column under either end */
@@ -270,7 +275,7 @@ static class WindEdgeLoads {
    double xmin=double.MaxValue,xmax=double.MinValue,zmin=double.MaxValue,zmax=double.MinValue;for(int i=0;i+1<p.Xs.Count;i++)for(int j=0;j+1<p.Zs.Count;j++)if(p.Inside[i,j]){xmin=Math.Min(xmin,p.Xs[i]);xmax=Math.Max(xmax,p.Xs[i+1]);zmin=Math.Min(zmin,p.Zs[j]);zmax=Math.Max(zmax,p.Zs[j+1]);}
    if(xmin>xmax)continue;var lv=new TorsionLevel{Y=p.Y,H=h};
    foreach(var t in types){bool alongX=t.Travel[1]=='X';double B=alongX?zmax-zmin:xmax-xmin;double pw=t.WindwardAt(p.Y),pl=t.Leeward;double mt=f*(pw+pl)*B*h*0.15*B;lv.Mt+=mt;
-    lv.Parts.Add(F(f)+" × ("+F(pw)+" + "+F(pl)+") × "+F(B)+" × "+F(h)+" × 0.15 × "+F(B)+" = "+F(mt)+" kN·m ("+t.Travel+")");}
+    lv.Parts.Add(F(f)+" × ("+F(pw)+" + "+F(pl)+") × "+F(B)+" × "+F(h)+" × 0.15 × "+F(B)+" = "+F(mt)+" ("+t.Travel+")");}
    var js=m.Joints.Values.Where(j=>Math.Abs(m.H(j)*k-p.Y)<1e-3).ToList();if(js.Count<2)continue;double cx=(xmin+xmax)/2;
    /* at each Z edge the joint nearest the middle of the longest outer face there (clear of recess corners) */
    Func<string,double,double> mid=(normal,at)=>{var fz=p.Faces.Where(fc=>fc.Normal==normal&&!fc.Shielded&&Math.Abs(fc.At-at)<1e-6).OrderByDescending(fc=>fc.A2-fc.A1).FirstOrDefault();return fz!=null?(fz.A1+fz.A2)/2:cx;};

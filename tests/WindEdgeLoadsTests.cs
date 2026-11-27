@@ -50,7 +50,12 @@ static class WindEdgeLoadsTests {
    string n2;var t2=WindEdgeLoads.CaseTexts(link,fromTables,out n2);Check(t2["+X"]==texts["+X"]&&t2["-X"]==texts["-X"],"tables give the same wind cases (WW / LW / SW and the recess loads) as the .std");
    var mm=new StringBuilder("Node\tX (mm)\tY (mm)\tZ (mm)\n");foreach(var j in model.Joints.Values.OrderBy(j=>j.No))mm.Append(j.No+"\t"+(j.X*1000).ToString(ci)+"\t"+(j.Y*1000).ToString(ci)+"\t"+(j.Z*1000).ToString(ci)+"\n");
    var t3=WindEdgeLoads.CaseTexts(link,RedundancyFactor.ReadTables(mm.ToString(),beams.ToString()),out n2);Check(t3["+X"]==texts["+X"],"Nodes table in mm read in metres");
-   bool threw=false;try{RedundancyFactor.ReadTables(nodes.ToString(),"");}catch(Exception){threw=true;}Check(threw,"missing Beams table refused");}
+   bool threw=false;try{RedundancyFactor.ReadTables(nodes.ToString(),"");}catch(Exception){threw=true;}Check(threw,"missing Beams table refused");
+   /* as STAAD copies them: no header row, beams with property / material / beta / length */
+   var nh=new StringBuilder();foreach(var j in model.Joints.Values.OrderBy(j=>j.No))nh.Append("  "+j.No+"\t"+j.X.ToString("0.0000",ci)+"\t"+j.Y.ToString("0.0000",ci)+"\t"+j.Z.ToString("0.0000",ci)+"\n");
+   var bh=new StringBuilder();foreach(var m in model.Members.Values.OrderBy(m=>m.No))bh.Append("  "+m.No+"\t"+m.A+"\t"+m.B+"\t4\t5000PSI\t0.0\t6.000\n");
+   var noHeader=RedundancyFactor.ReadTables(nh.ToString(),bh.ToString());Check(noHeader.Joints.Count==model.Joints.Count&&noHeader.Members.Count==model.Members.Count,"tables without the header row ("+noHeader.Joints.Count+" nodes, "+noHeader.Members.Count+" beams)");
+   string n6;Check(WindEdgeLoads.CaseTexts(link,noHeader,out n6)["+X"]==texts["+X"],"same wind cases from headerless tables");}
   /* design wind load cases of NSCP 2015 Fig. 207B.4-8 (directional procedure) */
   {var tzp=new WindFaceTypes{Travel="+Z",Ww=7,Lw=8,Sw=9,Top=8,Leeward=1.5,Side=2};tzp.WwInt.Add(2.5);tzp.WwHeig.Add(8);var tzm=new WindFaceTypes{Travel="-Z",Ww=10,Lw=11,Sw=12,Top=8,Leeward=1.5,Side=2};tzm.WwInt.Add(2.5);tzm.WwHeig.Add(8);
    var all=new Dictionary<string,string>{{"+X",t.Pack()},{"-X",tm.Pack()},{"+Z",tzp.Pack()},{"-Z",tzm.Pack()}};string n4;var cases=WindEdgeLoads.CaseTexts(all,model,out n4,true,true);
