@@ -1,0 +1,10 @@
+DTCE Tool Kit v10.0.59 (27 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - step-by-step guide for Design Loads (owner: "paki ayos muna yung workflow sa design loads"; chose "Step-by-step na gabay"):
+- New first sub tab of Design Loads, "Steps (how to use Design Loads)": seven steps in order (Dead Loads, Live Loads, Wind Load, Earthquake,
+  Load Combinations - paste the model and copy the STAAD output, run STAAD and paste the results for rho and Ax, Calculation report),
+  each with what to do, what passes on to the next sheet, an Open button and the link state (Live Loads checked, Wind / Earthquake
+  calculated, Load Combinations output made). "Refresh steps" updates the states.
+- The v10.0.58 Store upload (run 45961238431) was cancelled before it started at the owner's request; nothing was uploaded.
+Tests: StaadCombinationsTests (the window is checked by the Windows CI).
+Includes everything of v10.0.58.
