@@ -1,0 +1,13 @@
+DTCE Tool Kit v10.0.43 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store upload is on hold).
+
+PATCH - Live Loads report explains each space's load case ("paki check yung 4.8 nasa ll1"; "detaily explained ba to sa report?"):
+- Section 2 opens with the f1 rule of Eq. 203-3 / 203-5 (f1 = 1.0 for floors in places of public assembly, for live loads in excess
+  of 4.8 kPa and for garage live load; 0.5 for other live loads), how LL1 / LL2 follow from it, that "in excess of 4.8 kPa" means
+  above 4.8 kPa (a 4.8 kPa exit facility, office lobby or computer access floor stays f1 = 0.5 unless it is assembly or a garage),
+  and that reduction (205.5) has the same limits.
+- The LL1 / LL2 tables have a column "Why this load case, f1 and reduction" in place of "Reduction": e.g. "4.8 kPa is not in excess
+  of 4.8 kPa, and the space is not a place of public assembly or a garage: f1 = 0.5 -> LL1; reduction allowed (205.5)";
+  "Place of public assembly (Table 205-1, 3 ...): f1 = 1.0 whatever the load (4.8 kPa) -> LL2; no reduction"; "12.0 kPa is in excess
+  of 4.8 kPa: f1 = 1.0 -> LL2; no reduction: over 4.8 kPa". The classification itself is unchanged.
+Tests: LiveLoadsTests 548.
+Includes everything of v10.0.42.
