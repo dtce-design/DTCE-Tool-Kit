@@ -14,8 +14,8 @@ static class WindEdgeLoadsTests {
  static void Main(){
   var t=new WindFaceTypes{Travel="+X",Ww=1,Lw=2,Sw=3,Top=8,Leeward=1.0,Side=2.0};t.WwInt.AddRange(new[]{3.0,3.5});t.WwHeig.AddRange(new[]{4.0,8.0});
   string lines=WindEdgeLoads.WindLoadLines(t,0);
-  Check(lines.Contains("WIND LOAD X 1 TYPE 1 YR 0 8")&&lines.Contains("WIND LOAD -X -1 TYPE 2 YR 0 8")&&lines.Contains("WIND LOAD Z -1 TYPE 3 YR 0 8")&&lines.Contains("WIND LOAD -Z -1 TYPE 3 YR 0 8"),"WIND LOAD lines: windward, leeward and both side walls pulled outward");
-  var tz=new WindFaceTypes{Travel="-Z",Ww=10,Lw=11,Sw=12,Top=8};string lz=WindEdgeLoads.WindLoadLines(tz,0);Check(lz.StartsWith("WIND LOAD -Z 1 TYPE 10")&&lz.Contains("WIND LOAD Z -1 TYPE 11")&&lz.Contains("WIND LOAD X -1 TYPE 12")&&lz.Contains("WIND LOAD -X -1 TYPE 12"),"-Z case");
+  Check(lines.Contains("WIND LOAD X 1 TYPE 1 YR 0 8")&&lines.Contains("WIND LOAD -X 1 TYPE 2 YR 0 8")&&lines.Contains("WIND LOAD -Z 1 TYPE 3 YR 0 8")&&lines.Contains("WIND LOAD -Z -1 TYPE 3 YR 0 8"),"WIND LOAD lines: windward, leeward and both side walls pulled outward");
+  var tz=new WindFaceTypes{Travel="-Z",Ww=10,Lw=11,Sw=12,Top=8};string lz=WindEdgeLoads.WindLoadLines(tz,0);Check(lz.StartsWith("WIND LOAD Z -1 TYPE 10")&&lz.Contains("WIND LOAD -Z -1 TYPE 11")&&lz.Contains("WIND LOAD -X 1 TYPE 12")&&lz.Contains("WIND LOAD -X -1 TYPE 12"),"-Z case");
   Check(Math.Abs(t.WindwardAt(2)-3.0)<1e-9&&Math.Abs(t.WindwardAt(6)-3.5)<1e-9&&Math.Abs(t.WindwardAt(9)-3.5)<1e-9,"windward intensity by HEIG band");
   var back=WindFaceTypes.Unpack("+X",t.Pack());Check(back!=null&&back.Sw==3&&back.WwInt.Count==2&&Math.Abs(back.WwHeig[1]-8)<1e-9,"link round trip");
   var model=RedundancyFactor.ReadModel(Model());string note;var faces=WindEdgeLoads.Faces(model,0,8,out note);
@@ -29,12 +29,12 @@ static class WindEdgeLoadsTests {
   Check(faces.Any(f=>Math.Abs(f.Level-4)<1e-6&&Math.Abs(f.Bottom-2)<1e-6&&Math.Abs(f.TopBand-6)<1e-6),"tributary band of a middle level");
   int count;string loads=WindEdgeLoads.RecessLoads(model,faces,t,out count);
   /* wind +X: X = 18 wall is windward (3.5 x 4 = 14 kN/m at level 4, pushing +X); X = 12 wall is leeward (1.0 x 4 = 4 kN/m pulling +X) */
-  Check(count==2&&loads.Contains("WIND LOAD X 1 TYPE 1 XR 17.95 18.05 ZR 15.95 24.05 YR -0.05 8.05")&&loads.Contains("WIND LOAD -X -1 TYPE 2 XR 11.95 12.05 ZR 15.95 24.05 YR -0.05 8.05")&&!loads.Contains("MEMBER LOAD"),"recess walls as WIND LOAD ranges for +X (X = 18 windward WW, X = 12 leeward LW): "+loads.Replace("\n"," / "));
+  Check(count==2&&loads.Contains("WIND LOAD X 1 TYPE 1 XR 17.95 18.05 ZR 15.95 24.05 YR -0.05 8.05")&&loads.Contains("WIND LOAD -X 1 TYPE 2 XR 11.95 12.05 ZR 15.95 24.05 YR -0.05 8.05")&&!loads.Contains("MEMBER LOAD"),"recess walls as WIND LOAD ranges for +X (X = 18 windward WW, X = 12 leeward LW): "+loads.Replace("\n"," / "));
   Check(!loads.Contains(" ZR 15.95 16.05"),"no extra load on the recess back wall (WIND LOAD reaches it)");
   var tm=new WindFaceTypes{Travel="-X",Ww=4,Lw=5,Sw=6,Top=8,Leeward=1.0,Side=2.0};tm.WwInt.AddRange(new[]{3.0,3.5});tm.WwHeig.AddRange(new[]{4.0,8.0});
-  string lm=WindEdgeLoads.RecessLoads(model,faces,tm,out count);Check(lm.Contains("WIND LOAD -X 1 TYPE 4 XR 11.95 12.05")&&lm.Contains("WIND LOAD X -1 TYPE 5 XR 17.95 18.05"),"recess walls for -X");
+  string lm=WindEdgeLoads.RecessLoads(model,faces,tm,out count);Check(lm.Contains("WIND LOAD X -1 TYPE 4 XR 11.95 12.05")&&lm.Contains("WIND LOAD -X -1 TYPE 5 XR 17.95 18.05"),"recess walls for -X");
   {var tz2=new WindFaceTypes{Travel="-Z",Ww=10,Lw=11,Sw=12,Top=8,Leeward=1,Side=2};tz2.WwInt.Add(3);tz2.WwHeig.Add(8);string ls=WindEdgeLoads.RecessLoads(model,faces,tz2,out count);
-   Check(ls.Contains("WIND LOAD -X -1 TYPE 12 XR 11.95 12.05")&&ls.Contains("WIND LOAD X -1 TYPE 12 XR 17.95 18.05")&&ls.Contains("side wall"),"recess walls along the wind take the SW type, pulled out: "+ls.Replace("\n"," / "));}
+   Check(ls.Contains("WIND LOAD -X 1 TYPE 12 XR 11.95 12.05")&&ls.Contains("WIND LOAD -X -1 TYPE 12 XR 17.95 18.05")&&ls.Contains("side wall"),"recess walls along the wind take the SW type, pulled out: "+ls.Replace("\n"," / "));}
   var link=new Dictionary<string,string>{{"+X",t.Pack()},{"-X",tm.Pack()}};var texts=WindEdgeLoads.CaseTexts(link,Model(),out note);
   Check(texts.ContainsKey("+X")&&texts["+X"].StartsWith("* NSCP 2015 Fig. 207B.4-8 Case 1")&&texts["+X"].Contains("\nWIND LOAD X 1 TYPE 1")&&texts["+X"].Contains("TYPE 1 XR 17.95")&&note.Contains("recessed walls"),"case text with the recess loads");
   Check(StaadCombinations.WindKey("WL+X")=="+X"&&StaadCombinations.WindKey("WL-Z")=="-Z"&&StaadCombinations.WindKey("DL")=="","wind case key from the title");
@@ -60,7 +60,7 @@ static class WindEdgeLoadsTests {
   {var tzp=new WindFaceTypes{Travel="+Z",Ww=7,Lw=8,Sw=9,Top=8,Leeward=1.5,Side=2};tzp.WwInt.Add(2.5);tzp.WwHeig.Add(8);var tzm=new WindFaceTypes{Travel="-Z",Ww=10,Lw=11,Sw=12,Top=8,Leeward=1.5,Side=2};tzm.WwInt.Add(2.5);tzm.WwHeig.Add(8);
    var all=new Dictionary<string,string>{{"+X",t.Pack()},{"-X",tm.Pack()},{"+Z",tzp.Pack()},{"-Z",tzm.Pack()}};string n4;var cases=WindEdgeLoads.CaseTexts(all,model,out n4,true,true);
    Check(cases.Count==24&&cases.ContainsKey("2+X+T")&&cases.ContainsKey("3-X+Z")&&cases.ContainsKey("4+X-Z-T"),"24 wind cases: "+string.Join(",",cases.Keys));
-   Check(cases["2+X+T"].Contains("WIND LOAD X 0.75 TYPE 1")&&cases["2+X+T"].Contains("WIND LOAD -X -0.75 TYPE 2")&&!cases["2+X+T"].Contains("TYPE 3"),"Case 2: 75 % windward / leeward, no side walls");
+   Check(cases["2+X+T"].Contains("WIND LOAD X 0.75 TYPE 1")&&cases["2+X+T"].Contains("WIND LOAD -X 0.75 TYPE 2")&&!cases["2+X+T"].Contains("TYPE 3"),"Case 2: 75 % windward / leeward, no side walls");
    Check(cases["3+X+Z"].Contains("WIND LOAD X 0.75 TYPE 1")&&cases["3+X+Z"].Contains("WIND LOAD Z 0.75 TYPE 7")&&!cases["3+X+Z"].Contains("JOINT LOAD"),"Case 3: both axes at 75 %, no torsion");
    Check(cases["4+X+Z+T"].Contains("WIND LOAD X 0.563 TYPE 1")&&cases["4+X+Z+T"].Contains("WIND LOAD Z 0.563 TYPE 7")&&cases["4+X+Z+T"].Contains("JOINT LOAD"),"Case 4: 56.3 % both axes with torsion");
    /* torsion at level 4 (band 2-6 m, h = 4): plan 30 x 24; wind +X: B = 24, PW at 4 m = 3.0, PL = 1.0 -> MT = 0.75 x 4 x 24 x 4 x 0.15 x 24 = 1036.8 */

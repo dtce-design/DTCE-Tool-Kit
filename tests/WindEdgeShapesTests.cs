@@ -22,7 +22,7 @@ static class WindEdgeShapesTests {
   /* 1  notch in the X-max side (walls facing +Z / -Z): for wind +Z the wall Z = 12 faces the wind (WW), Z = 6 faces away (LW) */
   {string[] p={"#####","###..","#####"};var md=Model(new double[]{0,4,8},p,p,p);
    var lz=Lines(md,T("+Z",7,8,9,8),8,out note);
-   Check(lz.Count==2&&lz.Any(l=>l.Role=="LW+Z"&&l.Text.StartsWith("WIND LOAD -Z -1 TYPE 8 ZR 5.95 6.05 XR 17.95 30.05"))&&lz.Any(l=>l.Role=="WW+Z"&&l.Text.StartsWith("WIND LOAD Z 1 TYPE 7 ZR 11.95 12.05 XR 17.95 30.05")),"notch in the X-max side, wind +Z: "+string.Join(" / ",lz.Select(l=>l.Text)));
+   Check(lz.Count==2&&lz.Any(l=>l.Role=="LW+Z"&&l.Text.StartsWith("WIND LOAD -Z 1 TYPE 8 ZR 5.95 6.05 XR 17.95 30.05"))&&lz.Any(l=>l.Role=="WW+Z"&&l.Text.StartsWith("WIND LOAD Z 1 TYPE 7 ZR 11.95 12.05 XR 17.95 30.05")),"notch in the X-max side, wind +Z: "+string.Join(" / ",lz.Select(l=>l.Text)));
    var lx=Lines(md,T("+X",1,2,3,8),8,out note);Check(lx.Count==2&&lx.All(l=>l.Role=="SW+X"),"same notch, wind +X: its walls are side walls");
    Check(lx.All(l=>l.Text.EndsWith("YR -0.05 8.05")),"all levels: from the base to the top");}
   /* 2  winding notch: open at the top-right, turning left inside - the turned cell is outside (not floor) */

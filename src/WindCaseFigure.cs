@@ -33,9 +33,9 @@ sealed class WindCaseFigure {
  internal static Color ColorOf(string role){return role.StartsWith("WW")?WwColor:role.StartsWith("LW")?LwColor:SwColor;}
  Layout Make(Graphics g,float width,float fs){var L=new Layout{W=width,Pad=fs*0.8f,ArrowLen=fs*2.4f,RowH=fs*1.45f};var t=Types;char ax=t.Travel[1];string back=(t.Travel[0]=='+'?"-":"+")+ax;
   string other=ax=='X'?"Z":"X";string top=F(BaseY)+" "+F(t.Top);
-  L.Top.Add(new Row{Color=WwColor,Label="WW"+t.Travel,Text="WIND LOAD "+(t.Travel[0]=='+'?"":"-")+ax+" 1 TYPE "+t.Ww+" YR "+top,Note=Side(back)+" faces, pushed in, "+Pressure(t.WwInt.Count>0?t.WwInt.Min():0,t.WwInt.Count>0?t.WwInt.Max():0)});
-  L.Top.Add(new Row{Color=LwColor,Label="LW"+t.Travel,Text="WIND LOAD "+(t.Travel[0]=='+'?"-":"")+ax+" -1 TYPE "+t.Lw+" YR "+top,Note=Side(t.Travel)+" faces, suction, "+Pressure(t.Leeward,t.Leeward)});
-  L.Top.Add(new Row{Color=SwColor,Label="SW"+t.Travel,Text="WIND LOAD "+other+" -1 and -"+other+" -1 TYPE "+t.Sw+" YR "+top,Note=other+"-min and "+other+"-max faces, suction, "+Pressure(t.Side,t.Side)});
+  L.Top.Add(new Row{Color=WwColor,Label="WW"+t.Travel,Text="WIND LOAD "+WindEdgeLoads.Spec(back,false,1)+" TYPE "+t.Ww+" YR "+top,Note=Side(back)+" faces, pushed in, "+Pressure(t.WwInt.Count>0?t.WwInt.Min():0,t.WwInt.Count>0?t.WwInt.Max():0)});
+  L.Top.Add(new Row{Color=LwColor,Label="LW"+t.Travel,Text="WIND LOAD "+WindEdgeLoads.Spec(t.Travel,true,1)+" TYPE "+t.Lw+" YR "+top,Note=Side(t.Travel)+" faces, suction, "+Pressure(t.Leeward,t.Leeward)});
+  L.Top.Add(new Row{Color=SwColor,Label="SW"+t.Travel,Text="WIND LOAD "+WindEdgeLoads.Spec("+"+other,true,1)+" and "+WindEdgeLoads.Spec("-"+other,true,1)+" TYPE "+t.Sw+" YR "+top,Note=other+"-min and "+other+"-max faces, suction, "+Pressure(t.Side,t.Side)});
   /* recessed walls: a tag on the plan (R1, R2 ...) and a legend row under it */
   int k=0;foreach(var l in Lines){var tag="R"+(++k);L.Tags.Add(new Tag{Line=l,Name=tag,Color=ColorOf(l.Role)});L.Bottom.Add(new Row{Color=ColorOf(l.Role),Label=tag+"  "+l.Role,Text=l.Text,Note=l.Comment});}
   using(var tf=Font(fs*1.25f,true))L.TitleH=g.MeasureString("X",tf).Height+L.Pad*0.6f;

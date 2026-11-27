@@ -38,15 +38,22 @@ static class WindEdgeLoads {
  static readonly CultureInfo Ci=CultureInfo.InvariantCulture;
  static string F(double v){return Math.Round(v,3).ToString("0.###",Ci);}
  static double R(double v){return Math.Round(v,3);}
- /* STAAD picks the faces exposed to a wind that blows toward the given axis; the factor sign sets the load direction */
- internal static string WindLoadLines(WindFaceTypes t,double baseY){char ax=t.Travel[1];string toward=t.Travel,back=(t.Travel[0]=='+'?"-":"")+ax;
+ /* STAAD's WIND LOAD direction and factor for one face (STAAD.Pro Technical Reference, Generation of Wind Loads; owner, 27 November 2026:
+    "di nagtutugma yung LW at SW"): "X f" loads the faces seen from the near side - f > 0 the faces facing -X pushed toward +X, f < 0 the
+    faces facing +X pushed toward -X (pressure); "-X f" loads the far side as suction - f > 0 the faces facing +X pulled toward +X, f < 0
+    the faces facing -X pulled toward -X. So the minus on the axis means suction and the factor sign is the direction the load acts.
+    normal = the face's outward normal ("+X", "-Z" ...), suction = pulled outward (leeward / side walls), otherwise pushed in. */
+ internal static string Spec(string normal,bool suction,double magnitude){char ax=normal[1];int n=normal[0]=='+'?1:-1;int load=suction?n:-n;
+  return (suction?"-":"")+ax+" "+F(load*magnitude);}
+ internal static string WindLoadLines(WindFaceTypes t,double baseY){char ax=t.Travel[1];int s=t.Travel[0]=='+'?1:-1;Func<int,string> nm=k=>(k>0?"+":"-")+ax;
   string other=ax=='X'?"Z":"X";string yr=" YR "+F(baseY)+" "+F(t.Top);var b=new StringBuilder();
-  b.Append("WIND LOAD ").Append(toward[0]=='+'?ax.ToString():"-"+ax).Append(" 1 TYPE ").Append(t.Ww).Append(yr).Append("\n");
-  /* leeward: the face exposed to a wind from the other side, pulled outward (factor -1) */
-  b.Append("WIND LOAD ").Append(back).Append(" -1 TYPE ").Append(t.Lw).Append(yr).Append("\n");
+  /* windward: the face turned against the wind, pushed in */
+  b.Append("WIND LOAD ").Append(Spec(nm(-s),false,1)).Append(" TYPE ").Append(t.Ww).Append(yr).Append("\n");
+  /* leeward: the face turned away from the wind, pulled outward */
+  b.Append("WIND LOAD ").Append(Spec(nm(s),true,1)).Append(" TYPE ").Append(t.Lw).Append(yr).Append("\n");
   /* side walls: both faces pulled outward */
-  b.Append("WIND LOAD ").Append(other).Append(" -1 TYPE ").Append(t.Sw).Append(yr).Append("\n");
-  b.Append("WIND LOAD -").Append(other).Append(" -1 TYPE ").Append(t.Sw).Append(yr);
+  b.Append("WIND LOAD ").Append(Spec("+"+other,true,1)).Append(" TYPE ").Append(t.Sw).Append(yr).Append("\n");
+  b.Append("WIND LOAD ").Append(Spec("-"+other,true,1)).Append(" TYPE ").Append(t.Sw).Append(yr);
   return b.ToString();}
  internal sealed class Seg {public int No;public double X1,Z1,X2,Z2,Y;public double Len{get{return Math.Sqrt((X2-X1)*(X2-X1)+(Z2-Z1)*(Z2-Z1));}}
   public bool Skewed{get{return Math.Abs(X2-X1)>1e-6&&Math.Abs(Z2-Z1)>1e-6;}}}
@@ -126,7 +133,7 @@ static class WindEdgeLoads {
  /* the recessed faces as WIND LOAD lines of their own (owner, 26 November 2026: "bakit member load? dapat windload pa din"): an XR / ZR / YR
     range around one wall makes STAAD build the panel from that wall's members only, so the wall gets the Wind sheet's TYPE like an outer
     face - windward faces (normal against the travel) the WW type pushing in, faces turned away the LW type and walls along the wind the
-    SW type, both pulled out (factor -1). A wall that is recessed on several levels in a row is one line, from the level below the first
+    SW type, both pulled out (suction, see Spec). A wall that is recessed on several levels in a row is one line, from the level below the first
     to the last (the top of the building for the top level); levels with a gap between them get a line each. */
  internal static List<WindRecessLine> RecessLines(List<WindEdgeFace> faces,WindFaceTypes t){var list=new List<WindRecessLine>();
   char ax=t.Travel[1];int sign=t.Travel[0]=='+'?1:-1;const double tol=0.05;
@@ -136,11 +143,11 @@ static class WindEdgeLoads {
   foreach(var g in faces.Where(x=>x.Shielded&&x.Covered&&x.Level-x.Below>1e-3).GroupBy(f=>f.Key).OrderBy(g=>g.First().Normal[1]).ThenBy(g=>g.First().At).ThenBy(g=>g.First().A1)){
    var runs=new List<List<WindEdgeFace>>();foreach(var f in g.OrderBy(x=>x.Index)){if(runs.Count==0||f.Index!=runs[runs.Count-1].Last().Index+1)runs.Add(new List<WindEdgeFace>());runs[runs.Count-1].Add(f);}
    foreach(var run in runs){var f=run[0];var last=run[run.Count-1];char fn=f.Normal[1];int fs=f.Normal[0]=='+'?1:-1;bool windward=fn==ax&&fs==-sign,leeward=fn==ax&&fs==sign;
-    string dir=(fs>0?"-":"")+fn;string factor=windward?"1":"-1";int type=windward?t.Ww:leeward?t.Lw:t.Sw;string across=fn=='X'?"Z":"X";
+    string spec=Spec(f.Normal,!windward,1);int type=windward?t.Ww:leeward?t.Lw:t.Sw;string across=fn=='X'?"Z":"X";
     double y1=f.Below,y2=last.IsTop?last.TopBand:last.Level;
     var line=new WindRecessLine{Face=f,Role=(windward?"WW":leeward?"LW":"SW")+t.Travel,Y1=y1,Y2=y2,Levels=run.Select(x=>x.Level).ToList()};
     line.Comment=(windward?"windward wall":leeward?"leeward wall":"side wall")+" "+fn+" = "+F(f.At)+" m, "+across+" "+F(f.A1)+"-"+F(f.A2)+" m";
-    line.Text="WIND LOAD "+dir+" "+factor+" TYPE "+type+" "+fn+"R "+F(f.At-tol)+" "+F(f.At+tol)+" "+across+"R "+F(f.A1-tol)+" "+F(f.A2+tol)+" YR "+F(y1-tol)+" "+F(y2+tol);list.Add(line);}}
+    line.Text="WIND LOAD "+spec+" TYPE "+type+" "+fn+"R "+F(f.At-tol)+" "+F(f.At+tol)+" "+across+"R "+F(f.A1-tol)+" "+F(f.A2+tol)+" YR "+F(y1-tol)+" "+F(y2+tol);list.Add(line);}}
   return list;}
  internal static string RecessLoads(StaadModel m,List<WindEdgeFace> faces,WindFaceTypes t,out int count){var lines=RecessLines(faces,t);count=lines.Count;if(count==0)return "";
   return "* recessed walls the wind does not reach along "+t.Travel+" (from the model edges): the range\n* makes STAAD load only that wall\n"+string.Join("\n",lines.Select(l=>"* "+l.Comment+"\n"+l.Text));}

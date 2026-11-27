@@ -18,7 +18,7 @@ sealed class WindLoadCaseFigure {
   foreach(var k in texts.Keys.OrderBy(order).ThenBy(k=>Array.IndexOf(texts.Keys.ToArray(),k))){string title;if(titles==null||!titles.TryGetValue(k,out title))title="Wind case "+k;list.Add(new WindLoadCaseFigure{Key=k,Title=title,Text=texts[k],Plan=plan,Model=model});}
   return list;}
  /* ---- the case read from its STAAD text ---- */
- sealed class Load {public string Dir;public double Factor;public int Type;public bool Range;public double At,A1,A2;public char Axis;public string Line,Role,Tag;}
+ sealed class Load {public string Dir,Normal;public bool Suction;public double Factor;public int Type;public bool Range;public double At,A1,A2;public char Axis;public string Line,Role,Tag;}
  sealed class Couple {public double Y,Mt,D,SumR2;public List<Tuple<int,double,double>> Joints=new List<Tuple<int,double,double>>();public bool Spread;}
  List<Load> Loads(){var list=new List<Load>();foreach(var raw in Text.Replace("\r","").Split('\n')){var line=raw.Trim();var m=Regex.Match(line,@"^WIND LOAD (-?[XZ]) (-?[0-9.]+) TYPE (\d+)(.*)$");if(!m.Success)continue;
    var l=new Load{Dir=m.Groups[1].Value,Factor=double.Parse(m.Groups[2].Value,Ci),Type=int.Parse(m.Groups[3].Value),Line=line};var rest=m.Groups[4].Value;
@@ -26,9 +26,12 @@ sealed class WindLoadCaseFigure {
    if(xr.Success&&zr.Success){l.Range=true;double x1=double.Parse(xr.Groups[1].Value,Ci),x2=double.Parse(xr.Groups[2].Value,Ci),z1=double.Parse(zr.Groups[1].Value,Ci),z2=double.Parse(zr.Groups[2].Value,Ci);
     if(x2-x1<z2-z1){l.Axis='X';l.At=(x1+x2)/2;l.A1=z1+0.05;l.A2=z2-0.05;}else{l.Axis='Z';l.At=(z1+z2)/2;l.A1=x1+0.05;l.A2=x2-0.05;}}
    list.Add(l);}
-  /* roles: the travel axis is the axis of the windward (factor > 0) lines; a negative factor on that axis is leeward, on the other a side wall */
-  var axes=new HashSet<char>(list.Where(l=>l.Factor>0).Select(l=>l.Dir[l.Dir.Length-1]));
-  foreach(var l in list){char a=l.Dir[l.Dir.Length-1];l.Role=l.Factor>0?"WW":axes.Contains(a)?"LW":"SW";}
+  /* STAAD's meaning (WindEdgeLoads.Spec): "-X" = suction on the face whose normal has the factor's sign, "X" = pressure on the face whose
+     normal is against the factor's sign. Roles: pressure = windward; suction on the travel axis (the axis of the pressure lines) = leeward,
+     on the other axis = side wall */
+  foreach(var l in list){char a=l.Dir[l.Dir.Length-1];l.Suction=l.Dir[0]=='-';int fs=l.Factor>=0?1:-1;l.Normal=((l.Suction?fs:-fs)>0?"+":"-")+a;}
+  var axes=new HashSet<char>(list.Where(l=>!l.Suction).Select(l=>l.Dir[l.Dir.Length-1]));
+  foreach(var l in list){char a=l.Dir[l.Dir.Length-1];l.Role=!l.Suction?"WW":axes.Contains(a)?"LW":"SW";}
   int r=0;foreach(var l in list.Where(x=>x.Range))l.Tag="R"+(++r);return list;}
  List<Couple> Couples(){var list=new List<Couple>();Couple cur=null;
   foreach(var raw in Text.Replace("\r","").Split('\n')){var line=raw.Trim();var m=Regex.Match(line,@"^\* level (-?[0-9.]+) m: MT = (-?[0-9.]+) kN-m(?:, d = ([0-9.]+) m|, \d+ joints, sum r2 = ([0-9.]+) m2)");
@@ -69,14 +72,14 @@ sealed class WindLoadCaseFigure {
   using(var fill=new SolidBrush(Color.FromArgb(236,240,238)))for(int i=0;i+1<p.Xs.Count;i++)for(int j=0;j+1<p.Zs.Count;j++)if(p.Inside[i,j]){var a=P(p.Xs[i],p.Zs[j]);var b=P(p.Xs[i+1],p.Zs[j+1]);g.FillRectangle(fill,a.X,a.Y,b.X-a.X+0.5f,b.Y-a.Y+0.5f);}
   var loads=Loads();float len=fs*2.6f,step=fs*2.2f;
   foreach(var f in p.Faces){var a=f.Normal[1]=='X'?P(f.At,f.A1):P(f.A1,f.At);var b=f.Normal[1]=='X'?P(f.At,f.A2):P(f.A2,f.At);
-   Load load=null;if(f.Shielded){load=loads.FirstOrDefault(l=>l.Range&&l.Axis==f.Normal[1]&&Math.Abs(l.At-f.At)<0.02&&l.A1<f.A2-1e-3&&l.A2>f.A1+1e-3);}
-   else{/* the outer WIND LOAD line that reaches this face: wind blowing toward -normal reaches it with its direction = -normal */string dir=(f.Normal[0]=='+'?"-":"")+f.Normal[1];load=loads.FirstOrDefault(l=>!l.Range&&l.Dir==dir);}
+   Load load=null;if(f.Shielded){load=loads.FirstOrDefault(l=>l.Range&&l.Normal==f.Normal&&l.Axis==f.Normal[1]&&Math.Abs(l.At-f.At)<0.02&&l.A1<f.A2-1e-3&&l.A2>f.A1+1e-3);}
+   else load=loads.FirstOrDefault(l=>!l.Range&&l.Normal==f.Normal);
    using(var pen=new Pen(f.Shielded&&load!=null?ColorOf(load.Role):ink,f.Shielded&&load!=null?fs*0.36f:fs*0.12f))g.DrawLine(pen,a,b);if(load==null)continue;
    var col=ColorOf(load.Role);var n=f.Normal=="+X"?new PointF(1,0):f.Normal=="-X"?new PointF(-1,0):f.Normal=="+Z"?new PointF(0,1):new PointF(0,-1);
    float l0=(float)(len*Math.Min(1,Math.Abs(load.Factor)));if(f.Shielded&&!double.IsInfinity(f.Free))l0=(float)Math.Min(l0,f.Free*L.Scale*0.42);l0=Math.Max(l0,fs*0.7f);
    float fl=(float)Math.Sqrt((b.X-a.X)*(b.X-a.X)+(b.Y-a.Y)*(b.Y-a.Y));int count=Math.Max(1,(int)(fl/step));
    for(int k=0;k<count;k++){float u=(k+0.5f)/count;var q=new PointF(a.X+(b.X-a.X)*u,a.Y+(b.Y-a.Y)*u);var o=new PointF(q.X+n.X*l0,q.Y+n.Y*l0);var s=new PointF(q.X+n.X*fs*0.12f,q.Y+n.Y*fs*0.12f);
-    if(load.Factor>0)Arrow(g,col,fs*0.11f,o,s);else Arrow(g,col,fs*0.11f,s,o);}
+    if(!load.Suction)Arrow(g,col,fs*0.11f,o,s);else Arrow(g,col,fs*0.11f,s,o);}
    if(f.Shielded&&load.Tag!=null)using(var hf=Font(fs*0.95f,true))using(var br=new SolidBrush(col)){var sz=g.MeasureString(load.Tag,hf);var mid=new PointF((a.X+b.X)/2,(a.Y+b.Y)/2);g.DrawString(load.Tag,hf,br,mid.X-n.X*(fs*0.5f+sz.Width/2)-sz.Width/2,mid.Y-n.Y*(fs*0.5f+sz.Height/2)-sz.Height/2);}}
   /* the torsion couple at the joints of this plan's level (or the nearest level listed): FX arrows at both joints, a tag with the joint number,
      and the turning sense as an arc at the middle of the plan (screen y = Z, so clockwise on the page = -sum z FX > 0) */
