@@ -100,6 +100,16 @@ static class WindEdgeShapesTests {
    Check(cut.Contains("WIND LOAD -Z 1 TYPE 3 ZR -1 6.05 XR -0.05 12.05 YR 0 4.3"),"+Z faces cut at the outline Z = 6, the canopy to Z = 8 left out:\n"+cut);
    Check(cut.Contains("\nWIND LOAD Z 1 TYPE 1 YR 0 4.3\nWIND LOAD X 1 TYPE 2 YR 0 4.3")&&cut.Split('\n').Length==3,"faces with nothing beyond them keep the whole-face line");
    string plain=Model(new double[]{0,4},p,p);var m0=RedundancyFactor.ReadModel(plain);Check(WindEdgeLoads.CutFaceLines(m0,WindEdgeLoads.Faces(m0,0,4,out note),"WIND LOAD -Z 1 TYPE 3 YR 0 4")=="WIND LOAD -Z 1 TYPE 3 YR 0 4","no canopy: line unchanged");}
+  /* 9b  a cantilever balcony beyond the face (no columns under it): its stretch is left out, the walls keep theirs */
+  {string[] p={"##"};string md=Model(new double[]{0,4},p,p);var ids=new Dictionary<string,int>();foreach(System.Text.RegularExpressions.Match mt in System.Text.RegularExpressions.Regex.Matches(md,@"(?m)^(\d+) (\S+) (\S+) (\S+);"))ids[mt.Groups[2].Value+","+mt.Groups[3].Value+","+mt.Groups[4].Value]=int.Parse(mt.Groups[1].Value);
+   /* balcony X -2..0, Z 0..6 at 4 m: edge beams only; canopy members at 12 m to Z 8 so the +Z face is cut */
+   var ej=new StringBuilder("901 -2 4 0;\n902 -2 4 6;\n903 0 4.3 8;\n904 6 4.3 8;\n905 12 4.3 8;\n");var em=new StringBuilder();int mn=900;
+   em.Append(++mn+" "+ids["0,4,0"]+" 901;\n"+(++mn)+" 901 902;\n"+(++mn)+" 902 "+ids["0,4,6"]+";\n");foreach(var x in new[]{0,6,12})em.Append(++mn+" "+ids[x+",4,6"]+" "+(903+x/6)+";\n");
+   md=md.Replace("MEMBER INCIDENCES\n",ej+"MEMBER INCIDENCES\n").Replace("SUPPORTS\n",em+"SUPPORTS\n");var m=RedundancyFactor.ReadModel(md);
+   string cut=WindEdgeLoads.CutFaceLines(m,WindEdgeLoads.Faces(m,0,4.3,out note),"WIND LOAD -Z 1 TYPE 3 YR 0 4.3");
+   Check(cut.Contains("ZR -1 6.05")&&!cut.Contains("XR -2.05 0.05")&&cut.Split('\n').Length==1,"balcony in line with the wall: one stretch, no balcony-only stretch:\n"+cut);
+   /* a stretch with no column at all is left out */
+   Check(WindEdgeLoads.CutFaceLines(RedundancyFactor.ReadModel(md.Replace("SUPPORTS\n","SUPPORTS\n")),new List<WindEdgeFace>{new WindEdgeFace{Normal="+Z",At=6,A1=-2,A2=0,Level=4,Below=0},new WindEdgeFace{Normal="+Z",At=6.5,A1=0,A2=12,Level=4,Below=0}},"WIND LOAD -Z 1 TYPE 3 YR 0 4.3").Split('\n').All(l=>!l.Contains("XR -2.05 0.05")),"no-column stretch dropped");}
   /* 10  FLOOR LOAD ranges of whole beam panels (owner's STAAD run: "NO MEMBERS LOADED FOR A FLOOR LOAD GENERATION") */
   {Func<double[][],WindPlanLevel> plan=beams=>{var pl=new WindPlanLevel{Y=4,Xs=new List<double>{0,6,12},Zs=new List<double>{0,4,8},Inside=new bool[2,2]{{true,true},{true,true}}};pl.Beams.AddRange(beams);return pl;};
    var outline=new[]{new double[]{0,0,6,0},new double[]{6,0,12,0},new double[]{12,0,12,4},new double[]{12,4,12,8},new double[]{12,8,6,8},new double[]{6,8,0,8},new double[]{0,8,0,4},new double[]{0,4,0,0}};

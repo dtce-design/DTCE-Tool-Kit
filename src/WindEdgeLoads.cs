@@ -186,6 +186,12 @@ static class WindEdgeLoads {
    foreach(var j in new[]{a,b}){if(Y(j)<y1-tol||Y(j)>y2+tol)continue;double u=U(j);var sp=spans.FirstOrDefault(x=>u>x[0]+e&&u<x[1]-e);if(sp!=null&&W(j)>sp[2]+tol){beyond=true;break;}}if(beyond)break;}
   if(!beyond)return null;
   var merged=new List<double[]>();foreach(var sp in spans){var last=merged.Count>0?merged[merged.Count-1]:null;if(last!=null&&Math.Abs(last[1]-sp[0])<e&&(last[2]==sp[2]||Math.Abs(last[2]-sp[2])<e))last[1]=sp[1];else merged.Add((double[])sp.Clone());}
+  /* a stretch needs a wall panel: columns at two places along it at least (owner's STAAD run, 27 November 2026: "NO MEMBERS LOADED FOR A
+     WIND LOAD GENERATION" at the balcony edges, a cantilever slab with no column under it); stretches without one are left out */
+  var cols=new List<double[]>();/* u, w */foreach(var mem in m.Members.Values){StaadJoint a,b;if(!m.Joints.TryGetValue(mem.A,out a)||!m.Joints.TryGetValue(mem.B,out b))continue;
+   if(Math.Abs(U(a)-U(b))>0.02||Math.Abs(W(a)-W(b))>0.02||Math.Abs(Y(a)-Y(b))<1e-3)continue;if(Math.Max(Y(a),Y(b))<y1+tol||Math.Min(Y(a),Y(b))>y2-tol)continue;cols.Add(new[]{U(a),W(a)});}
+  merged=merged.Where(sp=>{var us=cols.Where(c=>c[0]>=sp[0]-tol&&c[0]<=sp[1]+tol&&c[1]<=sp[2]+tol).Select(c=>Math.Round(c[0],2)).Distinct().ToList();return us.Count>=2&&us.Max()-us.Min()>0.1;}).ToList();
+  if(merged.Count==0)return "* "+line+": no wall panel on this face (no columns), not loaded";
   double lo=m.Joints.Values.Min(j=>W(j))-1,hi=m.Joints.Values.Max(j=>W(j))+1;string head="WIND LOAD "+mt.Groups[1].Value+ax+" "+mt.Groups[3].Value+" "+mt.Groups[4].Value,along=ax=='X'?"ZR":"XR";
   var outl=new List<string>();foreach(var sp in merged){var b=new StringBuilder(head);
    if(!double.IsInfinity(sp[2])){double w1=lo,w2=sp[2]+tol;double r1=n>0?w1:-w2,r2=n>0?w2:-w1;b.Append(" ").Append(ax).Append("R ").Append(F(r1)).Append(" ").Append(F(r2));}
