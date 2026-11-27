@@ -1,0 +1,12 @@
+DTCE Tool Kit v10.0.32 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.24, published).
+
+PATCH - figure of the design wind load cases ("pano ang loading neto?"):
+- Load Combinations, "Wind load cases" tab and the report: one figure with the four design wind load cases of NSCP 2015 Figure 207B.4-8
+  on the building's plan (the level with the largest torsion): Case 1 full windward / leeward / side walls; Case 2 75 % of one axis with
+  the torsion; Case 3 75 % of both axes; Case 4 56.3 % of both axes with the torsion. Arrow length follows the factor; the torsion is a
+  curved arrow MT with the couple F drawn at its two joints (JOINT LOAD FX). The -T cases reverse it; -X / -Z are mirror images.
+- The couple joints are now the joints nearest the middle of the longest outer face at each Z edge (clear of recess corners).
+Owner's sample (level 9.6 m): Case 2 MT = 1596.2 kN-m, F = 66.5 kN at joints 1962 / 221; Case 4 MT = 16026.5 kN-m (the Z wind acts on the
+84 m long side), F = 667.8 kN.
+Tests: WindEdgeLoadsTests 33, WindEdgeShapesTests 14.
+Includes everything of v10.0.31.

@@ -107,14 +107,18 @@ partial class LoadCombinationsForm:DesignSheetForm {
  string windCacheNote="";
  /* the figures of the wind cases (owner, 26 November 2026: "isama mo din yung figure sa wind load loading"), from the model of the
     Primary loads tab and the Wind sheet's types; shown on the Wind load cases tab and in the report */
- StaadModel windModel;Dictionary<string,string> windTypes;List<WindCaseFigure> windFigs=new List<WindCaseFigure>();string windFigKey="";
+ StaadModel windModel;Dictionary<string,string> windTypes;WindDesignCasesFigure windDesign;List<WindCaseFigure> windFigs=new List<WindCaseFigure>();string windFigKey="";
  readonly FlowLayoutPanel windFigPanel=new FlowLayoutPanel{Dock=DockStyle.Fill,AutoScroll=true,FlowDirection=FlowDirection.TopDown,WrapContents=false,BackColor=Color.White,Padding=new Padding(10)};
  readonly Label windFigNote=new Label{Dock=DockStyle.Top,Height=46,Padding=new Padding(10,8,10,4),ForeColor=PowTheme.Ink};
  void UpdateWindFigures(Dictionary<string,string> titles){if(!On("WindLinked")||windModel==null||windTypes==null){windFigs=new List<WindCaseFigure>();}else{try{windFigs=WindCaseFigure.Build(windModel,windTypes,titles);}catch(Exception){windFigs=new List<WindCaseFigure>();}}
   string key=windKey+"#"+string.Join(";",titles.Select(k=>k.Key+"="+k.Value));if(key==windFigKey&&windFigPanel.Controls.Count>0)return;windFigKey=key;
   foreach(Control c in windFigPanel.Controls.Cast<Control>().ToList()){var pb=c as PictureBox;if(pb!=null&&pb.Image!=null)pb.Image.Dispose();c.Dispose();}windFigPanel.Controls.Clear();
   windFigNote.Text=windFigs.Count==0?"Paste the STAAD Nodes and Beams tables (or the .std file) on the Primary loads tab and calculate the Wind Load sheet with building pressures to see the wind load cases.":
-   "Plan of every wind case as STAAD's top view (X to the right, Z down): windward faces pushed in, leeward and side walls pulled out; the recessed walls carry their own WIND LOAD line (callouts). Levels with the same outline share one figure.";
+   "First the design wind load cases of NSCP Fig. 207B.4-8 (Cases 1-4, torsion as a joint-load couple), then every wind case as STAAD's top view (X to the right, Z down): windward faces pushed in, leeward and side walls pulled out; recessed walls have their own WIND LOAD line (R tags and legend). Levels with the same outline share one figure.";
+  /* the four design wind load cases (Fig. 207B.4-8) on the plan, first (owner: "pano ang loading neto?") */
+  windDesign=null;if(On("WindAllCases")&&!On("WindTorsionExempt")&&windModel!=null&&windTypes!=null)try{windDesign=WindDesignCasesFigure.Build(windModel,windTypes);}catch(Exception){windDesign=null;}
+  if(windDesign!=null){float w=1250,fs=13;float h=windDesign.Height(w,fs);var bmp=new Bitmap((int)w+20,(int)h+20);using(var g=Graphics.FromImage(bmp)){g.Clear(Color.White);g.TextRenderingHint=System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;windDesign.Draw(g,new RectangleF(10,10,w,h),fs);}
+   windFigPanel.Controls.Add(new PictureBox{Image=bmp,SizeMode=PictureBoxSizeMode.AutoSize,Margin=new Padding(0,0,0,14),BorderStyle=BorderStyle.FixedSingle});}
   foreach(var f in windFigs){float w=1250,fs=13;float h;using(var b0=new Bitmap(1,1))using(var g0=Graphics.FromImage(b0))h=f.Height(g0,w,fs);var bmp=new Bitmap((int)w+20,(int)h+20);
    using(var g=Graphics.FromImage(bmp)){g.Clear(Color.White);g.TextRenderingHint=System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;f.Draw(g,new RectangleF(10,10,w,h),fs);}
    windFigPanel.Controls.Add(new PictureBox{Image=bmp,SizeMode=PictureBoxSizeMode.AutoSize,Margin=new Padding(0,0,0,14),BorderStyle=BorderStyle.FixedSingle});}}
@@ -157,6 +161,7 @@ partial class LoadCombinationsForm:DesignSheetForm {
     if(!On("WindTorsionExempt")){string nn;var plans=WindEdgeLoads.Plans(windModel,0,types.Values.Max(t=>t.Top),out nn);var rows=new List<string[]>();
      foreach(var t in types.Values)foreach(var l in WindEdgeLoads.Torsion(windModel,plans,new List<WindFaceTypes>{t},0.75,0))rows.Add(new[]{"Case 2, "+t.Travel,StaadCombinations.F(l.Y),StaadCombinations.F(l.H),string.Join("; ",l.Parts),StaadCombinations.F(l.Mt),l.J2+" / "+l.J1+", d = "+StaadCombinations.F(l.D)});
      foreach(var x in new[]{"+X","-X"})foreach(var z in new[]{"+Z","-Z"}){if(!types.ContainsKey(x)||!types.ContainsKey(z))continue;foreach(var l in WindEdgeLoads.Torsion(windModel,plans,new List<WindFaceTypes>{types[x],types[z]},0.563,0))rows.Add(new[]{"Case 4, "+x+z,StaadCombinations.F(l.Y),StaadCombinations.F(l.H),string.Join("; ",l.Parts),StaadCombinations.F(l.Mt),l.J2+" / "+l.J1+", d = "+StaadCombinations.F(l.D)});}
+     if(windDesign!=null){var dfig=windDesign;float dfs=7.7f;rep.Figure(dfig.ReportHeight(CalculationDocument.CW,dfs),RichReport.Raster((g,r)=>dfig.Draw(g,r,dfs)),"Design wind load cases on the plan; values of the level shown, every level in the table below.");}
      if(rows.Count>0)rep.Table(new[]{"Case","Level (m)","h (m)","MT = f (PW + PL) B h × 0.15 B","MT (kN·m)","Joints, couple arm (m)"},rows,new float[]{12,9,7,44,10,18});}}
    foreach(var f in windFigs){var fig=f;float fs=7.7f;/* callout text 0.92 fs >= 7 pt */rep.Figure(fig.ReportHeight(CalculationDocument.CW,fs),RichReport.Raster((g,r)=>fig.Draw(g,r,fs)),fig.Title+" - wind toward "+fig.Types.Travel+", levels "+string.Join(", ",fig.Levels.Select(l=>StaadCombinations.F(l.Y)))+" m.");}}
   rep.Heading(sec+"  LOAD COMBINATIONS");foreach(var g in all.GroupBy(c=>c.Group)){rep.Paragraph(g.Key,false,true);rep.Table(new[]{"No.","Eq.","Combination","Factors (load case x factor)"},g.Select(c=>new[]{c.No.ToString(),c.Eq,c.Title,string.Join("  ",c.Terms.OrderBy(t=>t.Key.No).Select(t=>t.Key.No+" x "+StaadCombinations.F(t.Value)))}),new float[]{9,14,42,35});}

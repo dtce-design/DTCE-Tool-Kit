@@ -163,7 +163,7 @@ static class WindEdgeLoads {
  /* the torsion of Cases 2 / 4 per level: MT = f (PW + PL) B h · 0.15 B for each axis of the case (B = plan width across the wind at the level,
     h = the level's tributary height, PW at the level's height), applied as a couple of joint loads FX at the two joints of the level farthest
     apart in Z (sign: +T = MT about +Y) - a couple gives torsion only, no net force, and needs no rigid diaphragm */
- internal sealed class TorsionLevel {public double Y,H,Mt;public int J1,J2;public double D;public List<string> Parts=new List<string>();}
+ internal sealed class TorsionLevel {public double Y,H,Mt;public int J1,J2;public double D,X1,Z1,X2,Z2;public List<string> Parts=new List<string>();}
  internal static List<TorsionLevel> Torsion(StaadModel m,List<WindPlanLevel> plans,List<WindFaceTypes> types,double f,double baseY){var list=new List<TorsionLevel>();double k=m.ToMetre;
   foreach(var p in plans.OrderBy(x=>x.Y)){if(p.Y<=baseY+1e-3||p.Faces.Count==0)continue;var face=p.Faces[0];double h=face.TopBand-face.Bottom;if(h<=1e-6)continue;
    double xmin=double.MaxValue,xmax=double.MinValue,zmin=double.MaxValue,zmax=double.MinValue;for(int i=0;i+1<p.Xs.Count;i++)for(int j=0;j+1<p.Zs.Count;j++)if(p.Inside[i,j]){xmin=Math.Min(xmin,p.Xs[i]);xmax=Math.Max(xmax,p.Xs[i+1]);zmin=Math.Min(zmin,p.Zs[j]);zmax=Math.Max(zmax,p.Zs[j+1]);}
@@ -171,8 +171,11 @@ static class WindEdgeLoads {
    foreach(var t in types){bool alongX=t.Travel[1]=='X';double B=alongX?zmax-zmin:xmax-xmin;double pw=t.WindwardAt(p.Y),pl=t.Leeward;double mt=f*(pw+pl)*B*h*0.15*B;lv.Mt+=mt;
     lv.Parts.Add(F(f)+" × ("+F(pw)+" + "+F(pl)+") × "+F(B)+" × "+F(h)+" × 0.15 × "+F(B)+" = "+F(mt)+" kN·m ("+t.Travel+")");}
    var js=m.Joints.Values.Where(j=>Math.Abs(m.H(j)*k-p.Y)<1e-3).ToList();if(js.Count<2)continue;double cx=(xmin+xmax)/2;
-   var a=js.OrderBy(j=>R(m.P2(j)*k)).ThenBy(j=>Math.Abs(m.P1(j)*k-cx)).First();var b=js.OrderByDescending(j=>R(m.P2(j)*k)).ThenBy(j=>Math.Abs(m.P1(j)*k-cx)).First();
-   lv.J1=a.No;lv.J2=b.No;lv.D=(m.P2(b)-m.P2(a))*k;if(lv.D<=1e-6)continue;list.Add(lv);}
+   /* at each Z edge the joint nearest the middle of the longest outer face there (clear of recess corners) */
+   Func<string,double,double> mid=(normal,at)=>{var fz=p.Faces.Where(fc=>fc.Normal==normal&&!fc.Shielded&&Math.Abs(fc.At-at)<1e-6).OrderByDescending(fc=>fc.A2-fc.A1).FirstOrDefault();return fz!=null?(fz.A1+fz.A2)/2:cx;};
+   double ma=mid("-Z",zmin),mb=mid("+Z",zmax);
+   var a=js.OrderBy(j=>R(m.P2(j)*k)).ThenBy(j=>Math.Abs(m.P1(j)*k-ma)).First();var b=js.OrderByDescending(j=>R(m.P2(j)*k)).ThenBy(j=>Math.Abs(m.P1(j)*k-mb)).First();
+   lv.J1=a.No;lv.J2=b.No;lv.X1=m.P1(a)*k;lv.Z1=m.P2(a)*k;lv.X2=m.P1(b)*k;lv.Z2=m.P2(b)*k;lv.D=(m.P2(b)-m.P2(a))*k;if(lv.D<=1e-6)continue;list.Add(lv);}
   return list;}
  static string TorsionText(StaadModel m,List<WindPlanLevel> plans,List<WindFaceTypes> types,double f,int sign,double baseY){var lv=Torsion(m,plans,types,f,baseY);if(lv.Count==0)return "* torsion: no floor level found in the model";
   var b=new StringBuilder("* torsion "+(sign>0?"+T":"-T")+" (NSCP Fig. 207B.4-8): MT = f (PW + PL) B h x 0.15 B per level,\n* a couple of joint loads FX at the two joints farthest apart in Z\nUNIT METER KN\nJOINT LOAD");

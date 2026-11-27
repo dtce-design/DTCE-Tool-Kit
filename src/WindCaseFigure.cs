@@ -91,4 +91,67 @@ sealed class WindCaseFigure {
   if(L.Bottom.Count>0){float by=py+L.PlanH+L.Margin;using(var hf=Font(fs,true))using(var br=new SolidBrush(ink))g.DrawString("Recessed walls (own WIND LOAD limited by an XR / ZR / YR range around the wall):",hf,br,x0+fs*0.5f,by);Rows(g,L,L.Bottom,x0+fs*0.5f,by+L.RowH*1.2f,fs);}}
  static PointF Normal(string n){return n=="+X"?new PointF(1,0):n=="-X"?new PointF(-1,0):n=="+Z"?new PointF(0,1):new PointF(0,-1);}
 }
+/* the four design wind load cases of NSCP 2015 Figure 207B.4-8 on the building's plan (owner, 27 November 2026: "pano ang loading neto?"):
+   one panel per case for wind along +X (and +Z for Cases 3 / 4) - windward pushed in, leeward pulled out, each with its factor; side walls
+   only in Case 1; the torsion MT of Cases 2 / 4 as a curved arrow with the couple of joint loads at the level shown. Values are those of
+   one level; every level is in the report table. */
+sealed class WindDesignCasesFigure {
+ static readonly CultureInfo Ci=CultureInfo.InvariantCulture;
+ static string F(double v){return Math.Round(v,2).ToString("0.##",Ci);}
+ public WindPlanLevel Plan;public WindFaceTypes X,Z;public WindEdgeLoads.TorsionLevel T2,T4;public double BaseY;
+ internal static WindDesignCasesFigure Build(StaadModel model,Dictionary<string,string> link,double baseY=0){if(model==null||link==null)return null;string px,pz;if(!link.TryGetValue("+X",out px)||!link.TryGetValue("+Z",out pz))return null;
+  var x=WindFaceTypes.Unpack("+X",px);var z=WindFaceTypes.Unpack("+Z",pz);if(x==null||z==null)return null;string note;var plans=WindEdgeLoads.Plans(model,baseY,Math.Max(x.Top,z.Top),out note);var shown=plans.Where(p=>p.Y>baseY+1e-3).ToList();if(shown.Count==0)return null;
+  /* the level with the largest torsion (usually a typical upper floor) */
+  var t2=WindEdgeLoads.Torsion(model,plans,new List<WindFaceTypes>{x},0.75,baseY);var t4=WindEdgeLoads.Torsion(model,plans,new List<WindFaceTypes>{x,z},0.563,baseY);if(t2.Count==0)return null;
+  var top=t2.OrderByDescending(l=>l.Mt).First();var plan=shown.FirstOrDefault(p=>Math.Abs(p.Y-top.Y)<1e-6)??shown.Last();
+  return new WindDesignCasesFigure{Plan=plan,X=x,Z=z,T2=top,T4=t4.FirstOrDefault(l=>Math.Abs(l.Y-top.Y)<1e-6),BaseY=baseY};}
+ static Font Font(float size,bool bold){return new Font("Segoe UI",size,bold?FontStyle.Bold:FontStyle.Regular,GraphicsUnit.Pixel);}
+ internal float Height(float width,float fs){float panelW=width/2;var p=Plan;double sx=p.Xs.Last()-p.Xs.First(),sz=p.Zs.Last()-p.Zs.First();float m=fs*3.4f;float scale=(float)Math.Min((panelW-2*m)/sx,panelW*0.5/sz);
+  return fs*2.2f+2*(fs*3.4f+2*m+(float)(sz*scale)+fs*0.8f)+fs*3.2f;}
+ internal float ReportHeight(float width,float fs){return Height(width,fs);}
+ static void Arrow(Graphics g,Color c,float w,PointF a,PointF b){using(var pen=new Pen(c,w))g.DrawLine(pen,a,b);double ang=Math.Atan2(b.Y-a.Y,b.X-a.X);float h=w*3.2f+2.5f;
+  var p1=new PointF(b.X-(float)(Math.Cos(ang-.42)*h),b.Y-(float)(Math.Sin(ang-.42)*h));var p2=new PointF(b.X-(float)(Math.Cos(ang+.42)*h),b.Y-(float)(Math.Sin(ang+.42)*h));using(var br=new SolidBrush(c))g.FillPolygon(br,new[]{b,p1,p2});}
+ internal void Draw(Graphics g,RectangleF rc,float fs){g.SmoothingMode=SmoothingMode.AntiAlias;var ink=PowTheme.Ink;
+  using(var tf=Font(fs*1.2f,true))using(var b=new SolidBrush(ink))g.DrawString("Design wind load cases, NSCP 2015 Figure 207B.4-8 (directional procedure) - plan at level "+F(Plan.Y)+" m, wind toward +X / +Z",tf,b,rc.X,rc.Y);
+  float top=rc.Y+fs*2.2f;float panelW=rc.Width/2,panelH=(rc.Height-fs*2.2f-fs*3.2f)/2;
+  string ww=F(X.WindwardAt(T2.Y)),lw=F(X.Leeward),wz=F(Z.WindwardAt(T2.Y)),lz=F(Z.Leeward);
+  var cases=new[]{
+   new{Title="Case 1  WL+X",Sub="PWX = "+ww+", PLX = "+lw+" kPa (full); side walls "+F(X.Side)+" kPa",Fx=1.0,Fz=0.0,Side=true,T=0},
+   new{Title="Case 2  WL2+X±T",Sub="0.75 PWX, 0.75 PLX;  MT = 0.75 (PWX + PLX) BX h · (±0.15 BX) = ±"+F(T2.Mt)+" kN·m",Fx=0.75,Fz=0.0,Side=false,T=2},
+   new{Title="Case 3  WL3+X+Z",Sub="0.75 PWX, 0.75 PLX and 0.75 PWZ, 0.75 PLZ at once (PWZ = "+wz+", PLZ = "+lz+" kPa)",Fx=0.75,Fz=0.75,Side=false,T=0},
+   new{Title="Case 4  WL4+X+Z±T",Sub="0.563 of both axes;  MT = 0.563 [(PWX+PLX) BX h eX + (PWZ+PLZ) BZ h eZ] = ±"+F(T4!=null?T4.Mt:0)+" kN·m",Fx=0.563,Fz=0.563,Side=false,T=4}};
+  for(int k=0;k<4;k++){var c=cases[k];float ox=rc.X+(k%2)*panelW,oy=top+(k/2)*panelH;var box=new RectangleF(ox+fs*0.3f,oy,panelW-fs*0.6f,panelH-fs*0.4f);
+   using(var pen=new Pen(Color.FromArgb(205,212,209),Math.Max(0.6f,fs*0.06f)))g.DrawRectangle(pen,box.X,box.Y,box.Width,box.Height);
+   using(var hf=Font(fs,true))using(var sf=Font(fs*0.92f,false))using(var b=new SolidBrush(ink))using(var muted=new SolidBrush(PowTheme.Muted)){g.DrawString(c.Title,hf,b,box.X+fs*0.4f,box.Y+fs*0.3f);g.DrawString(c.Sub,sf,muted,new RectangleF(box.X+fs*0.4f,box.Y+fs*1.6f,box.Width-fs*0.8f,fs*2.4f));}
+   DrawPlan(g,new RectangleF(box.X,box.Y+fs*3.4f,box.Width,box.Height-fs*3.4f),fs,c.Fx,c.Fz,c.Side,c.T);}
+  using(var sf=Font(fs*0.92f,false))using(var muted=new SolidBrush(PowTheme.Muted))g.DrawString("Blue: windward pushed in; red: leeward pulled out; orange: side walls (Case 1 only). Arrow length follows the factor. Torsion: curved arrow MT, applied in STAAD as the couple F at the two joints shown (JOINT LOAD FX, no net force); the −T cases reverse it. Cases for −X / −Z are the mirror images.",sf,muted,new RectangleF(rc.X,rc.Bottom-fs*3.0f,rc.Width,fs*3.0f));}
+ void DrawPlan(Graphics g,RectangleF r,float fs,double fx,double fz,bool side,int torsion){var p=Plan;double x0=p.Xs.First(),x1=p.Xs.Last(),z0=p.Zs.First(),z1=p.Zs.Last();float m=fs*3.4f;
+  float scale=(float)Math.Min((r.Width-2*m)/(x1-x0),(r.Height-2*m)/(z1-z0));float pw=(float)((x1-x0)*scale),ph=(float)((z1-z0)*scale);float px=r.X+(r.Width-pw)/2,py=r.Y+(r.Height-ph)/2;
+  Func<double,double,PointF> P=(xx,zz)=>new PointF(px+(float)((xx-x0)*scale),py+(float)((zz-z0)*scale));
+  using(var fill=new SolidBrush(Color.FromArgb(236,240,238)))for(int i=0;i+1<p.Xs.Count;i++)for(int j=0;j+1<p.Zs.Count;j++)if(p.Inside[i,j]){var a=P(p.Xs[i],p.Zs[j]);var b=P(p.Xs[i+1],p.Zs[j+1]);g.FillRectangle(fill,a.X,a.Y,b.X-a.X+0.5f,b.Y-a.Y+0.5f);}
+  float len=fs*2.6f,step=fs*1.9f;
+  foreach(var f in p.Faces){var a=f.Normal[1]=='X'?P(f.At,f.A1):P(f.A1,f.At);var b=f.Normal[1]=='X'?P(f.At,f.A2):P(f.A2,f.At);
+   using(var pen=new Pen(PowTheme.Ink,fs*0.12f))g.DrawLine(pen,a,b);
+   char axis=f.Normal[1];double fac=axis=='X'?fx:fz;string role=axis=='X'?(f.Normal[0]=='-'?"WW":"LW"):(fz>0?(f.Normal[0]=='-'?"WW":"LW"):"SW");if(axis=='Z'&&fz==0)fac=side?1:0;
+   if(fac<=0||(role=="SW"&&!side))continue;if(f.Shielded&&!f.Covered)continue;
+   var col=role=="WW"?WindCaseFigure.WwColor:role=="LW"?WindCaseFigure.LwColor:WindCaseFigure.SwColor;var n=f.Normal=="+X"?new PointF(1,0):f.Normal=="-X"?new PointF(-1,0):f.Normal=="+Z"?new PointF(0,1):new PointF(0,-1);
+   float L=(float)(len*Math.Min(1,fac));if(f.Shielded&&!double.IsInfinity(f.Free))L=(float)Math.Min(L,f.Free*scale*0.42);L=Math.Max(L,fs*0.7f);
+   if(f.Shielded)using(var pen=new Pen(col,fs*0.3f))g.DrawLine(pen,a,b);
+   float fl=(float)Math.Sqrt((b.X-a.X)*(b.X-a.X)+(b.Y-a.Y)*(b.Y-a.Y));int count=Math.Max(1,(int)(fl/step));
+   for(int k=0;k<count;k++){float u=(k+0.5f)/count;var q=new PointF(a.X+(b.X-a.X)*u,a.Y+(b.Y-a.Y)*u);var o=new PointF(q.X+n.X*L,q.Y+n.Y*L);
+    if(role=="WW")Arrow(g,col,fs*0.11f,o,new PointF(q.X+n.X*fs*0.12f,q.Y+n.Y*fs*0.12f));else Arrow(g,col,fs*0.11f,new PointF(q.X+n.X*fs*0.12f,q.Y+n.Y*fs*0.12f),o);}}
+  if(torsion==0)return;var t=torsion==2?T2:T4;if(t==null)return;
+  /* torsion: curved arrow at the plan centre and the couple at the two joints (positive MT about +Y: with X right and Z down, +Y points at the viewer, so +T turns counterclockwise on the plan - the same sense as the couple +F at Z-max, -F at Z-min) */
+  var cen=P((x0+x1)/2,(z0+z1)/2);float rr=Math.Min(pw,ph)*0.22f;var purple=Color.FromArgb(110,60,150);
+  using(var pen=new Pen(purple,fs*0.18f))g.DrawArc(pen,cen.X-rr,cen.Y-rr,2*rr,2*rr,200,-250);
+  double end=(200-250)*Math.PI/180;var tip=new PointF(cen.X+(float)(Math.Cos(end)*rr),cen.Y+(float)(Math.Sin(end)*rr));var tan=new PointF((float)Math.Sin(end),(float)-Math.Cos(end));
+  Arrow(g,purple,fs*0.18f,new PointF(tip.X-tan.X*fs*0.6f,tip.Y-tan.Y*fs*0.6f),tip);
+  using(var hf=Font(fs,true))using(var br=new SolidBrush(purple)){var lbl="MT ±"+F(t.Mt)+" kN·m";var sz=g.MeasureString(lbl,hf);g.DrawString(lbl,hf,br,cen.X+rr+fs*0.5f,cen.Y-sz.Height/2);
+   /* the couple at its two joints, drawn just inside the floor so it stays clear of the wind arrows outside */
+   double f=t.Mt/t.D;var j2=P(t.X2,t.Z2);var j1=P(t.X1,t.Z1);float d=fs*1.3f;
+   using(var dot=new SolidBrush(purple)){g.FillEllipse(dot,j2.X-fs*0.25f,j2.Y-fs*0.25f,fs*0.5f,fs*0.5f);g.FillEllipse(dot,j1.X-fs*0.25f,j1.Y-fs*0.25f,fs*0.5f,fs*0.5f);}
+   Arrow(g,purple,fs*0.16f,new PointF(j2.X-fs*1.8f,j2.Y-d),new PointF(j2.X+fs*1.8f,j2.Y-d));Arrow(g,purple,fs*0.16f,new PointF(j1.X+fs*1.8f,j1.Y+d),new PointF(j1.X-fs*1.8f,j1.Y+d));
+   using(var sf=Font(fs*0.92f,false)){var s1="F = "+F(f)+" kN, joint "+t.J2;var z1s=g.MeasureString(s1,sf);float tx=Math.Min(Math.Max(j2.X-z1s.Width/2,px),px+pw-z1s.Width);g.DrawString(s1,sf,br,tx,j2.Y-d-fs*0.6f-z1s.Height);
+    var s2="F = "+F(f)+" kN, joint "+t.J1;var z2s=g.MeasureString(s2,sf);tx=Math.Min(Math.Max(j1.X-z2s.Width/2,px),px+pw-z2s.Width);g.DrawString(s2,sf,br,tx,j1.Y+d+fs*0.6f);}}}
+}
 }
