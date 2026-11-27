@@ -1,0 +1,12 @@
+DTCE Tool Kit v10.0.39 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store upload is on hold).
+
+PATCH - one figure per wind load case ("isa isahin mo based din kung ilan wind load cases"):
+- Wind Load sheet, "Wind load cases" tab and report: every wind load case of NSCP 2015 Figure 207B.4-8 has its own plan
+  (Case 1 +X / -X / +Z / -Z, Case 1 -GCpi when there is a roof, Case 2 x 8, Case 3 x 4, Case 4 x 8 - 24 to 28 cases),
+  drawn from the case's own STAAD text (src/WindLoadCaseFigure.cs): windward / leeward / side-wall arrows with the case factors,
+  recessed walls tagged R1, R2 ..., the torsion couple at its joints (J tags inside the plan) with the turning sense (MT arc).
+- All values are in the legend (every WIND LOAD line, the roof lines, the torsion per level with its JOINT LOADs); the title wraps
+  instead of being cut off; nothing is written over the arrows. The 4-panel summary with the overlapping labels is no longer used.
+- Report: the cases flow two per page (shorter section title); the per-level outline figures are added only when the levels differ.
+Tests: WindCasesTabTests 37, WindEdgeLoadsTests 41, WindEdgeShapesTests 23, DesignLoadsReportTests 5.
+Includes everything of v10.0.38 (compact report tables).

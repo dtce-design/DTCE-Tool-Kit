@@ -16,7 +16,7 @@ class ReportProtectionTests {
    string raw=Path.Combine(folder,entry.Key+" input.pdf"),secured=Path.Combine(folder,entry.Key+" protected.pdf");EngineeringQuantityPdf.Write(raw,report);PdfProtection.ProtectWithTool(raw,secured,tool);Check(File.Exists(secured)&&new FileInfo(secured).Length>1000,"AES-256 export created");
    File.WriteAllText(Path.Combine(folder,entry.Key+".html"),report.Html());File.WriteAllText(Path.Combine(folder,entry.Key+".txt"),entry.Value);
   }
-  var tiles=ReportWatermarkPattern.Tiles().ToArray();Check(tiles.Length==24&&tiles.All(t=>t[2]==180),"Large triangular watermark lattice");Check(ReportWatermarkPattern.Opacity>.085&&ReportWatermarkPattern.Opacity<.2,"Increased readable opacity");
+  var tiles=ReportWatermarkPattern.Tiles().ToArray();Check(tiles.Length==24&&tiles.All(t=>t[2]==180),"Large triangular watermark lattice");Check(ReportWatermarkPattern.Opacity>.05&&ReportWatermarkPattern.Opacity<.1,"Faint watermark opacity (v10.0.44: 0.07)");
   string existing=Path.Combine(folder,"preserved.pdf");File.WriteAllText(existing,"keep existing");bool failed=false;try{PdfProtection.ProtectWithTool(Path.Combine(folder,"Purlin input.pdf"),existing,Path.Combine(folder,"missing tool"));}catch{failed=true;}Check(failed&&File.ReadAllText(existing)=="keep existing","Failed security step preserves destination");Check(!Directory.GetFiles(folder,"*.secured").Any(),"Temporary secured files removed");
   Console.WriteLine(checks+" report layout, watermark and real AES-256 export checks passed.");
  }

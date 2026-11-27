@@ -1,0 +1,22 @@
+DTCE Tool Kit v10.0.33 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.24, published).
+
+PATCH - roof and overhang wind pressures in the STAAD wind cases ("add the roof, determine also the overhangs"):
+- NSCP 2015 207B.4.1 / Figure 207B.4-1: the MWFRS design pressure acts on every surface, the roof included. The Wind Load sheet now sends
+  the roof pressures of each direction to Load Combinations (link wind-staad): windward / leeward slope for wind normal to a ridge of 10
+  degrees or more, otherwise the roof zones from the windward edge (0-h/2, h/2-h, h-2h, >2h), net of the internal pressure.
+- Both GCpi signs and both Cp values (207B.4-1) - Case 1 of each direction is two load cases:
+  WL+X  walls + roof uplift (Cp branch 1, +GCpi)      WL1B+X  walls + roof downward / least uplift (Cp branch 2, -GCpi)
+  (28 wind cases with Cases 2-4; the roof is not in Cases 2-4, which Figure 207B.4-8 defines for the walls.)
+- The roof is found from the STAAD model:
+  * slab roofs: the cells of each level with no floor above get a FLOOR LOAD (FLOAD, GY) per group of cells; a cell over two zones takes
+    the worse one;
+  * trusses: the top chords of each truss plane above the top floor (webs and bottom chords left out; eave overhang chords below the eave
+    included) get MEMBER LOAD UNI Y (normal to the roof) = pressure x truss spacing (half at the end trusses); the ceiling under the trusses
+    takes no roof floor load.
+- Overhangs (207B.4.4): a roof edge with no column along it (cantilever slab) or the part of a top chord beyond the columns takes the
+  top-surface pressure without internal pressure, and at the windward edge also the underside Cp = 0.8 (0.8 qh G pushing up).
+Owner's sample (flat roof slab at 9.6 m): roof zones FLOAD 5.081 / 3.253 / 2.339 kN/m2 up; the cantilever bumps at X = -2.25 m (windward,
+7.769 up) and X = 82.25 m (leeward, 1.371 up) found as overhangs.
+Tests: WindEdgeLoadsTests 38, WindEdgeShapesTests 21 (gable trusses with eave overhangs, cantilever slab edge), StaadCombinationsTests 36,
+DesignLoadsFileTests 22, WindAuditTests 79, WindBuildingLoadsTests 42, StructuralIrregularityTests 11.
+Includes everything of v10.0.32.

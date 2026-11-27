@@ -1,0 +1,14 @@
+DTCE Tool Kit v10.0.41 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store upload is on hold).
+
+PATCH - leeward and side-wall WIND LOAD lines match STAAD ("di nagtutugma yung LW at SW"):
+- STAAD's WIND LOAD rule (STAAD.Pro Technical Reference, Generation of Wind Loads): "X f" is pressure on the near side
+  (f > 0: faces facing -X pushed +X; f < 0: faces facing +X pushed -X); "-X f" is suction on the far side (f > 0: faces facing +X
+  pulled +X; f < 0: faces facing -X pulled -X). The minus on the axis means suction; the factor sign is the load direction.
+- Before, leeward lines were written "WIND LOAD -X -1" for wind toward +X (suction on the windward face) and one side-wall line was
+  "WIND LOAD Z -1" (pressure instead of suction); wind toward -X / -Z had its windward and leeward lines on the wrong faces.
+- Now (one rule, WindEdgeLoads.Spec): wind toward +X: WW "X 1", LW "-X 1", SW "-Z 1" and "-Z -1"; toward -X: WW "X -1", LW "-X -1";
+  toward +Z / -Z the same on Z with side walls "-X 1" / "-X -1". Recessed walls (XR / ZR lines), Cases 2-4 (scaled factors) and the
+  wind load case figures follow the same rule; the figures read the lines the way STAAD does.
+- CI: ModernUiTests expects the ten Wind Load sheet tabs (Wind load cases added in v10.0.34).
+Tests: WindEdgeLoadsTests 42, WindEdgeShapesTests 23, WindCasesTabTests 37.
+Includes everything of v10.0.40.

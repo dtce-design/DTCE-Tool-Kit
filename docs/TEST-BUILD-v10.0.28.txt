@@ -1,0 +1,13 @@
+DTCE Tool Kit v10.0.28 (26 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.24).
+
+PATCH - Load Combinations takes the STAAD Nodes and Beams tables:
+- Primary loads tab ("2 inputs na lang joint from table and beams from table. or staad command file or .std"): the STAAD model for the
+  wind loads has two boxes - 1 Nodes (the STAAD Nodes table: Node, X, Y, Z, copied from STAAD) and 2 Beams (the Beams table: Beam,
+  Node A, Node B). Box 1 also takes the whole .std / command file (then box 2 is not needed), and "Open .std file..." loads one.
+  Units in the column headers are read (X (m), X (mm) ...). Older sheets keep their pasted STAAD input in box 1.
+- The wind cases WL+X / -X / +Z / -Z are the same from the tables as from the .std: WIND LOAD lines of the windward (WW), leeward (LW)
+  and side-wall (SW) TYPEs of the Wind Load sheet, and the member loads on the recessed sides. Checked with the owner's sample: 1575
+  nodes, 855 beams, 64 member loads at X = 24 / 30 / 50 / 56 m on levels 0, 5.1 and 9.6.
+- The Structural irregularities checks read the model from the same two boxes.
+Tests: WindEdgeLoadsTests 22, DesignLoadsFileTests 22, StructuralIrregularityTests 11, ProjectPackageTests 12.
+Includes everything of v10.0.27.

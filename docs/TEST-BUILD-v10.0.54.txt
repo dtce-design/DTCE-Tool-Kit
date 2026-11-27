@@ -1,0 +1,8 @@
+DTCE Tool Kit v10.0.54 (27 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - "NO MEMBERS LOADED FOR A WIND LOAD GENERATION" (owner's STAAD run of v10.0.53):
+- The +Z / -Z faces were cut into stretches at the canopy (v10.0.51); the stretches of the balcony edges (X -2.25-0 and 80-82.25 m, a
+  cantilever slab with no column under it) had no wall panel, so STAAD loaded nothing there. A stretch now needs columns at two places
+  along it; stretches without a wall panel are left out (WindEdgeLoads.CutFaceLine).
+Tests: WindEdgeShapesTests 33.
+Includes everything of v10.0.53.

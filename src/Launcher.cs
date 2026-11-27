@@ -25,7 +25,10 @@ class LauncherForm:Form {
    "USER EDITION"
    #endif
    ,Left=143,Top=16,Width=260,Height=20,Font=new Font("Segoe UI",8.5f,FontStyle.Bold),ForeColor=PowTheme.Teal});
-  var intro=new Label{Text="Your workspaces",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",12,FontStyle.Bold),ForeColor=PowTheme.Ink,Margin=Padding.Empty};var workspaceActions=new Panel{Dock=DockStyle.Fill,Margin=Padding.Empty,Padding=new Padding(0,10,0,10)};var preferences=new Button{Text="Workspace settings",Dock=DockStyle.Right,Width=190,AccessibleName="Workspace appearance settings"};preferences.Click+=(sender,args)=>DesktopAppearance.ShowSettings(this);/* owner (26 November 2026): "sa start na lang magoopen ng saved file tapos doon na din magsasave. Nakasave na din doon yung project" */var openSaved=new Button{Text="Open saved project",Dock=DockStyle.Right,Width=190,AccessibleName="Open a saved Bill of Quantities project file"};openSaved.Click+=(sender,args)=>OpenSavedProject();var actionGap=new Panel{Dock=DockStyle.Right,Width=10};workspaceActions.Controls.Add(intro);workspaceActions.Controls.Add(openSaved);workspaceActions.Controls.Add(actionGap);workspaceActions.Controls.Add(preferences);dashboard.Controls.Add(workspaceActions,0,1);
+  var intro=new Label{Text="Your workspaces",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,Font=new Font("Segoe UI",12,FontStyle.Bold),ForeColor=PowTheme.Ink,Margin=Padding.Empty};var workspaceActions=new Panel{Dock=DockStyle.Fill,Margin=Padding.Empty,Padding=new Padding(0,10,0,10)};var preferences=new Button{Text="Workspace settings",Dock=DockStyle.Right,Width=190,AccessibleName="Workspace appearance settings"};preferences.Click+=(sender,args)=>DesktopAppearance.ShowSettings(this);/* owner (26 November 2026): "sa start na lang magoopen ng saved file tapos doon na din magsasave. Nakasave na din doon yung project" */var openSaved=new Button{Text="Open saved project",Dock=DockStyle.Right,Width=190,AccessibleName="Open a saved Bill of Quantities project file"};openSaved.Click+=(sender,args)=>OpenSavedProject();/* "Save project" saves every open workspace into the one project file (owner, 27 November 2026: "pano isasave sa isang file na lang") */
+  var saveAll=new Button{Text="Save project",Dock=DockStyle.Right,Width=150,AccessibleName="Save every open workspace in the project file"};saveAll.Click+=async(sender,args)=>{string msg=await ProjectSave.SaveAll(this);if(msg!="")MessageBox.Show(this,msg,"Save project",MessageBoxButtons.OK,msg.Contains("Not saved")?MessageBoxIcon.Warning:MessageBoxIcon.Information);};
+  var saveGap=new Panel{Dock=DockStyle.Right,Width=8};
+  var actionGap=new Panel{Dock=DockStyle.Right,Width=10};workspaceActions.Controls.Add(intro);workspaceActions.Controls.Add(openSaved);workspaceActions.Controls.Add(saveGap);workspaceActions.Controls.Add(saveAll);workspaceActions.Controls.Add(actionGap);workspaceActions.Controls.Add(preferences);dashboard.Controls.Add(workspaceActions,0,1);
   var cards=new FlowLayoutPanel{Dock=DockStyle.Fill,AutoScroll=false,WrapContents=true,Margin=Padding.Empty,Padding=new Padding(0,0,0,12)};dashboard.Controls.Add(cards,0,2);
   /* owner (19 November 2026): Project Information always comes first */
   AddCard(cards,"Project Information","Set the project details used in your calculations and reports.",()=>UseTool(ref project,()=>new ProjectInformationForm(),"Project Information",null,8));
@@ -55,7 +58,7 @@ class LauncherForm:Form {
   /* the tab groups live in their own workspace windows (19 November 2026) */formatterTabs.SelectedIndexChanged+=(s,e)=>{if(!loadingFormatter&&formatterTabs.FindForm() is WorkspaceWindow)LoadSelectedFormatter();};
   designTabs.SelectedIndexChanged+=(s,e)=>{if(!loadingDesign&&designTabs.FindForm() is WorkspaceWindow)LoadSelectedDesign();};
   loadTabs.SelectedIndexChanged+=(s,e)=>{if(!loadingDesign&&designTabs.FindForm() is WorkspaceWindow&&designTabs.SelectedTab!=null&&designTabs.SelectedTab.Text==DesignLoads)LoadSelectedDesign();};
-  FormClosing+=(s,e)=>{var children=new[]{formatter,slabFormatter,columnFormatter,lengths,project,works}.Concat(designModules.Values).Where(f=>f!=null&&!f.IsDisposed).Distinct().ToList();
+  FormClosing+=(s,e)=>{/* unsaved workspaces: save them in the project file first */if(!ProjectSave.ConfirmClose(this)){e.Cancel=true;return;}var children=new[]{formatter,slabFormatter,columnFormatter,lengths,project,works}.Concat(designModules.Values).Where(f=>f!=null&&!f.IsDisposed).Distinct().ToList();
    #if ADMIN_APP
    if(generator!=null&&!generator.IsDisposed)children.Add(generator);
    #endif
@@ -99,7 +102,7 @@ class LauncherForm:Form {
  /* full use, view only (User edition without access for that app: tabs and scrolling only), or not at all */
  enum Use{None,Full,View}
  /* the Access Code card: copy the request for the owner, paste the code; apps opened view only before are reopened usable */
- void EnterAccessCode(){using(var login=new LoginForm())if(login.ShowDialog(this)==DialogResult.OK){ViewOnly.LoginDeclined=false;MessageBox.Show(this,"Access code accepted. Apps included in the code can now be used; close and reopen any app that is open view only.","Access code");}}
+ void EnterAccessCode(){using(var login=new LoginForm())if(login.ShowDialog(this)==DialogResult.OK){ViewOnly.LoginDeclined=false;int n=ViewOnly.UnlockAllowed();MessageBox.Show(this,"Access code accepted. Apps included in the code can now be used"+(n>0?"; "+n+" open app"+(n>1?"s are":" is")+" unlocked - no need to close "+(n>1?"them":"it"):"")+".","Access code");}}
  Use Authorize(int app){if(!AccessCodes.CanUseFormatter&&!(ViewOnly.Supported&&ViewOnly.LoginDeclined)){using(var login=new LoginForm())if(login.ShowDialog(this)!=DialogResult.OK){if(!ViewOnly.Supported)return Use.None;ViewOnly.LoginDeclined=true;return Use.View;}}
   if(!AccessCodes.CanUseApp(app)){if(ViewOnly.Supported)return Use.View;MessageBox.Show(this,"This workspace is not included in your approved access.","App access");return Use.None;}return Use.Full;}
  /* a view-only copy is replaced once the access code allows the app, and a usable copy once access is gone */
@@ -122,7 +125,27 @@ class LauncherForm:Form {
  void AddFormatterEntry(string title,Action open){formatterLoaders.Add(title,open);formatterTabs.TabPages.Add(new TabPage(title));}
  /* Design Loads: Wind, Earthquake and Load Combinations as sub tabs of one main tab */
  void AddLoadsGroup(){var group=new TabPage(DesignLoads);group.Controls.Add(loadTabs);designTabs.TabPages.Add(group);
-  /* owner, 26 November 2026: live loads of government buildings per space *//* owner: "ANOTHER SUB TAB FOR DEAD LOAD" */AddLoadEntry("Dead Loads (NSCP 2015)",()=>OpenDesign("Dead Loads (NSCP 2015)",()=>new DeadLoadsForm()));AddLoadEntry("Live Loads (NSCP 2015)",()=>OpenDesign("Live Loads (NSCP 2015)",()=>new LiveLoadsForm()));AddLoadEntry("Wind Load (NSCP 2015)",()=>OpenDesign("Wind Load (NSCP 2015)",()=>new WindDesignForm()));AddLoadEntry("Earthquake Load & RSA Curve Builder",()=>OpenDesign("Earthquake Load & RSA Curve Builder",()=>new RsaCurveForm()));AddLoadEntry("Load Combinations (NSCP 2015)",()=>OpenDesign("Load Combinations (NSCP 2015)",()=>new LoadCombinationsForm()));}
+  /* owner, 26 November 2026: live loads of government buildings per space *//* owner: "ANOTHER SUB TAB FOR DEAD LOAD" */AddLoadEntry("Dead Loads (NSCP 2015)",()=>OpenDesign("Dead Loads (NSCP 2015)",()=>new DeadLoadsForm()));AddLoadEntry("Live Loads (NSCP 2015)",()=>OpenDesign("Live Loads (NSCP 2015)",()=>new LiveLoadsForm()));AddLoadEntry("Wind Load (NSCP 2015)",()=>OpenDesign("Wind Load (NSCP 2015)",()=>new WindDesignForm()));AddLoadEntry("Earthquake Load & RSA Curve Builder",()=>OpenDesign("Earthquake Load & RSA Curve Builder",()=>new RsaCurveForm()));AddLoadEntry("Load Combinations (NSCP 2015)",()=>OpenDesign("Load Combinations (NSCP 2015)",()=>new LoadCombinationsForm()));
+  /* owner (27 November 2026): "calculation report sa tabi ng load combo, nandon lahat ng design loads" */AddLoadEntry(LoadsReport,ShowLoadsReport);}
+ const string LoadsReport="Calculation report";
+ CalculationReportView loadsView;Label loadsStatus;bool loadsBuilding;
+ void ShowLoadsReport(){var page=loadTabs.TabPages.Cast<TabPage>().First(p=>p.Text==LoadsReport);
+  if(loadsView==null||loadsView.IsDisposed){page.Controls.Clear();loadsView=new CalculationReportView{Dock=DockStyle.Fill};loadsStatus=new Label{Dock=DockStyle.Top,Height=30,Padding=new Padding(10,6,10,0),ForeColor=PowTheme.Ink};
+   var tools=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,Padding=new Padding(8),WrapContents=true};Func<string,Action,Button> btn=(t,a)=>{var b=new Button{Text=t,AutoSize=true,Height=38};b.Click+=(s,e)=>{try{a();}catch(Exception ex){loadsStatus.ForeColor=Color.Firebrick;loadsStatus.Text=ex.Message;}};tools.Controls.Add(b);return b;};
+   btn("Refresh report",()=>BuildLoadsReport());btn("Print preview",()=>{var d=loadsView.Document;if(d!=null)CalculationReportView.ShowReport(this,d);});
+   btn("Export PDF…",()=>{var d=loadsView.Document;if(d==null)return;using(var dialog=new SaveFileDialog{Filter="PDF|*.pdf",FileName="Design-Loads.pdf"})if(dialog.ShowDialog(this)==DialogResult.OK){d.WritePdf(dialog.FileName);loadsStatus.Text="Saved "+dialog.FileName;}});
+   page.Controls.Add(loadsView);page.Controls.Add(loadsStatus);page.Controls.Add(tools);}
+  BuildLoadsReport();}
+ /* opens the five sheets that are not open yet (their saved inputs come with them), then puts their reports together */
+ async void BuildLoadsReport(){if(loadsBuilding)return;loadsBuilding=true;var page=loadTabs.TabPages.Cast<TabPage>().First(p=>p.Text==LoadsReport);
+  try{loadsStatus.ForeColor=PowTheme.Ink;loadsStatus.Text="Putting the Design Loads report together…";
+   foreach(var title in LoadSheets){Form f;if(designModules.TryGetValue(title,out f)&&f!=null&&!f.IsDisposed)continue;Action open;if(designLoaders.TryGetValue(title,out open)){bool was=loadingDesign;loadingDesign=true;try{open();}finally{loadingDesign=was;}}}
+   {bool was=loadingDesign;loadingDesign=true;try{loadTabs.SelectedTab=page;}finally{loadingDesign=was;}}
+   var sheets=LoadSheets.Select(t=>{Form f;designModules.TryGetValue(t,out f);return new KeyValuePair<string,DesignSheetForm>(t,f as DesignSheetForm);}).ToList();var problems=new List<string>();
+   var doc=await DesignLoadsReport.Build(sheets,problems);loadsView.SetDocument(doc);
+   loadsStatus.ForeColor=problems.Count>0?Color.Firebrick:PowTheme.Teal;loadsStatus.Text=doc.Sheets.Count+" pages"+(problems.Count>0?" - not included: "+string.Join("; ",problems):": Dead, Live, Wind, Earthquake and Load Combinations.");}
+  catch(Exception ex){loadsStatus.ForeColor=Color.Firebrick;loadsStatus.Text="Report: "+ex.Message;}
+  finally{loadsBuilding=false;}}
  void AddLoadEntry(string title,Action open){designLoaders.Add(title,open);var page=new TabPage(title);page.Controls.Add(new Label{Text="This design sheet requires its own program access.",Dock=DockStyle.Top,Height=60,Padding=new Padding(20)});loadTabs.TabPages.Add(page);}
  void AddDesignEntry(string title,Action open){designLoaders.Add(title,open);var page=new TabPage(title);page.Controls.Add(new Label{Text="This design sheet requires its own program access.",Dock=DockStyle.Top,Height=60,Padding=new Padding(20)});designTabs.TabPages.Add(page);}
  void AddCard(FlowLayoutPanel panel,string title,string description,Action action){var card=new ToolModuleButton{ModuleIndex=panel.Controls.Count,Text=title,Description=description,Height=86,Width=330,Margin=new Padding(0,0,14,12)};card.Click+=(s,e)=>action();panel.Controls.Add(card);}

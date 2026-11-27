@@ -30,7 +30,7 @@ static class WindAuditPages {
    {var se="Suggested exposure "+audit.Exposure;g.DrawString(se,b,ink,rc.Right-g.MeasureString(se,b).Width,rc.Top);}}}
  static float Measure(string text,float width,float size,bool bold){using(var bmp=new Bitmap(1,1))using(var g=Graphics.FromImage(bmp)){g.PageUnit=GraphicsUnit.Point;using(var font=new Font("Segoe UI",size,bold?FontStyle.Bold:FontStyle.Regular,GraphicsUnit.Point))return g.MeasureString(text??"",font,(int)Math.Max(10,width)).Height;}}
  static float RowHeight(string[] row,float[] widths,bool bold){float h=0;for(int c=0;c<widths.Length;c++)h=Math.Max(h,Measure(c<row.Length?row[c]:"",widths[c]-8,7f,bold));return h+6;}
- internal static void Add(CalculationDocument doc,List<WindDirection> directions,List<WindStaadBand> bands,string commands,WindTerrain terrain=null,Dictionary<int,string> faces=null){
+ internal static void Add(CalculationDocument doc,List<WindDirection> directions,List<WindStaadBand> bands,string commands,WindTerrain terrain=null,Dictionary<int,string> faces=null,string alignNote=null){
   /* with a building: the face directions first (in load case order), each titled with its face; the other assessed directions after,
      marked as reference (no building face is normal to them) */
   Func<WindDirection,int> idx=d=>terrain!=null?d.Index:Array.IndexOf(WindAssessment.Directions,d.Name);
@@ -42,6 +42,8 @@ static class WindAuditPages {
     blocks.Add(new Block{FigureHeight=178,Figure=(g,rc)=>RoughnessRays(g,rc,rays,audit,name,bearing,terrain,dirIndex)});}
    if(d.ExposureAudit!=null)blocks.Add(new Block{Headers=new[]{"Exposure check","Value","Basis / decision"},Widths=Fit(130,120,273),Rows=d.ExposureAudit.Checks.Select(r=>r.ToArray()).ToList()});
    if(d.TopographicChecks.Count>0)blocks.Add(new Block{Headers=new[]{"Kzt check (207A.8)","Value","Basis / decision"},Widths=Fit(130,150,243),Rows=d.TopographicChecks.Select(r=>r.ToArray()).ToList()});}
+  /* the terrain was sampled for another building orientation (not reloaded yet): say so on the first exposure page */
+  if(!string.IsNullOrEmpty(alignNote)&&blocks.Count>0)blocks[0].Text=alignNote+" "+blocks[0].Text;
   if(bands!=null&&bands.Count>0){blocks.Add(new Block{Title="STAAD WIND INPUT / WALL INTENSITIES",Text="Wall pressures by height band (windward qz·G·Cp at the band top, leeward qh·G·Cp). The STAAD commands define one wind type per face for each direction: WW (windward, by height), LW (leeward) and SW (side walls), named by the direction the wind blows in the model (WW+X, LW+X, SW+X ...) when the model orientation is set; INT is the external q·G·Cp as a positive magnitude. Roof pressures are applied separately. Do not apply G and Cp again in STAAD."});
    blocks.Add(new Block{Headers=new[]{"Wind from / axis","Band top z m","Windward kPa","Leeward kPa","INT kPa"},Widths=Fit(160,85,95,90,93),Rows=bands.Select(b=>new[]{b.Axis,b.Top.ToString("0.###"),b.Windward.ToString("0.###"),b.Leeward.ToString("0.###"),b.Combined.ToString("0.###")}).ToList()});
    blocks.Add(new Block{Headers=new[]{"STAAD DEFINE WIND LOAD (UNIT METER KN)"},Widths=new float[]{CalculationDocument.CW},Rows=commands.Split('\n').Select(l=>new[]{l}).ToList()});}

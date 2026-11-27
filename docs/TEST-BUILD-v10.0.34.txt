@@ -1,0 +1,39 @@
+DTCE Tool Kit v10.0.34 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.24, published).
+
+PATCH - one "Save project", wind case fixes:
+- Save project ("mas ayusin yung buttons para di nakakalito ... magoopen ako ng multiple design loads pow etc tapos pano isasave sa isang
+  file na lang"): one command saves every open workspace - Design Loads (all five sheets), design sheets, Bill of Quantities, POW, Bar
+  Bending Schedule, Splice / Development & Hooks - into the one project file (*.dtce), asking for the file only the first time.
+  * "Save project" button on the Workspaces window and in every workspace; Ctrl+S in every workspace does the same.
+  * Saving one workspace as a separate file moved to its own menu (design sheets: Export > "Save this sheet / Design Loads as a separate
+    file", "Open a sheet file"; Bill of Quantities: File menu; POW: More > "Save the POW as a separate file"; BBS: "Save BBS as a separate
+    file"); Ctrl+Shift+S saves a separate file where it did before.
+  * Closing the app with unsaved workspaces lists them and offers to save the project first.
+  * Without Project Information there is no project file: Ctrl+S then saves the workspace to its own file as before.
+- Wind cases ("bat walang laman ito"): the WL1B (-GCpi) cases were empty when the STAAD model was not pasted in Load Combinations; they are
+  now made only with the model (the roof needs it). Without the model every wind case says that the recessed walls and the roof are not
+  loaded.
+- Wind case titles name their case of NSCP Fig. 207B.4-8 ("sa load cases ilagay mo if anong case yun"): WL+X CASE 1, WL+X CASE 1 -GCPI,
+  WL+X CASE 2 +T, WL+X+Z CASE 3, WL+X+Z CASE 4 +T ..., each with a comment line saying what it applies. Older titles still work.
+- Wind Load sheet, STAAD Wind Input: DEFINE WIND LOAD only ("huwag ilagay doon yung wind load cases"); the wind load cases are in Load
+  Combinations > STAAD load combinations.
+- STAAD Nodes / Beams tables pasted as STAAD copies them - without the header row - are read ("bat di nababasa if nagpaste ako ng node at
+  beam data. mas nababasa niya if nag open ako ng std file"): node, X, Y, Z and beam, node A, node B (the other columns are skipped).
+- Roofs at every level ("kapag may different level ako ng roofing bat hindi naisasama?"): small roofs (penthouse, stair roof, a lower roof
+  at a setback) are found from every level with beams around cells; a cell is roof where no higher level covers it. Owner's sample: the
+  penthouse roof at 12.6 m is loaded and the 9.6 m slab under it is no longer.
+- The "Wind load cases" tab and its report section moved from Load Combinations to the Wind Load sheet ("move the tab and yung report
+  doon sa windload na section ilagay"): design cases of Fig. 207B.4-8, a plan of every wind case and the torsion of each level. Load
+  Combinations keeps the model input and the STAAD output and passes the model and the LOAD titles to the Wind sheet (link wind-model).
+- Automatic wind settings ("automatic na dapat itong mga ito, dapat macheck na agad if need or hindi as per nscp 2015 code"): the design
+  wind load cases 1-4 (Fig. 207B.4-8) and the WIND LOAD lines of the Wind sheet are always used - no check boxes. The exemption from the
+  torsional cases is decided from the STAAD model: one storey with h <= 9.1 m (ASCE 7-10 Appendix D, D1.1; NSCP 2015 follows ASCE 7-10)
+  gives Cases 1 and 3 only; otherwise Cases 2 and 4 stay (light-frame / flexible-diaphragm buildings cannot be told from nodes and beams).
+  The decision and its reason are in the status line and in the report basis table.
+- One model for Load Combinations ("bat kailangan kong magpaste ng multiple std file?"): Redundancy rho, Torsional amplification Ax and the
+  irregularity checks use the model of the Primary loads tab; their tabs ask only for the results after the run (member end forces /
+  joint displacements). The old STAAD input box on the rho tab shows only for older sheets that have text in it.
+Tests: WindCasesTabTests 9 (new), WindEdgeShapesTests 23, WindEdgeLoadsTests 41,
+WindEdgeLoadsTests 39, WindEdgeShapesTests 21, StaadCombinationsTests 36, DesignLoadsFileTests 22, WindAuditTests 79,
+WindBuildingLoadsTests 42, ProjectPackageTests 12, ProjectFilesTests 6.
+Includes everything of v10.0.33.

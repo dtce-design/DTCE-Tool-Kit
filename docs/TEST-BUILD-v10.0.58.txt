@@ -1,0 +1,11 @@
+DTCE Tool Kit v10.0.58 (27 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - RCDC and the wind torsion option:
+- "bat kapag trinansfer ko na sa rcdc di na maread yung analysis data": PERFORM ANALYSIS / CHANGE after each EQ case (always on since
+  v10.0.51) split the run into several analyses, which RCDC does not read. It is again a setting, off by default (Settings: PERFORM
+  ANALYSIS / CHANGE per EQ case); one PERFORM ANALYSIS at the end. STAAD's note "IF THIS UBC/IBC ANALYSIS HAS TENSION/COMPRESSION OR REPEAT
+  LOAD ... SHOULD BE FOLLOWED BY PERFORM ANALYSIS & CHANGE" is information only and does not apply without such members / REPEAT LOAD.
+- "ibalik option na hindi isama yung torsion sa wind": the setting "Leave out the wind torsion (Cases 2 and 4)" is shown again. Checked:
+  wind Cases 1 and 3 only. Unchecked: the torsion is left out only when the code exempts the building (automatic, from the model).
+Tests: StaadCombinationsTests 37.
+Includes everything of v10.0.57.

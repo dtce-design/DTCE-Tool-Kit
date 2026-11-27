@@ -1,4 +1,4 @@
-﻿using System;using System.Linq;using System.Collections.Generic;using System.Drawing;using System.Windows.Forms;
+﻿using System;using System.Linq;using System.Collections.Generic;using System.Drawing;using System.Windows.Forms;using System.Threading.Tasks;
 namespace BeamScheduleFormatter {
 partial class WindDesignForm {
  readonly HashSet<string> buildingKeys=new HashSet<string>();
@@ -79,6 +79,12 @@ partial class WindDesignForm {
       double x,z;if(double.TryParse(Value("StaadX"),System.Globalization.NumberStyles.Float,ci,out x)&&double.TryParse(Value("StaadZ"),System.Globalization.NumberStyles.Float,ci,out z)&&x>0&&z>0){Inputs["BuildingLength"].Text=(ridgeX?x:z).ToString("0.###",ci);Inputs["BuildingWidth"].Text=(ridgeX?z:x).ToString("0.###",ci);}}}}
    if(Value("CCElements").Trim()==OldCcDefault)Inputs["CCElements"].Text="";((ComboBox)Inputs["StaadXDir"]).SelectedIndex=0;}finally{Restoring=keep;}ApplyStaadOrientation();ShowBuildingInputs();}
  /* the first assessed terrain bearing: the building's faces and diagonals when the building is on (ridge azimuth mod 45), else north */
+ bool realigning;
+ /* the check waits until the sheet has finished opening (owner, 27 November 2026: "pero yung kzt di pa din naka align sa faces ng building"):
+    a saved sheet with terrain sampled at N, NE, E ... (older versions) was opened while Restoring and the realignment was skipped */
+ async void RealignTerrain(){if(realigning||closed)return;realigning=true;try{await Task.Delay(400);for(int i=0;i<50&&Restoring&&!closed;i++)await Task.Delay(100);
+   if(!closed&&!Restoring&&terrain!=null&&Math.Abs(terrain.Offset-TerrainOffset())>1e-6){status.Text="Exposure and Kzt are being assessed again for the building faces (from "+WindBuildingLoads.BearingName(TerrainOffset())+" in 45° steps)…";await LoadTerrain();}}
+  catch(Exception){}finally{realigning=false;}}
  internal double TerrainOffset(){if(!BuildingEnabled)return 0;double a=RidgeAzimuthInput();if(double.IsNaN(a))return 0;double o=(a%45+45)%45;return o<1e-6||o>45-1e-6?0:o;}
  internal string RidgeLabel(){double a=RidgeAzimuthInput();return double.IsNaN(a)?"(no azimuth)":WindBuildingLoads.RidgeName(a);}
  void ApplyStaadOrientation(){double xb=StaadBearing();if(xb<0){staadAxisHint.Text=Value("StaadPlusX")=="Not used"?"Choose how the model's +X runs to name the STAAD wind types by the model axes (WW+X, LW-Z ...). +X is the way the X coordinates grow (the X arrow of STAAD's axis triad); Y is up, +Z is 90° clockwise from +X on plan.":"Enter the ridge azimuth first.";return;}
@@ -111,8 +117,14 @@ partial class WindDesignForm {
  void UpdatePressureResults(){RefreshStaadWind();ShowBuildingOnMap();SuggestRidge();ShowBuildingInputs();pressureGrid.Rows.Clear();if(buildingModel!=null){buildingModel.Pressures=null;buildingModel.Invalidate();}if(!BuildingEnabled){pressureStatus.Text="Building wind pressures are off. Enter dimensions and enable them in Building inputs.";UpdateCc(null,null);return;}try{var b=Building();var rows=PressureRows(b);UpdateCc(rows,b);if(buildingModel!=null){buildingModel.Pressures=rows;buildingModel.Invalidate();}foreach(var r in rows){int n=pressureGrid.Rows.Add(r.Direction,r.Surface,r.Case,r.Exposure,F(r.Z),F(r.Kz),F(r.Kzt),F(r.Q),F(r.Qh),F(r.Qi),F(r.G),F(r.Cp),F(r.GCpi),F(r.P));pressureGrid.Rows[n].Cells[3].Style.ForeColor=WindColors.Roughness(r.Exposure);}
    int axes=rows.Select(r=>r.Direction).Distinct().Count();pressureStatus.Text="p = q G Cp − qi (GCpi) | "+axes+" of 4 principal axes resolved | h="+F(b.Height)+"m; roof slope="+F(b.Angle)+"° | Positive toward surface; negative away. Gross pressures; apply MWFRS minimums / load patterns separately.";
    /* the terrain was assessed for another orientation: say so (exposure and Kzt of each face need the terrain loaded for the faces) */
-   if(terrain!=null&&Math.Abs(terrain.Offset-TerrainOffset())>1e-6)pressureStatus.Text+=" Terrain directions do not follow the building faces (assessed from "+WindBuildingLoads.BearingName(terrain.Offset)+" in 45° steps): press Load terrain again to assess exposure and Kzt for each face; until then each face uses the governing neighbouring direction.";
+   /* the terrain follows the building by itself (owner, 27 November 2026: "yung totoo naka align na ba ito sa building? bakit naka N, NE?";
+      "pati sa kzt"): when the ridge azimuth is not the one the terrain was sampled from, exposure and Kzt are assessed again for the faces */
+   if(terrain!=null&&Math.Abs(terrain.Offset-TerrainOffset())>1e-6){pressureStatus.Text+=" Re-assessing exposure and Kzt for the building faces (from "+WindBuildingLoads.BearingName(TerrainOffset())+" in 45° steps)…";RealignTerrain();}
   }catch(Exception ex){pressureStatus.Text=ex.Message;UpdateCc(null,null);}}
  protected override bool OptionalSavedInput(string key){return buildingKeys.Contains(key);}
+ /* shared with the Earthquake Load sheet: occupancy category (Wind groups III to V) and the structural system */
+ protected override void SharedParameters(){
+  Share("occupancy","Category",v=>v=="I"||v=="II"?v:v=="III-V"?"III-V":null,(now,c)=>c=="I"||c=="II"?c:"III-V");
+  var sys=(ComboBox)Inputs["BuildingSystem"];Share("system","BuildingSystem",v=>SystemCommon(sys.Items.Cast<object>().Select(Convert.ToString).ToList().IndexOf(v)),(now,c)=>{int i=SystemIndex(c);return i<0?null:Convert.ToString(sys.Items[i]);});}
 }
 }

@@ -1,0 +1,13 @@
+DTCE Tool Kit v10.0.46 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store upload is on hold).
+
+PATCH - roof live load at every level of the model ("madetermine niya sana yung mga ibat ibang levels based din sa model"):
+- The LLR case finds the roofs at every level of the pasted STAAD model by itself:
+  slab roofs - every panel of every level that no higher level covers (main roof, lower roofs at setbacks, stair / penthouse roofs);
+  trussed roofs - the trusses rising from any level (over the top floor, over a lower wing, a canopy), not only over the top floor.
+- Stairs and ramps are not roofs: a group of connected sloped members that reaches a higher floor (a joint on that floor's outline or
+  edge) is left out; beams of a higher floor are not taken as truss members.
+- The ceiling under each trussed roof takes no roof load, at whatever level it is.
+- Each roof is named with its level in the STAAD comments and in the report ("level 4 m, truss Z = 6 m"; "level 8 m").
+Tests: RoofLiveLoadsTests 18 (a lower wing with trusses at 4 m beside a two-storey block with a stair from 4 to 8 m),
+WindEdgeLoadsTests 42, WindEdgeShapesTests 23, WindCasesTabTests 41.
+Includes everything of v10.0.45.

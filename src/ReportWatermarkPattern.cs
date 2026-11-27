@@ -2,7 +2,7 @@ using System.Collections.Generic;
 namespace BeamScheduleFormatter {
 // Staggered rows form an equilateral triangular lattice. Coordinates are A4 points, from top left.
 static class ReportWatermarkPattern {
- internal const double Opacity=.18,Side=180;
+ /* fainter (owner, 27 November 2026: "masyadong visible yung dpwh logo sa user"); was .18 */internal const double Opacity=.07,Side=180;
  // Tiles actually drawn on reports: none in the Admin edition, the DPWH lattice in the User edition (owner, 18 Nov 2026).
  internal static IEnumerable<double[]> Active(){
 #if ADMIN_APP

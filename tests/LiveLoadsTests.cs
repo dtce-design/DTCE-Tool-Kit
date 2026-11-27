@@ -18,5 +18,12 @@ class LiveLoadsTests {
    form.SetIncluded(shown,true);Check(form.Rows().Count(form.Included)==shown.Count&&!form.Rows().Where(r=>r[0]=="Classrooms").Any(form.Included),"only the checked spaces go to the report");form.SetIncluded(shown,false);Check(!form.Rows().Any(form.Included),"unchecked again");
    form.SearchSpaces("");form.Close();}
   {var rows2=new LiveLoadsForm();rows2.Show();var all2=rows2.Rows().ToList();Check(all2.First(r=>r[0].StartsWith("Classrooms"))[4]=="LL1"&&all2.First(r=>r[0].StartsWith("Bleachers"))[4]=="LL2"&&all2.First(r=>r[0].StartsWith("Archive with compact"))[4]=="LL2","LL1 (f1 0.5) / LL2 (f1 1.0) per space");rows2.Close();}
+  /* v10.0.43 (owner: "detaily explained ba to sa report?"): each space in the report says why it is LL1 or LL2 */
+  {string w1=LiveLoadsForm.Why(new[]{"Corridors (exit facilities)","4.8","0.0","0.5","LL1","Yes","Table 205-1, 8 Exit facilities",""});
+   string w2=LiveLoadsForm.Why(new[]{"Conference / meeting room","4.8","0.0","1.0","LL2","No (assembly)","Table 205-1, 3 Theaters, assembly areas and auditoriums - Movable seats",""});
+   string w3=LiveLoadsForm.Why(new[]{"Archive with compact shelving","12.0","-","1.0","LL2","No (over 4.8 kPa)","Table 205-1, 21 Storage - Heavy",""});
+   Check(w1.Contains("4.8 kPa is not in excess of 4.8 kPa")&&w1.Contains("LL1")&&w1.Contains("reduction allowed"),"4.8 kPa exit facility: why LL1 ("+w1+")");
+   Check(w2.StartsWith("Place of public assembly")&&w2.Contains("LL2")&&w2.Contains("no reduction"),"conference room: assembly, LL2 ("+w2+")");
+   Check(w3.StartsWith("12.0 kPa is in excess of 4.8 kPa")&&w3.Contains("LL2"),"12 kPa archive: over 4.8 kPa, LL2 ("+w3+")");}
   Console.WriteLine("LiveLoadsTests passed: "+checks+" checks");}
 }

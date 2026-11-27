@@ -1,0 +1,57 @@
+using System;using System.Collections.Generic;using System.Globalization;using System.Linq;using System.Reflection;using System.Text;using System.Windows.Forms;using BeamScheduleFormatter;
+/* the Wind Load sheet's "Wind load cases" tab and report pages, fed by Load Combinations through the wind-model link (v10.0.34) */
+static class WindCasesTabTests {
+ static int checks;static void Check(bool ok,string what){checks++;if(!ok){Console.WriteLine("FAIL: "+what);Environment.Exit(1);}}
+ [STAThread]static void Main(){Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);AccessCodes.Granted=true;var ci=CultureInfo.InvariantCulture;
+  /* a 30 x 24 m floor with a recess, floors at 0, 4 and 8 m, as STAAD copies the tables (no header row) */
+  var nodes=new StringBuilder();var beams=new StringBuilder();var id=new Dictionary<string,int>();int n=0,m=0;double[] xs={0,6,12,18,24,30},zs={0,8,16,24},ys={0,4,8};Func<double,double,bool> exists=(x,z)=>!(z>16.5&&x>12.5&&x<17.5);
+  foreach(var y in ys)foreach(var x in xs)foreach(var z in zs){if(!exists(x,z))continue;id[x+","+y+","+z]=++n;nodes.Append(n+"\t"+x.ToString("0.0000",ci)+"\t"+y.ToString("0.0000",ci)+"\t"+z.ToString("0.0000",ci)+"\n");}
+  Func<string,int> J=k=>id.ContainsKey(k)?id[k]:0;
+  foreach(var y in ys){for(int i=0;i+1<xs.Length;i++)foreach(var z in zs){int a=J(xs[i]+","+y+","+z),c=J(xs[i+1]+","+y+","+z);if(a>0&&c>0&&!(z==24&&xs[i]>=12&&xs[i+1]<=18))beams.Append(++m+"\t"+a+"\t"+c+"\t4\t0.0\n");}
+   for(int j=0;j+1<zs.Length;j++)foreach(var x in xs){int a=J(x+","+y+","+zs[j]),c=J(x+","+y+","+zs[j+1]);if(a>0&&c>0)beams.Append(++m+"\t"+a+"\t"+c+"\t4\t0.0\n");}}
+  foreach(var x in xs)foreach(var z in zs)for(int k=0;k+1<ys.Length;k++){int a=J(x+","+ys[k]+","+z),c=J(x+","+ys[k+1]+","+z);if(a>0&&c>0)beams.Append(++m+"\t"+a+"\t"+c+"\t4\t0.0\n");}
+  DesignLoadsLink.Set("wind-model",new Dictionary<string,string>{{"nodes",nodes.ToString()},{"beams",beams.ToString()},{"all","1"},{"exempt","0"},{"titles","+X=LOAD 13 WL+X CASE 1\n+Z=LOAD 15 WL+Z CASE 1"}});
+  Dictionary<string,string> titles;bool all,exempt;var model=WindDesignForm.LinkedModel(out titles,out all,out exempt);
+  Check(model!=null&&model.Joints.Count==n&&model.Members.Count==m&&titles["+X"]=="LOAD 13 WL+X CASE 1"&&all&&!exempt,"model and titles through the link");
+  var types=new List<WindFaceTypes>();foreach(var tr in new[]{"+X","-X","+Z","-Z"}){var t=new WindFaceTypes{Travel=tr,Ww=types.Count*3+1,Lw=types.Count*3+2,Sw=types.Count*3+3,Top=8,Leeward=1,Side=2};t.WwInt.Add(3);t.WwHeig.Add(8);types.Add(t);}
+  var form=new WindDesignForm();form.Show();for(int i=0;i<20;i++)Application.DoEvents();
+  typeof(WindDesignForm).GetMethod("UpdateWindCases",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(form,new object[]{types});
+  var panel=(FlowLayoutPanel)typeof(WindDesignForm).GetField("windCasePanel",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(form);
+  Check(panel.Controls.Count==24,"one figure per wind load case on the tab: Case 1 x 4, Case 2 x 8, Case 3 x 4, Case 4 x 8 ("+panel.Controls.Count+")");
+  /* each figure is its own case, read from its STAAD text (v10.0.39, owner: "isa isahin mo based din kung ilan wind load cases") */
+  {var figs=(List<WindLoadCaseFigure>)typeof(WindDesignForm).GetField("loadFigs",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(form);
+   Check(figs.Select(f=>f.Key).Distinct().Count()==24&&figs[0].Key=="+X"&&figs[0].Title=="LOAD 13 WL+X CASE 1","case keys in load case order, linked titles");
+   Check(figs.Where(f=>f.Key.StartsWith("2")||f.Key.StartsWith("4")).All(f=>f.Text.Contains("JOINT LOAD")),"Cases 2 and 4 carry their torsion couple");
+   Check(figs.Where(f=>f.Key.StartsWith("3")).All(f=>!f.Text.Contains("JOINT LOAD")),"Case 3 has no torsion");
+   using(var b0=new System.Drawing.Bitmap(1,1))using(var g0=System.Drawing.Graphics.FromImage(b0))foreach(var f in figs){float h=f.Height(g0,600,10);Check(h>100&&h<2000,"figure height "+f.Key+" "+h);}
+   foreach(var f in figs){var bmp=new System.Drawing.Bitmap(620,1400);using(var g=System.Drawing.Graphics.FromImage(bmp)){g.Clear(System.Drawing.Color.White);f.Draw(g,new System.Drawing.RectangleF(10,10,600,1380),10);}
+    if(Environment.GetEnvironmentVariable("WC_SHOT")!=null)bmp.Save(Environment.GetEnvironmentVariable("WC_SHOT")+"/case"+f.Key.Replace("+","p").Replace("-","m")+".png");bmp.Dispose();}checks++;}
+  /* v10.0.42 (owner: "pero yung kzt di pa din naka align sa faces ng building"): terrain saved for N, NE, E ... in a sheet whose ridge
+     azimuth is 30° is assessed again for the faces once the sheet has opened (before, the check ran while Restoring and was skipped) */
+  {form.Hide();/* the stand-in terrain has no rays to draw */var bf=BindingFlags.Instance|BindingFlags.NonPublic;var inputs=(Dictionary<string,Control>)typeof(DesignSheetForm).GetField("Inputs",bf).GetValue(form);
+   ((CheckBox)inputs["BuildingEnabled"]).Checked=true;inputs["RidgeAzimuth"].Text="30";var restoring=typeof(DesignSheetForm).GetField("Restoring",bf);
+   typeof(WindDesignForm).GetField("terrain",bf).SetValue(form,new WindTerrain{Offset=0});var realigning=typeof(WindDesignForm).GetField("realigning",bf);
+   Check(Math.Abs((double)typeof(WindDesignForm).GetMethod("TerrainOffset",bf).Invoke(form,null)-30)<1e-9,"terrain offset for a 30° ridge");
+   restoring.SetValue(form,true);typeof(WindDesignForm).GetMethod("RealignTerrain",bf).Invoke(form,null);for(int i=0;i<5;i++)Application.DoEvents();
+   Check((bool)realigning.GetValue(form),"realignment started while the sheet is restoring (it waits for the end of Restore)");restoring.SetValue(form,false);
+   var sw=System.Diagnostics.Stopwatch.StartNew();while((bool)realigning.GetValue(form)&&sw.ElapsedMilliseconds<15000){Application.DoEvents();System.Threading.Thread.Sleep(20);}
+   Check(!form.IsDisposed,"open after the realignment");Check(!(bool)realigning.GetValue(form),"realignment ran after the sheet opened");((CheckBox)inputs["BuildingEnabled"]).Checked=false;typeof(WindDesignForm).GetField("terrain",bf).SetValue(form,null);form.Show();}
+  var pages=(TabControl)typeof(DesignSheetForm).GetField("Pages",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(form);Func<Control,IEnumerable<TabPage>> allPages=null;allPages=c=>c.Controls.Cast<Control>().SelectMany(x=>(x is TabPage?new[]{(TabPage)x}:new TabPage[0]).Concat(allPages(x)));
+  Check(allPages(form).Any(p=>p.Text=="Wind load cases"),"Wind load cases tab in the Wind Load sheet (disposed "+form.IsDisposed+", controls "+form.Controls.Count+")");
+  var doc=new CalculationDocument("t");typeof(WindDesignForm).GetMethod("AddWindCasePages",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(form,new object[]{doc});
+  Check(doc.Sheets.Count>=8&&doc.Sheets.Count<=26,"report pages: the 24 cases flow over the pages, then the torsion table ("+doc.Sheets.Count+")");
+  if(Environment.GetEnvironmentVariable("WC_SHOT")!=null)for(int k=0;k<doc.Sheets.Count;k++)using(var pb=new System.Drawing.Bitmap(1190,1684)){using(var g=System.Drawing.Graphics.FromImage(pb)){g.Clear(System.Drawing.Color.White);g.ScaleTransform(2,2);doc.Sheets[k](g);}pb.Save(Environment.GetEnvironmentVariable("WC_SHOT")+"/page"+k+".png");}
+  using(var bmp=new System.Drawing.Bitmap(595,842))using(var g=System.Drawing.Graphics.FromImage(bmp))foreach(var s in doc.Sheets)s(g);checks++;
+  var lc=new LoadCombinationsForm();lc.Show();for(int i=0;i<20;i++)Application.DoEvents();
+  var lp=(TabControl)typeof(DesignSheetForm).GetField("Pages",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(lc);Check(!lp.TabPages.Cast<TabPage>().Any(p=>p.Text=="Wind load cases"),"no Wind load cases tab in Load Combinations any more");
+  /* automatic torsion exemption (ASCE 7-10 Appendix D, D1.1): one storey with h <= 9.1 m only */
+  {var li=(System.Collections.IDictionary)typeof(DesignSheetForm).GetField("Inputs",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(lc);var ex=typeof(LoadCombinationsForm).GetMethod("TorsionExempt",BindingFlags.Instance|BindingFlags.NonPublic);
+   ((Control)li["StaadInput"]).Text=nodes.ToString().Replace("\n","\r\n");((Control)li["StaadBeams"]).Text=beams.ToString().Replace("\n","\r\n");Check(!(bool)ex.Invoke(lc,null),"three levels, 8 m: torsional cases included");
+   /* one model for the sheet: redundancy / torsion read the Primary loads tab's tables */
+   var rt=typeof(LoadCombinationsForm).GetMethod("RhoTexts",BindingFlags.Instance|BindingFlags.NonPublic);var args=new object[]{null,null};rt.Invoke(lc,args);var mt=(string)args[0];
+   Check(RedundancyFactor.HasModel(mt)&&RedundancyFactor.ReadModel(mt).Joints.Count==n&&RedundancyFactor.ReadModel(mt).Members.Count==m,"rho / Ax use the model of the Primary loads tab");
+   var one=new StringBuilder("STAAD SPACE\nUNIT METER KN\nJOINT COORDINATES\n1 0 0 0; 2 12 0 0; 3 12 0 8; 4 0 0 8; 5 0 4 0; 6 12 4 0; 7 12 4 8; 8 0 4 8;\nMEMBER INCIDENCES\n1 1 5; 2 2 6; 3 3 7; 4 4 8; 5 5 6; 6 6 7; 7 7 8; 8 8 5;\nSUPPORTS\n");
+   ((Control)li["StaadBeams"]).Text="";((Control)li["StaadInput"]).Text=one.ToString().Replace("\n","\r\n");Check((bool)ex.Invoke(lc,null),"one storey, 4 m: exempt (Cases 1 and 3 only)");}
+  foreach(Form f in Application.OpenForms.Cast<Form>().ToList())f.Close();form.Dispose();lc.Dispose();
+  Console.WriteLine("WindCasesTabTests passed: "+checks+" checks");Environment.Exit(0);}
+}

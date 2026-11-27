@@ -1,0 +1,13 @@
+DTCE Tool Kit v10.0.42 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store upload is on hold).
+
+PATCH - Kzt / exposure follow the building faces in saved sheets ("pero yung kzt di pa din naka align sa faces ng building"):
+- A Wind sheet saved with terrain sampled at N, NE, E ... (before v10.0.37, or before the ridge azimuth was set) kept that terrain when
+  it was opened: the realignment check ran while the sheet was still restoring and was skipped. Now it waits until the sheet has
+  opened, then loads the terrain again from the building faces (ridge azimuth mod 45 in 45° steps), so exposure and Kzt are
+  assessed normal to each face; the status bar says so while it loads.
+- While the terrain is still not aligned (offline, load not finished), the first exposure / Kzt page of the report says so: the
+  bearing the terrain was sampled from, the face bearings, and that each face uses the neighbouring direction with the larger qh.
+- Directions at 45° to the faces stay in the report as reference (diagonal wind / Kzt envelope), marked "REFERENCE, NOT A FACE".
+- Also in this build: DesignLoadsFileTests closes its windows before exiting (Windows CI exit code).
+Tests: WindCasesTabTests 41, WindAuditTests 79, WindBuildingLoadsTests 42.
+Includes everything of v10.0.41.

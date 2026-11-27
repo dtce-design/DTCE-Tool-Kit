@@ -1,0 +1,13 @@
+DTCE Tool Kit v10.0.52 (27 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - STAAD 2026 errors of the v10.0.51 output (owner's Error List):
+- DEFINE ENVELOPE before the LOAD cases was ignored ("Load # 1001 is not defined in database", "Envelop Definition command ignored").
+  The envelopes are now written after the last LOAD COMBINATION and after PERFORM ANALYSIS (between the combinations and the analysis
+  STAAD stopped with "DEFINE COMMANDS FOR LOAD GENERATION SHOULD BE PROVIDED BEFORE SPECIFYING PRIMARY LOAD CASES" in v10.0.49).
+  Design / drift then take LOAD LIST ENV 1 3 / ENV 4 5.
+- "DEFINE UBC LOAD not present in file, MUST add to run command": the primary loads now start with DEFINE UBC LOAD from the Earthquake
+  Load sheet (ZONE Z, I, RWX = RWZ = R, STYP soil profile 1 SA - 5 SE, SD when not known; NA, NV) and the seismic weight W = the dead
+  reference loads of the pasted model (REFERENCE LOAD Y, R.. 1.0; SELFWEIGHT 1 when the model has none). The Earthquake sheet now passes
+  Na, Nv and the soil profile (calculate it once so the link holds them).
+Tests: StaadCombinationsTests (envelope after the analysis, DEFINE UBC LOAD before LOAD 1, STYP / SELFWEIGHT fallbacks).
+Includes everything of v10.0.51.

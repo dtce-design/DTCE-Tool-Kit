@@ -1,0 +1,13 @@
+DTCE Tool Kit v10.0.35 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.24, published; the
+v10.0.33 Store upload is on hold at the owner's request).
+
+PATCH - one Design Loads calculation report:
+- Design Sheets > Design Loads has a "Calculation report" sub tab next to Load Combinations ("yung report sa design loads minsanan na lang";
+  "calculation report sa tabi ng load combo, nandon lahat ng design loads"): a contents page, then the full reports of Dead Loads, Live
+  Loads, Wind Load, Earthquake Load and Load Combinations in that order; every page keeps the title of its sheet. Sheets not open yet are
+  opened with their saved inputs; a sheet that cannot report (no access, nothing calculated) is listed as not included. Refresh report,
+  Print preview and Export PDF on the tab.
+- Combination titles use the short wind case names (WL+X, WL1B+X, WL2+X+T, WL3+X+Z, WL4+X+Z+T); the primary load cases keep the full
+  names with the case (WL+X CASE 1 ...).
+Tests: DesignLoadsReportTests 5 (new), StaadCombinationsTests 36, WindEdgeLoadsTests 41.
+Includes everything of v10.0.34.

@@ -3,7 +3,7 @@ namespace BeamScheduleFormatter {
 /* Cutting List workspace (owner, 19 November 2026). Beam: upload the beam schedule, set up the beam lines (spans, support widths,
    slab), tick the spans that go into the estimate, then the cutting list, splice zone check, commercial bars and estimate per span
    are generated. Lap lengths come from the Splice, Development & Hooks configurations. Column, foundation and slab lists follow. */
-class CuttingListForm:Form {
+class CuttingListForm:Form,IProjectWorkspace {
  static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
  readonly NavigationTabs tabs=new NavigationTabs{Dock=DockStyle.Fill};readonly DataGridView spans=new DataGridView{Dock=DockStyle.Fill};
  readonly DataGridView cutGrid=Output(),spliceGrid=Output(),estimateGrid=Output(),buyGrid=Output(),patternGrid=Output(),smfGrid=Output();readonly TextBox review=new TextBox{Dock=DockStyle.Fill,Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical,Font=new Font("Consolas",9.5f)};
@@ -21,12 +21,12 @@ class CuttingListForm:Form {
  /* settings rows in the left pane, label beside the input, as on the design sheets (owner, 20 November 2026: cohesive) */
  static void Field(FlowLayoutPanel panel,string label,Control input){var box=new TableLayoutPanel{Width=496,Height=36,ColumnCount=2,RowCount=1,Margin=new Padding(0,0,0,2),BackColor=Color.White};box.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));box.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));box.RowStyles.Add(new RowStyle(SizeType.Percent,100));
   var caption=new Label{Text=label,Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,AutoEllipsis=false,UseMnemonic=false,Margin=new Padding(0,0,8,0)};box.Height=Math.Max(36,TextRenderer.MeasureText(label,caption.Font,new Size(236,0),TextFormatFlags.WordBreak|TextFormatFlags.NoPrefix).Height+14);input.Anchor=AnchorStyles.Left|AnchorStyles.Right;input.Margin=new Padding(0,6,0,6);input.MinimumSize=Size.Empty;input.Width=200;var combo=input as ComboBox;if(combo!=null)combo.DropDownWidth=Math.Max(combo.DropDownWidth,360);box.Controls.Add(caption,0,0);box.Controls.Add(input,1,0);panel.Controls.Add(box);}
- public CuttingListForm(){if(!ViewOnly.Opening&&!AccessCodes.CanUseApp(ProgramAccess.BarBendingSchedule))throw new Exception("This app is not included in your current access.");AppBrand.Apply(this);Text="Bar Bending Schedule";ClientSize=new Size(1360,860);MinimumSize=new Size(1000,640);Font=new Font("Segoe UI",9f);StartPosition=FormStartPosition.CenterScreen;
+ public CuttingListForm(){if(!ViewOnly.Opening&&!AccessCodes.CanUseApp(ProgramAccess.BarBendingSchedule))throw new Exception("This app is not included in your current access.");ProjectSave.Track(this);AppBrand.Apply(this);Text="Bar Bending Schedule";ClientSize=new Size(1360,860);MinimumSize=new Size(1000,640);Font=new Font("Segoe UI",9f);StartPosition=FormStartPosition.CenterScreen;
   var beamPage=new TabPage("Beam");tabs.TabPages.Add(beamPage);
   var commands=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,Padding=new Padding(8),WrapContents=true};
   Func<string,Action,Button> button=(text,action)=>{var b=new Button{Text=text,AutoSize=true,Height=36};b.Click+=(s,e)=>{try{action();}catch(Exception ex){MessageBox.Show(this,ex.Message,"Beam Cutting List",MessageBoxButtons.OK,MessageBoxIcon.Information);}};commands.Controls.Add(b);return b;};
   /* one compact row (owner, 20 November 2026: cohesive, professional): load, print, save / open, and the rest under More */
-  button("Load beam schedule DXF",LoadSchedule);button("Load from Bill of Quantities",LoadMembers);Button printButton=null;printButton=button("Print BBS report",()=>{Calculate();PrintMenu(printButton);});button("Save",Save);button("Save as",()=>SaveDialog());button("Open",Open);
+  button("Load beam schedule DXF",LoadSchedule);button("Load from Bill of Quantities",LoadMembers);Button printButton=null;printButton=button("Print BBS report",()=>{Calculate();PrintMenu(printButton);});button("Save project",SaveProjectAll);button("Save BBS as a separate file",()=>SaveDialog());button("Open",Open);
   {var more=new ContextMenuStrip();Action<string,Action> item=(text,action)=>more.Items.Add(text,null,(s0,e0)=>{try{action();}catch(Exception ex){MessageBox.Show(this,ex.Message,"Bar Bending Schedule",MessageBoxButtons.OK,MessageBoxIcon.Information);}});
    item("Add bar",AddBar);item("Reset edits",ResetEdits);more.Items.Add(new ToolStripSeparator());item("Copy cutting list",()=>{Calculate();Clipboard.SetText(Tsv(cutGrid));});item("Copy bar bending schedule",()=>{Calculate();Clipboard.SetText(Tsv(bbsGrid));});
    Button mb=null;mb=button("More  ▾",()=>more.Show(mb,new Point(0,mb.Height)));}
@@ -189,9 +189,17 @@ class CuttingListForm:Form {
  /* Save goes to the file already in use, or into the one project file (owner, 26 November 2026: "1 file na lang ang isave"; "ayusin mo yung ibang tabs") */
  string cuttingPath;
  void WriteTo(string path){string xml=ProjectXml();string temp=path+"."+Guid.NewGuid().ToString("N")+".tmp";try{File.WriteAllText(temp,xml,new UTF8Encoding(false));File.Copy(temp,path,true);}finally{if(File.Exists(temp))File.Delete(temp);}saved=xml;cuttingPath=path;ProjectFiles.Remember("bbs",path);status.ForeColor=PowTheme.Teal;status.Text=ProjectPackage.IsWorking(path)?"Saved in the project file "+Path.GetFileName(ProjectPackage.CurrentPath)+".":"Saved "+Path.GetFileName(path)+".";}
- void Save(){if(schedule.Count==0)throw new Exception("Load a beam schedule first.");string path=cuttingPath??ProjectPackage.PathFor("bbs",this);if(path==null)return;WriteTo(path);}
- internal void OpenFile(string path){OpenProjectXml(File.ReadAllText(path));cuttingPath=path;ProjectFiles.Remember("bbs",path);}
- protected override bool ProcessCmdKey(ref Message msg,Keys keyData){if(keyData==(Keys.Control|Keys.S)){try{Save();}catch(Exception ex){MessageBox.Show(this,ex.Message,Text);}return true;}return base.ProcessCmdKey(ref msg,keyData);}
+ void Save(){if(schedule.Count==0)throw new Exception("Load a beam schedule first.");string path=cuttingPath??ProjectPackage.PathFor("bbs",this);if(path==null)return;WriteTo(path);savedXml=ProjectXml();}
+ /* IProjectWorkspace ("Save project": every open workspace into one *.dtce) */
+ string savedXml;
+ public string ProjectKind{get{return "bbs";}}
+ public string WorkspaceName{get{return "Bar Bending Schedule";}}
+ public bool CanSaveToProject{get{return schedule.Count>0&&!ViewOnly.IsLocked(this);}}
+ public bool ProjectDirty{get{try{return schedule.Count>0&&ProjectXml()!=savedXml;}catch(Exception){return false;}}}
+ public System.Threading.Tasks.Task SaveToProject(string path){cuttingPath=path;WriteTo(path);savedXml=ProjectXml();ProjectFiles.Remember("bbs",path);return System.Threading.Tasks.Task.FromResult(0);}
+ async void SaveProjectAll(){if(!ProjectSave.HasProject){try{Save();}catch(Exception ex){MessageBox.Show(this,ex.Message,Text);}return;}string msg=await ProjectSave.SaveAll(this);if(msg!="")MessageBox.Show(this,msg,"Save project",MessageBoxButtons.OK,msg.Contains("Not saved")?MessageBoxIcon.Warning:MessageBoxIcon.Information);}
+ internal void OpenFile(string path){OpenProjectXml(File.ReadAllText(path));cuttingPath=path;ProjectFiles.Remember("bbs",path);savedXml=ProjectXml();}
+ protected override bool ProcessCmdKey(ref Message msg,Keys keyData){if(keyData==(Keys.Control|Keys.S)){SaveProjectAll();return true;}return base.ProcessCmdKey(ref msg,keyData);}
  /* columns, slabs and footings of the open Program of Works (owner, 20 November 2026) */
  void LoadMembers(){var pow=ProgramOfWorksForm.Current;if(pow==null)throw new Exception("Open the Bill of Quantities with its columns, slabs and footings computed, then load them here.");var sources=pow.BbsSources();if(sources.Count==0)throw new Exception("The Bill of Quantities has no computed columns, slabs or footings yet.");var notes=new List<string>();var pieces=MemberBbs.Pieces(sources,notes);memberPieces.Clear();memberPieces.AddRange(pieces);Calculate();
   status.ForeColor=PowTheme.Teal;status.Text="Loaded from the Bill of Quantities: "+string.Join(", ",MemberBbs.Kinds.Select(k=>new{k,n=sources.Count(x=>x.Kind==k)}).Where(x=>x.n>0).Select(x=>x.n+" "+x.k.ToLowerInvariant()+(x.n>1?"s":"")))+" - "+pieces.Count+" bar marks."+(notes.Count>0?" "+string.Join(" ",notes):"");}

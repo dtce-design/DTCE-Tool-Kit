@@ -1,0 +1,21 @@
+DTCE Tool Kit v10.0.31 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.24, published).
+
+PATCH - design wind load cases 1-4 with torsion (NSCP 2015 Figure 207B.4-8):
+- Owner: "do what the code says"; "depende naman ata if anong procedure ang gagamitin regarding sa torsional cases". The Wind Load sheet
+  uses the directional procedure, Part 1 (Cp of Figure 207B.4-1 with the gust factor), which requires the four design wind load cases of
+  Figure 207B.4-8 for every building - not only irregular ones:
+  * Case 1  WL+X, WL-X, WL+Z, WL-Z: full windward, leeward and side-wall pressures (as before);
+  * Case 2  WL2+X+T / WL2+X-T ... (8): 75 % of the windward and leeward pressures of one axis with the torsion
+            MT = 0.75 (PW + PL) B h x eX, eX = +/-0.15 B;
+  * Case 3  WL3+X+Z, WL3+X-Z, WL3-X+Z, WL3-X-Z: 75 % of both axes at once;
+  * Case 4  WL4+X+Z+T ... (8): 56.3 % of both axes with both torsions.
+  The torsion of each floor level is MT = f (PW + PL) B h x 0.15 B (B = plan width across the wind at that level from the STAAD model,
+  h = the level's tributary height, PW at the level's height) applied as a couple of JOINT LOADs FX at the two joints of the level
+  farthest apart in Z - pure torsion, no net force, no rigid diaphragm needed. Recessed walls keep their WIND LOAD ranges, scaled.
+- Load Combinations, Settings: "Design wind load cases 1-4 (Fig. 207B.4-8)" (on by default) and "Exempt from the torsional cases (Cases 1
+  and 3 only)" (off by default; only for buildings the code exempts). The report lists the cases and the torsion of every level.
+- The envelope procedure (207C, low-rise) has its own torsional cases; it is not the Wind sheet's method and is not generated.
+Example (owner's sample, Case 2 +X, level 5.1 m): MT = 0.75 x (3.241 + 1.175) x 24 x 4.8 x 0.15 x 24 = 1373.6 kN-m, couple +/-57.2 kN at
+joints 103 / 1970 (d = 24 m). 32 primary load cases, 236 combinations.
+Tests: WindEdgeLoadsTests 33, WindEdgeShapesTests 14, StaadCombinationsTests 36, DesignLoadsFileTests 22.
+Includes everything of v10.0.30.
