@@ -26,7 +26,18 @@ static class WindCasesTabTests {
    using(var b0=new System.Drawing.Bitmap(1,1))using(var g0=System.Drawing.Graphics.FromImage(b0))foreach(var f in figs){float h=f.Height(g0,600,10);Check(h>100&&h<2000,"figure height "+f.Key+" "+h);}
    foreach(var f in figs){var bmp=new System.Drawing.Bitmap(620,1400);using(var g=System.Drawing.Graphics.FromImage(bmp)){g.Clear(System.Drawing.Color.White);f.Draw(g,new System.Drawing.RectangleF(10,10,600,1380),10);}
     if(Environment.GetEnvironmentVariable("WC_SHOT")!=null)bmp.Save(Environment.GetEnvironmentVariable("WC_SHOT")+"/case"+f.Key.Replace("+","p").Replace("-","m")+".png");bmp.Dispose();}checks++;}
-  var pages=(TabControl)typeof(DesignSheetForm).GetField("Pages",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(form);Check(pages.TabPages.Cast<TabPage>().Any(p=>p.Text=="Wind load cases"),"Wind load cases tab in the Wind Load sheet");
+  /* v10.0.42 (owner: "pero yung kzt di pa din naka align sa faces ng building"): terrain saved for N, NE, E ... in a sheet whose ridge
+     azimuth is 30° is assessed again for the faces once the sheet has opened (before, the check ran while Restoring and was skipped) */
+  {form.Hide();/* the stand-in terrain has no rays to draw */var bf=BindingFlags.Instance|BindingFlags.NonPublic;var inputs=(Dictionary<string,Control>)typeof(DesignSheetForm).GetField("Inputs",bf).GetValue(form);
+   ((CheckBox)inputs["BuildingEnabled"]).Checked=true;inputs["RidgeAzimuth"].Text="30";var restoring=typeof(DesignSheetForm).GetField("Restoring",bf);
+   typeof(WindDesignForm).GetField("terrain",bf).SetValue(form,new WindTerrain{Offset=0});var realigning=typeof(WindDesignForm).GetField("realigning",bf);
+   Check(Math.Abs((double)typeof(WindDesignForm).GetMethod("TerrainOffset",bf).Invoke(form,null)-30)<1e-9,"terrain offset for a 30° ridge");
+   restoring.SetValue(form,true);typeof(WindDesignForm).GetMethod("RealignTerrain",bf).Invoke(form,null);for(int i=0;i<5;i++)Application.DoEvents();
+   Check((bool)realigning.GetValue(form),"realignment started while the sheet is restoring (it waits for the end of Restore)");restoring.SetValue(form,false);
+   var sw=System.Diagnostics.Stopwatch.StartNew();while((bool)realigning.GetValue(form)&&sw.ElapsedMilliseconds<15000){Application.DoEvents();System.Threading.Thread.Sleep(20);}
+   Check(!form.IsDisposed,"open after the realignment");Check(!(bool)realigning.GetValue(form),"realignment ran after the sheet opened");((CheckBox)inputs["BuildingEnabled"]).Checked=false;typeof(WindDesignForm).GetField("terrain",bf).SetValue(form,null);form.Show();}
+  var pages=(TabControl)typeof(DesignSheetForm).GetField("Pages",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(form);Func<Control,IEnumerable<TabPage>> allPages=null;allPages=c=>c.Controls.Cast<Control>().SelectMany(x=>(x is TabPage?new[]{(TabPage)x}:new TabPage[0]).Concat(allPages(x)));
+  Check(allPages(form).Any(p=>p.Text=="Wind load cases"),"Wind load cases tab in the Wind Load sheet (disposed "+form.IsDisposed+", controls "+form.Controls.Count+")");
   var doc=new CalculationDocument("t");typeof(WindDesignForm).GetMethod("AddWindCasePages",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(form,new object[]{doc});
   Check(doc.Sheets.Count>=8&&doc.Sheets.Count<=26,"report pages: the 24 cases flow over the pages, then the torsion table ("+doc.Sheets.Count+")");
   if(Environment.GetEnvironmentVariable("WC_SHOT")!=null)for(int k=0;k<doc.Sheets.Count;k++)using(var pb=new System.Drawing.Bitmap(1190,1684)){using(var g=System.Drawing.Graphics.FromImage(pb)){g.Clear(System.Drawing.Color.White);g.ScaleTransform(2,2);doc.Sheets[k](g);}pb.Save(Environment.GetEnvironmentVariable("WC_SHOT")+"/page"+k+".png");}

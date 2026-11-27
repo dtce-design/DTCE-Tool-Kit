@@ -80,7 +80,11 @@ partial class WindDesignForm {
    if(Value("CCElements").Trim()==OldCcDefault)Inputs["CCElements"].Text="";((ComboBox)Inputs["StaadXDir"]).SelectedIndex=0;}finally{Restoring=keep;}ApplyStaadOrientation();ShowBuildingInputs();}
  /* the first assessed terrain bearing: the building's faces and diagonals when the building is on (ridge azimuth mod 45), else north */
  bool realigning;
- async void RealignTerrain(){if(realigning||Restoring||closed)return;realigning=true;try{await Task.Delay(400);if(terrain!=null&&Math.Abs(terrain.Offset-TerrainOffset())>1e-6)await LoadTerrain();}catch(Exception){}finally{realigning=false;}}
+ /* the check waits until the sheet has finished opening (owner, 27 November 2026: "pero yung kzt di pa din naka align sa faces ng building"):
+    a saved sheet with terrain sampled at N, NE, E ... (older versions) was opened while Restoring and the realignment was skipped */
+ async void RealignTerrain(){if(realigning||closed)return;realigning=true;try{await Task.Delay(400);for(int i=0;i<50&&Restoring&&!closed;i++)await Task.Delay(100);
+   if(!closed&&!Restoring&&terrain!=null&&Math.Abs(terrain.Offset-TerrainOffset())>1e-6){status.Text="Exposure and Kzt are being assessed again for the building faces (from "+WindBuildingLoads.BearingName(TerrainOffset())+" in 45° steps)…";await LoadTerrain();}}
+  catch(Exception){}finally{realigning=false;}}
  internal double TerrainOffset(){if(!BuildingEnabled)return 0;double a=RidgeAzimuthInput();if(double.IsNaN(a))return 0;double o=(a%45+45)%45;return o<1e-6||o>45-1e-6?0:o;}
  internal string RidgeLabel(){double a=RidgeAzimuthInput();return double.IsNaN(a)?"(no azimuth)":WindBuildingLoads.RidgeName(a);}
  void ApplyStaadOrientation(){double xb=StaadBearing();if(xb<0){staadAxisHint.Text=Value("StaadPlusX")=="Not used"?"Choose how the model's +X runs to name the STAAD wind types by the model axes (WW+X, LW-Z ...). +X is the way the X coordinates grow (the X arrow of STAAD's axis triad); Y is up, +Z is 90° clockwise from +X on plan.":"Enter the ridge azimuth first.";return;}

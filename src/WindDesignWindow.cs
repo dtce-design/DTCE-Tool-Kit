@@ -14,7 +14,7 @@ partial class WindDesignForm:DesignSheetForm {
  protected override string BuildReport(){string text=WindReport.Build(Number("Latitude"),Number("Longitude"),Value("Category"),Number("Height"),Number("Kd"),terrain,((CheckBox)Inputs["Reviewed"]).Checked,ExposureHeight());if(BuildingEnabled){var b=Building();text+="\r\n"+WindBuildingLoads.Report(b,PressureRows(b));}return text;}
  protected override void WriteAdditionalState(XmlElement root){WindTerrainXml.Write(root,terrain);}
  protected override void ReadAdditionalState(XmlElement root){if(pending!=null)pending.Cancel();terrain=WindTerrainXml.Read(root);}
- protected override void AfterRestore(){LegacyBuildingInputs();UpdateResults();status.Text=terrain==null?"Coordinates restored. Load site terrain for factors.":"Saved terrain profiles restored for offline use; review data age/site conditions.";}
+ protected override void AfterRestore(){LegacyBuildingInputs();UpdateResults();/* terrain saved for another orientation follows the building faces once the sheet is open */if(terrain!=null&&Math.Abs(terrain.Offset-TerrainOffset())>1e-6)RealignTerrain();status.Text=terrain==null?"Coordinates restored. Load site terrain for factors.":"Saved terrain profiles restored for offline use; review data age/site conditions.";}
 }
 class WindMapControl:UserControl {
  readonly Panel scroll=new Panel{Dock=DockStyle.Fill,AutoScroll=true};readonly PictureBox picture=new PictureBox{SizeMode=PictureBoxSizeMode.StretchImage};readonly TrackBar zoom=new TrackBar{Dock=DockStyle.Top,Minimum=1,Maximum=5,Value=1,Height=40};int source;WindLookup point;
