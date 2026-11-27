@@ -1,0 +1,12 @@
+DTCE Tool Kit v10.0.47 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store upload is on hold).
+
+PATCH - Roof live load tab ("bat walang tab for roof live load?"):
+- Load Combinations has a tab "Roof live load (LLR)" with three sub tabs:
+  Lr per roof - each roof of the model (slab roof per level and Lr, each truss) with its tributary area, slope, Table 205-3 row and Lr;
+  Roof plans - a top view of every roof level, panels and truss top chords coloured by the Lr chosen, each area labelled with its
+  kPa, parts covered by a higher roof marked "roof at ... m";
+  STAAD LLR load - the text that goes into the LLR case, with a Copy button.
+- The status line says what to do when the model is missing, the LLR case is off or automatic primary loads are off.
+- The report section "Roof live load (LLR) on the STAAD model" now has the roof plan of every level after its table.
+Tests: RoofLiveLoadsTests 20.
+Includes everything of v10.0.46.

@@ -1,4 +1,4 @@
-using System;using System.Collections.Generic;using System.Globalization;using System.Linq;using System.Text;using BeamScheduleFormatter;
+using System;using System.Reflection;using System.Windows.Forms;using System.Collections.Generic;using System.Globalization;using System.Linq;using System.Text;using BeamScheduleFormatter;
 /* the roof live load case LLR on the STAAD model (v10.0.45, owner: "add roof live load based doon sa staad file, iload at mamili ng appropriate
    load value"): NSCP 2015 Table 205-3 by slope and tributary area, slab roofs by FLOOR LOAD, truss top chords by MEMBER LOAD UNI PY */
 static class RoofLiveLoadsTests {
@@ -64,5 +64,15 @@ static class RoofLiveLoadsTests {
   /* in the STAAD output: the LLR primary case carries the text */
   {var s=new StaadCombinationSettings{AutoPrimary=true,RoofLiveText="UNIT METER KN\nFLOOR LOAD\nYRANGE 7.95 8.05 FLOAD -0.75 XRANGE 0 6 ZRANGE 0 8 GY"};var cases=StaadCombinations.Parse("LOAD 1 LOADTYPE DEAD TITLE DL\nLOAD 2 LOADTYPE ROOF LIVE TITLE LLR");
    string sec=StaadCombinations.PrimarySection(cases,s);Check(sec.Contains("TITLE LLR\nUNIT METER KN\nFLOOR LOAD")&&!sec.Contains("add the roof live loads here"),"LLR case carries the roof live loads");}
+  /* the Load Combinations tab (owner: "bat walang tab for roof live load?"): Lr per roof, roof plans, the STAAD LLR text */
+  {AccessCodes.Granted=true;var lc=new LoadCombinationsForm();lc.Show();for(int i=0;i<20;i++)Application.DoEvents();var bf=BindingFlags.Instance|BindingFlags.NonPublic;
+   var inputs=(System.Collections.IDictionary)typeof(DesignSheetForm).GetField("Inputs",bf).GetValue(lc);((Control)inputs["StaadBeams"]).Text="";((Control)inputs["StaadInput"]).Text=b.ToString().Replace("\n","\r\n");for(int i=0;i<20;i++)Application.DoEvents();
+   Func<Control,IEnumerable<TabPage>> all=null;all=c=>c.Controls.Cast<Control>().SelectMany(x=>(x is TabPage?new[]{(TabPage)x}:new TabPage[0]).Concat(all(x)));
+   Check(all(lc).Any(p=>p.Text=="Roof live load (LLR)")&&all(lc).Any(p=>p.Text=="Roof plans"),"Roof live load tab with Lr per roof, roof plans and the STAAD text");
+   var grid=(DataGridView)typeof(LoadCombinationsForm).GetField("roofLiveGrid",bf).GetValue(lc);var txt=(TextBox)typeof(LoadCombinationsForm).GetField("roofLiveText",bf).GetValue(lc);var plans=(FlowLayoutPanel)typeof(LoadCombinationsForm).GetField("roofLivePlans",bf).GetValue(lc);
+   Check(grid.Rows.Count>=2&&txt.Text.Contains("FLOOR LOAD")&&plans.Controls.Count==2,"tab filled: "+grid.Rows.Count+" roof rows, "+plans.Controls.Count+" roof plans (8 m and 11 m)");
+   if(Environment.GetEnvironmentVariable("RL_SHOT")!=null){((PictureBox)plans.Controls[0]).Image.Save(Environment.GetEnvironmentVariable("RL_SHOT")+"/roofplan0.png");
+    var doc=(CalculationDocument)typeof(LoadCombinationsForm).GetMethod("BuildDocument",bf).Invoke(lc,null);for(int k=0;k<doc.Sheets.Count;k++)using(var bmp=new System.Drawing.Bitmap(1190,1684)){using(var g=System.Drawing.Graphics.FromImage(bmp)){g.Clear(System.Drawing.Color.White);g.ScaleTransform(2,2);doc.Draw(g,k);}bmp.Save(Environment.GetEnvironmentVariable("RL_SHOT")+"/lcpage"+k+".png");}}
+   foreach(Form f in Application.OpenForms.Cast<Form>().ToList()){try{f.Hide();f.Dispose();}catch(Exception){}}}
   Console.WriteLine("RoofLiveLoadsTests passed: "+checks+" checks");Environment.Exit(0);}
 }

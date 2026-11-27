@@ -16,7 +16,9 @@ static class RoofLiveLoads {
  internal static double Lr(int row,double area){int col=area<=20?0:area<=60?1:2;return row==1?new[]{1.00,0.75,0.60}[col]:row==2?new[]{0.75,0.70,0.60}[col]:0.60;}
  internal static int RowOf(double slope){return slope<4.0/12-1e-9?1:slope<1-1e-9?2:3;}
  static string AreaBand(double a){return a<=20?"0 to 20 m²":a<=60?"21 to 60 m²":"over 60 m²";}
- internal static string Text(StaadModel m,out string note,out List<Region> regions){note="";regions=new List<Region>();if(m==null||m.Joints.Count==0)return "";
+ /* what was loaded, for the plan figures: panels {level, x1, x2, z1, z2, Lr} and truss top chords {level, x1, z1, x2, z2, Lr} */
+ internal static List<double[]> LastPanels=new List<double[]>(),LastChords=new List<double[]>();
+ internal static string Text(StaadModel m,out string note,out List<Region> regions){note="";regions=new List<Region>();LastPanels=new List<double[]>();LastChords=new List<double[]>();if(m==null||m.Joints.Count==0)return "";
   double k=m.ToMetre;double baseY=m.Joints.Values.Min(j=>m.H(j))*k,topY=m.Joints.Values.Max(j=>m.H(j))*k;string n0;
   var main=WindEdgeLoads.Plans(m,baseY,topY,out n0).Where(p=>p.Y>baseY+1e-3).OrderBy(p=>p.Y).ToList();double topMain=main.Count>0?main[main.Count-1].Y:baseY;
   /* trussed roofs at every level of the model: over the top floor, a lower wing, a canopy or a setback; their ceilings take no roof load */
@@ -29,7 +31,7 @@ static class RoofLiveLoads {
     double slope=list.Max(c=>Math.Abs(c.U2-c.U1)>1e-6?Math.Abs(c.Y2-c.Y1)/Math.Abs(c.U2-c.U1):0);double area=span*trib;int row=RowOf(slope);double lr=Lr(row,area);
     var r=new Region{Kind="Truss",Where="level "+F(y)+" m, truss "+(list[0].SpanX?"Z = ":"X = ")+F(g.Key)+" m",Area=area,Slope=slope,Row=row,Lr=lr,Basis="span "+F(span)+" m × spacing "+F(trib)+" m = "+F(area)+" m², slope "+F(slope*12)+" in 12"};regions.Add(r);
     member.Append("\n* ").Append(r.Where).Append(": ").Append(r.Basis).Append(", row ").Append(row).Append(", Lr = ").Append(F(lr)).Append(" kPa x ").Append(F(trib)).Append(" m");
-    foreach(var c in list)member.Append("\n").Append(c.No).Append(" UNI PY ").Append(F(-lr*trib));}}
+    foreach(var c in list){member.Append("\n").Append(c.No).Append(" UNI PY ").Append(F(-lr*trib));LastChords.Add(c.SpanX?new[]{y,c.U1,c.Plane,c.U2,c.Plane,lr}:new[]{y,c.Plane,c.U1,c.Plane,c.U2,lr});}}}
   /* slab roofs: cells of every level not covered by a higher level (nor the ceiling under the trusses) */
   var floor=new StringBuilder();int cells=0;
   for(int li=0;li<ordered.Count;li++){var p=ordered[li];var higher=ordered.Skip(li+1).ToList();int nx=p.Xs.Count-1,nz=p.Zs.Count-1;var val=new double?[nx,nz];
@@ -41,6 +43,7 @@ static class RoofLiveLoads {
    /* equal values merged: runs along Z, then equal runs in neighbouring X strips */
    var rects=new List<double[]>();for(int i=0;i<nx;i++){int j=0;while(j<nz){if(val[i,j]==null){j++;continue;}int j2=j;while(j2+1<nz&&val[i,j2+1]!=null&&Math.Abs(val[i,j2+1].Value-val[i,j].Value)<1e-9)j2++;
      var r=new[]{p.Xs[i],p.Xs[i+1],p.Zs[j],p.Zs[j2+1],val[i,j].Value};var prev=rects.FirstOrDefault(q=>Math.Abs(q[1]-r[0])<1e-9&&Math.Abs(q[2]-r[2])<1e-9&&Math.Abs(q[3]-r[3])<1e-9&&Math.Abs(q[4]-r[4])<1e-9);if(prev!=null)prev[1]=r[1];else rects.Add(r);j=j2+1;}}
+   foreach(var r in rects)LastPanels.Add(new[]{p.Y,r[0],r[1],r[2],r[3],r[4]});
    foreach(var r in rects)floor.Append("\nYRANGE ").Append(F(p.Y-0.05)).Append(" ").Append(F(p.Y+0.05)).Append(" FLOAD ").Append(F(-r[4])).Append(" XRANGE ").Append(F(r[0]-0.01)).Append(" ").Append(F(r[1]+0.01)).Append(" ZRANGE ").Append(F(r[2]-0.01)).Append(" ").Append(F(r[3]+0.01)).Append(" GY");}
   if(floor.Length==0&&member.Length==0){note="no roof found in the model";return "";}
   var b=new StringBuilder("* roof live load, NSCP 2015 Section 205.4, Table 205-3 (Method 1),\n* on the horizontal projection; Lr by slope and tributary area\nUNIT METER KN");
