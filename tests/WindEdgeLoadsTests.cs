@@ -66,8 +66,12 @@ static class WindEdgeLoadsTests {
    /* torsion at level 4 (band 2-6 m, h = 4): plan 30 x 24; wind +X: B = 24, PW at 4 m = 3.0, PL = 1.0 -> MT = 0.75 x 4 x 24 x 4 x 0.15 x 24 = 1036.8 */
    string nn;var plans=WindEdgeLoads.Plans(model,0,8,out nn);var tl=WindEdgeLoads.Torsion(model,plans,new List<WindFaceTypes>{t},0.75,0);var l4=tl.First(x=>Math.Abs(x.Y-4)<1e-6);
    Check(Math.Abs(l4.Mt-1036.8)<1e-6&&Math.Abs(l4.D-24)<1e-6,"torsion MT per level: "+l4.Mt+" kN-m over "+l4.D+" m");
-   var m2=System.Text.RegularExpressions.Regex.Matches(cases["2+X-T"],@"\n(\d+) FX (-?[0-9.]+)");double sum=0,mom=0;foreach(System.Text.RegularExpressions.Match mm in m2){double fx=double.Parse(mm.Groups[2].Value,CultureInfo.InvariantCulture);sum+=fx;mom+=fx*model.Joints[int.Parse(mm.Groups[1].Value)].Z;}
-   Check(m2.Count==4&&Math.Abs(sum)<1e-9&&mom<0,"-T couple: no net force, negative MY ("+mom+")");
+   /* v10.0.40 (owner: "e irregular yung shape ng building"): the torsion is spread over the outline joints of each level, F = MT r / sum r2:
+      no net force and sum (z FX - x FZ) = -MT for -T at every level */
+   var m2=System.Text.RegularExpressions.Regex.Matches(cases["2+X-T"],@"\n(\d+)(?: FX (-?[0-9.]+))?(?: FZ (-?[0-9.]+))?(?=\n|$)");double sx=0,sz=0,mom=0;int jl=0;
+   foreach(System.Text.RegularExpressions.Match mm in m2){if(!mm.Groups[2].Success&&!mm.Groups[3].Success)continue;jl++;var jj=model.Joints[int.Parse(mm.Groups[1].Value)];double fx=mm.Groups[2].Success?double.Parse(mm.Groups[2].Value,CultureInfo.InvariantCulture):0,fz=mm.Groups[3].Success?double.Parse(mm.Groups[3].Value,CultureInfo.InvariantCulture):0;sx+=fx;sz+=fz;mom+=jj.Z*fx-jj.X*fz;}
+   double mtAll=tl.Sum(x=>x.Mt);Check(jl>4&&Math.Abs(sx)<0.05&&Math.Abs(sz)<0.05&&Math.Abs(mom+mtAll)<0.5,"-T spread over the outline joints: no net force ("+sx+", "+sz+"), MY = -MT ("+mom+" / "+mtAll+", "+jl+" joint loads)");
+   Check(tl.All(x=>x.Edge.Count>=3&&x.SumR2>0),"every level has its outline joints");
    string ex;var noT=WindEdgeLoads.CaseTexts(all,model,out ex,true,false);Check(noT.Count==8&&!noT.Keys.Any(k=>k.StartsWith("2")||k.StartsWith("4")),"exempt: Cases 1 and 3 only");
    Check(StaadCombinations.WindKey("WL2+X+T")=="2+X+T"&&StaadCombinations.WindKey("WL3-X+Z")=="3-X+Z"&&StaadCombinations.WindKey("WL4+X-Z-T")=="4+X-Z-T"&&StaadCombinations.WindKey("WL+X")=="+X","case keys from the older titles");
    Check(StaadCombinations.WindKey("WL+X CASE 1")=="+X"&&StaadCombinations.WindKey("WL+X CASE 1 -GCPI")=="1B+X"&&StaadCombinations.WindKey("WL-Z CASE 2 +T")=="2-Z+T"&&StaadCombinations.WindKey("WL+X-Z CASE 3")=="3+X-Z"&&StaadCombinations.WindKey("WL-X+Z CASE 4 -T")=="4-X+Z-T","case keys from the titles with the case");

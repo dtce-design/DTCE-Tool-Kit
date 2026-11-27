@@ -269,7 +269,11 @@ static class WindEdgeLoads {
  /* the torsion of Cases 2 / 4 per level: MT = f (PW + PL) B h · 0.15 B for each axis of the case (B = plan width across the wind at the level,
     h = the level's tributary height, PW at the level's height), applied as a couple of joint loads FX at the two joints of the level farthest
     apart in Z (sign: +T = MT about +Y) - a couple gives torsion only, no net force, and needs no rigid diaphragm */
- internal sealed class TorsionLevel {public double Y,H,Mt;public int J1,J2;public double D,X1,Z1,X2,Z2;public List<string> Parts=new List<string>();}
+ internal sealed class TorsionLevel {public double Y,H,Mt;public int J1,J2;public double D,X1,Z1,X2,Z2;public List<string> Parts=new List<string>();
+  /* the outline joints of the level and their share of a unit MT (owner, 27 November 2026: "e irregular yung shape ng building"):
+     F = MT r / sum r^2 square to the radius from the joints' centre - no net force, sum (z FX - x FZ) = MT, any plan shape, with or
+     without a rigid FLOOR DIAPHRAGM; the two-joint couple (J1 / J2, D) is kept only when the outline has fewer than three joints */
+  public List<Tuple<int,double,double>> Edge=new List<Tuple<int,double,double>>();public double SumR2,Xc,Zc;}
  internal static List<TorsionLevel> Torsion(StaadModel m,List<WindPlanLevel> plans,List<WindFaceTypes> types,double f,double baseY){var list=new List<TorsionLevel>();double k=m.ToMetre;
   foreach(var p in plans.OrderBy(x=>x.Y)){if(p.Y<=baseY+1e-3||p.Faces.Count==0)continue;var face=p.Faces[0];double h=face.TopBand-face.Bottom;if(h<=1e-6)continue;
    double xmin=double.MaxValue,xmax=double.MinValue,zmin=double.MaxValue,zmax=double.MinValue;for(int i=0;i+1<p.Xs.Count;i++)for(int j=0;j+1<p.Zs.Count;j++)if(p.Inside[i,j]){xmin=Math.Min(xmin,p.Xs[i]);xmax=Math.Max(xmax,p.Xs[i+1]);zmin=Math.Min(zmin,p.Zs[j]);zmax=Math.Max(zmax,p.Zs[j+1]);}
@@ -281,12 +285,18 @@ static class WindEdgeLoads {
    Func<string,double,double> mid=(normal,at)=>{var fz=p.Faces.Where(fc=>fc.Normal==normal&&!fc.Shielded&&Math.Abs(fc.At-at)<1e-6).OrderByDescending(fc=>fc.A2-fc.A1).FirstOrDefault();return fz!=null?(fz.A1+fz.A2)/2:cx;};
    double ma=mid("-Z",zmin),mb=mid("+Z",zmax);
    var a=js.OrderBy(j=>R(m.P2(j)*k)).ThenBy(j=>Math.Abs(m.P1(j)*k-ma)).First();var b=js.OrderByDescending(j=>R(m.P2(j)*k)).ThenBy(j=>Math.Abs(m.P1(j)*k-mb)).First();
-   lv.J1=a.No;lv.J2=b.No;lv.X1=m.P1(a)*k;lv.Z1=m.P2(a)*k;lv.X2=m.P1(b)*k;lv.Z2=m.P2(b)*k;lv.D=(m.P2(b)-m.P2(a))*k;if(lv.D<=1e-6)continue;list.Add(lv);}
+   lv.J1=a.No;lv.J2=b.No;lv.X1=m.P1(a)*k;lv.Z1=m.P2(a)*k;lv.X2=m.P1(b)*k;lv.Z2=m.P2(b)*k;lv.D=(m.P2(b)-m.P2(a))*k;if(lv.D<=1e-6)continue;
+   var edge=js.Where(j=>{double x=m.P1(j)*k,z=m.P2(j)*k;return p.Faces.Any(fc=>fc.Normal[1]=='X'?Math.Abs(x-fc.At)<0.02&&z>fc.A1-0.02&&z<fc.A2+0.02:Math.Abs(z-fc.At)<0.02&&x>fc.A1-0.02&&x<fc.A2+0.02);}).OrderBy(j=>j.No).ToList();
+   if(edge.Count>=3){double xc=edge.Average(j=>m.P1(j)*k),zc=edge.Average(j=>m.P2(j)*k),s2=edge.Sum(j=>Math.Pow(m.P1(j)*k-xc,2)+Math.Pow(m.P2(j)*k-zc,2));
+    if(s2>1e-9){lv.SumR2=s2;lv.Xc=xc;lv.Zc=zc;foreach(var j in edge)lv.Edge.Add(Tuple.Create(j.No,(m.P2(j)*k-zc)/s2,-(m.P1(j)*k-xc)/s2));}}
+   list.Add(lv);}
   return list;}
  static string TorsionText(StaadModel m,List<WindPlanLevel> plans,List<WindFaceTypes> types,double f,int sign,double baseY){var lv=Torsion(m,plans,types,f,baseY);if(lv.Count==0)return "* torsion: no floor level found in the model";
-  var b=new StringBuilder("* torsion "+(sign>0?"+T":"-T")+" (NSCP Fig. 207B.4-8): MT = f (PW + PL) B h x 0.15 B per level,\n* a couple of joint loads FX at the two joints farthest apart in Z\nUNIT METER KN\nJOINT LOAD");
-  foreach(var l in lv){double fx=sign*l.Mt/l.D;b.Append("\n* level ").Append(F(l.Y)).Append(" m: MT = ").Append(F(l.Mt)).Append(" kN-m, d = ").Append(F(l.D)).Append(" m");
-   b.Append("\n").Append(l.J2).Append(" FX ").Append(F(fx)).Append("\n").Append(l.J1).Append(" FX ").Append(F(-fx));}
+  var b=new StringBuilder("* torsion "+(sign>0?"+T":"-T")+" (NSCP Fig. 207B.4-8): MT = f (PW + PL) B h x 0.15 B per level,\n* spread over the outline joints of each level, F = MT r / sum r2 square\n* to the radius (no net force; any plan shape, with or without a diaphragm)\nUNIT METER KN\nJOINT LOAD");
+  foreach(var l in lv){if(l.Edge.Count>=3){b.Append("\n* level ").Append(F(l.Y)).Append(" m: MT = ").Append(F(l.Mt)).Append(" kN-m, ").Append(l.Edge.Count).Append(" joints, sum r2 = ").Append(F(l.SumR2)).Append(" m2");
+    foreach(var e in l.Edge){double fx=Math.Round(sign*l.Mt*e.Item2,3),fz=Math.Round(sign*l.Mt*e.Item3,3);if(fx==0&&fz==0)continue;b.Append("\n").Append(e.Item1);if(fx!=0)b.Append(" FX ").Append(F(fx));if(fz!=0)b.Append(" FZ ").Append(F(fz));}continue;}
+   double f0=sign*l.Mt/l.D;b.Append("\n* level ").Append(F(l.Y)).Append(" m: MT = ").Append(F(l.Mt)).Append(" kN-m, d = ").Append(F(l.D)).Append(" m");
+   b.Append("\n").Append(l.J2).Append(" FX ").Append(F(f0)).Append("\n").Append(l.J1).Append(" FX ").Append(F(-f0));}
   return b.ToString();}
 }
 }

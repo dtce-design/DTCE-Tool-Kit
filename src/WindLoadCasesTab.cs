@@ -23,8 +23,8 @@ partial class WindDesignForm {
    string cn;var texts=WindEdgeLoads.CaseTexts(link,model,out cn,all,!exempt);loadFigs=WindLoadCaseFigure.Build(model,texts,titles,types.Max(t=>t.Top));
    caseFigs=WindCaseFigure.Build(model,link,titles);if(caseFigs.Select(f=>f.Types.Travel).Distinct().Count()==caseFigs.Count)caseFigs.Clear();
    if(all&&!exempt){var tp=types.ToDictionary(t=>t.Travel);string nn;var plans=WindEdgeLoads.Plans(model,0,types.Max(t=>t.Top),out nn);
-    foreach(var t in types)foreach(var l in WindEdgeLoads.Torsion(model,plans,new List<WindFaceTypes>{t},0.75,0))caseTorsion.Add(new[]{"Case 2, "+t.Travel,F(l.Y),F(l.H),string.Join("; ",l.Parts),F(l.Mt),l.J2+" / "+l.J1+", d = "+F(l.D)});
-    foreach(var x in new[]{"+X","-X"})foreach(var z in new[]{"+Z","-Z"}){if(!tp.ContainsKey(x)||!tp.ContainsKey(z))continue;foreach(var l in WindEdgeLoads.Torsion(model,plans,new List<WindFaceTypes>{tp[x],tp[z]},0.563,0))caseTorsion.Add(new[]{"Case 4, "+x+z,F(l.Y),F(l.H),string.Join("; ",l.Parts),F(l.Mt),l.J2+" / "+l.J1+", d = "+F(l.D)});}}}
+    foreach(var t in types)foreach(var l in WindEdgeLoads.Torsion(model,plans,new List<WindFaceTypes>{t},0.75,0))caseTorsion.Add(new[]{"Case 2, "+t.Travel,F(l.Y),F(l.H),string.Join("; ",l.Parts),F(l.Mt),(l.Edge.Count>=3?l.Edge.Count+" outline joints, Σr² = "+F(l.SumR2)+" m²":l.J2+" / "+l.J1+", d = "+F(l.D))});
+    foreach(var x in new[]{"+X","-X"})foreach(var z in new[]{"+Z","-Z"}){if(!tp.ContainsKey(x)||!tp.ContainsKey(z))continue;foreach(var l in WindEdgeLoads.Torsion(model,plans,new List<WindFaceTypes>{tp[x],tp[z]},0.563,0))caseTorsion.Add(new[]{"Case 4, "+x+z,F(l.Y),F(l.H),string.Join("; ",l.Parts),F(l.Mt),(l.Edge.Count>=3?l.Edge.Count+" outline joints, Σr² = "+F(l.SumR2)+" m²":l.J2+" / "+l.J1+", d = "+F(l.D))});}}}
   catch(Exception ex){windCaseNote.Text="Wind load cases: "+ex.Message;return;}
   windCaseNote.Text=loadFigs.Count+" wind load cases (NSCP 2015 Figure 207B.4-8), one plan each on the STAAD model (top view: X to the right, Z down). The STAAD text of the cases is in Load Combinations > STAAD load combinations.";
   Action<Action<Graphics,RectangleF>,Func<float,float,float>> add=(draw,height)=>{float w=1250,fs=13,h=height(w,fs);var bmp=new Bitmap((int)w+20,(int)h+20);using(var g=Graphics.FromImage(bmp)){g.Clear(Color.White);g.TextRenderingHint=System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;draw(g,new RectangleF(10,10,w,h));}windCasePanel.Controls.Add(new PictureBox{Image=bmp,SizeMode=PictureBoxSizeMode.AutoSize,Margin=new Padding(0,0,0,14),BorderStyle=BorderStyle.FixedSingle});};
@@ -42,6 +42,6 @@ partial class WindDesignForm {
   foreach(var it in items){float w=CalculationDocument.CW,h=it.H(w);while(h>bottom-top-30&&w>240){w*=0.92f;h=it.H(w);}if(y+h>bottom)flush();
    cur.Add(Tuple.Create(it.Draw,new RectangleF(CalculationDocument.L+(CalculationDocument.CW-w)/2,y,w,h),it.Caption));y+=h+(it.Caption!=""?24:14);}flush();
   for(int k=0;k<caseTorsion.Count;k+=18){var rows=caseTorsion.Skip(k).Take(18).ToList();doc.Sheets.Add(g=>{CalculationDocument.Section(g,"WIND LOAD CASES - TORSION OF EACH LEVEL (CASES 2 AND 4)",130);
-   CalculationDocument.Table(g,new[]{"Case","Level m","h m","MT = f (PW + PL) B h × 0.15 B (kN·m)","MT kN·m","Joints, arm m"},rows,172,new float[]{55,38,28,262,58,80},30);});}}
+   CalculationDocument.Table(g,new[]{"Case","Level m","h m","MT = f (PW + PL) B h × 0.15 B (kN·m)","MT kN·m","Joints (F = MT r / Σr²)"},rows,172,new float[]{55,38,28,262,58,80},30);});}}
 }
 }

@@ -19,7 +19,7 @@ sealed class WindLoadCaseFigure {
   return list;}
  /* ---- the case read from its STAAD text ---- */
  sealed class Load {public string Dir;public double Factor;public int Type;public bool Range;public double At,A1,A2;public char Axis;public string Line,Role,Tag;}
- sealed class Couple {public double Y,Mt,D;public int J1,J2;public double F1,F2;}
+ sealed class Couple {public double Y,Mt,D,SumR2;public List<Tuple<int,double,double>> Joints=new List<Tuple<int,double,double>>();public bool Spread;}
  List<Load> Loads(){var list=new List<Load>();foreach(var raw in Text.Replace("\r","").Split('\n')){var line=raw.Trim();var m=Regex.Match(line,@"^WIND LOAD (-?[XZ]) (-?[0-9.]+) TYPE (\d+)(.*)$");if(!m.Success)continue;
    var l=new Load{Dir=m.Groups[1].Value,Factor=double.Parse(m.Groups[2].Value,Ci),Type=int.Parse(m.Groups[3].Value),Line=line};var rest=m.Groups[4].Value;
    var xr=Regex.Match(rest,@"XR (-?[0-9.]+) (-?[0-9.]+)");var zr=Regex.Match(rest,@"ZR (-?[0-9.]+) (-?[0-9.]+)");
@@ -30,11 +30,12 @@ sealed class WindLoadCaseFigure {
   var axes=new HashSet<char>(list.Where(l=>l.Factor>0).Select(l=>l.Dir[l.Dir.Length-1]));
   foreach(var l in list){char a=l.Dir[l.Dir.Length-1];l.Role=l.Factor>0?"WW":axes.Contains(a)?"LW":"SW";}
   int r=0;foreach(var l in list.Where(x=>x.Range))l.Tag="R"+(++r);return list;}
- List<Couple> Couples(){var list=new List<Couple>();var lines=Text.Replace("\r","").Split('\n').Select(x=>x.Trim()).ToList();
-  for(int i=0;i<lines.Count;i++){var m=Regex.Match(lines[i],@"^\* level (-?[0-9.]+) m: MT = (-?[0-9.]+) kN-m, d = ([0-9.]+) m");if(!m.Success||i+2>=lines.Count)continue;
-   var a=Regex.Match(lines[i+1],@"^(\d+) FX (-?[0-9.]+)");var b=Regex.Match(lines[i+2],@"^(\d+) FX (-?[0-9.]+)");if(!a.Success||!b.Success)continue;
-   list.Add(new Couple{Y=double.Parse(m.Groups[1].Value,Ci),Mt=double.Parse(m.Groups[2].Value,Ci),D=double.Parse(m.Groups[3].Value,Ci),J1=int.Parse(a.Groups[1].Value),F1=double.Parse(a.Groups[2].Value,Ci),J2=int.Parse(b.Groups[1].Value),F2=double.Parse(b.Groups[2].Value,Ci)});}
-  return list;}
+ List<Couple> Couples(){var list=new List<Couple>();Couple cur=null;
+  foreach(var raw in Text.Replace("\r","").Split('\n')){var line=raw.Trim();var m=Regex.Match(line,@"^\* level (-?[0-9.]+) m: MT = (-?[0-9.]+) kN-m(?:, d = ([0-9.]+) m|, \d+ joints, sum r2 = ([0-9.]+) m2)");
+   if(m.Success){cur=new Couple{Y=double.Parse(m.Groups[1].Value,Ci),Mt=double.Parse(m.Groups[2].Value,Ci),D=m.Groups[3].Success?double.Parse(m.Groups[3].Value,Ci):0,Spread=m.Groups[4].Success,SumR2=m.Groups[4].Success?double.Parse(m.Groups[4].Value,Ci):0};list.Add(cur);continue;}
+   var j=Regex.Match(line,@"^(\d+)(?: FX (-?[0-9.]+))?(?: FZ (-?[0-9.]+))?$");if(cur!=null&&j.Success&&(j.Groups[2].Success||j.Groups[3].Success)){cur.Joints.Add(Tuple.Create(int.Parse(j.Groups[1].Value),j.Groups[2].Success?double.Parse(j.Groups[2].Value,Ci):0,j.Groups[3].Success?double.Parse(j.Groups[3].Value,Ci):0));continue;}
+   cur=null;}
+  return list.Where(c=>c.Joints.Count>=2).ToList();}
  string RoofSummary(){int floor=Regex.Matches(Text,@"\bFLOAD\b").Count,member=Regex.Matches(Text,@"\bUNI Y\b").Count;if(floor+member==0)return "";
   bool up=Text.Contains("+GCpi, uplift");return (floor>0?floor+" FLOOR LOAD lines":"")+(floor>0&&member>0?" and ":"")+(member>0?member+" MEMBER LOAD lines (truss top chords)":"")+" - roof "+(up?"uplift, +GCpi / Cp branch 1":"-GCpi / Cp branch 2")+"; overhangs included";}
  /* ---- layout ---- */
@@ -45,7 +46,8 @@ sealed class WindLoadCaseFigure {
   using(var tf=Font(fs*1.2f,true)){var words=(Title+"  -  "+Summary()).Split(' ');string cur="";foreach(var w in words){string t=cur==""?w:cur+" "+w;if(g.MeasureString(t,tf).Width>width&&cur!=""){L.TitleLines.Add(cur);cur=w;}else cur=t;}if(cur!="")L.TitleLines.Add(cur);L.TitleH=L.TitleLines.Count*g.MeasureString("X",tf).Height+L.Pad*0.4f;}
   foreach(var l in loads.Where(x=>!x.Range))L.Top.Add(new Row{Color=ColorOf(l.Role),Label=l.Role,Body=l.Line});
   var roof=RoofSummary();if(roof!="")L.Top.Add(new Row{Color=Roof,Label="Roof",Body=roof});
-  foreach(var c in Couples())L.Top.Add(new Row{Color=Purple,Label="Torsion",Body="level "+F(c.Y)+" m: MT = "+F(c.Mt)+" kN·m = "+F(Math.Abs(c.F1))+" kN × "+F(c.D)+" m - JOINT LOAD "+c.J1+" FX "+F(c.F1)+", "+c.J2+" FX "+F(c.F2)});
+  foreach(var c in Couples()){var big=c.Joints.OrderByDescending(q=>Math.Sqrt(q.Item2*q.Item2+q.Item3*q.Item3)).First();double fb=Math.Sqrt(big.Item2*big.Item2+big.Item3*big.Item3);
+   L.Top.Add(new Row{Color=Purple,Label="Torsion",Body="level "+F(c.Y)+" m: MT = "+F(c.Mt)+" kN·m"+(c.Spread?" spread over "+c.Joints.Count+" outline joints, F = MT r / Σr² (Σr² = "+F(c.SumR2)+" m²), largest "+F(fb)+" kN at J"+big.Item1:" = "+F(fb)+" kN × "+F(c.D)+" m - JOINT LOAD "+string.Join(", ",c.Joints.Select(q=>q.Item1+" FX "+F(q.Item2))))});}
   foreach(var l in loads.Where(x=>x.Range))L.Bottom.Add(new Row{Color=ColorOf(l.Role),Label=l.Tag+" "+l.Role,Body=l.Line});
   using(var hf=Font(fs,true))using(var bf=Font(fs,false)){L.LabelW=L.Top.Concat(L.Bottom).Select(r=>g.MeasureString(r.Label,hf).Width).DefaultIfEmpty(0).Max()+fs*1.8f;
    foreach(var r in L.Top.Concat(L.Bottom)){var h=g.MeasureString(r.Body,bf,new SizeF(Math.Max(10,width-L.LabelW-fs),1000)).Height;r.H=Math.Max(L.RowH,h+fs*0.3f);}}
@@ -78,15 +80,16 @@ sealed class WindLoadCaseFigure {
    if(f.Shielded&&load.Tag!=null)using(var hf=Font(fs*0.95f,true))using(var br=new SolidBrush(col)){var sz=g.MeasureString(load.Tag,hf);var mid=new PointF((a.X+b.X)/2,(a.Y+b.Y)/2);g.DrawString(load.Tag,hf,br,mid.X-n.X*(fs*0.5f+sz.Width/2)-sz.Width/2,mid.Y-n.Y*(fs*0.5f+sz.Height/2)-sz.Height/2);}}
   /* the torsion couple at the joints of this plan's level (or the nearest level listed): FX arrows at both joints, a tag with the joint number,
      and the turning sense as an arc at the middle of the plan (screen y = Z, so clockwise on the page = -sum z FX > 0) */
-  var cs=Couples();if(cs.Count>0&&Model!=null){var c=cs.OrderBy(q=>Math.Abs(q.Y-p.Y)).First();StaadJoint j1,j2;
-   if(Model.Joints.TryGetValue(c.J1,out j1)&&Model.Joints.TryGetValue(c.J2,out j2)){double tau=0;float al=fs*3.2f;
-    foreach(var jf in new[]{Tuple.Create(j1,c.F1),Tuple.Create(j2,c.F2)}){var q=P(Model.P1(jf.Item1),Model.P2(jf.Item1));tau+=-Model.P2(jf.Item1)*jf.Item2;float d=jf.Item2>=0?1:-1;
-     Arrow(g,Purple,fs*0.2f,new PointF(q.X-d*al,q.Y),q);using(var br=new SolidBrush(Purple))g.FillEllipse(br,q.X-fs*0.28f,q.Y-fs*0.28f,fs*0.56f,fs*0.56f);
-     using(var hf=Font(fs*0.9f,true))using(var br=new SolidBrush(Purple)){string tag="J"+jf.Item1.No;var sz=g.MeasureString(tag,hf);bool top=Model.P2(jf.Item1)<=(p.Zs.First()+p.Zs.Last())/2;g.DrawString(tag,hf,br,q.X-d*al/2-sz.Width/2,top?q.Y+fs*0.35f:q.Y-sz.Height-fs*0.35f);/* inside the plan, clear of the wind arrows outside */}}
-    var cen=P((p.Xs.First()+p.Xs.Last())/2,(p.Zs.First()+p.Zs.Last())/2);float rr=Math.Max(fs*1.6f,Math.Min(L.PlanW,L.PlanH)*0.14f);float sweep=tau>=0?250:-250;
-    using(var pen=new Pen(Purple,fs*0.16f))g.DrawArc(pen,cen.X-rr,cen.Y-rr,2*rr,2*rr,200,sweep);double e=(200+sweep)*Math.PI/180;var tip=new PointF(cen.X+(float)(Math.Cos(e)*rr),cen.Y+(float)(Math.Sin(e)*rr));
-    float sg=sweep>0?1:-1;var tan=new PointF((float)(-sg*Math.Sin(e)),(float)(sg*Math.Cos(e)));Arrow(g,Purple,fs*0.16f,new PointF(tip.X-tan.X*fs*0.8f,tip.Y-tan.Y*fs*0.8f),tip);
-    using(var hf=Font(fs,true))using(var br=new SolidBrush(Purple)){var sz=g.MeasureString("MT",hf);g.DrawString("MT",hf,br,cen.X-sz.Width/2,cen.Y-sz.Height/2);}}}
+  var cs=Couples();if(cs.Count>0&&Model!=null){var c=cs.OrderBy(q=>Math.Abs(q.Y-p.Y)).First();double tau=0,fmax=c.Joints.Max(q=>Math.Sqrt(q.Item2*q.Item2+q.Item3*q.Item3));float al=fs*(c.Spread?2.2f:3.2f);
+   foreach(var jf in c.Joints){StaadJoint j;if(!Model.Joints.TryGetValue(jf.Item1,out j))continue;double fx=jf.Item2,fz=jf.Item3,fm=Math.Sqrt(fx*fx+fz*fz);if(fm<=0)continue;
+    double x=Model.P1(j)*Model.ToMetre,z=Model.P2(j)*Model.ToMetre;var q=P(x,z);tau+=x*fz-z*fx;float tl=(float)(al*Math.Max(0.35,fm/fmax));var u=new PointF((float)(fx/fm),(float)(fz/fm));
+    Arrow(g,Purple,fs*0.16f,new PointF(q.X-u.X*tl,q.Y-u.Y*tl),q);using(var br=new SolidBrush(Purple))g.FillEllipse(br,q.X-fs*0.22f,q.Y-fs*0.22f,fs*0.44f,fs*0.44f);
+    if(!c.Spread)using(var hf=Font(fs*0.9f,true))using(var br=new SolidBrush(Purple)){string tag="J"+j.No;var sz=g.MeasureString(tag,hf);bool top=z<=(p.Zs.First()+p.Zs.Last())/2;g.DrawString(tag,hf,br,q.X-u.X*tl/2-sz.Width/2,top?q.Y+fs*0.35f:q.Y-sz.Height-fs*0.35f);}}
+   /* the turning sense (screen y = Z: clockwise on the page when sum (x FZ - z FX) > 0) */
+   var cen=P((p.Xs.First()+p.Xs.Last())/2,(p.Zs.First()+p.Zs.Last())/2);float rr=Math.Max(fs*1.6f,Math.Min(L.PlanW,L.PlanH)*0.14f);float sweep=tau>=0?250:-250;
+   using(var pen=new Pen(Purple,fs*0.16f))g.DrawArc(pen,cen.X-rr,cen.Y-rr,2*rr,2*rr,200,sweep);double e=(200+sweep)*Math.PI/180;var tip=new PointF(cen.X+(float)(Math.Cos(e)*rr),cen.Y+(float)(Math.Sin(e)*rr));
+   float sg=sweep>0?1:-1;var tan=new PointF((float)(-sg*Math.Sin(e)),(float)(sg*Math.Cos(e)));Arrow(g,Purple,fs*0.16f,new PointF(tip.X-tan.X*fs*0.8f,tip.Y-tan.Y*fs*0.8f),tip);
+   using(var hf=Font(fs,true))using(var br=new SolidBrush(Purple)){var sz=g.MeasureString("MT",hf);g.DrawString("MT",hf,br,cen.X-sz.Width/2,cen.Y-sz.Height/2);}}
   y=py+L.PlanH+L.Margin;if(L.Bottom.Count>0)Rows(g,L,L.Bottom,x0+fs*0.3f,y,rc.Width,fs);}
 }
 }

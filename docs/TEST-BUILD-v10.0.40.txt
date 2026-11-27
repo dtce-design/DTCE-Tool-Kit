@@ -1,0 +1,14 @@
+DTCE Tool Kit v10.0.40 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store upload is on hold).
+
+PATCH - wind torsion spread over the outline joints ("e irregular yung shape ng building"):
+- Cases 2 and 4 (NSCP 2015 Fig. 207B.4-8): the torsion MT of each level is no longer a couple at two joints. It is spread over every
+  joint on the floor outline of that level as JOINT LOAD FX / FZ, F = MT r / sum r^2, square to the radius from the joints' centre.
+  No net force, sum (z FX - x FZ) = MT, for any plan shape (recesses, L / U shapes) and with or without a STAAD FLOOR DIAPHRAGM;
+  with a rigid diaphragm STAAD gives the same twist as before. The two-joint couple is kept only when a level has fewer than three
+  outline joints.
+- STAAD comment per level: "* level y m: MT = ... kN-m, n joints, sum r2 = ... m2" (under 72 columns).
+- Wind load case figures draw the arrow at every outline joint (length by force) and the MT sense; the legend gives MT, the number of
+  joints, sum r^2 and the largest force. The report torsion table lists the joints and sum r^2.
+- CI: DxfLinkedTablesTests looks for the "Save project" button of the Bill of Quantities bar (renamed in v10.0.34).
+Tests: WindEdgeLoadsTests 42, WindCasesTabTests 37, WindEdgeShapesTests 23.
+Includes everything of v10.0.39.
