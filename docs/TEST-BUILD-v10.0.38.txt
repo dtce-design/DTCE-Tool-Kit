@@ -1,0 +1,9 @@
+DTCE Tool Kit v10.0.38 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store upload is on hold).
+
+PATCH - compact report tables ("anlalaki masyado ng spacing"):
+- Report tables (CalculationDocument.Table, every report that uses it): the header and each row are as tall as their text - a one-line row
+  is about 17 pt instead of 30-40 pt - never taller than before, so nothing after a table is overlapped.
+- Wind report: the pages that placed text at fixed positions after a table now follow the table (eight-direction calculations, MWFRS
+  basis and pressure range, pressure substitution with a one-line substitution); MWFRS surface pressures 24 rows per page instead of 16.
+Tests: WindAuditTests 79, WindCasesTabTests 9, DesignLoadsReportTests 5.
+Includes everything of v10.0.37.
