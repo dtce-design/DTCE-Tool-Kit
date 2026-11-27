@@ -135,15 +135,18 @@ static class StaadCombinations {
   string type=structure=="C"?"NONE":"SEISMIC-H";
   foreach(var d in new[]{"+X","-X","+Z","-Z"}){if(structure=="B"){lines.Add("LOAD "+(++n)+" LOADTYPE "+type+" TITLE EQ"+d+"+E");lines.Add("LOAD "+(++n)+" LOADTYPE "+type+" TITLE EQ"+d+"-E");}else lines.Add("LOAD "+(++n)+" LOADTYPE "+type+" TITLE EQ"+d);}
   lines.Add("LOAD "+(++n)+" LOADTYPE DEAD TITLE DL");for(int k=1;k<=Math.Max(1,liveCases);k++)lines.Add("LOAD "+(++n)+" LOADTYPE LIVE TITLE "+(liveCases<=1?"LL":"LL"+k));
-  if(roofLive)lines.Add("LOAD "+(++n)+" LOADTYPE ROOF LIVE TITLE LLR");if(wind)foreach(var d in new[]{"+X","-X","+Z","-Z"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL"+d);
-  if(wind&&roofWind)foreach(var d in new[]{"+X","-X","+Z","-Z"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL1B"+d);
-  if(wind&&allWind){if(torsion)foreach(var d in new[]{"+X","-X","+Z","-Z"})foreach(var t in new[]{"+T","-T"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL2"+d+t);
-   foreach(var x in new[]{"+X","-X"})foreach(var z in new[]{"+Z","-Z"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL3"+x+z);
-   if(torsion)foreach(var x in new[]{"+X","-X"})foreach(var z in new[]{"+Z","-Z"})foreach(var t in new[]{"+T","-T"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL4"+x+z+t);}
+  if(roofLive)lines.Add("LOAD "+(++n)+" LOADTYPE ROOF LIVE TITLE LLR");/* the case of NSCP 2015 Figure 207B.4-8 in the title (owner, 27 November 2026: "sa load cases ilagay mo if anong case yun") */
+  if(wind)foreach(var d in new[]{"+X","-X","+Z","-Z"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL"+d+(allWind||roofWind?" CASE 1":""));
+  if(wind&&roofWind)foreach(var d in new[]{"+X","-X","+Z","-Z"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL"+d+" CASE 1 -GCPI");
+  if(wind&&allWind){if(torsion)foreach(var d in new[]{"+X","-X","+Z","-Z"})foreach(var t in new[]{"+T","-T"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL"+d+" CASE 2 "+t);
+   foreach(var x in new[]{"+X","-X"})foreach(var z in new[]{"+Z","-Z"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL"+x+z+" CASE 3");
+   if(torsion)foreach(var x in new[]{"+X","-X"})foreach(var z in new[]{"+Z","-Z"})foreach(var t in new[]{"+T","-T"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL"+x+z+" CASE 4 "+t);}
   return string.Join("\n",lines);}
  /* the STAAD primary load section: each EQ case with its seismic load command and, as older STAAD needs, PERFORM ANALYSIS / CHANGE */
  /* "WL+X" -> "+X" */
- internal static string WindKey(string title){var c=System.Text.RegularExpressions.Regex.Match((title??"").Trim(),@"^WL([1234]B?)((?:[+-][XZ]){1,2})([+-]T)?$",System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+ internal static string WindKey(string title){var k=System.Text.RegularExpressions.Regex.Match((title??"").Trim(),@"^WL((?:[+-][XZ]){1,2})\s+CASE\s+([1-4])(\s+-GCPI)?(?:\s+([+-])T)?$",System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+  if(k.Success){string dirs=k.Groups[1].Value.ToUpperInvariant(),c0=k.Groups[2].Value;if(c0=="1")return (k.Groups[3].Success?"1B":"")+dirs;return c0+dirs+(k.Groups[4].Success?k.Groups[4].Value+"T":"");}
+  var c=System.Text.RegularExpressions.Regex.Match((title??"").Trim(),@"^WL([1234]B?)((?:[+-][XZ]){1,2})([+-]T)?$",System.Text.RegularExpressions.RegexOptions.IgnoreCase);
   if(c.Success)return c.Groups[1].Value+c.Groups[2].Value.ToUpperInvariant()+c.Groups[3].Value.ToUpperInvariant();var m=System.Text.RegularExpressions.Regex.Match(title??"",@"([+-])\s*([XZ])\b",System.Text.RegularExpressions.RegexOptions.IgnoreCase);return m.Success?m.Groups[1].Value+m.Groups[2].Value.ToUpperInvariant():"";}
  internal static string PrimarySection(List<StaadPrimary> cases,StaadCombinationSettings s){var b=new StringBuilder("* ---- PRIMARY LOAD CASES (earthquake cases first) ----\n* Before them: DEFINE UBC LOAD (or the seismic definition of your STAAD)\n* with the zone / I / R / soil data and the seismic weights.");
   /* case B (owner: "apply also natural torsion kapag case b"): natural torsion from the centre of mass / centre of rigidity offset, accidental torsion through ACC = 0.05 Ax */

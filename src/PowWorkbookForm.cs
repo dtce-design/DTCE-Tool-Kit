@@ -26,7 +26,7 @@ sealed partial class PowWorkbookForm : Form {
  readonly Dictionary<string,object> edits=new Dictionary<string,object>(StringComparer.OrdinalIgnoreCase);readonly Dictionary<string,object> originals=new Dictionary<string,object>(StringComparer.OrdinalIgnoreCase);
  string projectPath;bool dirty;string templateName="";string boqSignature;
  readonly CheckBox linkBoq=new CheckBox{Text="BACKUP linked to Bill of Quantities",Checked=true,AutoSize=true};
- public PowWorkbookForm(){Text="Program of Works (POW)";/* the project title in the window title, as in every workspace (23 November 2026) */ProjectCaption.Attach(this);Font=new Font("Segoe UI",9.5f);BackColor=PowTheme.Background;Width=1280;Height=820;KeyPreview=true;
+ public PowWorkbookForm(){ProjectSave.Track(this);Text="Program of Works (POW)";/* the project title in the window title, as in every workspace (23 November 2026) */ProjectCaption.Attach(this);Font=new Font("Segoe UI",9.5f);BackColor=PowTheme.Background;Width=1280;Height=820;KeyPreview=true;
   var bar=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,WrapContents=true,Padding=new Padding(8,5,8,3),Name="PowCommandBar"};
   Func<string,Action,Button> btn=(t,h)=>{var b=new Button{Text=t,AutoSize=true,Height=30,Margin=new Padding(0,0,8,0)};b.Click+=(s,e)=>{try{h();}catch(Exception ex){MessageBox.Show(this,ex.Message,"Program of Works (POW)");}};bar.Controls.Add(b);return b;};
   Action<string,KeyValuePair<string,Action>?[]> menuBtn=(t,items)=>{var menu=new ContextMenuStrip();foreach(var item in items){if(item==null){menu.Items.Add(new ToolStripSeparator());continue;}var pair=item.Value;var parts=pair.Key.Split('\t');var entry=new ToolStripMenuItem(parts[0]);if(parts.Length>1)entry.ShortcutKeyDisplayString=parts[1];entry.Click+=(s,e)=>{try{pair.Value();}catch(Exception ex){MessageBox.Show(this,ex.Message,"Program of Works (POW)");}};menu.Items.Add(entry);}
@@ -57,7 +57,7 @@ sealed partial class PowWorkbookForm : Form {
   groups.SelectedIndexChanged+=(s,e)=>{if(currentStep==3)ShowTab();};
   view.CellActivated+=(sheet,r,c)=>{Select(sheet,r,c);if(cellBox.Enabled){cellBox.Focus();cellBox.SelectAll();}else EditCell(sheet,r,c);};view.CellSelected+=(sheet,r,c)=>Select(sheet,r,c);
   BuildStudio(formula);
-  KeyDown+=(s,e)=>{if(e.Control&&e.KeyCode==Keys.S){SaveProject(e.Shift);e.SuppressKeyPress=true;}else if(e.Control&&e.KeyCode==Keys.O){OpenProject();e.SuppressKeyPress=true;}else if(e.Control&&e.KeyCode==Keys.P){PrintSheets(false);e.SuppressKeyPress=true;}};
+  KeyDown+=(s,e)=>{if(e.Control&&e.KeyCode==Keys.S){if(e.Shift)SaveProject(true);else SaveProjectAll();e.SuppressKeyPress=true;}else if(e.Control&&e.KeyCode==Keys.O){OpenProject();e.SuppressKeyPress=true;}else if(e.Control&&e.KeyCode==Keys.P){PrintSheets(false);e.SuppressKeyPress=true;}};
   FormClosing+=(s,e)=>{if(!ConfirmDiscard())e.Cancel=true;};
   Shown+=(s,e)=>{string last=null;try{if(File.Exists(LastProjectPath))last=File.ReadAllText(LastProjectPath).Trim();}catch(IOException){}LoadTemplate(last!=null&&File.Exists(last)?last:null);};}
  sealed class DupaItem{public string Sheet,Label;public override string ToString(){return Label;}}

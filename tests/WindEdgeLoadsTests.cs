@@ -36,10 +36,10 @@ static class WindEdgeLoadsTests {
   {var tz2=new WindFaceTypes{Travel="-Z",Ww=10,Lw=11,Sw=12,Top=8,Leeward=1,Side=2};tz2.WwInt.Add(3);tz2.WwHeig.Add(8);string ls=WindEdgeLoads.RecessLoads(model,faces,tz2,out count);
    Check(ls.Contains("WIND LOAD -X -1 TYPE 12 XR 11.95 12.05")&&ls.Contains("WIND LOAD X -1 TYPE 12 XR 17.95 18.05")&&ls.Contains("side wall"),"recess walls along the wind take the SW type, pulled out: "+ls.Replace("\n"," / "));}
   var link=new Dictionary<string,string>{{"+X",t.Pack()},{"-X",tm.Pack()}};var texts=WindEdgeLoads.CaseTexts(link,Model(),out note);
-  Check(texts.ContainsKey("+X")&&texts["+X"].StartsWith("WIND LOAD X 1 TYPE 1")&&texts["+X"].Contains("TYPE 1 XR 17.95")&&note.Contains("recessed walls"),"case text with the recess loads");
+  Check(texts.ContainsKey("+X")&&texts["+X"].StartsWith("* NSCP 2015 Fig. 207B.4-8 Case 1")&&texts["+X"].Contains("\nWIND LOAD X 1 TYPE 1")&&texts["+X"].Contains("TYPE 1 XR 17.95")&&note.Contains("recessed walls"),"case text with the recess loads");
   Check(StaadCombinations.WindKey("WL+X")=="+X"&&StaadCombinations.WindKey("WL-Z")=="-Z"&&StaadCombinations.WindKey("DL")=="","wind case key from the title");
   var s=new StaadCombinationSettings{AutoPrimary=true};s.WindText["+X"]=texts["+X"];var prim=StaadCombinations.Parse("LOAD 1 LOADTYPE WIND TITLE WL+X\nLOAD 2 LOADTYPE WIND TITLE WL-X");
-  string sec=StaadCombinations.PrimarySection(prim,s);Check(sec.Contains("TITLE WL+X\nWIND LOAD X 1 TYPE 1")&&sec.Contains("TITLE WL-X\n* add the wind loads here"),"primary section carries the wind lines");
+  string sec=StaadCombinations.PrimarySection(prim,s);Check(sec.Contains("TITLE WL+X\n* NSCP 2015 Fig. 207B.4-8 Case 1")&&sec.Contains("\nWIND LOAD X 1 TYPE 1")&&sec.Contains("TITLE WL-X\n* add the wind loads here"),"primary section carries the wind lines");
   DesignLoadsLink.Set("wind-cases-test",new Dictionary<string,string>{{"+X","LOAD 9 LOADTYPE WIND TITLE WL+X\nWIND LOAD X 1 TYPE 1 YR 0 8"}});var back2=DesignLoadsLink.Get("wind-cases-test");Check(back2!=null&&back2["+X"]=="LOAD 9 LOADTYPE WIND TITLE WL+X\nWIND LOAD X 1 TYPE 1 YR 0 8","multi-line wind case kept through the link file");
   /* the Wind sheet's types through the link file itself (keys "+X" ...) */
   DesignLoadsLink.Set("wind-staad-test",new Dictionary<string,string>{{"+X",t.Pack()},{"-X",tm.Pack()}});var viaFile=DesignLoadsLink.Get("wind-staad-test");Check(viaFile!=null&&viaFile.ContainsKey("+X")&&viaFile.ContainsKey("-X")&&WindFaceTypes.Unpack("+X",viaFile["+X"]).Sw==3,"wind types through the link file");
@@ -64,8 +64,9 @@ static class WindEdgeLoadsTests {
    var m2=System.Text.RegularExpressions.Regex.Matches(cases["2+X-T"],@"\n(\d+) FX (-?[0-9.]+)");double sum=0,mom=0;foreach(System.Text.RegularExpressions.Match mm in m2){double fx=double.Parse(mm.Groups[2].Value,CultureInfo.InvariantCulture);sum+=fx;mom+=fx*model.Joints[int.Parse(mm.Groups[1].Value)].Z;}
    Check(m2.Count==4&&Math.Abs(sum)<1e-9&&mom<0,"-T couple: no net force, negative MY ("+mom+")");
    string ex;var noT=WindEdgeLoads.CaseTexts(all,model,out ex,true,false);Check(noT.Count==8&&!noT.Keys.Any(k=>k.StartsWith("2")||k.StartsWith("4")),"exempt: Cases 1 and 3 only");
-   Check(StaadCombinations.WindKey("WL2+X+T")=="2+X+T"&&StaadCombinations.WindKey("WL3-X+Z")=="3-X+Z"&&StaadCombinations.WindKey("WL4+X-Z-T")=="4+X-Z-T"&&StaadCombinations.WindKey("WL+X")=="+X","case keys from the titles");
-   var ap=StaadCombinations.Parse(StaadCombinations.AutoPrimary("A",1,false,true,true,true));Check(ap.Count(p=>p.Kind=="W")==24&&ap.Any(p=>p.Title=="WL4-X+Z-T"),"automatic primaries carry the 24 wind cases");
+   Check(StaadCombinations.WindKey("WL2+X+T")=="2+X+T"&&StaadCombinations.WindKey("WL3-X+Z")=="3-X+Z"&&StaadCombinations.WindKey("WL4+X-Z-T")=="4+X-Z-T"&&StaadCombinations.WindKey("WL+X")=="+X","case keys from the older titles");
+   Check(StaadCombinations.WindKey("WL+X CASE 1")=="+X"&&StaadCombinations.WindKey("WL+X CASE 1 -GCPI")=="1B+X"&&StaadCombinations.WindKey("WL-Z CASE 2 +T")=="2-Z+T"&&StaadCombinations.WindKey("WL+X-Z CASE 3")=="3+X-Z"&&StaadCombinations.WindKey("WL-X+Z CASE 4 -T")=="4-X+Z-T","case keys from the titles with the case");
+   var ap=StaadCombinations.Parse(StaadCombinations.AutoPrimary("A",1,false,true,true,true));Check(ap.Count(p=>p.Kind=="W")==24&&ap.Any(p=>p.Title=="WL-X+Z CASE 4 -T")&&ap.Any(p=>p.Title=="WL+X CASE 1"),"automatic primaries carry the 24 wind cases");
    Check(StaadCombinations.Parse(StaadCombinations.AutoPrimary("A",1,false,true,true,false)).Count(p=>p.Kind=="W")==8,"exempt: 8 wind primaries");}
   /* roof data through the link and the -GCpi twin of Case 1 */
   {var r=new WindFaceTypes{Travel="+X",Ww=1,Lw=2,Sw=3,Top=8,Leeward=1,Side=2,HasRoof=true,RoofNormal=false,Angle=3,OhUnder=0.9,OhWwA=-1.5,OhWwB=-0.1,OhLwA=-0.6,OhLwB=-0.1};r.WwInt.Add(3);r.WwHeig.Add(8);r.Zones.Add(new[]{0,4.0,-2,0.2,-1.5,-0.1});r.Zones.Add(new[]{4,1e6,-1,0.1,-0.6,-0.1});

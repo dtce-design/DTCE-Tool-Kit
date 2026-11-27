@@ -155,16 +155,18 @@ static class WindEdgeLoads {
    var b=new StringBuilder(WindLoadLines(t,baseY));
    if(model!=null){if(faces==null){string n;faces=Faces(model,baseY,t.Top,out n);if(n!="")note=n;}var rl=RecessLines(faces,t);recessLines[travel]=rl;recess+=rl.Count;string r=RecessText(rl,t.Travel,1);if(r!="")b.Append("\n").Append(r);}
    if(model!=null&&t.HasRoof){if(roofPlans==null){string n3;roofPlans=Plans(model,baseY,t.Top,out n3);}string rn;string roofA=RoofText(model,roofPlans,t,true,baseY,out rn);
-    if(roofA!=""){roofNote=rn;string walls=b.ToString();b.Append("\n").Append(roofA);map["1B"+travel]=walls+"\n"+RoofText(model,roofPlans,t,false,baseY,out rn);}}
+    if(roofA!=""){roofNote=rn;string walls=b.ToString();b.Append("\n").Append(roofA);map["1B"+travel]=walls.Replace("(walls, roof uplift +GCpi)","(walls, roof -GCpi / Cp branch 2)")+"\n"+RoofText(model,roofPlans,t,false,baseY,out rn);}}
+   b.Insert(0,"* NSCP 2015 Fig. 207B.4-8 Case 1: full pressures, wind toward "+travel+" (walls"+(t.HasRoof?", roof uplift +GCpi":"")+")\n");
+   if(model==null)b.Append("\n* recessed walls and roof NOT loaded: paste the STAAD model (Nodes + Beams tables or\n* the .std) on the Primary loads tab of Load Combinations");
    map[travel]=b.ToString();}
   if(allCases&&types.Count>0){List<WindPlanLevel> plans=null;if(model!=null){string n2;plans=Plans(model,baseY,types.Values.Max(x=>x.Top),out n2);}
    Func<string,double,string> part=(travel,f)=>{var t=types[travel];var ln=WindLoadLines(t,baseY).Split('\n');var b=new StringBuilder();b.Append(Scale(ln[0],f)).Append("\n").Append(Scale(ln[1],f));
     List<WindRecessLine> rl;if(recessLines.TryGetValue(travel,out rl)){string r=RecessText(rl.Where(l=>!l.Role.StartsWith("SW")).ToList(),travel,f);if(r!="")b.Append("\n").Append(r);}return b.ToString();};
    Func<IEnumerable<string>,double,int,string> twist=(travels,f,sign)=>{if(plans==null)return "* torsion: paste the STAAD model on the Primary loads tab to make the torsional joint loads";return TorsionText(model,plans,travels.Select(x=>types[x]).ToList(),f,sign,baseY);};
-   if(torsion)foreach(var a in types.Keys)foreach(var sg in new[]{1,-1})map["2"+a+(sg>0?"+T":"-T")]=part(a,0.75)+"\n"+twist(new[]{a},0.75,sg);
+   if(torsion)foreach(var a in types.Keys)foreach(var sg in new[]{1,-1})map["2"+a+(sg>0?"+T":"-T")]="* NSCP 2015 Fig. 207B.4-8 Case 2: 75 % windward / leeward toward "+a+", torsion "+(sg>0?"+T":"-T")+"\n"+part(a,0.75)+"\n"+twist(new[]{a},0.75,sg);
    foreach(var x in new[]{"+X","-X"})foreach(var z in new[]{"+Z","-Z"}){if(!types.ContainsKey(x)||!types.ContainsKey(z))continue;
-    map["3"+x+z]=part(x,0.75)+"\n"+part(z,0.75);
-    if(torsion)foreach(var sg in new[]{1,-1})map["4"+x+z+(sg>0?"+T":"-T")]=part(x,0.563)+"\n"+part(z,0.563)+"\n"+twist(new[]{x,z},0.563,sg);}}
+    map["3"+x+z]="* NSCP 2015 Fig. 207B.4-8 Case 3: 75 % of "+x+" and "+z+" at once\n"+part(x,0.75)+"\n"+part(z,0.75);
+    if(torsion)foreach(var sg in new[]{1,-1})map["4"+x+z+(sg>0?"+T":"-T")]="* NSCP 2015 Fig. 207B.4-8 Case 4: 56.3 % of "+x+" and "+z+", torsion "+(sg>0?"+T":"-T")+"\n"+part(x,0.563)+"\n"+part(z,0.563)+"\n"+twist(new[]{x,z},0.563,sg);}}
   if(map.Count>0)note=(note!=""?note+" ":"")+(model==null?"Paste the STAAD Nodes and Beams tables (or the .std file) on the Primary loads tab to load the recessed faces too.":recess>0?faces.Where(f=>f.Shielded&&f.Covered).Select(f=>f.Key).Distinct().Count()+" recessed walls loaded with WIND LOAD ranges: "+string.Join("; ",faces.Where(f=>f.Shielded&&f.Covered).GroupBy(f=>f.Normal[1]+"="+F(f.At)+" m, "+(f.Normal[1]=='X'?"Z ":"X ")+F(f.A1)+"-"+F(f.A2)+" m").Select(g=>g.Key+" (levels "+string.Join(", ",g.Select(f=>F(f.Level)).Distinct())+")"))+".":"No recessed walls in the model.")+(roofNote!=""?" Roof: "+roofNote+".":"");
   return map;}
  /* ---- the roof (owner, 27 November 2026: "add the roof, determine also the overhangs") ----

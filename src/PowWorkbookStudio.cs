@@ -24,8 +24,8 @@ sealed partial class PowWorkbookForm {
   var crumb=new Label{Dock=DockStyle.Left,Width=360,Text="Workspace   /   Program of Works (POW)",ForeColor=StudioMuted,TextAlign=ContentAlignment.MiddleLeft};
   var actions=new FlowLayoutPanel{Dock=DockStyle.Right,AutoSize=true,WrapContents=false,BackColor=Color.White,Padding=Padding.Empty};
   Func<string,Action,bool,Button> act=(t,a,primary)=>{var b=new Button{Text=t,AutoSize=true,Height=34,Margin=new Padding(8,0,0,0),FlatStyle=FlatStyle.Flat};b.FlatAppearance.BorderColor=primary?StudioGreen:StudioLine;b.BackColor=primary?StudioGreen:Color.White;b.ForeColor=primary?Color.White:StudioInk;b.Click+=(s,e)=>{try{a();}catch(Exception ex){MessageBox.Show(this,ex.Message,"Program of Works (POW)");}};actions.Controls.Add(b);return b;};
-  var more=new ContextMenuStrip();more.Items.Add("Save project as…",null,(s,e)=>SaveProject(true));more.Items.Add("Recalculate",null,(s,e)=>Recalculate(null));more.Items.Add(new ToolStripSeparator());more.Items.Add("Use another POW workbook…",null,(s,e)=>ImportWorkbook());
-  act("New project",NewProject,false);act("Open project",OpenProject,false);var mb=act("More  ▾",()=>{},false);mb.Click+=(s,e)=>more.Show(mb,new Point(0,mb.Height));act("Save project",()=>SaveProject(false),true);
+  var more=new ContextMenuStrip();more.Items.Add("Save the POW as a separate file…",null,(s,e)=>SaveProject(true));more.Items.Add("Recalculate",null,(s,e)=>Recalculate(null));more.Items.Add(new ToolStripSeparator());more.Items.Add("Use another POW workbook…",null,(s,e)=>ImportWorkbook());
+  act("New project",NewProject,false);act("Open project",OpenProject,false);var mb=act("More  ▾",()=>{},false);mb.Click+=(s,e)=>more.Show(mb,new Point(0,mb.Height));act("Save project",SaveProjectAll,true);
   header.Controls.Add(crumb);header.Controls.Add(actions);
   /* title area and steps */
   var body=new Panel{Dock=DockStyle.Fill,BackColor=StudioBack,Padding=new Padding(28,16,28,10)};var host=new Panel{Dock=DockStyle.Fill,BackColor=StudioBack};

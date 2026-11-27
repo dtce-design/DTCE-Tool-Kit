@@ -4542,6 +4542,7 @@ namespace BeamScheduleFormatter
 			{
 				throw new Exception("Estimator access required.");
 			}
+			ProjectSave.Track(this);
 			SuspendLayout();tabs.SuspendLayout();
 			AppBrand.Apply(this);
 			Text = "Bill of Quantities | DTCE Tool Kit";
@@ -4566,7 +4567,8 @@ var userRenewal=new AccessRenewal(this);FormClosed+=(sender,args)=>userRenewal.D
 			base.Controls.Add(tabs);
 			base.Controls.Add(flowLayoutPanel);
 			GridEditHistory.AddCommands(this,flowLayoutPanel);
-            Button(flowLayoutPanel, "Save Bill of Quantities", Save);
+            /* "Save project": every open workspace into the one project file (owner, 27 November 2026); the Bill of Quantities alone is under File */
+            Button(flowLayoutPanel, "Save project", SaveProjectAll);
             /* owner (19 November 2026, "isummarize yung buttons"): Undo, Redo and Save stay on the bar; the other commands are grouped
                in a File menu and a Report menu */
             MenuButton(flowLayoutPanel,"File",new KeyValuePair<string,Action>("Open Bill of Quantities…\tCtrl+O",Open),new KeyValuePair<string,Action>("Save Bill of Quantities As…\tCtrl+Shift+S",SaveAs),new KeyValuePair<string,Action>("Close Bill of Quantities",CloseProgramOfWorks),null,new KeyValuePair<string,Action>("Project files…",ManageProjectFiles),new KeyValuePair<string,Action>("Restore backup…",RestoreBackup));

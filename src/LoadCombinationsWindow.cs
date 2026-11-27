@@ -106,7 +106,8 @@ partial class LoadCombinationsForm:DesignSheetForm {
   if(key!=windKey){string n,err;var m=InputModel(out err);if(m==null){RhoTexts(out mt,out ft);if(RedundancyFactor.HasModel(mt))m=RedundancyFactor.ReadModel(mt);}windTypes=link.Where(k=>k.Key.Length==2).ToDictionary(k=>k.Key,k=>k.Value);windModel=m;windCache=WindEdgeLoads.CaseTexts(windTypes,m,out n,On("WindAllCases"),!On("WindTorsionExempt"));windKey=key;windCacheNote=(err!=""?err+" ":"")+n;}windNote="Wind cases: "+windCacheNote.Replace("Paste the STAAD input on the Redundancy factor tab","Paste the STAAD input on the Primary loads tab");return windCache;}
  string windCacheNote="";
  /* the Wind sheet sends roof pressures: Case 1 gets its -GCpi twin WL1B */
- bool RoofWind(){if(!On("WindLinked"))return false;var l=DesignLoadsLink.Get("wind-staad");if(l==null)return false;return l.Where(k=>k.Key.Length==2).Any(k=>{var t=WindFaceTypes.Unpack(k.Key,k.Value);return t!=null&&t.HasRoof;});}
+ bool RoofWind(){if(!On("WindLinked"))return false;var l=DesignLoadsLink.Get("wind-staad");if(l==null)return false;/* the roof needs the STAAD model (owner, 27 November 2026: "bat walang laman ito" - WL1B cases were empty without it) */string err;if(InputModel(out err)==null){string mt,ft;RhoTexts(out mt,out ft);if(!RedundancyFactor.HasModel(mt))return false;}
+  return l.Where(k=>k.Key.Length==2).Any(k=>{var t=WindFaceTypes.Unpack(k.Key,k.Value);return t!=null&&t.HasRoof;});}
  /* the figures of the wind cases (owner, 26 November 2026: "isama mo din yung figure sa wind load loading"), from the model of the
     Primary loads tab and the Wind sheet's types; shown on the Wind load cases tab and in the report */
  StaadModel windModel;Dictionary<string,string> windTypes;WindDesignCasesFigure windDesign;List<WindCaseFigure> windFigs=new List<WindCaseFigure>();string windFigKey="";

@@ -1,0 +1,22 @@
+DTCE Tool Kit v10.0.34 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store release is v10.0.24, published).
+
+PATCH - one "Save project", wind case fixes:
+- Save project ("mas ayusin yung buttons para di nakakalito ... magoopen ako ng multiple design loads pow etc tapos pano isasave sa isang
+  file na lang"): one command saves every open workspace - Design Loads (all five sheets), design sheets, Bill of Quantities, POW, Bar
+  Bending Schedule, Splice / Development & Hooks - into the one project file (*.dtce), asking for the file only the first time.
+  * "Save project" button on the Workspaces window and in every workspace; Ctrl+S in every workspace does the same.
+  * Saving one workspace as a separate file moved to its own menu (design sheets: Export > "Save this sheet / Design Loads as a separate
+    file", "Open a sheet file"; Bill of Quantities: File menu; POW: More > "Save the POW as a separate file"; BBS: "Save BBS as a separate
+    file"); Ctrl+Shift+S saves a separate file where it did before.
+  * Closing the app with unsaved workspaces lists them and offers to save the project first.
+  * Without Project Information there is no project file: Ctrl+S then saves the workspace to its own file as before.
+- Wind cases ("bat walang laman ito"): the WL1B (-GCpi) cases were empty when the STAAD model was not pasted in Load Combinations; they are
+  now made only with the model (the roof needs it). Without the model every wind case says that the recessed walls and the roof are not
+  loaded.
+- Wind case titles name their case of NSCP Fig. 207B.4-8 ("sa load cases ilagay mo if anong case yun"): WL+X CASE 1, WL+X CASE 1 -GCPI,
+  WL+X CASE 2 +T, WL+X+Z CASE 3, WL+X+Z CASE 4 +T ..., each with a comment line saying what it applies. Older titles still work.
+- Wind Load sheet, STAAD Wind Input: DEFINE WIND LOAD only ("huwag ilagay doon yung wind load cases"); the wind load cases are in Load
+  Combinations > STAAD load combinations.
+Tests: WindEdgeLoadsTests 39, WindEdgeShapesTests 21, StaadCombinationsTests 36, DesignLoadsFileTests 22, WindAuditTests 79,
+WindBuildingLoadsTests 42, ProjectPackageTests 12, ProjectFilesTests 6.
+Includes everything of v10.0.33.
