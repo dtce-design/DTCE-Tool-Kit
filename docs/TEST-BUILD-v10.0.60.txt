@@ -1,0 +1,13 @@
+DTCE Tool Kit v10.0.60 (27 November 2026) - test build; not uploaded to the Microsoft Store yet.
+
+PATCH - Load Combinations (owner: "huwag auto load yung DL at LL" - chose REFERENCE LOAD R1 / R2 / R3; "alisin na yung options na required
+talaga gaya nung add perform analysis and change every eq load, tapos yung iba pa"):
+- The automatic DL case is REFERENCE LOAD of every Dead reference load of the pasted model; LL1 / LL2 are the Live reference load of the same
+  title (else the Live reference loads in order). Mass reference loads are left out. Without reference loads the comment stays.
+- Required settings are no longer options (hidden, fixed even for older sheets): one PERFORM ANALYSIS (no CHANGE per EQ case, for RCDC);
+  Ca / I / Omega0 from the Earthquake sheet; live cases from the Live Loads sheet; automatic primary loads with LLR and the wind cases;
+  Ev in strength design; the strength (1000), drift (5000 / 6000) sets and the print commands. Still choices: structure class, rho, Ev in
+  ASD, ACC / Ax, seismic command, leave out the wind torsion, alternate / basic ASD, special seismic, wind drift factor, P-Delta drift.
+- The Steps tab text follows.
+Tests: StaadCombinationsTests 38.
+Includes everything of v10.0.59.

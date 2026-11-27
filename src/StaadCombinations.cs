@@ -21,7 +21,7 @@ sealed class StaadCombo {public int No;public string Title,Group,Eq="";public Li
    torsion, each alone), "C" irregular and unsymmetrical (orthogonal effects: eight REPEAT LOAD cases 1.0(EQ +X) + 0.3(EQ +Z) ..., Load Type
    Seismic, built from the EQ cases of Load Type None) - the owner's STAAD notes. F1One: titles of the live cases with f1 = 1.0 (owner:
    "hiwalay yung LL1 at LL2 yung f1 niya"); other live cases f1 = 0.5. */
-sealed class StaadCombinationSettings {/* automatic primary loads and their STAAD section (owner, 26 November 2026: "automatic na sana di na ako maglalagay ng primary loads"; "perform analysis change every eq primary case") */public bool AutoPrimary,PerformChange=false;public bool PrintReports=true;public string EqCommand="UBC LOAD";/* wind case text by direction of travel ("+X" ...) from the Wind Load sheet */public Dictionary<string,string> WindText=new Dictionary<string,string>();/* the LLR body from the STAAD model (RoofLiveLoads) */public string RoofLiveText="";public double Acc=0.05,Ax=1.0;public double Rho=1.0,Ca=0.44,I=1.0;public bool IncludeEv=true,Lrfd=true,Asd=false,EvInAsd=false;public string Structure="C";
+sealed class StaadCombinationSettings {/* automatic primary loads and their STAAD section (owner, 26 November 2026: "automatic na sana di na ako maglalagay ng primary loads"; "perform analysis change every eq primary case") */public List<string[]> RefLoads=new List<string[]>();/* {R1, DEAD, DL} from the model's DEFINE REFERENCE LOADS */public bool AutoPrimary,PerformChange=false;public bool PrintReports=true;public string EqCommand="UBC LOAD";/* wind case text by direction of travel ("+X" ...) from the Wind Load sheet */public Dictionary<string,string> WindText=new Dictionary<string,string>();/* the LLR body from the STAAD model (RoofLiveLoads) */public string RoofLiveText="";public double Acc=0.05,Ax=1.0;public double Rho=1.0,Ca=0.44,I=1.0;public bool IncludeEv=true,Lrfd=true,Asd=false,EvInAsd=false;public string Structure="C";
  /* drift checks (owner, 25 November 2026: "also for drift check wind and seismic"): 7000 wind drift D + 0.5L + kW (k = DriftWind, 0.6 =
     service-level wind of the NSCP 2015 ultimate wind speeds), 8000 seismic drift 1.0 Eh of every seismic case (Section 208.6.4: the
     design-level displacement of the design seismic forces, then dM = 0.7 R dS against 0.025h / 0.020h) */public bool Drift=true,DriftGravity=false;public double DriftWind=0.6;
@@ -154,6 +154,17 @@ static class StaadCombinations {
   if(c.Success)return c.Groups[1].Value+c.Groups[2].Value.ToUpperInvariant()+c.Groups[3].Value.ToUpperInvariant();var m=System.Text.RegularExpressions.Regex.Match(title??"",@"([+-])\s*([XZ])\b",System.Text.RegularExpressions.RegexOptions.IgnoreCase);return m.Success?m.Groups[1].Value+m.Groups[2].Value.ToUpperInvariant():"";}
  /* no DEFINE UBC LOAD here (owner, 27 November 2026: "huwag mo isama yung define ubc sa load combo"): the seismic definition stays in the
     owner's own STAAD input, above the primary loads */
+ /* the reference loads of the model (DEFINE REFERENCE LOADS ... END): {id, load type, title} */
+ internal static List<string[]> ReferenceLoads(string modelText){var list=new List<string[]>();bool inRef=false;foreach(var raw in (modelText??"").Replace("\r","").Split('\n')){var t=raw.Trim();var u=t.ToUpperInvariant();
+   if(u.StartsWith("DEFINE REFERENCE LOAD")){inRef=true;continue;}if(u.StartsWith("END DEFINE REFERENCE LOAD")){inRef=false;continue;}if(!inRef)continue;
+   var m=System.Text.RegularExpressions.Regex.Match(t,@"^LOAD\s+(R\d+)\s+LOADTYPE\s+(.+?)(?:\s+TITLE\s+(.*))?$",System.Text.RegularExpressions.RegexOptions.IgnoreCase);if(m.Success)list.Add(new[]{m.Groups[1].Value.ToUpperInvariant(),m.Groups[2].Value.Trim().ToUpperInvariant(),m.Groups[3].Value.Trim()});}
+  return list;}
+ /* the DL / LL cases point at the model's reference loads (owner, 27 November 2026: "huwag auto load yung DL at LL"; chose REFERENCE LOAD R1 / R2 /
+    R3): DL = every Dead reference load; a live case = the Live reference load with its title, else the Live reference loads in order */
+ static string RefText(StaadPrimary p,List<StaadPrimary> cases,StaadCombinationSettings s){if(s.RefLoads==null||s.RefLoads.Count==0)return "";Func<string,string> key=x=>System.Text.RegularExpressions.Regex.Replace(x??"",@"\s","").ToUpperInvariant();
+  List<string[]> pick;if(p.Kind=="D")pick=s.RefLoads.Where(r=>r[1]=="DEAD").ToList();
+  else{var lives=s.RefLoads.Where(r=>r[1]=="LIVE").ToList();pick=lives.Where(r=>key(r[2])==key(p.Title)).ToList();if(pick.Count==0){int i=cases.Where(c=>c.Kind=="L").ToList().IndexOf(p);bool titled=lives.Any(r=>cases.Any(c=>c.Kind=="L"&&key(c.Title)==key(r[2])));if(!titled&&i>=0&&i<lives.Count)pick=new List<string[]>{lives[i]};}}
+  if(pick.Count==0)return "";return "\nREFERENCE LOAD\n"+string.Join(" ",pick.Select(r=>r[0]+" 1.0"));}
  internal static string PrimarySection(List<StaadPrimary> cases,StaadCombinationSettings s){var b=new StringBuilder("* ---- PRIMARY LOAD CASES (earthquake cases first) ----");b.Append("\n* Before them: DEFINE UBC LOAD (or the seismic definition of your STAAD)\n* with the zone / I / R / soil data and the seismic weights.");
   /* case B (owner: "apply also natural torsion kapag case b"): natural torsion from the centre of mass / centre of rigidity offset, accidental torsion through ACC = 0.05 Ax */
   if(s.Structure=="B"){b.Append("\n* Natural torsion: seismic weights at their true positions and\n* rigid floor diaphragms (FLOOR DIAPHRAGM ... TYPE RIG); DEC 1 = the\n* natural torsion from the offset of the centre of mass from the centre\n* of rigidity (STAAD ignores the torsion unless DEC and ACC are both\n* given).\n* Accidental torsion: ACC = 0.05 x Ax = ").Append(F(s.Acc*s.Ax)).Append(",\n* Ax = (dmax / 1.2 davg)^2, 1.0 to 3.0 (torsional irregularity).");}
@@ -166,7 +177,8 @@ static class StaadCombinations {
      else b.Append("\n* add the seismic load of ").Append(p.Title).Append(" here");
      if(s.PerformChange)b.Append("\nPERFORM ANALYSIS\nCHANGE");}
    /* no SELFWEIGHT (owner, 27 November 2026: "sa DL huwag isama yung self weight"): the dead loads, self weight included, are the owner's own */
-   else if(p.Kind=="D")b.Append("\n* add the dead loads here (self weight, floor / member dead loads)");
+   else if(p.Kind=="D"){string r=RefText(p,cases,s);b.Append(r!=""?r:"\n* add the dead loads here (self weight, floor / member dead loads)");}
+   else if(p.Kind=="L"&&RefText(p,cases,s)!="")b.Append(RefText(p,cases,s));
    else if(p.Kind=="W"&&WindKey(p.Title)!=""&&s.WindText.ContainsKey(WindKey(p.Title)))b.Append("\n").Append(s.WindText[WindKey(p.Title)]);
    else if(p.Kind=="Lr"&&!string.IsNullOrEmpty(s.RoofLiveText))b.Append("\n").Append(s.RoofLiveText);
    else b.Append("\n* add the ").Append(p.Kind=="W"?"wind":p.Kind=="Lr"?"roof live":p.Kind=="L"?"live":"").Append(" loads here");}
