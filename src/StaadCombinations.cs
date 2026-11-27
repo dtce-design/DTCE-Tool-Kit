@@ -171,9 +171,10 @@ static class StaadCombinations {
    else b.Append("\n* add the ").Append(p.Kind=="W"?"wind":p.Kind=="Lr"?"roof live":p.Kind=="L"?"live":"").Append(" loads here");}
   return b.ToString();}
  /* one envelope per group (owner, 26 November 2026: "add define envelope"): strength design and special seismic as STRENGTH, the ASD and
-    drift groups as SERVICEABILITY. Written right after the last load combination, then PERFORM ANALYSIS (owner, 27 November 2026: "define envelope after ng load combo
-    tapos after non may perform analysis"; before the LOAD cases STAAD 2026 ignores it - "Load # 1001 is not defined"). PERFORM ANALYSIS
-    without PRINT LOAD DATA (owner: "bat kasi perform analysis print load data"). Design then uses LOAD LIST ENV 1 3. */
+    drift groups as SERVICEABILITY. Written after PERFORM ANALYSIS (owner's STAAD 2026 runs, 27 November 2026: before the LOAD cases it is ignored - "Load # 1001 is not
+    defined"; right after the last combination, before the analysis, STAAD stops with "DEFINE COMMANDS FOR LOAD GENERATION SHOULD BE
+    PROVIDED BEFORE SPECIFYING PRIMARY LOAD CASES" - v10.0.53 tried that). PERFORM ANALYSIS without PRINT LOAD DATA (owner: "bat kasi
+    perform analysis print load data"). Design then uses LOAD LIST ENV 1 3. */
  static string Envelopes(List<StaadCombo> combos){if(combos.Count==0)return "";var b=new StringBuilder("\n* envelopes of the combinations (design: LOAD LIST ENV 1 3; drift: ENV 4 5)\nDEFINE ENVELOPE");int env=0;
   foreach(var g in combos.GroupBy(c=>c.Group)){var nos=g.Select(c=>c.No).OrderBy(x=>x).ToList();string type=g.Key.StartsWith("Strength")||g.Key.StartsWith("Special")?"STRENGTH":"SERVICEABILITY";
    b.Append("\n* ").Append(g.Key).Append("\n").Append(Ranges(nos)).Append(" ENVELOPE ").Append(++env).Append(" TYPE ").Append(type);}
@@ -197,11 +198,11 @@ static class StaadCombinations {
   /* analysis and the reports to print (owner: "include also the reports needed to print like print story drift, load list, print dia cr, print
      story stiffness etc."): the drift cases for the story drift, the EQ cases for the displacements (Ax) and member forces (rho) */
   if(s.PrintReports){var eqNos=cases.Where(p=>p.Kind=="E").Select(p=>p.No).OrderBy(x=>x).ToList();var drift=combos.Where(c=>c.Group=="Seismic drift").Select(c=>c.No).ToList();
-   b.Append(Envelopes(combos)).Append("\n* ---- ANALYSIS AND REPORTS ----\nPERFORM ANALYSIS").Append("\n* centre of mass, centre of rigidity, story stiffness (soft story)\nPRINT CG\nPRINT DIAPHRAGM CR\nPRINT STORY STIFFNESS");
+   b.Append("\n* ---- ANALYSIS AND REPORTS ----\nPERFORM ANALYSIS").Append(Envelopes(combos)).Append("\n* centre of mass, centre of rigidity, story stiffness (soft story)\nPRINT CG\nPRINT DIAPHRAGM CR\nPRINT STORY STIFFNESS");
    if(drift.Count>0)b.Append("\n* story drift of the seismic drift cases (dS; dM = 0.7 R dS)\nLOAD LIST ").Append(Ranges(drift)).Append("\nPRINT STORY DRIFT");
    if(eqNos.Count>0)b.Append("\n* EQ cases: joint displacements (Ax) and member forces (rho)\nLOAD LIST ").Append(Ranges(eqNos)).Append("\nPRINT JOINT DISPLACEMENTS ALL\nPRINT MEMBER FORCES ALL");
    b.Append("\n* all cases: support reactions (foundations)\nLOAD LIST ALL\nPRINT SUPPORT REACTION ALL");}
-  else b.Append(Envelopes(combos)).Append("\n* ---- ANALYSIS ----\nPERFORM ANALYSIS");
+  else b.Append("\n* ---- ANALYSIS ----\nPERFORM ANALYSIS").Append(Envelopes(combos));
   return StaadLines.Wrap(b.ToString());}
  /* the owner's STAAD titles: DL, LL, LLR, EQ+X ..., WL+X ... (Seismic-H load type) */
  internal const string Example="LOAD 1 LOADTYPE DEAD TITLE DL\nLOAD 2 LOADTYPE LIVE TITLE LL1\nLOAD 3 LOADTYPE LIVE TITLE LL2\nLOAD 4 LOADTYPE ROOF LIVE TITLE LLR\nLOAD 5 LOADTYPE SEISMIC-H TITLE EQ+X\nLOAD 6 LOADTYPE SEISMIC-H TITLE EQ-X\nLOAD 7 LOADTYPE SEISMIC-H TITLE EQ+Z\nLOAD 8 LOADTYPE SEISMIC-H TITLE EQ-Z\nLOAD 9 LOADTYPE WIND TITLE WL+X\nLOAD 10 LOADTYPE WIND TITLE WL-X\nLOAD 11 LOADTYPE WIND TITLE WL+Z\nLOAD 12 LOADTYPE WIND TITLE WL-Z";
