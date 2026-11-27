@@ -336,6 +336,8 @@ exit with open windows); Store run 45834493117 started for v10.0.24.
 Done 26 November 2026: Store run 45834493117 (first attempt, replace_pending_store_submission=false): new User (1152921505702517009;
 visibility Public) and Admin (1152921505702516812; visibility Private) submissions were created and committed; Partner Center reported
 "accepted for processing" (PreProcessing). Certification is not guaranteed. v10.0.25 and later need a new explicit request.
+Checked 27 November 2026 (read-only store_status, run 45915650622): v10.0.24 is Published for User (1152921505702517009) and Admin
+(1152921505702516812); nothing pending; the public catalog lists DTCE.DTCEToolKit_10.0.24.0 / DTCE.DTCEToolKit-Admin_10.0.24.0.
 Checked 26 November 2026 (read-only store_status job, run 45825954870): v10.0.18 is Published for User and Admin; no submission pending;
 the public catalog lists DTCE.DTCEToolKit_10.0.18.0 / DTCE.DTCEToolKit-Admin_10.0.18.0.
 Update check (owner, 26 November 2026: "di namang gumagana yung pagcheck ng updates"; "ayaw ko ng check for updates, gusto ko automatic na",
