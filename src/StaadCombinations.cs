@@ -164,7 +164,8 @@ static class StaadCombinations {
        b.Append(" DEC 1 ACC ").Append(F(minus?-s.Acc*s.Ax:s.Acc*s.Ax));}}
      else b.Append("\n* add the seismic load of ").Append(p.Title).Append(" here");
      if(s.PerformChange)b.Append("\nPERFORM ANALYSIS\nCHANGE");}
-   else if(p.Kind=="D")b.Append("\nSELFWEIGHT Y -1\n* add the floor / member dead loads here");
+   /* no SELFWEIGHT (owner, 27 November 2026: "sa DL huwag isama yung self weight"): the dead loads, self weight included, are the owner's own */
+   else if(p.Kind=="D")b.Append("\n* add the dead loads here (self weight, floor / member dead loads)");
    else if(p.Kind=="W"&&WindKey(p.Title)!=""&&s.WindText.ContainsKey(WindKey(p.Title)))b.Append("\n").Append(s.WindText[WindKey(p.Title)]);
    else if(p.Kind=="Lr"&&!string.IsNullOrEmpty(s.RoofLiveText))b.Append("\n").Append(s.RoofLiveText);
    else b.Append("\n* add the ").Append(p.Kind=="W"?"wind":p.Kind=="Lr"?"roof live":p.Kind=="L"?"live":"").Append(" loads here");}

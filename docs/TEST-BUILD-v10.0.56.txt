@@ -1,0 +1,7 @@
+DTCE Tool Kit v10.0.56 (27 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - no self weight in the DL case (owner: "sa DL huwag isama yung self weight"):
+- The automatic DL primary case no longer writes SELFWEIGHT Y -1; it carries only the comment to add the dead loads (the owner's own,
+  e.g. REFERENCE LOAD R1 that already holds the self weight).
+Tests: StaadCombinationsTests.
+Includes everything of v10.0.55.
