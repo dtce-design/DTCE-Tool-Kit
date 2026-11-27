@@ -125,15 +125,22 @@ static class StaadCombinations {
  static int Order(string k){return k=="D"?0:k=="L"?1:k=="Lr"?2:k=="W"?3:k=="E"?4:5;}
  /* the primary load cases of the structure class, earthquake cases first: A EQ +X -X +Z -Z; B the same with accidental torsion
     +E / -E (8 cases); C EQ +X -X +Z -Z with Load Type None (the orthogonal REPEAT LOAD cases are seismic); then DL, LL1..n, LLR, WL */
- internal static string AutoPrimary(string structure,int liveCases,bool roofLive,bool wind){var lines=new List<string>();int n=0;
+ internal static string AutoPrimary(string structure,int liveCases,bool roofLive,bool wind){return AutoPrimary(structure,liveCases,roofLive,wind,false,true);}
+ /* with allWind the design wind load cases of NSCP 2015 Figure 207B.4-8 (directional procedure) follow Case 1: Case 2 WL2+X+T / WL2+X-T ...,
+    Case 3 WL3+X+Z ..., Case 4 WL4+X+Z+T ...; without torsion (the code's exemption) Cases 2 and 4 are left out */
+ internal static string AutoPrimary(string structure,int liveCases,bool roofLive,bool wind,bool allWind,bool torsion){var lines=new List<string>();int n=0;
   string type=structure=="C"?"NONE":"SEISMIC-H";
   foreach(var d in new[]{"+X","-X","+Z","-Z"}){if(structure=="B"){lines.Add("LOAD "+(++n)+" LOADTYPE "+type+" TITLE EQ"+d+"+E");lines.Add("LOAD "+(++n)+" LOADTYPE "+type+" TITLE EQ"+d+"-E");}else lines.Add("LOAD "+(++n)+" LOADTYPE "+type+" TITLE EQ"+d);}
   lines.Add("LOAD "+(++n)+" LOADTYPE DEAD TITLE DL");for(int k=1;k<=Math.Max(1,liveCases);k++)lines.Add("LOAD "+(++n)+" LOADTYPE LIVE TITLE "+(liveCases<=1?"LL":"LL"+k));
   if(roofLive)lines.Add("LOAD "+(++n)+" LOADTYPE ROOF LIVE TITLE LLR");if(wind)foreach(var d in new[]{"+X","-X","+Z","-Z"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL"+d);
+  if(wind&&allWind){if(torsion)foreach(var d in new[]{"+X","-X","+Z","-Z"})foreach(var t in new[]{"+T","-T"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL2"+d+t);
+   foreach(var x in new[]{"+X","-X"})foreach(var z in new[]{"+Z","-Z"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL3"+x+z);
+   if(torsion)foreach(var x in new[]{"+X","-X"})foreach(var z in new[]{"+Z","-Z"})foreach(var t in new[]{"+T","-T"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL4"+x+z+t);}
   return string.Join("\n",lines);}
  /* the STAAD primary load section: each EQ case with its seismic load command and, as older STAAD needs, PERFORM ANALYSIS / CHANGE */
  /* "WL+X" -> "+X" */
- internal static string WindKey(string title){var m=System.Text.RegularExpressions.Regex.Match(title??"",@"([+-])\s*([XZ])\b",System.Text.RegularExpressions.RegexOptions.IgnoreCase);return m.Success?m.Groups[1].Value+m.Groups[2].Value.ToUpperInvariant():"";}
+ internal static string WindKey(string title){var c=System.Text.RegularExpressions.Regex.Match((title??"").Trim(),@"^WL([234])((?:[+-][XZ]){1,2})([+-]T)?$",System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+  if(c.Success)return c.Groups[1].Value+c.Groups[2].Value.ToUpperInvariant()+c.Groups[3].Value.ToUpperInvariant();var m=System.Text.RegularExpressions.Regex.Match(title??"",@"([+-])\s*([XZ])\b",System.Text.RegularExpressions.RegexOptions.IgnoreCase);return m.Success?m.Groups[1].Value+m.Groups[2].Value.ToUpperInvariant():"";}
  internal static string PrimarySection(List<StaadPrimary> cases,StaadCombinationSettings s){var b=new StringBuilder("* ---- PRIMARY LOAD CASES (earthquake cases first) ----\n* Before them: DEFINE UBC LOAD (or the seismic definition of your STAAD)\n* with the zone / I / R / soil data and the seismic weights.");
   /* case B (owner: "apply also natural torsion kapag case b"): natural torsion from the centre of mass / centre of rigidity offset, accidental torsion through ACC = 0.05 Ax */
   if(s.Structure=="B"){b.Append("\n* Natural torsion: seismic weights at their true positions and\n* rigid floor diaphragms (FLOOR DIAPHRAGM ... TYPE RIG) put each\n* storey force at the centre of mass; its offset from the centre of\n* rigidity gives the natural torsion in the analysis.\n* Accidental torsion: ACC = 0.05 x Ax = ").Append(F(s.Acc*s.Ax)).Append(",\n* Ax = (dmax / 1.2 davg)^2, 1.0 to 3.0 (torsional irregularity).");}

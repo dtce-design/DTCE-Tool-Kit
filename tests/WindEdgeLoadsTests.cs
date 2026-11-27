@@ -51,5 +51,21 @@ static class WindEdgeLoadsTests {
    var mm=new StringBuilder("Node\tX (mm)\tY (mm)\tZ (mm)\n");foreach(var j in model.Joints.Values.OrderBy(j=>j.No))mm.Append(j.No+"\t"+(j.X*1000).ToString(ci)+"\t"+(j.Y*1000).ToString(ci)+"\t"+(j.Z*1000).ToString(ci)+"\n");
    var t3=WindEdgeLoads.CaseTexts(link,RedundancyFactor.ReadTables(mm.ToString(),beams.ToString()),out n2);Check(t3["+X"]==texts["+X"],"Nodes table in mm read in metres");
    bool threw=false;try{RedundancyFactor.ReadTables(nodes.ToString(),"");}catch(Exception){threw=true;}Check(threw,"missing Beams table refused");}
+  /* design wind load cases of NSCP 2015 Fig. 207B.4-8 (directional procedure) */
+  {var tzp=new WindFaceTypes{Travel="+Z",Ww=7,Lw=8,Sw=9,Top=8,Leeward=1.5,Side=2};tzp.WwInt.Add(2.5);tzp.WwHeig.Add(8);var tzm=new WindFaceTypes{Travel="-Z",Ww=10,Lw=11,Sw=12,Top=8,Leeward=1.5,Side=2};tzm.WwInt.Add(2.5);tzm.WwHeig.Add(8);
+   var all=new Dictionary<string,string>{{"+X",t.Pack()},{"-X",tm.Pack()},{"+Z",tzp.Pack()},{"-Z",tzm.Pack()}};string n4;var cases=WindEdgeLoads.CaseTexts(all,model,out n4,true,true);
+   Check(cases.Count==24&&cases.ContainsKey("2+X+T")&&cases.ContainsKey("3-X+Z")&&cases.ContainsKey("4+X-Z-T"),"24 wind cases: "+string.Join(",",cases.Keys));
+   Check(cases["2+X+T"].Contains("WIND LOAD X 0.75 TYPE 1")&&cases["2+X+T"].Contains("WIND LOAD -X -0.75 TYPE 2")&&!cases["2+X+T"].Contains("TYPE 3"),"Case 2: 75 % windward / leeward, no side walls");
+   Check(cases["3+X+Z"].Contains("WIND LOAD X 0.75 TYPE 1")&&cases["3+X+Z"].Contains("WIND LOAD Z 0.75 TYPE 7")&&!cases["3+X+Z"].Contains("JOINT LOAD"),"Case 3: both axes at 75 %, no torsion");
+   Check(cases["4+X+Z+T"].Contains("WIND LOAD X 0.563 TYPE 1")&&cases["4+X+Z+T"].Contains("WIND LOAD Z 0.563 TYPE 7")&&cases["4+X+Z+T"].Contains("JOINT LOAD"),"Case 4: 56.3 % both axes with torsion");
+   /* torsion at level 4 (band 2-6 m, h = 4): plan 30 x 24; wind +X: B = 24, PW at 4 m = 3.0, PL = 1.0 -> MT = 0.75 x 4 x 24 x 4 x 0.15 x 24 = 1036.8 */
+   string nn;var plans=WindEdgeLoads.Plans(model,0,8,out nn);var tl=WindEdgeLoads.Torsion(model,plans,new List<WindFaceTypes>{t},0.75,0);var l4=tl.First(x=>Math.Abs(x.Y-4)<1e-6);
+   Check(Math.Abs(l4.Mt-1036.8)<1e-6&&Math.Abs(l4.D-24)<1e-6,"torsion MT per level: "+l4.Mt+" kN-m over "+l4.D+" m");
+   var m2=System.Text.RegularExpressions.Regex.Matches(cases["2+X-T"],@"\n(\d+) FX (-?[0-9.]+)");double sum=0,mom=0;foreach(System.Text.RegularExpressions.Match mm in m2){double fx=double.Parse(mm.Groups[2].Value,CultureInfo.InvariantCulture);sum+=fx;mom+=fx*model.Joints[int.Parse(mm.Groups[1].Value)].Z;}
+   Check(m2.Count==4&&Math.Abs(sum)<1e-9&&mom<0,"-T couple: no net force, negative MY ("+mom+")");
+   string ex;var noT=WindEdgeLoads.CaseTexts(all,model,out ex,true,false);Check(noT.Count==8&&!noT.Keys.Any(k=>k.StartsWith("2")||k.StartsWith("4")),"exempt: Cases 1 and 3 only");
+   Check(StaadCombinations.WindKey("WL2+X+T")=="2+X+T"&&StaadCombinations.WindKey("WL3-X+Z")=="3-X+Z"&&StaadCombinations.WindKey("WL4+X-Z-T")=="4+X-Z-T"&&StaadCombinations.WindKey("WL+X")=="+X","case keys from the titles");
+   var ap=StaadCombinations.Parse(StaadCombinations.AutoPrimary("A",1,false,true,true,true));Check(ap.Count(p=>p.Kind=="W")==24&&ap.Any(p=>p.Title=="WL4-X+Z-T"),"automatic primaries carry the 24 wind cases");
+   Check(StaadCombinations.Parse(StaadCombinations.AutoPrimary("A",1,false,true,true,false)).Count(p=>p.Kind=="W")==8,"exempt: 8 wind primaries");}
   Console.WriteLine("WindEdgeLoadsTests passed: "+checks+" checks");}
 }
