@@ -39,4 +39,7 @@ class DesignLoadsFileTests{static int checks;static void Check(bool ok,string wh
    var eqSys=(ComboBox)ei["System"];var wSys=(ComboBox)wi["BuildingSystem"];eqSys.SelectedIndex=0;Pump();Check(wSys.Text=="MRF Steel","steel moment frame shared");
    wSys.SelectedIndex=2;Pump();Check(eqSys.SelectedIndex==2,"other system shared back");
    w.Dispose();var w2=new WindDesignForm();w2.Show();Pump();var w2i=(System.Collections.IDictionary)typeof(DesignSheetForm).GetField("Inputs",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(w2);Check(((ComboBox)w2i["Category"]).Text=="III-V"&&((ComboBox)w2i["BuildingSystem"]).Text=="Other system","a Wind sheet opened later starts with the shared values");w2.Dispose();e.Dispose();}
-  Console.WriteLine("DesignLoadsFileTests passed: "+checks+" checks");Environment.Exit(0);}}
+  Console.WriteLine("DesignLoadsFileTests passed: "+checks+" checks");
+  /* close every window before leaving (the Windows runner returned a non-zero exit code with windows still open, as EarthworkFootingTests did) */
+  Console.Out.Flush();foreach(var open in System.Windows.Forms.Application.OpenForms.Cast<System.Windows.Forms.Form>().ToList()){try{open.Hide();open.Dispose();}catch(Exception){}}
+  System.Windows.Forms.Application.DoEvents();Environment.Exit(0);}}
