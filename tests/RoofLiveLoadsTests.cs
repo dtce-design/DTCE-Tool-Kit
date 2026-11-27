@@ -61,6 +61,16 @@ static class RoofLiveLoadsTests {
    int stairNo=m4.FindIndex(x=>x[0]==K(1,4,1)&&x[1]==K(5,8,1))+1;
    Check(!System.Text.RegularExpressions.Regex.IsMatch(t4,"\n"+stairNo+" UNI PY"),"the stair between 4 and 8 m is not a roof");
    Check(t4.Contains("YRANGE 7.95 8.05 FLOAD")&&regs.Any(r=>r.Kind=="Slab"&&r.Where=="level 8 m"),"the block's slab roof at 8 m");}
+  /* the ground (owner: "bat may rooflive load sa baba"): footings at -1.5 m, a tie-beam grid at 0 wider than the building (24 x 16 m),
+     a 12 x 8 m storey to 4 m: the tie beams outside the building are not a roof */
+  {var b5=new StringBuilder("STAAD SPACE\nUNIT METER KN\nJOINT COORDINATES\n");id.Clear();n=0;var m5=new List<int[]>();Func<double,double,double,int> K=(x,y,z)=>{string k=N(x)+","+N(y)+","+N(z);int v;if(id.TryGetValue(k,out v))return v;id[k]=++n;b5.Append(n+" "+N(x)+" "+N(y)+" "+N(z)+";\n");return n;};
+   double[] gx={0,6,12,18,24},gz={0,8,16};foreach(var z in gz)for(int i=0;i+1<gx.Length;i++)m5.Add(new[]{K(gx[i],0,z),K(gx[i+1],0,z)});foreach(var x in gx)for(int j=0;j+1<gz.Length;j++)m5.Add(new[]{K(x,0,gz[j]),K(x,0,gz[j+1])});
+   foreach(var x in gx)foreach(var z in gz)m5.Add(new[]{K(x,-1.5,z),K(x,0,z)});
+   foreach(var x in new[]{0.0,6,12})foreach(var z in new[]{0.0,8}){m5.Add(new[]{K(x,0,z),K(x,4,z)});}
+   m5.Add(new[]{K(0,4,0),K(6,4,0)});m5.Add(new[]{K(6,4,0),K(12,4,0)});m5.Add(new[]{K(0,4,8),K(6,4,8)});m5.Add(new[]{K(6,4,8),K(12,4,8)});foreach(var x in new[]{0.0,6,12})m5.Add(new[]{K(x,4,0),K(x,4,8)});
+   b5.Append("MEMBER INCIDENCES\n");for(int i=0;i<m5.Count;i++)b5.Append((i+1)+" "+m5[i][0]+" "+m5[i][1]+";\n");
+   var mg=RedundancyFactor.ReadModel(b5.ToString());Check(Math.Abs(WindEdgeLoads.GroundLevel(mg))<1e-9,"ground level = the tie-beam level 0 m (footings at -1.5 m)");
+   string t5=RoofLiveLoads.Text(mg,out note,out regs);Check(!t5.Contains("YRANGE -0.05 0.05")&&t5.Contains("YRANGE 3.95 4.05 FLOAD"),"no roof live load on the ground; the roof at 4 m is loaded");}
   /* in the STAAD output: the LLR primary case carries the text */
   {var s=new StaadCombinationSettings{AutoPrimary=true,RoofLiveText="UNIT METER KN\nFLOOR LOAD\nYRANGE 7.95 8.05 FLOAD -0.75 XRANGE 0 6 ZRANGE 0 8 GY"};var cases=StaadCombinations.Parse("LOAD 1 LOADTYPE DEAD TITLE DL\nLOAD 2 LOADTYPE ROOF LIVE TITLE LLR");
    string sec=StaadCombinations.PrimarySection(cases,s);Check(sec.Contains("TITLE LLR\nUNIT METER KN\nFLOOR LOAD")&&!sec.Contains("add the roof live loads here"),"LLR case carries the roof live loads");}

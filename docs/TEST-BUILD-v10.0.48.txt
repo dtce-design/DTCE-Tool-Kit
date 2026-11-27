@@ -1,0 +1,9 @@
+DTCE Tool Kit v10.0.48 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store upload is on hold).
+
+PATCH - no roof live load on the ground ("bat may rooflive load sa baba"):
+- With the supports below the tie beams (footings / pedestals), the tie-beam grid at the ground was taken as a level, and its panels
+  outside the upper floors got LLR FLOOR LOADs (YRANGE -0.05 0.05). The ground is now found from the model
+  (WindEdgeLoads.GroundLevel: the lowest level of beams when it is within 2.5 m of the lowest joint, else the lowest joint) and is never a
+  roof - for the roof live load and for the Case 1 wind roof loads alike.
+Tests: RoofLiveLoadsTests 22, WindEdgeLoadsTests 42, WindEdgeShapesTests 23.
+Includes everything of v10.0.47.

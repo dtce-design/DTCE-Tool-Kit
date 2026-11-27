@@ -195,7 +195,7 @@ static class WindEdgeLoads {
   /* trusses above the top floor first: the floor under them is a ceiling, not the roof */
   double[] cover;string truss=TrussRoof(m,main.Count>0?main[main.Count-1].Y:baseY,t,upliftCase,colTops,ref note,out cover);
   /* every level with beams around cells, small roofs included (penthouse, stair roof, a lower roof at a setback) */
-  double topMain=main.Count>0?main[main.Count-1].Y:baseY;string an;var ordered=Plans(m,baseY,1e9,out an,true).Where(p=>p.Y>baseY+1e-3&&p.Faces.Count>0).OrderBy(p=>p.Y).ToList();
+  double topMain=main.Count>0?main[main.Count-1].Y:baseY;string an;double ground=Math.Max(baseY,GroundLevel(m));var ordered=Plans(m,baseY,1e9,out an,true).Where(p=>p.Y>ground+1e-3&&p.Faces.Count>0).OrderBy(p=>p.Y).ToList();
   for(int li=0;li<ordered.Count;li++){var p=ordered[li];var higher=ordered.Skip(li+1).ToList();int nx=p.Xs.Count-1,nz=p.Zs.Count-1;
    double xmin=double.MaxValue,xmax=double.MinValue,zmin=double.MaxValue,zmax=double.MinValue;for(int i=0;i<nx;i++)for(int j=0;j<nz;j++)if(p.Inside[i,j]){xmin=Math.Min(xmin,p.Xs[i]);xmax=Math.Max(xmax,p.Xs[i+1]);zmin=Math.Min(zmin,p.Zs[j]);zmax=Math.Max(zmax,p.Zs[j+1]);}
    double e0=ax=='X'?(sign>0?xmin:xmax):(sign>0?zmin:zmax),depth=ax=='X'?xmax-xmin:zmax-zmin;
@@ -221,6 +221,10 @@ static class WindEdgeLoads {
   if(floor.Length>0)b.Append("\nUNIT METER KN\nFLOOR LOAD").Append(floor);if(truss!="")b.Append("\n").Append(truss);
   note=cells+" roof cells"+(ohCells>0?", "+ohCells+" overhang cells":"")+(note!=""?"; "+note:"");return b.ToString();}
  static string Key(double x,double y,double z){return Math.Round(x,2).ToString("0.00",Ci)+","+Math.Round(y,2).ToString("0.00",Ci)+","+Math.Round(z,2).ToString("0.00",Ci);}
+ /* the ground: the lowest level of beams when it is within 2.5 m of the lowest joint (tie / grade beams over footings or pedestals,
+    slab on grade) - never a roof (owner, 27 November 2026: "bat may rooflive load sa baba"); otherwise the lowest joint (supports) */
+ internal static double GroundLevel(StaadModel m){if(m==null||m.Joints.Count==0)return 0;double k=m.ToMetre;double low=m.Joints.Values.Min(j=>m.H(j))*k;
+  var lv=Levels(m,0).Keys.OrderBy(y=>y).ToList();if(lv.Count>1&&lv[0]-low<=2.5+1e-6)return Math.Max(low,lv[0]);return low;}
  /* inside a level's outline or on its edge (tolerance 2 cm) */
  internal static bool OnPlan(WindPlanLevel p,double x,double z){const double t=0.02;for(int i=0;i+1<p.Xs.Count;i++){if(x<p.Xs[i]-t||x>p.Xs[i+1]+t)continue;for(int j=0;j+1<p.Zs.Count;j++)if(z>=p.Zs[j]-t&&z<=p.Zs[j+1]+t&&p.Inside[i,j])return true;}return false;}
  internal static bool InsideAt(WindPlanLevel p,double x,double z){for(int i=0;i+1<p.Xs.Count;i++)if(x>p.Xs[i]&&x<p.Xs[i+1])for(int j=0;j+1<p.Zs.Count;j++)if(z>p.Zs[j]&&z<p.Zs[j+1])return p.Inside[i,j];return false;}

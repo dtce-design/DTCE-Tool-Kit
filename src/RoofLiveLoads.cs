@@ -19,7 +19,7 @@ static class RoofLiveLoads {
  /* what was loaded, for the plan figures: panels {level, x1, x2, z1, z2, Lr} and truss top chords {level, x1, z1, x2, z2, Lr} */
  internal static List<double[]> LastPanels=new List<double[]>(),LastChords=new List<double[]>();
  internal static string Text(StaadModel m,out string note,out List<Region> regions){note="";regions=new List<Region>();LastPanels=new List<double[]>();LastChords=new List<double[]>();if(m==null||m.Joints.Count==0)return "";
-  double k=m.ToMetre;double baseY=m.Joints.Values.Min(j=>m.H(j))*k,topY=m.Joints.Values.Max(j=>m.H(j))*k;string n0;
+  double k=m.ToMetre;/* the ground (tie / grade beams, slab on grade) is never a roof */double baseY=WindEdgeLoads.GroundLevel(m),topY=m.Joints.Values.Max(j=>m.H(j))*k;string n0;
   var main=WindEdgeLoads.Plans(m,baseY,topY,out n0).Where(p=>p.Y>baseY+1e-3).OrderBy(p=>p.Y).ToList();double topMain=main.Count>0?main[main.Count-1].Y:baseY;
   /* trussed roofs at every level of the model: over the top floor, a lower wing, a canopy or a setback; their ceilings take no roof load */
   string an;var ordered=WindEdgeLoads.Plans(m,baseY,1e9,out an,true).Where(p=>p.Y>baseY+1e-3&&p.Faces.Count>0).OrderBy(p=>p.Y).ToList();
