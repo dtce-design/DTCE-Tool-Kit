@@ -33,21 +33,22 @@ static class RoofLiveLoads {
     member.Append("\n* ").Append(r.Where).Append(": ").Append(r.Basis).Append(", row ").Append(row).Append(", Lr = ").Append(F(lr)).Append(" kPa x ").Append(F(trib)).Append(" m");
     foreach(var c in list){member.Append("\n").Append(c.No).Append(" UNI PY ").Append(F(-lr*trib));LastChords.Add(c.SpanX?new[]{y,c.U1,c.Plane,c.U2,c.Plane,lr}:new[]{y,c.Plane,c.U1,c.Plane,c.U2,lr});}}}
   /* slab roofs: cells of every level not covered by a higher level (nor the ceiling under the trusses) */
-  var floor=new StringBuilder();int cells=0;
-  for(int li=0;li<ordered.Count;li++){var p=ordered[li];var higher=ordered.Skip(li+1).ToList();int nx=p.Xs.Count-1,nz=p.Zs.Count-1;var val=new double?[nx,nz];
-   for(int i=0;i<nx;i++)for(int j=0;j<nz;j++){if(!p.Inside[i,j])continue;double cx=(p.Xs[i]+p.Xs[i+1])/2,cz=(p.Zs[j]+p.Zs[j+1])/2;if(higher.Any(h=>WindEdgeLoads.InsideAt(h,cx,cz)))continue;
-    if(covers.Any(cv=>Math.Abs(p.Y-cv[0])<1e-3&&cx>cv[1]-1e-6&&cx<cv[2]+1e-6&&cz>cv[3]-1e-6&&cz<cv[4]+1e-6))continue;
-    double area=(p.Xs[i+1]-p.Xs[i])*(p.Zs[j+1]-p.Zs[j]);val[i,j]=Lr(1,area);cells++;
-    var reg=regions.FirstOrDefault(x=>x.Kind=="Slab"&&Math.Abs(x.Slope-p.Y)<1e-6&&Math.Abs(x.Lr-val[i,j].Value)<1e-9);
-    if(reg==null)regions.Add(new Region{Kind="Slab",Where="level "+F(p.Y)+" m",Slope=p.Y,Area=area,Row=1,Lr=val[i,j].Value,Basis="panels of "+AreaBand(area)});else reg.Area=Math.Max(reg.Area,area);}
-   /* equal values merged: runs along Z, then equal runs in neighbouring X strips */
-   var rects=new List<double[]>();for(int i=0;i<nx;i++){int j=0;while(j<nz){if(val[i,j]==null){j++;continue;}int j2=j;while(j2+1<nz&&val[i,j2+1]!=null&&Math.Abs(val[i,j2+1].Value-val[i,j].Value)<1e-9)j2++;
-     var r=new[]{p.Xs[i],p.Xs[i+1],p.Zs[j],p.Zs[j2+1],val[i,j].Value};var prev=rects.FirstOrDefault(q=>Math.Abs(q[1]-r[0])<1e-9&&Math.Abs(q[2]-r[2])<1e-9&&Math.Abs(q[3]-r[3])<1e-9&&Math.Abs(q[4]-r[4])<1e-9);if(prev!=null)prev[1]=r[1];else rects.Add(r);j=j2+1;}}
-   foreach(var r in rects)LastPanels.Add(new[]{p.Y,r[0],r[1],r[2],r[3],r[4]});
-   foreach(var r in rects)floor.Append("\nYRANGE ").Append(F(p.Y-0.05)).Append(" ").Append(F(p.Y+0.05)).Append(" FLOAD ").Append(F(-r[4])).Append(" XRANGE ").Append(F(r[0]-0.01)).Append(" ").Append(F(r[1]+0.01)).Append(" ZRANGE ").Append(F(r[2]-0.01)).Append(" ").Append(F(r[3]+0.01)).Append(" GY");}
+  var floor=new StringBuilder();var skipped=new StringBuilder();int cells=0;
+  for(int li=0;li<ordered.Count;li++){var p=ordered[li];var higher=ordered.Skip(li+1).ToList();
+   /* the slab panels between the beams (WindEdgeLoads.Panels): Lr from the panel's own area, the tributary area of the beams around it;
+      a panel is roof when most of it has no higher level (nor trusses) over it */
+   var panels=WindEdgeLoads.Panels(p);var val=new double?[panels.Count];
+   for(int q=0;q<panels.Count;q++){double roofA=0;foreach(var c in panels[q].Cells){int i=c[0],j=c[1];double cx=(p.Xs[i]+p.Xs[i+1])/2,cz=(p.Zs[j]+p.Zs[j+1])/2;if(higher.Any(h=>WindEdgeLoads.InsideAt(h,cx,cz)))continue;
+     if(covers.Any(cv=>Math.Abs(p.Y-cv[0])<1e-3&&cx>cv[1]-1e-6&&cx<cv[2]+1e-6&&cz>cv[3]-1e-6&&cz<cv[4]+1e-6))continue;roofA+=(p.Xs[i+1]-p.Xs[i])*(p.Zs[j+1]-p.Zs[j]);}
+    if(roofA<=0.5*panels[q].Area)continue;double area=panels[q].Area;val[q]=Lr(1,area);if(panels[q].Closed)cells++;
+    var reg=regions.FirstOrDefault(x=>x.Kind=="Slab"&&Math.Abs(x.Slope-p.Y)<1e-6&&Math.Abs(x.Lr-val[q].Value)<1e-9);
+    if(reg==null)regions.Add(new Region{Kind="Slab",Where="level "+F(p.Y)+" m",Slope=p.Y,Area=area,Row=1,Lr=val[q].Value,Basis="panels of "+AreaBand(area)});else reg.Area=Math.Max(reg.Area,area);}
+   int open,clash;var boxes=WindEdgeLoads.PanelBoxes(p,panels,val,out open,out clash);
+   foreach(var r in boxes)LastPanels.Add(new[]{p.Y,r[0],r[1],r[2],r[3],r[4]});
+   skipped.Append(WindEdgeLoads.SkipNote(p.Y,open,clash));floor.Append(WindEdgeLoads.FloorLines(p.Y,boxes));}
   if(floor.Length==0&&member.Length==0){note="no roof found in the model";return "";}
   var b=new StringBuilder("* roof live load, NSCP 2015 Section 205.4, Table 205-3 (Method 1),\n* on the horizontal projection; Lr by slope and tributary area\nUNIT METER KN");
-  if(floor.Length>0)b.Append("\n* slab roofs: Lr by the panel area (tributary area of its beams)\nFLOOR LOAD").Append(floor);
+  b.Append(skipped);if(floor.Length>0)b.Append("\n* slab roofs: Lr by the panel area (tributary area of its beams)\nFLOOR LOAD").Append(floor);
   if(member.Length>0)b.Append("\n* trusses: w = Lr x truss spacing, projected on the horizontal (PY)\nMEMBER LOAD").Append(member);
   note=(cells>0?cells+" slab roof panels":"")+(cells>0&&chords.Count>0?", ":"")+(chords.Count>0?chords.Count+" truss top chords in "+chords.Select(c=>c.Plane).Distinct().Count()+" trusses":"")+
    "; Lr "+string.Join(", ",regions.Select(r=>r.Lr).Distinct().OrderByDescending(x=>x).Select(F))+" kPa. Roof decks used as an occupancy take Table 205-1, 18 (as the area served) in a live load case instead.";

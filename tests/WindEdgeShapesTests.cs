@@ -90,5 +90,27 @@ static class WindEdgeShapesTests {
    Check(!System.Text.RegularExpressions.Regex.IsMatch(roof,@"YRANGE 3\.95 4\.05 FLOAD 1 XRANGE -0\.01 \S+ ZRANGE -0\.01 6\.01")&&roof.Contains("YRANGE 3.95 4.05"),"the slab under it is not roof there");}
   /* 8  rectangle: nothing recessed */
   {string[] p={"###","###"};Check(Lines(Model(new double[]{0,4},p,p),T("+X",1,2,3,4),4,out note).Count==0,"plain rectangle: no recess lines");}
+  /* 9  a canopy of sloped members beyond the outline (owner's STAAD run, 27 November 2026: "WARNING-fx fy fz wind forces ... ignored"):
+     the face lines on that side stop at the outline, the other sides keep the whole-face line */
+  {string[] p={"##"};string md=Model(new double[]{0,4},p,p);var ids=new Dictionary<string,int>();foreach(System.Text.RegularExpressions.Match mt in System.Text.RegularExpressions.Regex.Matches(md,@"(?m)^(\d+) (\S+) (\S+) (\S+);"))ids[mt.Groups[2].Value+","+mt.Groups[3].Value+","+mt.Groups[4].Value]=int.Parse(mt.Groups[1].Value);
+   var extraJ=new StringBuilder();var extraM=new StringBuilder();int jn=900,mn=900;foreach(var x in new[]{0,6,12}){extraJ.Append(++jn+" "+x+" 4.3 8;\n");extraM.Append(++mn+" "+ids[x+",4,6"]+" "+jn+";\n");}
+   extraM.Append(++mn+" 901 902;\n"+(++mn)+" 902 903;\n");md=md.Replace("MEMBER INCIDENCES\n",extraJ+"MEMBER INCIDENCES\n").Replace("SUPPORTS\n",extraM+"SUPPORTS\n");
+   var m=RedundancyFactor.ReadModel(md);var faces=WindEdgeLoads.Faces(m,0,4.3,out note);
+   string cut=WindEdgeLoads.CutFaceLines(m,faces,"WIND LOAD -Z 1 TYPE 3 YR 0 4.3\nWIND LOAD Z 1 TYPE 1 YR 0 4.3\nWIND LOAD X 1 TYPE 2 YR 0 4.3");
+   Check(cut.Contains("WIND LOAD -Z 1 TYPE 3 ZR -1 6.05 XR -0.05 12.05 YR 0 4.3"),"+Z faces cut at the outline Z = 6, the canopy to Z = 8 left out:\n"+cut);
+   Check(cut.Contains("\nWIND LOAD Z 1 TYPE 1 YR 0 4.3\nWIND LOAD X 1 TYPE 2 YR 0 4.3")&&cut.Split('\n').Length==3,"faces with nothing beyond them keep the whole-face line");
+   string plain=Model(new double[]{0,4},p,p);var m0=RedundancyFactor.ReadModel(plain);Check(WindEdgeLoads.CutFaceLines(m0,WindEdgeLoads.Faces(m0,0,4,out note),"WIND LOAD -Z 1 TYPE 3 YR 0 4")=="WIND LOAD -Z 1 TYPE 3 YR 0 4","no canopy: line unchanged");}
+  /* 10  FLOOR LOAD ranges of whole beam panels (owner's STAAD run: "NO MEMBERS LOADED FOR A FLOOR LOAD GENERATION") */
+  {Func<double[][],WindPlanLevel> plan=beams=>{var pl=new WindPlanLevel{Y=4,Xs=new List<double>{0,6,12},Zs=new List<double>{0,4,8},Inside=new bool[2,2]{{true,true},{true,true}}};pl.Beams.AddRange(beams);return pl;};
+   var outline=new[]{new double[]{0,0,6,0},new double[]{6,0,12,0},new double[]{12,0,12,4},new double[]{12,4,12,8},new double[]{12,8,6,8},new double[]{6,8,0,8},new double[]{0,8,0,4},new double[]{0,4,0,0}};
+   var a=plan(outline.Concat(new[]{new double[]{6,0,6,4}}).ToArray());var pa=WindEdgeLoads.Panels(a);
+   Check(pa.Count==1&&pa[0].Closed&&Math.Abs(pa[0].Area-96)<1e-9,"a beam stopping half way splits no panel: one 12 x 8 panel");
+   int open,clash;var ba=WindEdgeLoads.PanelBoxes(a,pa,new double?[]{0.6},out open,out clash);Check(ba.Count==1&&ba[0][0]==0&&ba[0][1]==12&&ba[0][2]==0&&ba[0][3]==8,"its range is the whole panel");
+   var g=plan(outline.Concat(new[]{new double[]{6,0,6,4},new double[]{6,4,6,8},new double[]{0,4,6,4},new double[]{6,4,12,4}}).ToArray());var pg=WindEdgeLoads.Panels(g);
+   Check(pg.Count==4&&pg.All(x=>x.Closed&&Math.Abs(x.Area-24)<1e-9),"full grid: four 6 x 4 panels");
+   var vals=pg.Select(x=>(double?)(x.X1==0&&x.Z1==0?1.0:0.75)).ToArray();var bg=WindEdgeLoads.PanelBoxes(g,pg,vals,out open,out clash);
+   Check(bg.Count(x=>x[4]==1.0)==1&&bg.Where(x=>x[4]==0.75).All(x=>!(x[0]<3&&x[1]>3&&x[2]<2&&x[3]>2))&&bg.Where(x=>x[4]==0.75).Sum(x=>(x[1]-x[0])*(x[3]-x[2]))==72,"equal panels merged, never over the 1.0 kPa panel");
+   var o=plan(outline.Where(x=>!(x[1]==8&&x[3]==8&&x[2]==0)).ToArray());var po=WindEdgeLoads.Panels(o);var bo=WindEdgeLoads.PanelBoxes(o,po,po.Select(x=>(double?)0.75).ToArray(),out open,out clash);
+   Check(bo.Count==0&&open==1&&WindEdgeLoads.SkipNote(4,open,clash).Contains("not loaded"),"a panel with a gap in its beams is left out and noted");}
   Console.WriteLine("WindEdgeShapesTests passed: "+checks+" checks");}
 }

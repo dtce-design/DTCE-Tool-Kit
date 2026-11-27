@@ -21,7 +21,7 @@ sealed class StaadCombo {public int No;public string Title,Group,Eq="";public Li
    torsion, each alone), "C" irregular and unsymmetrical (orthogonal effects: eight REPEAT LOAD cases 1.0(EQ +X) + 0.3(EQ +Z) ..., Load Type
    Seismic, built from the EQ cases of Load Type None) - the owner's STAAD notes. F1One: titles of the live cases with f1 = 1.0 (owner:
    "hiwalay yung LL1 at LL2 yung f1 niya"); other live cases f1 = 0.5. */
-sealed class StaadCombinationSettings {/* automatic primary loads and their STAAD section (owner, 26 November 2026: "automatic na sana di na ako maglalagay ng primary loads"; "perform analysis change every eq primary case") */public bool AutoPrimary,PerformChange=false;public bool PrintReports=true;public string EqCommand="UBC LOAD";/* wind case text by direction of travel ("+X" ...) from the Wind Load sheet */public Dictionary<string,string> WindText=new Dictionary<string,string>();/* the LLR body from the STAAD model (RoofLiveLoads) */public string RoofLiveText="";public double Acc=0.05,Ax=1.0;public double Rho=1.0,Ca=0.44,I=1.0;public bool IncludeEv=true,Lrfd=true,Asd=false,EvInAsd=false;public string Structure="C";
+sealed class StaadCombinationSettings {/* automatic primary loads and their STAAD section (owner, 26 November 2026: "automatic na sana di na ako maglalagay ng primary loads"; "perform analysis change every eq primary case") */public bool AutoPrimary,PerformChange=true;public bool PrintReports=true;public string EqCommand="UBC LOAD";/* wind case text by direction of travel ("+X" ...) from the Wind Load sheet */public Dictionary<string,string> WindText=new Dictionary<string,string>();/* the LLR body from the STAAD model (RoofLiveLoads) */public string RoofLiveText="";public double Acc=0.05,Ax=1.0;public double Rho=1.0,Ca=0.44,I=1.0;public bool IncludeEv=true,Lrfd=true,Asd=false,EvInAsd=false;public string Structure="C";
  /* drift checks (owner, 25 November 2026: "also for drift check wind and seismic"): 7000 wind drift D + 0.5L + kW (k = DriftWind, 0.6 =
     service-level wind of the NSCP 2015 ultimate wind speeds), 8000 seismic drift 1.0 Eh of every seismic case (Section 208.6.4: the
     design-level displacement of the design seismic forces, then dM = 0.7 R dS against 0.025h / 0.020h) */public bool Drift=true,DriftGravity=false;public double DriftWind=0.6;
@@ -145,7 +145,7 @@ static class StaadCombinations {
    foreach(var x in new[]{"+X","-X"})foreach(var z in new[]{"+Z","-Z"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL"+x+z+" CASE 3");
    if(torsion)foreach(var x in new[]{"+X","-X"})foreach(var z in new[]{"+Z","-Z"})foreach(var t in new[]{"+T","-T"})lines.Add("LOAD "+(++n)+" LOADTYPE WIND TITLE WL"+x+z+" CASE 4 "+t);}
   return string.Join("\n",lines);}
- /* the STAAD primary load section: each EQ case with its seismic load command and, as older STAAD needs, PERFORM ANALYSIS / CHANGE */
+ /* the STAAD primary load section: each EQ case with its seismic load command and PERFORM ANALYSIS / CHANGE (STAAD warns without them) */
  /* "WL+X" -> "+X" */
  internal static string WindKey(string title){var k=System.Text.RegularExpressions.Regex.Match((title??"").Trim(),@"^WL((?:[+-][XZ]){1,2})\s+CASE\s+([1-4])(\s+-GCPI)?(?:\s+([+-])T)?$",System.Text.RegularExpressions.RegexOptions.IgnoreCase);
   if(k.Success){string dirs=k.Groups[1].Value.ToUpperInvariant(),c0=k.Groups[2].Value;if(c0=="1")return (k.Groups[3].Success?"1B":"")+dirs;return c0+dirs+(k.Groups[4].Success?k.Groups[4].Value+"T":"");}
@@ -153,11 +153,13 @@ static class StaadCombinations {
   if(c.Success)return c.Groups[1].Value+c.Groups[2].Value.ToUpperInvariant()+c.Groups[3].Value.ToUpperInvariant();var m=System.Text.RegularExpressions.Regex.Match(title??"",@"([+-])\s*([XZ])\b",System.Text.RegularExpressions.RegexOptions.IgnoreCase);return m.Success?m.Groups[1].Value+m.Groups[2].Value.ToUpperInvariant():"";}
  internal static string PrimarySection(List<StaadPrimary> cases,StaadCombinationSettings s){var b=new StringBuilder("* ---- PRIMARY LOAD CASES (earthquake cases first) ----\n* Before them: DEFINE UBC LOAD (or the seismic definition of your STAAD)\n* with the zone / I / R / soil data and the seismic weights.");
   /* case B (owner: "apply also natural torsion kapag case b"): natural torsion from the centre of mass / centre of rigidity offset, accidental torsion through ACC = 0.05 Ax */
-  if(s.Structure=="B"){b.Append("\n* Natural torsion: seismic weights at their true positions and\n* rigid floor diaphragms (FLOOR DIAPHRAGM ... TYPE RIG) put each\n* storey force at the centre of mass; its offset from the centre of\n* rigidity gives the natural torsion in the analysis.\n* Accidental torsion: ACC = 0.05 x Ax = ").Append(F(s.Acc*s.Ax)).Append(",\n* Ax = (dmax / 1.2 davg)^2, 1.0 to 3.0 (torsional irregularity).");}
+  if(s.Structure=="B"){b.Append("\n* Natural torsion: seismic weights at their true positions and\n* rigid floor diaphragms (FLOOR DIAPHRAGM ... TYPE RIG); DEC 1 = the\n* natural torsion from the offset of the centre of mass from the centre\n* of rigidity (STAAD ignores the torsion unless DEC and ACC are both\n* given).\n* Accidental torsion: ACC = 0.05 x Ax = ").Append(F(s.Acc*s.Ax)).Append(",\n* Ax = (dmax / 1.2 davg)^2, 1.0 to 3.0 (torsional irregularity).");}
   foreach(var p in cases){string type=p.Kind=="E"?(s.Structure=="C"?"NONE":"SEISMIC-H"):p.Kind=="D"?"DEAD":p.Kind=="L"?"LIVE":p.Kind=="Lr"?"ROOF LIVE":p.Kind=="W"?"WIND":p.Kind=="Ev"?"SEISMIC-V":"NONE";
    b.Append("\nLOAD ").Append(p.No).Append(" LOADTYPE ").Append(type).Append(" TITLE ").Append(p.Title);
    if(p.Kind=="E"){if(s.EqCommand!="None"&&p.Axis!=""){b.Append("\n").Append(s.EqCommand).Append(" ").Append(p.Axis).Append(" ").Append(p.Sign<0?"-1":"1");
-      if(s.Structure=="B"){bool minus=System.Text.RegularExpressions.Regex.IsMatch(p.Title,@"-E$",System.Text.RegularExpressions.RegexOptions.IgnoreCase);b.Append(" ACC ").Append(F(minus?-s.Acc*s.Ax:s.Acc*s.Ax));}}
+      if(s.Structure=="B"){bool minus=System.Text.RegularExpressions.Regex.IsMatch(p.Title,@"-E$",System.Text.RegularExpressions.RegexOptions.IgnoreCase);/* DEC with ACC (owner's STAAD run, 27 November 2026: "PROVIDE BOTH DEC AND ACC FACTORS. TORSION IS IGNORED."): STAAD takes the
+         torsion only when both factors are given - DEC 1 the natural torsion (centre of mass / centre of rigidity offset), ACC the accidental one */
+       b.Append(" DEC 1 ACC ").Append(F(minus?-s.Acc*s.Ax:s.Acc*s.Ax));}}
      else b.Append("\n* add the seismic load of ").Append(p.Title).Append(" here");
      if(s.PerformChange)b.Append("\nPERFORM ANALYSIS\nCHANGE");}
    else if(p.Kind=="D")b.Append("\nSELFWEIGHT Y -1\n* add the floor / member dead loads here");

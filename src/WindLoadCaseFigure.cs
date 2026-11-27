@@ -23,7 +23,10 @@ sealed class WindLoadCaseFigure {
  List<Load> Loads(){var list=new List<Load>();foreach(var raw in Text.Replace("\r","").Split('\n')){var line=raw.Trim();var m=Regex.Match(line,@"^WIND LOAD (-?[XZ]) (-?[0-9.]+) TYPE (\d+)(.*)$");if(!m.Success)continue;
    var l=new Load{Dir=m.Groups[1].Value,Factor=double.Parse(m.Groups[2].Value,Ci),Type=int.Parse(m.Groups[3].Value),Line=line};var rest=m.Groups[4].Value;
    var xr=Regex.Match(rest,@"XR (-?[0-9.]+) (-?[0-9.]+)");var zr=Regex.Match(rest,@"ZR (-?[0-9.]+) (-?[0-9.]+)");
-   if(xr.Success&&zr.Success){l.Range=true;double x1=double.Parse(xr.Groups[1].Value,Ci),x2=double.Parse(xr.Groups[2].Value,Ci),z1=double.Parse(zr.Groups[1].Value,Ci),z2=double.Parse(zr.Groups[2].Value,Ci);
+   /* a recessed wall is a thin range around one wall; a whole face cut into stretches (WindEdgeLoads.CutFaceLines) is drawn as the face */
+   double rx1=xr.Success?double.Parse(xr.Groups[1].Value,Ci):0,rx2=xr.Success?double.Parse(xr.Groups[2].Value,Ci):1e9,rz1=zr.Success?double.Parse(zr.Groups[1].Value,Ci):0,rz2=zr.Success?double.Parse(zr.Groups[2].Value,Ci):1e9;
+   if(!(xr.Success&&zr.Success&&Math.Min(rx2-rx1,rz2-rz1)<=0.2)){if(list.Any(o=>!o.Range&&o.Dir==l.Dir&&Math.Abs(o.Factor-l.Factor)<1e-9&&o.Type==l.Type))continue;list.Add(l);continue;}
+   if(xr.Success&&zr.Success){l.Range=true;double x1=rx1,x2=rx2,z1=rz1,z2=rz2;
     if(x2-x1<z2-z1){l.Axis='X';l.At=(x1+x2)/2;l.A1=z1+0.05;l.A2=z2-0.05;}else{l.Axis='Z';l.At=(z1+z2)/2;l.A1=x1+0.05;l.A2=x2-0.05;}}
    list.Add(l);}
   /* STAAD's meaning (WindEdgeLoads.Spec): "-X" = suction on the face whose normal has the factor's sign, "X" = pressure on the face whose

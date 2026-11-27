@@ -129,6 +129,68 @@ static class WindEdgeLoads {
  static bool Covers(List<Seg> segs,bool vertical,double c,double a,double b){const double e=1e-6;var spans=new List<double[]>();foreach(var s in segs){double p1=vertical?s.X1:s.Z1,p2=vertical?s.X2:s.Z2,q1=vertical?s.Z1:s.X1,q2=vertical?s.Z2:s.X2;
    if(Math.Abs(p1-c)<e&&Math.Abs(p2-c)<e)spans.Add(new[]{Math.Max(Math.Min(q1,q2),a),Math.Min(Math.Max(q1,q2),b)});}
   double at=a;foreach(var sp in spans.Where(x=>x[1]>x[0]+e).OrderBy(x=>x[0])){if(sp[0]>at+0.01)return false;at=Math.Max(at,sp[1]);}return at>=b-0.01;}
+ /* ---- slab panels for FLOOR LOAD (owner's STAAD run, 27 November 2026: "NO MEMBERS LOADED FOR A FLOOR LOAD GENERATION"; "gusto ko walang
+    warning") ----  STAAD's FLOOR LOAD loads closed panels only: members wholly inside the range that close a polygon. The grid cells of a
+    level are joined into the real panels between the beams (across cell sides with no beam along them); a panel whose outline has a gap
+    (an open edge, a void, a stair opening) cannot take a FLOOR LOAD and is left out. Each range holds whole panels of one value and never
+    another closed panel, so STAAD loads exactly the panels meant. */
+ internal sealed class SlabPanel {public List<int[]> Cells=new List<int[]>();public double X1=double.MaxValue,X2=double.MinValue,Z1=double.MaxValue,Z2=double.MinValue,Area;public bool Closed=true;}
+ internal static List<SlabPanel> Panels(WindPlanLevel p){var list=new List<SlabPanel>();int nx=p.Xs.Count-1,nz=p.Zs.Count-1;if(nx<1||nz<1)return list;
+  var segs=p.Beams.Select(b=>new Seg{X1=b[0],Z1=b[1],X2=b[2],Z2=b[3],Y=p.Y}).ToList();var id=new int[nx,nz];for(int i=0;i<nx;i++)for(int j=0;j<nz;j++)id[i,j]=-1;
+  for(int i0=0;i0<nx;i0++)for(int j0=0;j0<nz;j0++){if(!p.Inside[i0,j0]||id[i0,j0]>=0)continue;var pn=new SlabPanel();var q=new Queue<int[]>();q.Enqueue(new[]{i0,j0});id[i0,j0]=list.Count;
+   while(q.Count>0){var c=q.Dequeue();int i=c[0],j=c[1];pn.Cells.Add(c);pn.X1=Math.Min(pn.X1,p.Xs[i]);pn.X2=Math.Max(pn.X2,p.Xs[i+1]);pn.Z1=Math.Min(pn.Z1,p.Zs[j]);pn.Z2=Math.Max(pn.Z2,p.Zs[j+1]);pn.Area+=(p.Xs[i+1]-p.Xs[i])*(p.Zs[j+1]-p.Zs[j]);
+    foreach(var d in new[]{new[]{-1,0},new[]{1,0},new[]{0,-1},new[]{0,1}}){int ii=i+d[0],jj=j+d[1];bool beam=d[0]!=0?Covers(segs,true,p.Xs[Math.Max(i,ii)],p.Zs[j],p.Zs[j+1]):Covers(segs,false,p.Zs[Math.Max(j,jj)],p.Xs[i],p.Xs[i+1]);
+     bool nIn=ii>=0&&jj>=0&&ii<nx&&jj<nz&&p.Inside[ii,jj];if(!nIn){if(!beam)pn.Closed=false;continue;}if(beam||id[ii,jj]>=0)continue;id[ii,jj]=list.Count;q.Enqueue(new[]{ii,jj});}}
+   list.Add(pn);}
+  return list;}
+ /* the FLOOR LOAD ranges {x1, x2, z1, z2, value} for the panels with a value (null = not loaded): whole closed panels of equal value merged
+    while the range holds no other closed panel; open = loaded panels left out for a gap in their beams, clash = left out because their
+    range would hold another closed panel */
+ internal static List<double[]> PanelBoxes(WindPlanLevel p,List<SlabPanel> panels,double?[] val,out int open,out int clash){open=0;clash=0;var boxes=new List<double[]>();var used=new bool[panels.Count];
+  Func<double[],int,int> rel=(bx,k)=>{int n=0;foreach(var c in panels[k].Cells){double cx=(p.Xs[c[0]]+p.Xs[c[0]+1])/2,cz=(p.Zs[c[1]]+p.Zs[c[1]+1])/2;if(cx>bx[0]&&cx<bx[1]&&cz>bx[2]&&cz<bx[3])n++;}return n==0?0:n==panels[k].Cells.Count?1:2;};
+  Func<double[],HashSet<int>,double,bool> fit=(bx,mem,v)=>{bool again=true;while(again){again=false;for(int k=0;k<panels.Count;k++){if(!panels[k].Closed||mem.Contains(k))continue;int r=rel(bx,k);if(r==0)continue;
+     if(r==1&&!used[k]&&val[k]!=null&&Math.Abs(val[k].Value-v)<1e-9){mem.Add(k);again=true;continue;}return false;}}return true;};
+  var order=Enumerable.Range(0,panels.Count).Where(k=>val[k]!=null).OrderBy(k=>panels[k].X1).ThenBy(k=>panels[k].Z1).ToList();
+  foreach(var k in order){if(!panels[k].Closed){open++;used[k]=true;}}
+  foreach(var k in order){if(used[k])continue;double v=val[k].Value;var mem=new HashSet<int>{k};var bx=new[]{panels[k].X1,panels[k].X2,panels[k].Z1,panels[k].Z2};
+   if(!fit(bx,mem,v)){clash++;used[k]=true;continue;}
+   bool grown=true;while(grown){grown=false;foreach(var d in order){if(used[d]||mem.Contains(d)||Math.Abs(val[d].Value-v)>1e-9)continue;
+     var b2=new[]{Math.Min(bx[0],panels[d].X1),Math.Max(bx[1],panels[d].X2),Math.Min(bx[2],panels[d].Z1),Math.Max(bx[3],panels[d].Z2)};var m2=new HashSet<int>(mem){d};if(fit(b2,m2,v)){bx=b2;mem=m2;grown=true;}}}
+   foreach(var x in mem)used[x]=true;boxes.Add(new[]{bx[0],bx[1],bx[2],bx[3],v});}
+  return boxes;}
+ /* the FLOOR LOAD lines of the ranges (value + = upward, written as STAAD's GY sign) */
+ internal static string FloorLines(double y,List<double[]> boxes){var b=new StringBuilder();foreach(var r in boxes)b.Append("\nYRANGE ").Append(F(y-0.05)).Append(" ").Append(F(y+0.05)).Append(" FLOAD ").Append(F(-r[4])).Append(" XRANGE ").Append(F(r[0]-0.01)).Append(" ").Append(F(r[1]+0.01)).Append(" ZRANGE ").Append(F(r[2]-0.01)).Append(" ").Append(F(r[3]+0.01)).Append(" GY");return b.ToString();}
+ /* the comment for panels left out */
+ internal static string SkipNote(double y,int open,int clash){var parts=new List<string>();if(open>0)parts.Add(open+" panel"+(open>1?"s":"")+" without beams all around (open edge / opening)");if(clash>0)parts.Add(clash+" panel"+(clash>1?"s":"")+" around another panel");
+  return parts.Count==0?"":"\n* level "+F(y)+" m: "+string.Join(", ",parts)+" not loaded - STAAD finds no\n* closed panel there; add the edge beams or load them in STAAD";}
+ /* ---- members standing out of the face (owner's STAAD run, 27 November 2026: "**WARNING-fx fy fz wind forces ... at coordinates ...
+    ignored"; "gusto ko walang warning") ----  STAAD's wind generator loads closed panels of the exposed face; members beyond the floor
+    outline on that side (a canopy of sloped members, an outrigger) leave strips with no closed panel and their forces are dropped. Where
+    such members exist, the whole-face line of the faces with that outward normal is cut along the building into stretches whose range ends
+    at the outline there (+ 0.05 m), so the members beyond it are not taken into the face; canopies and overhangs take the roof loads. */
+ internal static string CutFaceLines(StaadModel m,List<WindEdgeFace> faces,string lines){if(m==null||faces==null||faces.Count==0||string.IsNullOrEmpty(lines))return lines;
+  var res=new List<string>();foreach(var ln in lines.Split('\n')){var cut=CutFaceLine(m,faces,ln);res.Add(cut??ln);}return string.Join("\n",res);}
+ static string CutFaceLine(StaadModel m,List<WindEdgeFace> faces,string line){const double tol=0.05,e=1e-6;
+  var mt=System.Text.RegularExpressions.Regex.Match(line,@"^WIND LOAD (-?)([XZ]) (-?[0-9.]+) (TYPE \d+) YR (-?[0-9.]+) (-?[0-9.]+)$");if(!mt.Success)return null;
+  char ax=mt.Groups[2].Value[0];double f=double.Parse(mt.Groups[3].Value,Ci),y1=double.Parse(mt.Groups[5].Value,Ci),y2=double.Parse(mt.Groups[6].Value,Ci);
+  /* outward normal of the faces the line loads (see Spec): "X f" the faces facing -sign(f), "-X f" the faces facing sign(f) */
+  int n=mt.Groups[1].Value=="-"?Math.Sign(f):-Math.Sign(f);if(n==0)return null;string normal=(n>0?"+":"-")+ax;
+  var mine=faces.Where(x=>x.Normal==normal&&x.Level-x.Below>1e-3).ToList();if(mine.Count==0)return null;double k=m.ToMetre;
+  Func<StaadJoint,double> U=j=>(ax=='X'?m.P2(j):m.P1(j))*k,W=j=>(ax=='X'?m.P1(j):m.P2(j))*k*n,Y=j=>m.H(j)*k;
+  var cuts=mine.SelectMany(x=>new[]{x.A1,x.A2}).Distinct().OrderBy(v=>v).ToList();
+  var spans=new List<double[]>();/* u1, u2, cutoff (outward, +inf = none) */
+  for(int i=0;i+1<cuts.Count;i++){double u1=cuts[i],u2=cuts[i+1];if(u2-u1<e)continue;var cover=mine.Where(x=>x.A1<=u1+e&&x.A2>=u2-e).ToList();spans.Add(new[]{u1,u2,cover.Count>0?cover.Max(x=>x.At*n):double.PositiveInfinity});}
+  if(spans.Count==0)return null;
+  /* any member with an end beyond the outline of its stretch? */
+  bool beyond=false;foreach(var mem in m.Members.Values){StaadJoint a,b;if(!m.Joints.TryGetValue(mem.A,out a)||!m.Joints.TryGetValue(mem.B,out b))continue;
+   foreach(var j in new[]{a,b}){if(Y(j)<y1-tol||Y(j)>y2+tol)continue;double u=U(j);var sp=spans.FirstOrDefault(x=>u>x[0]+e&&u<x[1]-e);if(sp!=null&&W(j)>sp[2]+tol){beyond=true;break;}}if(beyond)break;}
+  if(!beyond)return null;
+  var merged=new List<double[]>();foreach(var sp in spans){var last=merged.Count>0?merged[merged.Count-1]:null;if(last!=null&&Math.Abs(last[1]-sp[0])<e&&(last[2]==sp[2]||Math.Abs(last[2]-sp[2])<e))last[1]=sp[1];else merged.Add((double[])sp.Clone());}
+  double lo=m.Joints.Values.Min(j=>W(j))-1,hi=m.Joints.Values.Max(j=>W(j))+1;string head="WIND LOAD "+mt.Groups[1].Value+ax+" "+mt.Groups[3].Value+" "+mt.Groups[4].Value,along=ax=='X'?"ZR":"XR";
+  var outl=new List<string>();foreach(var sp in merged){var b=new StringBuilder(head);
+   if(!double.IsInfinity(sp[2])){double w1=lo,w2=sp[2]+tol;double r1=n>0?w1:-w2,r2=n>0?w2:-w1;b.Append(" ").Append(ax).Append("R ").Append(F(r1)).Append(" ").Append(F(r2));}
+   b.Append(" ").Append(along).Append(" ").Append(F(sp[0]-tol)).Append(" ").Append(F(sp[1]+tol)).Append(" YR ").Append(mt.Groups[5].Value).Append(" ").Append(mt.Groups[6].Value);outl.Add(b.ToString());}
+  return string.Join("\n",outl);}
  internal static List<WindEdgeFace> Faces(StaadModel m,double baseY,double top,out string note){return Plans(m,baseY,top,out note).SelectMany(p=>p.Faces).ToList();}
  /* the recessed faces as WIND LOAD lines of their own (owner, 26 November 2026: "bakit member load? dapat windload pa din"): an XR / ZR / YR
     range around one wall makes STAAD build the panel from that wall's members only, so the wall gets the Wind sheet's TYPE like an outer
@@ -162,15 +224,16 @@ static class WindEdgeLoads {
   List<WindEdgeFace> faces=null;double baseY=0;
   int recess=0;var types=new Dictionary<string,WindFaceTypes>();List<WindPlanLevel> roofPlans=null;string roofNote="";var recessLines=new Dictionary<string,List<WindRecessLine>>();
   foreach(var travel in new[]{"+X","-X","+Z","-Z"}){string packed;if(!link.TryGetValue(travel,out packed))continue;var t=WindFaceTypes.Unpack(travel,packed);if(t==null)continue;types[travel]=t;
-   var b=new StringBuilder(WindLoadLines(t,baseY));
-   if(model!=null){if(faces==null){string n;faces=Faces(model,baseY,t.Top,out n);if(n!="")note=n;}var rl=RecessLines(faces,t);recessLines[travel]=rl;recess+=rl.Count;string r=RecessText(rl,t.Travel,1);if(r!="")b.Append("\n").Append(r);}
+   if(model!=null&&faces==null){string n;faces=Faces(model,baseY,t.Top,out n);if(n!="")note=n;}
+   var b=new StringBuilder(CutFaceLines(model,faces,WindLoadLines(t,baseY)));
+   if(model!=null){var rl=RecessLines(faces,t);recessLines[travel]=rl;recess+=rl.Count;string r=RecessText(rl,t.Travel,1);if(r!="")b.Append("\n").Append(r);}
    if(model!=null&&t.HasRoof){if(roofPlans==null){string n3;roofPlans=Plans(model,baseY,t.Top,out n3);}string rn;string roofA=RoofText(model,roofPlans,t,true,baseY,out rn);
     if(roofA!=""){roofNote=rn;string walls=b.ToString();b.Append("\n").Append(roofA);map["1B"+travel]=walls.Replace("(walls, roof uplift +GCpi)","(walls, roof -GCpi / Cp branch 2)")+"\n"+RoofText(model,roofPlans,t,false,baseY,out rn);}}
    b.Insert(0,"* NSCP 2015 Fig. 207B.4-8 Case 1: full pressures, wind toward "+travel+" (walls"+(t.HasRoof?", roof uplift +GCpi":"")+")\n");
    if(model==null)b.Append("\n* recessed walls and roof NOT loaded: paste the STAAD model (Nodes + Beams tables or\n* the .std) on the Primary loads tab of Load Combinations");
    map[travel]=b.ToString();}
   if(allCases&&types.Count>0){List<WindPlanLevel> plans=null;if(model!=null){string n2;plans=Plans(model,baseY,types.Values.Max(x=>x.Top),out n2);}
-   Func<string,double,string> part=(travel,f)=>{var t=types[travel];var ln=WindLoadLines(t,baseY).Split('\n');var b=new StringBuilder();b.Append(Scale(ln[0],f)).Append("\n").Append(Scale(ln[1],f));
+   Func<string,double,string> part=(travel,f)=>{var t=types[travel];var ln=WindLoadLines(t,baseY).Split('\n');var b=new StringBuilder();b.Append(string.Join("\n",CutFaceLines(model,faces,ln[0]+"\n"+ln[1]).Split('\n').Select(x=>Scale(x,f))));
     List<WindRecessLine> rl;if(recessLines.TryGetValue(travel,out rl)){string r=RecessText(rl.Where(l=>!l.Role.StartsWith("SW")).ToList(),travel,f);if(r!="")b.Append("\n").Append(r);}return b.ToString();};
    Func<IEnumerable<string>,double,int,string> twist=(travels,f,sign)=>{if(plans==null)return "* torsion: paste the STAAD model on the Primary loads tab to make the torsional joint loads";return TorsionText(model,plans,travels.Select(x=>types[x]).ToList(),f,sign,baseY);};
    if(torsion)foreach(var a in types.Keys)foreach(var sg in new[]{1,-1})map["2"+a+(sg>0?"+T":"-T")]="* NSCP 2015 Fig. 207B.4-8 Case 2: 75 % windward / leeward toward "+a+", torsion "+(sg>0?"+T":"-T")+"\n"+part(a,0.75)+"\n"+twist(new[]{a},0.75,sg);
@@ -190,7 +253,7 @@ static class WindEdgeLoads {
   /* columns: (x, z) of the top joints of vertical members, by level */
   var colTops=new HashSet<string>();foreach(var mem in m.Members.Values){StaadJoint a,c;if(!m.Joints.TryGetValue(mem.A,out a)||!m.Joints.TryGetValue(mem.B,out c))continue;
    if(Math.Abs(m.P1(a)-m.P1(c))*k>1e-3||Math.Abs(m.P2(a)-m.P2(c))*k>1e-3||Math.Abs(m.H(a)-m.H(c))*k<1e-3)continue;var tp=m.H(a)>m.H(c)?a:c;colTops.Add(Key(m.P1(tp)*k,m.H(tp)*k,m.P2(tp)*k));}
-  var floor=new StringBuilder();int cells=0,ohCells=0;
+  var floor=new StringBuilder();var skipped=new StringBuilder();int cells=0,ohCells=0;
   var main=plans.Where(p=>p.Y>baseY+1e-3).OrderBy(p=>p.Y).ToList();
   /* trusses above the top floor first: the floor under them is a ceiling, not the roof */
   double[] cover;string truss=TrussRoof(m,main.Count>0?main[main.Count-1].Y:baseY,t,upliftCase,colTops,ref note,out cover);
@@ -212,13 +275,14 @@ static class WindEdgeLoads {
      if(colTops.Any(key=>{var v=key.Split(',');double cx0=double.Parse(v[0],Ci),cy0=double.Parse(v[1],Ci),cz0=double.Parse(v[2],Ci);if(Math.Abs(cy0-p.Y)>0.011)return false;double line=normal[1]=='X'?cx0:cz0,along=normal[1]=='X'?cz0:cx0;return Math.Abs(line-at)<0.011&&along>=f1-0.011&&along<=f2+0.011;}))continue;bool windwardEdge=normal[1]==ax&&(normal[0]=='+'?1:-1)==-sign;
      net=Pressure(t,d1,d2,depth,upliftCase,true)-(windwardEdge?t.OhUnder:0);ohCells++;break;}
     val[i,j]=net;cells++;}
-   /* merge cells of equal pressure: runs along Z, then equal runs in neighbouring X strips */
-   var rects=new List<double[]>();for(int i=0;i<nx;i++){int j=0;while(j<nz){if(val[i,j]==null){j++;continue;}int j2=j;while(j2+1<nz&&val[i,j2+1]!=null&&Math.Abs(val[i,j2+1].Value-val[i,j].Value)<1e-9)j2++;
-     var r=new[]{p.Xs[i],p.Xs[i+1],p.Zs[j],p.Zs[j2+1],val[i,j].Value};var prev=rects.FirstOrDefault(q=>Math.Abs(q[1]-r[0])<1e-9&&Math.Abs(q[2]-r[2])<1e-9&&Math.Abs(q[3]-r[3])<1e-9&&Math.Abs(q[4]-r[4])<1e-9);if(prev!=null)prev[1]=r[1];else rects.Add(r);j=j2+1;}}
-   foreach(var r in rects)floor.Append("\nYRANGE ").Append(F(p.Y-0.05)).Append(" ").Append(F(p.Y+0.05)).Append(" FLOAD ").Append(F(-r[4])).Append(" XRANGE ").Append(F(r[0]-0.01)).Append(" ").Append(F(r[1]+0.01)).Append(" ZRANGE ").Append(F(r[2]-0.01)).Append(" ").Append(F(r[3]+0.01)).Append(" GY");}
+   /* one value per slab panel (the panel between its beams; a panel over two zones takes the worse cell), ranges of whole closed panels */
+   var panels=Panels(p);var pv=new double?[panels.Count];
+   for(int q=0;q<panels.Count;q++){double roofA=0;double? worst=null;foreach(var c in panels[q].Cells){var v=val[c[0],c[1]];if(v==null)continue;roofA+=(p.Xs[c[0]+1]-p.Xs[c[0]])*(p.Zs[c[1]+1]-p.Zs[c[1]]);if(worst==null||Math.Abs(v.Value)>Math.Abs(worst.Value))worst=v;}
+    if(roofA>0.5*panels[q].Area)pv[q]=worst;}
+   int open,clash;var boxes=PanelBoxes(p,panels,pv,out open,out clash);floor.Append(FloorLines(p.Y,boxes));skipped.Append(SkipNote(p.Y,open,clash));}
   if(floor.Length==0&&truss=="")return "";
   b.Append("* roof (Figure 207B.4-1, net of internal pressure ").Append(upliftCase?"+GCpi, uplift":"-GCpi, downward").Append("); overhangs 207B.4.4");
-  if(floor.Length>0)b.Append("\nUNIT METER KN\nFLOOR LOAD").Append(floor);if(truss!="")b.Append("\n").Append(truss);
+  b.Append(skipped);if(floor.Length>0)b.Append("\nUNIT METER KN\nFLOOR LOAD").Append(floor);if(truss!="")b.Append("\n").Append(truss);
   note=cells+" roof cells"+(ohCells>0?", "+ohCells+" overhang cells":"")+(note!=""?"; "+note:"");return b.ToString();}
  static string Key(double x,double y,double z){return Math.Round(x,2).ToString("0.00",Ci)+","+Math.Round(y,2).ToString("0.00",Ci)+","+Math.Round(z,2).ToString("0.00",Ci);}
  /* the ground: the lowest level of beams when it is within 2.5 m of the lowest joint (tie / grade beams over footings or pedestals,

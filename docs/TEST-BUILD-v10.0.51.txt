@@ -1,0 +1,19 @@
+DTCE Tool Kit v10.0.51 (27 November 2026) - test build; not uploaded to the Microsoft Store.
+
+PATCH - no STAAD warnings from the Load Combinations output (owner: "yung mga warning ng windload ayusin mo, gusto ko walang warning"):
+- FLOOR LOAD (roof live load LLR and the wind roof loads): "NO MEMBERS LOADED FOR A FLOOR LOAD GENERATION". The ranges were cut from
+  the grid of joint lines, so a range could hold part of a slab panel (X 44-50 m of the 30-50 m panel at 9.6 m). Ranges now hold whole
+  panels between the beams (WindEdgeLoads.Panels / PanelBoxes): equal values merged, never over another closed panel; Lr from the panel's
+  own area; a wind roof panel over two zones takes the worse value; a panel with a gap in its beams is left out with a comment.
+- WIND LOAD: "fx fy fz wind forces ... ignored" at the sloped canopy members (Z 20-24 m, Y 5.1-5.3 m). Where members stand out beyond
+  the floor outline on a face, that face's line is cut along the building into stretches whose range ends at the outline there
+  (WindEdgeLoads.CutFaceLines); faces with nothing beyond them keep the whole-face line. The canopy is not taken as a wall.
+- UBC LOAD: "PROVIDE BOTH DEC AND ACC FACTORS. TORSION IS IGNORED." Structure B now writes DEC 1 ACC ±0.05 Ax (STAAD used no torsion
+  for the +E cases before).
+- "EACH UBC/IBC CASE SHOULD BE FOLLOWED BY PERFORM ANALYSIS & CHANGE": PERFORM ANALYSIS / CHANGE after each EQ case is always written
+  (the setting is hidden).
+- Roof trusses: their top chords get the roof live load (UNI PY), the slab / ceiling under them none; a roof portion whose framing is not
+  in the model gets nothing.
+- The STAAD "NOTE about Floor/OneWay Loads" is an information note, not a warning.
+Tests: WindEdgeShapesTests 31 (canopy cut, whole panels, open panel), StaadCombinationsTests, RoofLiveLoadsTests (20 non-UI checks here).
+Includes everything of v10.0.50.
