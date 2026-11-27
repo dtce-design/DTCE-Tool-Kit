@@ -1,0 +1,8 @@
+DTCE Tool Kit v10.0.44 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store upload is on hold).
+
+PATCH - fainter DPWH watermark in the User edition ("masyadong visible yung dpwh logo sa user"):
+- The DPWH logo lattice on User-edition reports is drawn at 7 % opacity instead of 18 % (ReportWatermarkPattern.Opacity), in every
+  report, preview and PDF; the construction schedule keeps its own lighter share (0.55 x, now about 4 %). The Admin edition still has
+  no watermark.
+Tests: ReportProtectionTests opacity range updated (runs on the Windows CI; it needs the Windows PDF tools).
+Includes everything of v10.0.43 (the Live Loads report explains each space's load case).

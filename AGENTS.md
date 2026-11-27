@@ -12,6 +12,7 @@ Build both editions from shared src/. Admin Store/CI packages must be key-free.
 Never include the owner's key in GitHub artifacts, releases or MSIX packages.
 Report watermark: none in the Admin edition; DPWH logo in the User edition, for official use (owner
 decision, 18 November 2026; supersedes the 16 November DTCE-in-both rule).
+Watermark opacity 0.07 (owner, 27 November 2026: "masyadong visible yung dpwh logo sa user"; was 0.18).
 Store submission is not enabled until MSIX identity/packaging and account API
 setup are complete. Do not claim a GitHub release is a Microsoft Store release.
 
