@@ -1,0 +1,17 @@
+DTCE Tool Kit v10.0.45 (27 November 2026) - test build; not uploaded to the Microsoft Store (the Store upload is on hold).
+
+PATCH - roof live load LLR on the STAAD model ("add roof live load based doon sa staad file, iload at mamili ng appropriate load value"):
+- Load Combinations, automatic primary loads: the LLR case now carries the roof live load on the model pasted on the Primary loads tab
+  (Nodes + Beams tables or the .std), NSCP 2015 Section 205.4 / Table 205-3 (Method 1), vertical on the horizontal projection.
+- Slab roofs: every panel of a level that no higher level covers (main roof, stair / penthouse roofs, lower roofs at setbacks) gets a
+  FLOOR LOAD; Lr is chosen from the panel area between the beams (the tributary area of the beams around it), flat roof row:
+  1.00 kPa up to 20 m2, 0.75 kPa 21-60 m2, 0.60 kPa over 60 m2. Equal panels are merged into one line.
+- Trussed roofs above the top floor: the top chords of each truss get MEMBER LOAD UNI PY (projected on the horizontal),
+  w = Lr x truss spacing; Lr from the steepest top chord (row 1 below 4 in 12, row 2 4 in 12 to below 12 in 12, row 3 steeper) and the
+  truss tributary area = span x spacing (end trusses half the spacing). The ceiling under the trusses takes none.
+- Each truss gets a comment line with its span, spacing, area, slope, row and Lr; the report has a section "Roof live load (LLR) on the
+  STAAD model" with the chosen Lr per roof, and the basis table states it.
+- Not detectable from the model (the note says so): roof decks used as an occupancy (Table 205-1, 18: in a live load case), awnings
+  (0.25 kPa) and greenhouses (0.50 kPa).
+Tests: RoofLiveLoadsTests 15 (new), StaadCombinationsTests 36, WindEdgeLoadsTests 42.
+Includes everything of v10.0.44.

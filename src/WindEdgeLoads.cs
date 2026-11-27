@@ -221,12 +221,30 @@ static class WindEdgeLoads {
   if(floor.Length>0)b.Append("\nUNIT METER KN\nFLOOR LOAD").Append(floor);if(truss!="")b.Append("\n").Append(truss);
   note=cells+" roof cells"+(ohCells>0?", "+ohCells+" overhang cells":"")+(note!=""?"; "+note:"");return b.ToString();}
  static string Key(double x,double y,double z){return Math.Round(x,2).ToString("0.00",Ci)+","+Math.Round(y,2).ToString("0.00",Ci)+","+Math.Round(z,2).ToString("0.00",Ci);}
- static bool InsideAt(WindPlanLevel p,double x,double z){for(int i=0;i+1<p.Xs.Count;i++)if(x>p.Xs[i]&&x<p.Xs[i+1])for(int j=0;j+1<p.Zs.Count;j++)if(z>p.Zs[j]&&z<p.Zs[j+1])return p.Inside[i,j];return false;}
+ internal static bool InsideAt(WindPlanLevel p,double x,double z){for(int i=0;i+1<p.Xs.Count;i++)if(x>p.Xs[i]&&x<p.Xs[i+1])for(int j=0;j+1<p.Zs.Count;j++)if(z>p.Zs[j]&&z<p.Zs[j+1])return p.Inside[i,j];return false;}
  /* the roof pressure (kPa, + toward the surface) for a strip d1-d2 from the windward edge of a roof of this depth; external only for overhangs */
  static double Pressure(WindFaceTypes t,double d1,double d2,double depth,bool uplift,bool external){
   if(t.RoofNormal){bool windward=(d1+d2)/2<depth/2;if(external)return windward?(uplift?t.OhWwA:t.OhWwB):(uplift?t.OhLwA:t.OhLwB);return windward?(uplift?t.WrA:t.WrB):(uplift?t.LrA:t.LrB);}
   double? v=null;foreach(var z in t.Zones){if(z[1]<=d1+1e-9||z[0]>=d2-1e-9)continue;double q=external&&z.Length>5?(uplift?z[4]:z[5]):(uplift?z[2]:z[3]);v=v==null?q:uplift?Math.Min(v.Value,q):Math.Max(v.Value,q);}
   if(v==null&&t.Zones.Count>0){var z=t.Zones[t.Zones.Count-1];v=external&&z.Length>5?(uplift?z[4]:z[5]):(uplift?z[2]:z[3]);}return v??0;}
+ /* the top chords of the trusses above the top floor (for the roof live load, RoofLiveLoads): same detection as TrussRoof */
+ internal sealed class TrussChord {public double No,Plane,Trib,U1,U2,Y1,Y2;public bool SpanX;}
+ internal static List<TrussChord> TrussTopChords(StaadModel m,double topY,out double[] cover){double k=m.ToMetre;cover=null;var res=new List<TrussChord>();
+  var mem=new List<double[]>();var near=new List<double[]>();
+  foreach(var mm in m.Members.Values){StaadJoint a,c;if(!m.Joints.TryGetValue(mm.A,out a)||!m.Joints.TryGetValue(mm.B,out c))continue;double ya=m.H(a)*k,yc=m.H(c)*k;
+   double dx=Math.Abs(m.P1(a)-m.P1(c))*k,dz=Math.Abs(m.P2(a)-m.P2(c))*k;if(dx<1e-3&&dz<1e-3)continue;var row=new[]{mm.No,m.P1(a)*k,ya,m.P2(a)*k,m.P1(c)*k,yc,m.P2(c)*k,mm.A,mm.B};
+   if(Math.Min(ya,yc)>=topY-1e-3&&Math.Max(ya,yc)>topY+1e-3)mem.Add(row);else if(Math.Abs(ya-yc)>1e-3&&Math.Max(ya,yc)>=topY-1e-3&&Math.Min(ya,yc)>=topY-3)near.Add(row);}
+  var roofJoints=new HashSet<double>(mem.SelectMany(r=>new[]{r[7],r[8]}));foreach(var r in near)if(roofJoints.Contains(r[7])||roofJoints.Contains(r[8]))mem.Add(r);
+  var sloped=mem.Where(r=>Math.Abs(r[2]-r[5])>1e-3).ToList();if(sloped.Count==0)return res;
+  bool spanX=sloped.Count(r=>Math.Abs(r[3]-r[6])<1e-3)>=sloped.Count(r=>Math.Abs(r[1]-r[4])<1e-3);
+  Func<double[],double> plane=r=>spanX?r[3]:r[1];Func<double[],double> u1=r=>spanX?r[1]:r[3];Func<double[],double> u2=r=>spanX?r[4]:r[6];
+  var inPlane=mem.Where(r=>spanX?Math.Abs(r[3]-r[6])<1e-3:Math.Abs(r[1]-r[4])<1e-3).ToList();var planes=inPlane.GroupBy(r=>Math.Round(plane(r),2)).OrderBy(g=>g.Key).ToList();if(planes.Count==0)return res;
+  var coords=planes.Select(g=>g.Key).ToList();double uMin=inPlane.Min(r=>Math.Min(u1(r),u2(r))),uMax=inPlane.Max(r=>Math.Max(u1(r),u2(r)));cover=spanX?new[]{uMin,uMax,coords.First(),coords.Last()}:new[]{coords.First(),coords.Last(),uMin,uMax};
+  for(int pi=0;pi<planes.Count;pi++){var g=planes[pi].ToList();double c=planes[pi].Key;double trib=((pi+1<coords.Count?coords[pi+1]:c)-(pi>0?coords[pi-1]:c))/2;if(coords.Count==1)trib=1;
+   foreach(var r in g){double a=u1(r),bb=u2(r),ya=r[2],yb=r[5];double um=(a+bb)/2,ym=(ya+yb)/2;
+    bool top=!g.Any(o=>o!=r&&Math.Min(u1(o),u2(o))<=um+1e-6&&Math.Max(u1(o),u2(o))>=um-1e-6&&Math.Abs(u2(o)-u1(o))>1e-6&&o[2]+(o[5]-o[2])*(um-u1(o))/(u2(o)-u1(o))>ym+0.02);if(!top)continue;
+    res.Add(new TrussChord{No=r[0],Plane=c,Trib=trib,U1=a,U2=bb,Y1=ya,Y2=yb,SpanX=spanX});}}
+  return res;}
  /* top chords of the trusses above the top floor: members in the truss planes (no extent along the ridge) on top of their plane */
  static string TrussRoof(StaadModel m,double topY,WindFaceTypes t,bool uplift,HashSet<string> colTops,ref string note){double[] cover;return TrussRoof(m,topY,t,uplift,colTops,ref note,out cover);}
  /* cover = x1, x2, z1, z2 of the trussed roof (the ceiling under it takes no roof FLOOR LOAD) */
