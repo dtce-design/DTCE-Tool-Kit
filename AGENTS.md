@@ -693,3 +693,6 @@ DesignLoadsReport), not in the Load Combinations report. Owner ("naimomodel ng r
 own panels' cells (WindEdgeLoads.PanelBoxes clean): no bridge over an open panel or between separate roofs (v10.0.69).
 Owner's STAAD Error List ("LOAD COMBINATION list has been ignored" 2029-2036): never continue a LOAD COMBINATION / LOAD TITLE line with " -";
 long titles write the orthogonal term (EQ+X,0.3EQ+Z) (StaadCombinations.FitTitle) and only then are cut (StaadLines.Wrap) (v10.0.70).
+Owner ("bakit fail sa soft storey sa computation pero pasado sa staad"; "full check naman with tables diagrams calculations"): StructuralIrregularity.Stiffness
+uses the floor levels from the ground up (not every column joint / pedestal), storey shear from the members cut once per storey; StaadModel.Plates notes walls;
+IrregularityRow carries Head / Rows / Calcs / Figure (StructuralIrregularity.Details) and the report shows a full check per irregularity (v10.0.71).

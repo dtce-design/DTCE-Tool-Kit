@@ -1,20 +1,42 @@
-using System;using System.Collections.Generic;using System.Globalization;using System.Linq;
+using System;using System.Collections.Generic;using System.Drawing;using System.Globalization;using System.Linq;
 namespace BeamScheduleFormatter {
 /* Structural irregularities, NSCP 2015 Table 208-9 (vertical) and Table 208-10 (plan) (owner, 26 November 2026: "for structural
    irregularities check"). From the STAAD model, the EQ member end forces and joint displacements where they can be computed; the rest from
    short inputs. Each row: Regular / Irregular / Not checked. */
-sealed class IrregularityRow {public string Table,Type,Criterion,Value,Result;/* how it was found, shown on its own tab */public string Detail="";}
+sealed class IrregularityRow {public string Table,Type,Criterion,Value,Result;/* how it was found, shown on its own tab */public string Detail="";
+ /* the full check for the report (owner, 28 November 2026: "yung sa irregularities sana full check naman with tables diagrams calculations"):
+    a data table, calculation lines {label, formula, result} and a figure */
+ public string[] Head;public float[] Widths;public List<string[]> Rows=new List<string[]>();public List<string[]> Calcs=new List<string[]>();
+ public Action<Graphics,RectangleF> Figure;public float FigureH;public string Caption="";}
 sealed class IrregularityInput {public string Weights="";public double ProjX,PlanX,ProjZ,PlanZ,Opening,FloorArea;public bool InPlane,OutOfPlane,WeakStory;}
 static class StructuralIrregularity {
  static readonly CultureInfo Ci=CultureInfo.InvariantCulture;
  static string F(double v,string f="0.###"){return v.ToString(f,Ci);}
  internal const string Regular="Regular",Irregular="Irregular",NotChecked="Not checked";
  /* storey stiffness k = V / drift: V from the column / brace shears (RedundancyFactor), drift from the mean displacement in the load direction */
+ /* storey stiffness k = storey shear / storey drift (owner, 28 November 2026: "bakit fail sa soft storey sa computation pero pasado sa staad mismo"):
+    storeys run between the real floor levels (beams) from the ground up - not at every column joint (a wall mesh splits columns every 0.5 m)
+    and not the pedestals below the ground; the storey shear is the sum of the shears of the columns and braces cut at mid-storey; the drift is
+    the mean displacement of the floor above minus the floor below. Rows: bottom, top (m from the lowest joint), V, drift, k. */
  internal static List<double[]> Stiffness(StaadModel m,Dictionary<string,double[]> forces,Dictionary<string,double[]> disp,int load,string axis){var res=new List<double[]>();
-  var r=RedundancyFactor.Compute(m,forces,load,load.ToString(Ci),axis,"Moment");double baseH=m.Joints.Values.Min(j=>m.H(j));int comp=axis!="Z"?0:(m.ZUp?1:2);
+  double k=m.ToMetre,baseH=m.Joints.Values.Min(j=>m.H(j)),ground=WindEdgeLoads.GroundLevel(m)/k;int comp=axis!="Z"?0:(m.ZUp?1:2);
+  var floors=WindEdgeLoads.FloorPlans(m).Select(p=>p.Level/k).Where(h=>h>=ground-1e-6).ToList();
+  /* a plane frame has no floor plans: its floors are the levels of its horizontal members */
+  if(floors.Count<2)floors=m.Members.Values.Where(mm=>m.Joints.ContainsKey(mm.A)&&m.Joints.ContainsKey(mm.B)&&Math.Abs(m.H(m.Joints[mm.A])-m.H(m.Joints[mm.B]))<1e-6).Select(mm=>Math.Round(m.H(m.Joints[mm.A]),4)).Where(h=>h>=ground-1e-6).Distinct().ToList();
+  if(floors.Count==0||floors.Min()>ground+1e-6)floors.Insert(0,ground);floors=floors.Distinct().OrderBy(v=>v).ToList();
   Func<double,double> mean=h=>{var v=m.Joints.Values.Where(j=>Math.Abs(m.H(j)-h)<1e-3&&disp.ContainsKey(j.No+"|"+load)).Select(j=>Math.Abs(disp[j.No+"|"+load][comp])).ToList();return v.Count==0?double.NaN:v.Average();};
-  foreach(var st in r.Stories.Where(s=>s.Shear>1e-9&&!double.IsNaN(s.Top))){double hb=baseH+st.Bottom/m.ToMetre,ht=baseH+st.Top/m.ToMetre;double db=Math.Abs(hb-baseH)<1e-6?0:mean(hb),dt=mean(ht);double drift=dt-db;
-   if(double.IsNaN(drift)||drift<=1e-12)continue;res.Add(new[]{st.Bottom,st.Top,st.Shear,drift,st.Shear/drift});}
+  Func<StaadMember,int,double[]> F=(mm,jn)=>{double[] v;return forces.TryGetValue(mm.No+"|"+load+"|"+jn,out v)?v:null;};
+  var ends=m.Members.Values.SelectMany(mm=>new[]{mm.A,mm.B}).Where(no=>m.Joints.ContainsKey(no)).Select(no=>m.H(m.Joints[no])).Distinct().ToList();
+  for(int i=0;i+1<floors.Count;i++){double b0=floors[i],b1=floors[i+1];
+   /* the cut lies in the widest gap between member ends inside the storey, so a column split by a wall mesh (joints every 0.51 m, one of them at
+      mid-storey) is still cut exactly once */
+   var hs=ends.Where(h=>h>b0+1e-6&&h<b1-1e-6).Concat(new[]{b0,b1}).Distinct().OrderBy(h=>h).ToList();double cut=(b0+b1)/2,gap=0;for(int q=0;q+1<hs.Count;q++)if(hs[q+1]-hs[q]>gap){gap=hs[q+1]-hs[q];cut=(hs[q]+hs[q+1])/2;}
+   double shear=0;int n=0;
+   foreach(var mm in m.Members.Values){StaadJoint a,b;if(!m.Joints.TryGetValue(mm.A,out a)||!m.Joints.TryGetValue(mm.B,out b))continue;double lo=Math.Min(m.H(a),m.H(b)),hi=Math.Max(m.H(a),m.H(b));if(!(lo<cut-1e-9&&hi>cut+1e-9))continue;
+    double dv=hi-lo,dh=Math.Sqrt(Math.Pow(m.P1(b)-m.P1(a),2)+Math.Pow(m.P2(b)-m.P2(a),2));var v=F(mm,mm.A)??F(mm,mm.B);if(v==null)continue;n++;
+    if(dh<=0.02*dv)shear+=Math.Sqrt(v[1]*v[1]+v[2]*v[2]);else{double L=Math.Sqrt(dh*dh+dv*dv);shear+=Math.Abs(v[0])*dh/L;}}
+   if(n==0||shear<=1e-9)continue;double db=Math.Abs(b0-ground)<1e-6?0:mean(b0),dt=mean(b1);double drift=dt-(double.IsNaN(db)?0:db);
+   if(double.IsNaN(dt)||drift<=1e-12)continue;res.Add(new[]{(b0-baseH)*k,(b1-baseH)*k,shear,drift,shear/drift});}
   return res;}
  /* plan dimensions of the columns of each storey (lateral system), in metres */
  internal static List<double[]> PlanDimensions(StaadModel m){var cols=m.Members.Values.Select(mm=>new{a=m.Joints[mm.A],b=m.Joints[mm.B]}).Where(c=>{double dv=Math.Abs(m.H(c.b)-m.H(c.a)),dh=Math.Sqrt(Math.Pow(m.P1(c.b)-m.P1(c.a),2)+Math.Pow(m.P2(c.b)-m.P2(c.a),2));return dv>1e-6&&dh<=0.02*dv;}).ToList();
@@ -32,7 +54,7 @@ static class StructuralIrregularity {
  /* re-entrant corners from the floor plans (owner, 26 November 2026: "yung inputs na needed para autocompute na lang sana from staad"): the recesses
     of each plan (outside cells touching the outline box); a corner recess projects by its own size, a recess in a side by its depth and the
     narrower wing beside it */
- internal sealed class ReEntrantResult {public double Level,ProjX,PlanX,ProjZ,PlanZ;public string Where="";public double Worst{get{return PlanX<=0||PlanZ<=0?0:Math.Min(ProjX/PlanX,ProjZ/PlanZ);}}}
+ internal sealed class ReEntrantResult {public double Level,ProjX,PlanX,ProjZ,PlanZ,RX0,RX1,RZ0,RZ1;public string Where="";public double Worst{get{return PlanX<=0||PlanZ<=0?0:Math.Min(ProjX/PlanX,ProjZ/PlanZ);}}}
  internal static ReEntrantResult ReEntrant(List<WindEdgeLoads.FloorPlan> plans,out double area){ReEntrantResult best=null;area=0;
   foreach(var p in plans){int nx=p.Xs.Count-1,nz=p.Zs.Count-1;int i0=nx,i1=-1,j0=nz,j1=-1;for(int i=0;i<nx;i++)for(int j=0;j<nz;j++)if(p.Inside[i,j]){i0=Math.Min(i0,i);i1=Math.Max(i1,i);j0=Math.Min(j0,j);j1=Math.Max(j1,j);}if(i1<0)continue;
    area=Math.Max(area,p.Area);double planX=p.Xs[i1+1]-p.Xs[i0],planZ=p.Zs[j1+1]-p.Zs[j0];var seen=new bool[nx,nz];
@@ -42,7 +64,7 @@ static class StructuralIrregularity {
     if(!(left||right||low||high))continue;/* an enclosed hole is an opening, not a re-entrant corner */
     double dx=p.Xs[a1+1]-p.Xs[a0],dz=p.Zs[b1+1]-p.Zs[b0],px,pz;
     if((left||right)&&(low||high)){px=dx;pz=dz;}else if(low||high){pz=dz;px=Math.Min(p.Xs[a0]-p.Xs[i0],p.Xs[i1+1]-p.Xs[a1+1]);}else{px=dx;pz=Math.Min(p.Zs[b0]-p.Zs[j0],p.Zs[j1+1]-p.Zs[b1+1]);}
-    var r=new ReEntrantResult{Level=p.Level,ProjX=px,PlanX=planX,ProjZ=pz,PlanZ=planZ,Where="recess X "+F(p.Xs[a0],"0.##")+"-"+F(p.Xs[a1+1],"0.##")+", Z "+F(p.Zs[b0],"0.##")+"-"+F(p.Zs[b1+1],"0.##")+" m at "+F(p.Level,"0.##")+" m"};
+    var r=new ReEntrantResult{Level=p.Level,ProjX=px,PlanX=planX,ProjZ=pz,PlanZ=planZ,RX0=p.Xs[a0],RX1=p.Xs[a1+1],RZ0=p.Zs[b0],RZ1=p.Zs[b1+1],Where="recess X "+F(p.Xs[a0],"0.##")+"-"+F(p.Xs[a1+1],"0.##")+", Z "+F(p.Zs[b0],"0.##")+"-"+F(p.Zs[b1+1],"0.##")+" m at "+F(p.Level,"0.##")+" m"};
     if(best==null||r.Worst>best.Worst)best=r;}}
   return best;}
  /* columns that start on a beam instead of a column below (discontinuous vertical elements): out-of-plane offsets / in-plane discontinuity */
@@ -88,7 +110,59 @@ static class StructuralIrregularity {
   add("208-10","4 Out-of-plane offsets","discontinuity in the lateral force path (out-of-plane offsets of vertical elements)",inp.OutOfPlane?"marked present":m==null?"needs the STAAD input (ρ tab)":broken.Count>0?broken.Count+" column(s) start on beams (STAAD model)":"every column continues to the base (STAAD model)",inp.OutOfPlane||broken.Count>0?Irregular:m==null?NotChecked:Regular);rows[rows.Count-1].Detail=broken.Count>0?"Columns that start on a beam:\n"+string.Join("\n",broken):"";
   if(m!=null){int n=NonParallel(m);add("208-10","5 Nonparallel systems","vertical lateral elements not parallel to or symmetric about the major orthogonal axes",n==0?"all beams along X / Z":n+" horizontal members off the X / Z axes",n>0?Irregular:Regular);}
   else add("208-10","5 Nonparallel systems","vertical lateral elements not parallel to the major axes","needs the STAAD input (ρ tab)",NotChecked);
+  Details(rows,m,forces,disp,eq,ax,inp,plans,re,broken);
   return rows;}
+ /* the tables, calculations and figures of each check for the report */
+ static void Details(List<IrregularityRow> rows,StaadModel m,Dictionary<string,double[]> forces,Dictionary<string,double[]> disp,List<StaadPrimary> eq,List<AxResult> ax,IrregularityInput inp,List<WindEdgeLoads.FloorPlan> plans,ReEntrantResult re,List<string> broken){
+  Func<string,IrregularityRow> row=t=>rows.FirstOrDefault(r=>r.Type.StartsWith(t));
+  /* 208-9 type 1: storey stiffness per direction */
+  var soft=row("1 Stiffness");if(soft!=null&&m!=null&&forces!=null&&disp!=null&&eq.Count>0){soft.Head=new[]{"Dir.","Storey (m)","V","Drift","k = V / drift","k / k above","k / avg 3 above","Result"};soft.Widths=new float[]{6,15,11,11,13,13,15,16};
+   var bars=new List<Tuple<string,string,double,bool>>();
+   foreach(var p in eq.GroupBy(e=>e.Axis).Select(g=>g.First())){List<double[]> k;try{k=Stiffness(m,forces,disp,p.No,p.Axis);}catch(Exception){continue;}
+    for(int i=0;i<k.Count;i++){var above=k.Skip(i+1).Take(3).Select(x=>x[4]).ToList();double r1=above.Count>0?k[i][4]/above[0]:double.NaN,r3=above.Count==3?k[i][4]/above.Average():double.NaN;bool bad=r1<0.7||r3<0.8;
+     string st=F(k[i][0],"0.##")+" - "+F(k[i][1],"0.##");soft.Rows.Add(new[]{p.Axis,st,F(k[i][2],"0.#"),F(k[i][3],"0.#####"),F(k[i][4],"0.#"),double.IsNaN(r1)?"top storey":F(r1*100,"0")+" %",double.IsNaN(r3)?"-":F(r3*100,"0")+" %",double.IsNaN(r1)?"-":bad?Irregular:Regular});
+     soft.Calcs.Add(new[]{p.Axis+", storey "+st+" m","k = V / drift = "+F(k[i][2],"0.#")+" / "+F(k[i][3],"0.#####"),F(k[i][4],"0.#")});
+     if(!double.IsNaN(r1))soft.Calcs.Add(new[]{"","k / k above = "+F(k[i][4],"0.#")+" / "+F(above[0],"0.#")+(double.IsNaN(r3)?"":"; k / avg = "+F(k[i][4],"0.#")+" / "+F(above.Average(),"0.#")),F(r1*100,"0")+" %"+(double.IsNaN(r3)?"":" / "+F(r3*100,"0")+" %")+(bad?" < 70 % / 80 %":" ≥ 70 % / 80 %")});
+     bars.Add(Tuple.Create(p.Axis,st,k[i][4],bad));}}
+   soft.Caption="Storey stiffness k per direction (bars to scale within each direction; red = soft storey). V = sum of the column / brace shears cut at mid-storey (kN), drift = mean floor displacement above minus below (units of the STAAD output).";
+   if(m.Plates)soft.Calcs.Add(new[]{"Note","the model has plate (wall) elements: their shear is not in the member end forces, so V and k here are of the columns and braces only","compare with STAAD CHECK SOFT STORY"});
+   if(bars.Count>0){var b=bars;soft.FigureH=40+18*b.Count;soft.Figure=(g,rc)=>{var axes=b.Select(x=>x.Item1).Distinct().ToList();float y=rc.Top+4;using(var f=new Font("Segoe UI",7f))using(var fb=new Font("Segoe UI",7f,FontStyle.Bold)){
+     foreach(var a in axes){var part=b.Where(x=>x.Item1==a).ToList();double max=part.Max(x=>x.Item3);g.DrawString("Direction "+a,fb,Brushes.Black,rc.Left,y);y+=14;
+      foreach(var x in part.AsEnumerable().Reverse()){float w=(float)((rc.Width-200)*x.Item3/max);using(var br=new SolidBrush(x.Item4?Color.FromArgb(214,80,72):Color.FromArgb(70,140,150))){g.FillRectangle(br,rc.Left+110,y,Math.Max(1,w),11);}
+       g.DrawString(x.Item2+" m",f,Brushes.Black,rc.Left,y-1);g.DrawString(F(x.Item3,"0.#"),f,Brushes.Black,rc.Left+114+w,y-1);y+=16;}y+=4;}}};}}
+  /* 208-9 type 2: weights */
+  var wt=row("2 Weight");if(wt!=null){var w=inp.Weights.Replace("\r","").Split('\n').Select(l=>l.Split(new[]{';',',','\t',' '},StringSplitOptions.RemoveEmptyEntries)).Where(t=>t.Length>=2).Select(t=>{double h,v;return double.TryParse(t[0],NumberStyles.Float,Ci,out h)&&double.TryParse(t[1],NumberStyles.Float,Ci,out v)?new[]{h,v}:null;}).Where(x=>x!=null).OrderBy(x=>x[0]).ToList();
+   if(w.Count>=2){wt.Head=new[]{"Level (m)","Weight (kN)","Ratio to the storey below","Ratio to the storey above"};wt.Widths=new float[]{18,20,31,31};
+    for(int i=0;i<w.Count;i++){string dn=i>0?F(w[i][1]/w[i-1][1]*100,"0")+" %":"-",up=i+1<w.Count?F(w[i][1]/w[i+1][1]*100,"0")+" %":"-";wt.Rows.Add(new[]{F(w[i][0],"0.##"),F(w[i][1],"0.#"),dn,up});}
+    for(int i=0;i+1<w.Count;i++){double hi=Math.Max(w[i][1],w[i+1][1]),lo=Math.Min(w[i][1],w[i+1][1]);wt.Calcs.Add(new[]{F(w[i][0],"0.##")+" / "+F(w[i+1][0],"0.##")+" m","W max / W min = "+F(hi,"0.#")+" / "+F(lo,"0.#"),F(hi/lo*100,"0")+" %"+(hi>1.5*lo?" > 150 %":" ≤ 150 %")});}}}
+  /* 208-9 type 3: plan dimensions per storey */
+  var vg=row("3 Vertical geometric");if(vg!=null&&m!=null){var d=PlanDimensions(m);if(d.Count>0){vg.Head=new[]{"Storey from (m)","X (m)","Z (m)","X / X below","Z / Z below"};vg.Widths=new float[]{20,20,20,20,20};
+    for(int i=0;i<d.Count;i++)vg.Rows.Add(new[]{F(d[i][0],"0.##"),F(d[i][1],"0.##"),F(d[i][2],"0.##"),i>0&&d[i-1][1]>0?F(d[i][1]/d[i-1][1]*100,"0")+" %":"-",i>0&&d[i-1][2]>0?F(d[i][2]/d[i-1][2]*100,"0")+" %":"-"});
+    for(int i=0;i+1<d.Count;i++)foreach(int c in new[]{1,2}){double hi=Math.Max(d[i][c],d[i+1][c]),lo=Math.Min(d[i][c],d[i+1][c]);if(lo<=0)continue;vg.Calcs.Add(new[]{(c==1?"X":"Z")+", storeys at "+F(d[i][0],"0.##")+" / "+F(d[i+1][0],"0.##")+" m","larger / smaller = "+F(hi,"0.##")+" / "+F(lo,"0.##"),F(hi/lo*100,"0")+" %"+(hi>1.3*lo?" > 130 %":" ≤ 130 %")});}
+    var dd=d;vg.FigureH=150;vg.Caption="Elevation: plan dimension X of the lateral system per storey (to scale).";
+    vg.Figure=(g,rc)=>{double mx=dd.Max(x=>x[1]);float h=(rc.Height-20)/dd.Count;using(var f=new Font("Segoe UI",7f))for(int i=0;i<dd.Count;i++){float w=(float)((rc.Width-120)*dd[i][1]/mx);float y=rc.Bottom-10-(i+1)*h;var r=new RectangleF(rc.Left+100+(rc.Width-120-w)/2,y,w,h-3);using(var br=new SolidBrush(Color.FromArgb(225,235,236)))g.FillRectangle(br,r);g.DrawRectangle(Pens.SlateGray,r.X,r.Y,r.Width,r.Height);g.DrawString(F(dd[i][0],"0.##")+" m: "+F(dd[i][1],"0.##")+" m",f,Brushes.Black,rc.Left,y+h/2-6);}};}}
+  /* 208-10 type 1: torsion per level */
+  var tor=row("1 Torsional");if(tor!=null&&ax!=null&&ax.Count>0){tor.Head=new[]{"Load case","Level (m)","d edge 1","d edge 2","dmax","davg","dmax / davg","Result"};tor.Widths=new float[]{20,10,11,11,11,11,12,14};
+   foreach(var r in ax)foreach(var l in r.Levels)tor.Rows.Add(new[]{r.Case,F(l.Level,"0.##"),F(l.D1),F(l.D2),F(l.DMax),F(l.DAvg),F(l.Ratio),l.Ratio>1.2?Irregular:Regular});
+   var gv=ax.SelectMany(r=>r.Levels.Select(l=>new{r,l})).OrderByDescending(x=>x.l.Ratio).First();
+   tor.Calcs.Add(new[]{"Governing: "+gv.r.Case+", "+F(gv.l.Level,"0.##")+" m","davg = (d1 + d2) / 2 = ("+F(gv.l.D1)+" + "+F(gv.l.D2)+") / 2",F(gv.l.DAvg)});
+   tor.Calcs.Add(new[]{"","dmax / davg = "+F(gv.l.DMax)+" / "+F(gv.l.DAvg),F(gv.l.Ratio)+(gv.l.Ratio>1.2?" > 1.2":" ≤ 1.2")});}
+  /* 208-10 type 2: re-entrant corner with its plan */
+  var rc0=row("2 Re-entrant");if(rc0!=null&&re!=null&&re.PlanX>0&&re.PlanZ>0&&inp.PlanX<=0){rc0.Calcs.Add(new[]{"X","projection / plan = "+F(re.ProjX,"0.##")+" / "+F(re.PlanX,"0.##"),F(re.ProjX/re.PlanX*100,"0")+" %"});
+   rc0.Calcs.Add(new[]{"Z","projection / plan = "+F(re.ProjZ,"0.##")+" / "+F(re.PlanZ,"0.##"),F(re.ProjZ/re.PlanZ*100,"0")+" %"});
+   rc0.Calcs.Add(new[]{"","both projections > 15 % ?",re.Worst>0.15?"yes - "+Irregular:"no - "+Regular});
+   var pl=plans.FirstOrDefault(p=>Math.Abs(p.Level-re.Level)<1e-6);if(pl!=null){var rr=re;rc0.FigureH=200;rc0.Caption="Floor plan at "+F(re.Level,"0.##")+" m (grey) and the recess checked (orange).";rc0.Figure=(g,rc)=>DrawPlan(g,rc,pl,rr);}}
+  /* 208-10 type 3: diaphragm */
+  var dia=row("3 Diaphragm");if(dia!=null){double area=inp.FloorArea>0?inp.FloorArea:plans.Count>0?plans.Max(p=>p.Area):0;if(area>0)dia.Calcs.Add(new[]{"Openings","open area / gross area = "+F(inp.Opening,"0.##")+" / "+F(area,"0.##"),F(inp.Opening/area*100,"0")+" %"+(inp.Opening>0.5*area?" > 50 %":" ≤ 50 %")});}
+  /* 208-10 type 4: columns on beams */
+  var oop=row("4 Out-of-plane");if(oop!=null&&broken.Count>0){oop.Head=new[]{"Column that starts on a beam (STAAD model)"};oop.Widths=new float[]{100};foreach(var b in broken)oop.Rows.Add(new[]{b});}
+  /* 208-10 type 5: nonparallel */
+  var np=row("5 Nonparallel");if(np!=null&&m!=null){int n=NonParallel(m);np.Calcs.Add(new[]{"Horizontal members off the X / Z axes","plan angle not a multiple of 90° (± 2°)",n+(n>0?" - "+Irregular:" - "+Regular)});}}
+ static void DrawPlan(Graphics g,RectangleF rc,WindEdgeLoads.FloorPlan p,ReEntrantResult re){double x0=p.Xs.First(),x1=p.Xs.Last(),z0=p.Zs.First(),z1=p.Zs.Last();float s=(float)Math.Min((rc.Width-20)/(x1-x0),(rc.Height-30)/(z1-z0));
+  Func<double,float> X=x=>rc.Left+10+(float)((x-x0)*s);Func<double,float> Z=z=>rc.Top+10+(float)((z-z0)*s);
+  using(var grey=new SolidBrush(Color.FromArgb(214,220,222)))for(int i=0;i+1<p.Xs.Count;i++)for(int j=0;j+1<p.Zs.Count;j++)if(p.Inside[i,j])g.FillRectangle(grey,X(p.Xs[i]),Z(p.Zs[j]),X(p.Xs[i+1])-X(p.Xs[i])+0.5f,Z(p.Zs[j+1])-Z(p.Zs[j])+0.5f);
+  using(var o=new SolidBrush(Color.FromArgb(150,230,140,40)))g.FillRectangle(o,X(re.RX0),Z(re.RZ0),X(re.RX1)-X(re.RX0),Z(re.RZ1)-Z(re.RZ0));
+  g.DrawRectangle(Pens.DimGray,X(x0),Z(z0),X(x1)-X(x0),Z(z1)-Z(z0));using(var f=new Font("Segoe UI",7f))g.DrawString("X →   Z ↓   projections X "+F(re.ProjX,"0.##")+" m of "+F(re.PlanX,"0.##")+" m, Z "+F(re.ProjZ,"0.##")+" m of "+F(re.PlanZ,"0.##")+" m",f,Brushes.Black,rc.Left+10,Z(z1)+4);}
  /* the suggested structure class: C irregular (any irregularity), B regular but unsymmetrical (dmax / davg over 1.05), A regular and symmetrical */
  internal static string Suggest(List<IrregularityRow> rows,List<AxResult> ax,out string why){
   var irr=rows.Where(r=>r.Result.StartsWith(Irregular)).ToList();if(irr.Count>0){why="irregular: "+string.Join(", ",irr.Select(r=>"Table "+r.Table+" type "+r.Type.Split(' ')[0]));return "C";}

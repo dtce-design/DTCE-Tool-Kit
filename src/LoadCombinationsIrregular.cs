@@ -74,6 +74,15 @@ partial class LoadCombinationsForm {
  bool IrregularReport(RichReport rep,int no){string text;var rows=Irregularities(out text);if(rows.All(r=>r.Result==StructuralIrregularity.NotChecked||r.Value.StartsWith("marked absent")))return false;
   rep.Heading(no+"  STRUCTURAL IRREGULARITIES (Tables 208-9 and 208-10)").Paragraph("Vertical irregularities of Table 208-9 and plan irregularities of Table 208-10, from the STAAD model, the member end forces and the joint displacements of the EQ cases (storey stiffness k = storey shear / storey drift), and the designer's inputs where marked. A structure with any irregularity is taken as irregular (structure C: orthogonal effects); a regular structure with dmax / davg over 1.05 as unsymmetrical (structure B: natural and accidental torsion).");
   rep.Table(new[]{"Table","Irregularity","Criterion","Value","Result"},rows.Select(r=>new[]{r.Table,r.Type,r.Criterion,r.Value,r.Result}),new float[]{8,22,26,28,16});
-  rep.Paragraph(text+" Used in the combinations: "+CaseSet(Value("Structure").Substring(0,1))+".");return true;}
+  rep.Paragraph(text+" Used in the combinations: "+CaseSet(Value("Structure").Substring(0,1))+".");
+  /* the full check of each irregularity: criterion, data table, calculations, figure, result (owner, 28 November 2026: "yung sa irregularities sana
+     full check naman with tables diagrams calculations") */
+  int sub=1;foreach(var r in rows){rep.Paragraph(no+"."+(sub++)+"  Table "+r.Table+" type "+r.Type,false,true).Paragraph("Criterion: "+r.Criterion+".");
+   if(r.Head!=null&&r.Rows.Count>0)rep.Table(r.Head,r.Rows,r.Widths??r.Head.Select(h=>1f).ToArray(),x=>x.Length>0&&x[x.Length-1]==StructuralIrregularity.Irregular?(System.Drawing.Color?)System.Drawing.Color.FromArgb(255,235,232):null);
+   foreach(var c in r.Calcs)rep.Calc("",c[0],c[1],c[2]);
+   if(r.Figure!=null)rep.Figure(r.FigureH,RichReport.Raster(r.Figure),r.Caption);
+   if(r.Head==null&&r.Calcs.Count==0)rep.Paragraph("Value: "+r.Value+".");
+   rep.Paragraph("Result: "+r.Result+".",false,true);}
+  return true;}
 }
 }

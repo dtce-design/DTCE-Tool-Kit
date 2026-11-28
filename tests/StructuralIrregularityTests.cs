@@ -12,6 +12,14 @@ class StructuralIrregularityTests {
   var disp=TorsionAmplification.ReadDisplacements(d.ToString());var k=StructuralIrregularity.Stiffness(model,forces,disp,1,"X");
   Check(k.Count==3&&Math.Abs(k[0][2]-140)<1e-6&&Math.Abs(k[0][3]-10)<1e-9&&Math.Abs(k[1][3]-3)<1e-9,"storey shear and drift: "+string.Join(" | ",k.Select(x=>x[2]+"/"+x[3])));
   var eq=new List<StaadPrimary>{new StaadPrimary{No=1,Title="EQ+X",Kind="E",Axis="X",Sign=1}};
+  /* owner's model (28 November 2026, "bakit fail sa soft storey sa computation pero pasado sa staad"): pedestals below the ground beams and a column
+     split by a wall mesh (a joint at mid-storey) give the same three storeys; equal stiffness 20 / 20 / 20 is regular */
+  {var s2=new StringBuilder("UNIT METER KN\nJOINT COORDINATES\n1 0 -1.5 0;2 6 -1.5 0;3 0 0 0;4 6 0 0;5 0 3.5 0;6 6 3.5 0;7 0 7 0;8 6 7 0;9 0 10.5 0;10 6 10.5 0;11 0 1.75 0;12 0 0.875 0;\nMEMBER INCIDENCES\n");
+   s2.Append("1 1 3;2 2 4;3 3 12;4 12 11;5 11 5;6 4 6;7 5 7;8 6 8;9 7 9;10 8 10;11 3 4;12 5 6;13 7 8;14 9 10;\n");var m2=RedundancyFactor.ReadModel(s2.ToString());
+   var f2=new StringBuilder();foreach(var c in new[]{new[]{1,1,3,30},new[]{2,2,4,30},new[]{3,3,12,30},new[]{4,12,11,30},new[]{5,11,5,30},new[]{6,4,6,30},new[]{7,5,7,20},new[]{8,6,8,20},new[]{9,7,9,10},new[]{10,8,10,10}}){f2.AppendLine(c[0]+" 1 "+c[1]+" 100 "+c[3]+" 0 0 0 0");f2.AppendLine("  "+c[2]+" -100 "+(-c[3])+" 0 0 0 0");}
+   var d2=new StringBuilder();foreach(var j in new[]{new[]{5.0,3.0},new[]{6.0,3.0},new[]{7.0,5.0},new[]{8.0,5.0},new[]{9.0,6.0},new[]{10.0,6.0},new[]{3.0,0.0},new[]{4.0,0.0}})d2.AppendLine((int)j[0]+"\t1 EQ+X\t"+j[1]+"\t0\t0\t0\t0\t0\t0");
+   var k2=StructuralIrregularity.Stiffness(m2,RedundancyFactor.ReadForces(f2.ToString()),TorsionAmplification.ReadDisplacements(d2.ToString()),1,"X");
+   Check(k2.Count==3&&Math.Abs(k2[0][2]-60)<1e-6&&Math.Abs(k2[0][4]-20)<1e-6&&Math.Abs(k2[1][4]-20)<1e-6&&Math.Abs(k2[2][4]-20)<1e-6,"three storeys from the ground up, the split column cut once: "+string.Join(" | ",k2.Select(x=>x[0]+"-"+x[1]+" V "+x[2]+" k "+x[4])));}
   var rows=StructuralIrregularity.Check(model,forces,disp,eq,null,new IrregularityInput{Weights="3.5;900\n7;880\n10.5;400"});
   Check(rows.Count==10,"5 vertical + 5 plan rows");Check(rows[0].Result.StartsWith("Irregular")&&rows[0].Result.Contains("0 m"),"soft storey at the ground storey: "+rows[0].Value);
   Check(rows[1].Result=="Regular","a lighter roof is excepted (880 vs 400)");Check(rows[2].Result=="Regular","same plan every storey");Check(rows[9].Result=="Regular","beams along X / Z");
