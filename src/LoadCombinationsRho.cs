@@ -25,7 +25,11 @@ partial class LoadCombinationsForm {
   foreach(var h in new[]{"Load case","Story from (m)","to (m)","Story shear","Governing element","Element shear","r_i","≤ 2/3 h"})rhoGrid.Columns.Add(h,h);rhoGrid.Columns[4].FillWeight=330;GridAppearance.Apply(rhoGrid);
   var body=new Panel{Dock=DockStyle.Fill};body.Controls.Add(rhoGrid);body.Controls.Add(rhoStatus);body.Controls.Add(pastes);body.Controls.Add(bar);if(tab!=null){tab.Controls.Clear();tab.Controls.Add(body);}
   go.Click+=(s,e)=>ComputeRho();rhoTimer.Tick+=(s,e)=>{rhoTimer.Stop();if(!IsDisposed)ComputeRho();};
-  foreach(Control c in new Control[]{model,forces,walls,system,zone,area})c.TextChanged+=(s,e)=>{if(Restoring)return;rhoTimer.Stop();rhoTimer.Start();};Disposed+=(s,e)=>rhoTimer.Dispose();}
+  foreach(Control c in new Control[]{model,forces,walls,system,zone,area})c.TextChanged+=(s,e)=>{if(Restoring)return;rhoTimer.Stop();rhoTimer.Start();};Disposed+=(s,e)=>rhoTimer.Dispose();
+  /* automatic also from the model of the Primary loads tab and whenever the ρ tab is shown (owner, 28 November 2026: "automatic ba ito?" -
+     before, only the boxes of this tab started it) */
+  HandleCreated+=(s,e)=>{foreach(var key in new[]{"StaadInput","StaadBeams"}){Control pasted;if(Inputs.TryGetValue(key,out pasted))pasted.TextChanged+=(s1,e1)=>{if(Restoring)return;rhoTimer.Stop();rhoTimer.Start();};}};
+  if(tab!=null)tab.VisibleChanged+=(s,e)=>{if(tab.Visible&&!Restoring&&!IsDisposed)ComputeRho();};}
  static readonly CultureInfo Ci=CultureInfo.InvariantCulture;
  static string Fr(double v,string f="0.###"){return v.ToString(f,Ci);}
  internal void ComputeRho(){rhoGrid.Rows.Clear();rhoFound=double.NaN;bool walls=Value("RhoSystem").StartsWith("Shear");if(walls?Value("RhoWalls").Trim()=="":Value("RhoForces").Trim()==""){rhoStatus.ForeColor=PowTheme.Ink;rhoStatus.Text="After the STAAD run, paste the member end forces; ρ is computed with the model of the Primary loads tab and put into Factors automatically (ρ = 1.0 until then).";return;}

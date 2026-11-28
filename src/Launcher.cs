@@ -125,33 +125,26 @@ class LauncherForm:Form {
  void AddFormatterEntry(string title,Action open){formatterLoaders.Add(title,open);formatterTabs.TabPages.Add(new TabPage(title));}
  /* Design Loads: Wind, Earthquake and Load Combinations as sub tabs of one main tab */
  void AddLoadsGroup(){var group=new TabPage(DesignLoads);group.Controls.Add(loadTabs);designTabs.TabPages.Add(group);
-  /* owner (27 November 2026: "paki ayos muna yung workflow sa design loads"; chose "Step-by-step na gabay"): the first sub tab says what to do
-     in each sheet, in order, with a button to open it and the state of the links between the sheets */AddLoadEntry(LoadsSteps,ShowLoadsSteps);
-  /* owner, 26 November 2026: live loads of government buildings per space *//* owner: "ANOTHER SUB TAB FOR DEAD LOAD" */AddLoadEntry("Dead Loads (NSCP 2015)",()=>OpenDesign("Dead Loads (NSCP 2015)",()=>new DeadLoadsForm()));AddLoadEntry("Live Loads (NSCP 2015)",()=>OpenDesign("Live Loads (NSCP 2015)",()=>new LiveLoadsForm()));AddLoadEntry("Wind Load (NSCP 2015)",()=>OpenDesign("Wind Load (NSCP 2015)",()=>new WindDesignForm()));AddLoadEntry("Earthquake Load & RSA Curve Builder",()=>OpenDesign("Earthquake Load & RSA Curve Builder",()=>new RsaCurveForm()));AddLoadEntry("Load Combinations (NSCP 2015)",()=>OpenDesign("Load Combinations (NSCP 2015)",()=>new LoadCombinationsForm()));
+  /* owner (28 November 2026): the Primary loads and Settings of Load Combinations replace the steps page (v10.0.59) as the first sub tabs */AddLoadEntry(LoadsPrimary,()=>OpenLcPart(LoadsPrimary,"Primary loads"));AddLoadEntry(LoadsSettings,()=>OpenLcPart(LoadsSettings,"Settings"));
+  /* owner, 26 November 2026: live loads of government buildings per space *//* owner: "ANOTHER SUB TAB FOR DEAD LOAD" */AddLoadEntry("Dead Loads (NSCP 2015)",()=>OpenDesign("Dead Loads (NSCP 2015)",()=>new DeadLoadsForm()));AddLoadEntry("Live Loads (NSCP 2015)",()=>OpenDesign("Live Loads (NSCP 2015)",()=>new LiveLoadsForm()));AddLoadEntry("Wind Load (NSCP 2015)",()=>OpenDesign("Wind Load (NSCP 2015)",()=>new WindDesignForm()));AddLoadEntry("Earthquake Load & RSA Curve Builder",()=>OpenDesign("Earthquake Load & RSA Curve Builder",()=>new RsaCurveForm()));AddLoadEntry(LcTitle,()=>{OpenDesign(LcTitle,()=>new LoadCombinationsForm());Form lc;if(designModules.TryGetValue(LcTitle,out lc))MoveLcParts(lc);});
   /* owner (27 November 2026): "calculation report sa tabi ng load combo, nandon lahat ng design loads" */AddLoadEntry(LoadsReport,ShowLoadsReport);}
- const string LoadsReport="Calculation report",LoadsSteps="Steps (how to use Design Loads)";
- /* the steps page: one card per step - what to do, what passes on to the next sheet, an Open button and the link state */
- void ShowLoadsSteps(){var page=loadTabs.TabPages.Cast<TabPage>().First(p=>p.Text==LoadsSteps);page.Controls.Clear();page.AutoScroll=true;
-  var list=new FlowLayoutPanel{Dock=DockStyle.Fill,FlowDirection=FlowDirection.TopDown,WrapContents=false,AutoScroll=true,Padding=new Padding(16,12,16,16),BackColor=Color.White};
-  Func<string,string> when=name=>{var l=DesignLoadsLink.Get(name);return l!=null?"done":"";};var eq=EarthquakeLink.Load();
-  var steps=new[]{
-   new[]{"1","Dead Loads (NSCP 2015)","Type the floor, roof, wall and elevator components. Copy the STAAD loads it gives into the dead reference load of your STAAD model (DEFINE REFERENCE LOADS, LOADTYPE Dead, with the self weight). The DL / LL1 / LL2 cases of Load Combinations point at your reference loads (REFERENCE LOAD R1, R2, R3) by themselves.",""},
-   new[]{"2","Live Loads (NSCP 2015)","Check the spaces of the building. Each space is LL1 (f1 = 0.5) or LL2 (f1 = 1.0); the cases go to Load Combinations by themselves.",when("live-loads")!=""?"Linked to Load Combinations":"Not checked yet"},
-   new[]{"3","Wind Load (NSCP 2015)","Site, exposure, Kzt and the building inputs, then Calculate. Copy the DEFINE WIND LOAD block into STAAD, after DEFINE REFERENCE LOADS / FLOOR DIAPHRAGM. The wind types go to Load Combinations.",when("wind-staad")!=""?"Linked to Load Combinations":"Not calculated yet"},
-   new[]{"4","Earthquake Load & RSA Curve Builder","Zone, soil, system and levels, then Calculate (Ca, I, R and Omega0 go to Load Combinations). Type your own DEFINE UBC LOAD (zone, I, R, soil, NA / NV, seismic weight) in STAAD above the primary loads.",eq!=null?"Calculated "+eq.Saved.ToString("dd MMM HH:mm",System.Globalization.CultureInfo.InvariantCulture):"Not calculated yet"},
-   new[]{"5","Load Combinations (NSCP 2015)","Primary loads tab: paste the STAAD model (.std, or the Nodes and Beams tables). Choose the structure class (A / B / C) in Settings. STAAD output tab: copy everything and paste it in STAAD after your own definitions (DEFINE WIND LOAD, DEFINE UBC LOAD), from the first LOAD to the end of the file.",when("load-combinations")!=""?"Output made":"Not opened yet"},
-   new[]{"6","Load Combinations (NSCP 2015)","Run STAAD (one PERFORM ANALYSIS, so RCDC can read the results). Paste the EQ member end forces in Redundancy factor ρ and press Use ρ; paste the joint displacements of LOAD 1 to 8 in Torsional amplification Ax. When ρ or Ax change, copy the STAAD output again and run STAAD again.",""},
-   new[]{"7",LoadsReport,"Refresh the report: contents and the reports of all five sheets in one document. Print preview or Export PDF.",""}};
-  list.Controls.Add(new Label{Text="Design Loads - do the steps in this order. Each sheet passes its results to the next by itself.",AutoSize=true,MaximumSize=new Size(900,0),Font=new Font(Font.FontFamily,11f,FontStyle.Bold),ForeColor=PowTheme.Ink,Margin=new Padding(0,0,0,12)});
-  foreach(var st in steps){var card=new TableLayoutPanel{ColumnCount=3,RowCount=2,AutoSize=true,Width=920,Margin=new Padding(0,0,0,10),Padding=new Padding(10),BackColor=Color.FromArgb(246,247,249)};
-   card.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,44));card.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,690));card.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-   card.Controls.Add(new Label{Text=st[0],Font=new Font(Font.FontFamily,16f,FontStyle.Bold),ForeColor=PowTheme.Teal,AutoSize=true},0,0);card.SetRowSpan(card.GetControlFromPosition(0,0),2);
-   card.Controls.Add(new Label{Text=st[1]+(st[3]!=""?"   -   "+st[3]:""),Font=new Font(Font.FontFamily,10f,FontStyle.Bold),ForeColor=PowTheme.Ink,AutoSize=true,MaximumSize=new Size(680,0)},1,0);
-   card.Controls.Add(new Label{Text=st[2],AutoSize=true,MaximumSize=new Size(680,0),ForeColor=PowTheme.Ink,Margin=new Padding(3,4,3,0)},1,1);
-   string target=st[1];var open=new Button{Text="Open",AutoSize=true,Height=34};open.Click+=(s2,e2)=>{var tab=loadTabs.TabPages.Cast<TabPage>().FirstOrDefault(p=>p.Text==target);if(tab!=null)loadTabs.SelectedTab=tab;};
-   card.Controls.Add(open,2,0);list.Controls.Add(card);}
-  var refresh=new Button{Text="Refresh steps",AutoSize=true,Height=34,Margin=new Padding(0,4,0,0)};refresh.Click+=(s2,e2)=>ShowLoadsSteps();list.Controls.Add(refresh);
-  page.Controls.Add(list);}
+ const string LoadsReport="Calculation report",LoadsPrimary="Primary loads (Load Combinations)",LoadsSettings="Settings (Load Combinations)";
+ /* Primary loads and Settings of the Load Combinations sheet as the first sub tabs of Design Loads (owner, 28 November 2026: "yung steps sa
+    design load alisin mo, ilipat mo na lang doon yung primary loads ng load combo, pati settings"); the pages stay part of the Load
+    Combinations sheet (its inputs, saving and report), only shown here */
+ const string LcTitle="Load Combinations (NSCP 2015)";
+ void MoveLcParts(Form form){if(form==null||form.IsDisposed)return;
+   foreach(var cap in new[]{LoadsPrimary,LoadsSettings}){var host=loadTabs.TabPages.Cast<TabPage>().First(p=>p.Text==cap);if(host.Tag==form)continue;
+    var sheet=form as DesignSheetForm;var taken=sheet==null?null:sheet.TakePage(cap==LoadsPrimary?"Primary loads":"Settings");if(taken==null)continue;
+    host.Controls.Clear();host.Tag=form;host.BackColor=taken.BackColor;host.Padding=taken.Padding;host.AutoScroll=taken.AutoScroll;foreach(var c in taken.Controls.Cast<Control>().ToList()){taken.Controls.Remove(c);host.Controls.Add(c);ViewOnly.AddPart(form,c);}taken.Dispose();
+    var h=host;form.Disposed+=(s,e)=>{if(!h.IsDisposed&&h.Tag==s){h.Controls.Clear();h.Tag=null;}};}
+  }
+ void OpenLcPart(string caption,string section){var page=loadTabs.TabPages.Cast<TabPage>().First(p=>p.Text==caption);
+  try{var use=Authorize(DesignProgram(LcTitle));if(use==Use.None)return;if(use==Use.Full&&!ProjectReady())return;Form form;designModules.TryGetValue(LcTitle,out form);form=Fresh(form,use,()=>new LoadCombinationsForm());designModules[LcTitle]=form;
+   var lcPage=loadTabs.TabPages.Cast<TabPage>().FirstOrDefault(p=>p.Text==LcTitle);if(lcPage!=null&&lcPage.Tag!=form){lcPage.Controls.Clear();lcPage.Tag=form;if(form.TopLevel){form.TopLevel=false;form.FormBorderStyle=FormBorderStyle.None;}form.MinimumSize=Size.Empty;form.MaximumSize=Size.Empty;form.Dock=DockStyle.Fill;lcPage.Controls.Add(form);form.Show();}
+   MoveLcParts(form);
+   ShowGroup(designTabs,"Design Sheets");}
+  catch(Exception ex){MessageBox.Show(this,ex.Message,"Design Sheet");}}
  CalculationReportView loadsView;Label loadsStatus;bool loadsBuilding;
  void ShowLoadsReport(){var page=loadTabs.TabPages.Cast<TabPage>().First(p=>p.Text==LoadsReport);
   if(loadsView==null||loadsView.IsDisposed){page.Controls.Clear();loadsView=new CalculationReportView{Dock=DockStyle.Fill};loadsStatus=new Label{Dock=DockStyle.Top,Height=30,Padding=new Padding(10,6,10,0),ForeColor=PowTheme.Ink};

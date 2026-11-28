@@ -55,9 +55,14 @@ class CalculationReportView:ScrollableControl {
  bool laying;void Relayout(){if(laying||!IsHandleCreated||!Visible)return;laying=true;try{LayoutPages();}finally{laying=false;}}
  protected override void OnResize(EventArgs e){base.OnResize(e);Relayout();}
  protected override void OnClientSizeChanged(EventArgs e){base.OnClientSizeChanged(e);Relayout();}
- protected override void OnVisibleChanged(EventArgs e){base.OnVisibleChanged(e);Relayout();}
- protected override void OnParentVisibleChanged(EventArgs e){base.OnParentVisibleChanged(e);Relayout();}
- Form hooked;protected override void OnHandleCreated(EventArgs e){base.OnHandleCreated(e);var form=FindForm();if(form!=null&&form!=hooked){if(hooked!=null)hooked.Activated-=FormActivated;hooked=form;form.Activated+=FormActivated;}Relayout();}
+ protected override void OnVisibleChanged(EventArgs e){base.OnVisibleChanged(e);HookTop();Relayout();}
+ protected override void OnParentVisibleChanged(EventArgs e){base.OnParentVisibleChanged(e);HookTop();Relayout();}
+ /* the window itself, not the design sheet hosted in it: coming back from another app activates only the top-level window (owner, 28 November
+    2026: "kapag lumilipat ako ng ibang window na ibang app bukod sa tool kit") */
+ Form hooked;void HookTop(){var form=TopLevelControl as Form??FindForm();if(form==hooked)return;if(hooked!=null)hooked.Activated-=FormActivated;hooked=form;if(form!=null)form.Activated+=FormActivated;}
+ protected override void OnHandleCreated(EventArgs e){base.OnHandleCreated(e);HookTop();Relayout();}
+ protected override void OnParentChanged(EventArgs e){base.OnParentChanged(e);HookTop();}
+ protected override void OnGotFocus(EventArgs e){base.OnGotFocus(e);Relayout();}
  void FormActivated(object sender,EventArgs e){Relayout();}
  protected override void OnScroll(ScrollEventArgs e){base.OnScroll(e);Invalidate();}
  /* the mouse wheel scrolls without OnScroll: repaint the whole view, or the shifted pages show cut / blank parts (owner, 23 November
