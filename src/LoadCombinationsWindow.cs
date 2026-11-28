@@ -194,7 +194,7 @@ partial class LoadCombinationsForm:DesignSheetForm {
    new[]{"Seismic drift","envelope of the primary EQ cases (1.0 Eh), no combinations"},new[]{"Roof live load (LLR)",On("RoofLive")?"NSCP 2015 205.4 / Table 205-3 on the STAAD model: "+(roofLiveNote==""?"-":roofLiveNote):"not used"},new[]{"Wind load cases","NSCP 2015 Fig. 207B.4-8 Cases 1-4 (directional procedure); "+(TorsionExempt()?"":"")+torsionWhy},new[]{"Ca, I, Ω0",On("EqLinked")?(eqLinkNote==""?"from the Earthquake Load sheet":eqLinkNote):"typed"}});
   bool hasRho=Value("RhoForces").Trim()!=""||Value("RhoModel").Trim()!=""||Value("RhoWalls").Trim()!="";int sec=2;
   rep.Heading(sec+++"  PRIMARY LOAD CASES").Table(new[]{"No.","Title (STAAD)","Used as"},list.Select(p=>new[]{p.No.ToString(),p.Title,Used(p.Kind)+(p.Kind=="L"?", f1 = "+StaadCombinations.F(s.F1(p)):"")}),new float[]{12,40,48});
-  var rpt=StaadCombinations.RepeatCases(all);if(rpt.Count>0)rep.Paragraph("Orthogonal seismic load cases (REPEAT LOAD, Load Type Seismic)",false,true).Table(new[]{"No.","Title","Repeat load"},rpt.Select(r=>new[]{r.No.ToString(),r.Title,string.Join("  ",r.Repeat.Select(t=>t.Key.No+" x "+StaadCombinations.F(t.Value)))}),new float[]{12,44,44});
+  var rpt=StaadCombinations.RepeatCases(all);if(rpt.Count>0)rep.Paragraph("Orthogonal seismic load cases (REPEAT LOAD, Load Type Seismic-H)",false,true).Table(new[]{"No.","Title","Repeat load"},rpt.Select(r=>new[]{r.No.ToString(),r.Title,string.Join("  ",r.Repeat.Select(t=>t.Key.No+" x "+StaadCombinations.F(t.Value)))}),new float[]{12,44,44});
   if(hasRho){RhoReport(rep,sec,s.Rho);sec++;}
   if(Value("AxDisplacements").Trim()!=""){AxReport(rep,sec);sec++;}
   if(IrregularReport(rep,sec))sec++;

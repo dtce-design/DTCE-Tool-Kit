@@ -213,7 +213,7 @@ static class StaadCombinations {
   if(s.Drift)b.Append("\n* Drift: wind D + 0.5L + ").Append(F(s.DriftWind)).Append("W; seismic: the primary EQ cases 1.0 Eh, no combinations\n* (dS, Section 208.6.4; dM = 0.7 R dS).");
   b.Append(s.Structure=="C"?"\n* Seismic: irregular and unsymmetrical - orthogonal effects, 100 % of one direction + 30 % of the other.":s.Structure=="B"?"\n* Seismic: regular and unsymmetrical - natural torsion (centre of mass offset)\n* plus accidental torsion (+E / -E) in each EQ case.":"\n* Seismic: regular and symmetrical - each EQ direction alone.");
   var rpt=RepeatCases(combos);if(rpt.Count>0){b.Append("\n* ---- ORTHOGONAL SEISMIC LOAD CASES (paste after the primary loads; the EQ cases are Load Type None) ----");
-   foreach(var r in rpt){b.Append("\nLOAD ").Append(r.No).Append(" LOADTYPE SEISMIC TITLE ").Append(r.Title).Append("\nREPEAT LOAD\n").Append(string.Join(" ",r.Repeat.Select(t=>t.Key.No.ToString(Ci)+" "+F(t.Value))));}}
+   foreach(var r in rpt){b.Append("\nLOAD ").Append(r.No).Append(" LOADTYPE SEISMIC-H TITLE ").Append(r.Title).Append("\nREPEAT LOAD\n").Append(string.Join(" ",r.Repeat.Select(t=>t.Key.No.ToString(Ci)+" "+F(t.Value))));}}
   string group="";foreach(var c in combos){if(c.Group!=group){group=c.Group;b.Append("\n* ---- ").Append(group.ToUpperInvariant()).Append(" ----");}
    if(c.Eq!=""&&(combos.IndexOf(c)==0||combos[combos.IndexOf(c)-1].Eq!=c.Eq))b.Append("\n* ").Append(c.Eq.StartsWith("203-")?"Eq. "+c.Eq:c.Eq);
    b.Append("\nLOAD COMBINATION ").Append(c.No).Append(" ").Append(c.Title);

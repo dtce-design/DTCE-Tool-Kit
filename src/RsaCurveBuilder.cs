@@ -81,7 +81,7 @@ partial class RsaCurveForm:DesignSheetForm {
  static string F(double v,string format){return v.ToString(format,CultureInfo.InvariantCulture);}
  string Staad(Curve c){var b=new StringBuilder();int load;if(!int.TryParse(Value("LoadNo"),out load)||load<1)throw new Exception("First load case number must be a whole number.");string[] axes=Value("Axes").StartsWith("X and Z")?new[]{"X","Z"}:new[]{"X","Y"};
   b.AppendLine("* NSCP 2015 design response spectrum - Zone "+c.Zone+", soil "+NscpSpectrum.Soils[c.Soil]+", source "+c.Source+" at "+F(c.Km,"0.##")+" km");b.AppendLine("* Ca = "+F(c.Ca,"0.####")+", Cv = "+F(c.Cv,"0.####")+", T0 = "+F(c.T0,"0.####")+" s, Ts = "+F(c.Ts,"0.####")+" s; ordinates in g");b.AppendLine("* ACC SCALE = g x I / R x factor = "+F(c.G,"0.#####")+" x "+F(c.I,"0.##")+" / "+F(c.R,"0.##")+" x "+F(c.Extra,"0.####"));
-  for(int d=0;d<axes.Length;d++){b.AppendLine("LOAD "+(load+d)+" LOADTYPE SEISMIC TITLE RSA "+axes[d]);b.AppendLine("SPECTRUM "+Value("Method")+" "+axes[d]+" 1 ACC SCALE "+F(c.Scale,"0.######")+" DAMP "+F(c.Damping,"0.###")+" LIN");
+  for(int d=0;d<axes.Length;d++){b.AppendLine("LOAD "+(load+d)+" LOADTYPE SEISMIC-H TITLE RSA "+axes[d]);b.AppendLine("SPECTRUM "+Value("Method")+" "+axes[d]+" 1 ACC SCALE "+F(c.Scale,"0.######")+" DAMP "+F(c.Damping,"0.###")+" LIN");
    for(int i=0;i<c.Points.Count;i+=4){var pairs=c.Points.Skip(i).Take(4).Select(p=>F(p[0],"0.####")+" "+F(p[1],"0.#####"));b.AppendLine(string.Join("; ",pairs));/* ";" separates STAAD lines, so each pair is its own data line */}}
   return b.ToString().TrimEnd();}
  /* the static lateral force procedure as STAAD's UBC 1997 definition (NSCP 2015 208.5.2): Z, I, R, soil STYP 1 SA .. 5 SE, Na / Nv and the
