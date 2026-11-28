@@ -68,7 +68,7 @@ partial class LoadCombinationsForm:DesignSheetForm {
   auto.CheckedChanged+=(s0,e0)=>{text.ReadOnly=auto.Checked;};text.ReadOnly=true;
   /* automatic (owner, 27 November 2026: "automatic na dapat itong mga ito, dapat macheck na agad if need or hindi as per nscp 2015 code") */ShowWhen(()=>false,"EvAsd","Acc","EqCommand","AltAsd","Asd","Special","DriftWind","DriftGravity","WindAllCases","WindLinked","PerformChange","EqLinked","LlLinked","AutoPrimary","RoofLive","WindCases","Ev","Lrfd","Drift","PrintReports");EnableWhen(()=>On("AutoPrimary"),"RoofLive","WindCases","WindLinked","LlLinked","EqCommand");EnableWhen(()=>On("Ev"),"EvAsd");EnableWhen(()=>On("Drift"),"DriftWind","DriftGravity");EnableWhen(()=>Value("Structure").StartsWith("B"),"Acc");
   /* linked or unused values are hidden, not repeated */
-  ShowWhen(()=>!(On("AutoPrimary")&&On("LlLinked")&&LiveLink()!=null),"LiveCases","F1One");ShowWhen(()=>!On("EqLinked"),"Ca","I","Omega0");EnableWhen(()=>!On("EqLinked"),"Ca","I","Omega0");ShowWhen(()=>false,"Ax");ShowWhen(()=>Value("Structure").StartsWith("B"),"Acc");
+  ShowWhen(()=>!On("AutoPrimary"),"LiveCases","F1One");ShowWhen(()=>!On("EqLinked"),"Ca","I","Omega0");EnableWhen(()=>!On("EqLinked"),"Ca","I","Omega0");ShowWhen(()=>false,"Ax");ShowWhen(()=>Value("Structure").StartsWith("B"),"Acc");
   /* rho from the STAAD model (owner: "How do you compute redundancy or reliability factor" - "Yes with automatic staad computation") */AddRhoPage();/* owner: "add also automatic computation of torsional amplification factor" */AddAxPage();/* owner: "for structural irregularities check" */AddIrregularPage();/* owner: "bat walang tab for roof live load?" */AddRoofLivePage();
   var page=new TabPage("STAAD load combinations");var top=new FlowLayoutPanel{Dock=DockStyle.Top,Height=46,Padding=new Padding(6)};var copy=new Button{Text="Copy STAAD input",AutoSize=true};copy.Click+=(s,e)=>{if(output.Text.Length>0)Clipboard.SetText(output.Text);};top.Controls.Add(copy);
   var split=new SplitContainer{Dock=DockStyle.Fill,Orientation=Orientation.Vertical,SplitterDistance=520};var left=new SplitContainer{Dock=DockStyle.Fill,Orientation=Orientation.Horizontal,SplitterDistance=220};/* visible dividers between the three panes (owner, 26 November 2026: "masakit tignan itong tab, diko makita yung separator ng windows"):
@@ -118,10 +118,12 @@ partial class LoadCombinationsForm:DesignSheetForm {
  string linkNote="",levelsAuto=null;
  static Dictionary<string,string> LiveLink(){var d=DesignLoadsLink.Get("live-loads");return d!=null&&d.ContainsKey("cases")&&d["cases"]!=""?d:null;}
  internal static string WeightsFromLevels(string levels){var lines=new List<string>();foreach(var part in (levels??"").Split(new[]{',',';','\n'},StringSplitOptions.RemoveEmptyEntries)){var t=part.Trim().Split('@');if(t.Length==2&&t[0].Trim()!=""&&t[1].Trim()!="")lines.Add(t[0].Trim()+" "+t[1].Trim());}return string.Join("\r\n",lines);}
- internal static void LiveCasesFor(string cases,out int count,out string f1One){var set=new HashSet<string>((cases??"").Split(','));bool l1=set.Contains("LL1"),l2=set.Contains("LL2");count=l1&&l2?2:1;f1One=l1&&l2?"LL2":l2?"LL":"";}
+ /* always two live cases (owner, 28 November 2026: "automatic na 2 ang liveload, tapos piliin mo na agad doon if ano ang f1=1.0"):
+    LL1 f1 = 0.5 and LL2 f1 = 1.0, whatever spaces the Live Loads sheet has checked */
+ internal static void LiveCasesFor(string cases,out int count,out string f1One){count=2;f1One="LL2";}
  bool ApplyOtherLinks(){linkNote="";bool changed=false;var live=On("LlLinked")&&On("AutoPrimary")?LiveLink():null;
-  if(live!=null){int n;string one;LiveCasesFor(live["cases"],out n,out one);var combo=(ComboBox)Inputs["LiveCases"];if(Value("LiveCases")!=n.ToString()){combo.SelectedItem=n.ToString();changed=true;}if(Value("F1One")!=one){Inputs["F1One"].Text=one;changed=true;}
-   linkNote="Live cases from the Live Loads sheet: "+live["cases"].Replace(",",", ")+".";}
+  if(On("AutoPrimary")){int n;string one;LiveCasesFor(live!=null?live["cases"]:"",out n,out one);var combo=(ComboBox)Inputs["LiveCases"];if(Value("LiveCases")!=n.ToString()){combo.SelectedItem=n.ToString();changed=true;}if(Value("F1One")!=one){Inputs["F1One"].Text=one;changed=true;}
+   linkNote="Live cases: LL1 (f1 = 0.5) and LL2 (f1 = 1.0)"+(live!=null?"; checked spaces of the Live Loads sheet: "+live["cases"].Replace(",",", "):"")+".";}
   var lv=DesignLoadsLink.Get("earthquake-levels");if(lv!=null&&lv.ContainsKey("levels")){string w=WeightsFromLevels(lv["levels"]);string cur=Value("RegWeights");if(w!=""&&cur!=w&&(cur==""||cur==levelsAuto)){Inputs["RegWeights"].Text=w;changed=true;}if(w!="")levelsAuto=w;}
   return changed;}
  /* wind case text, cached by the model and the Wind sheet's types */

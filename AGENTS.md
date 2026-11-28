@@ -663,3 +663,7 @@ the StaadPlusX choice stays and the map draws the +X / +Z arrows (SetStaadX); th
 Owner (28 November 2026, "huwag ka na gumawa ng load combo for seismic drift sa envelope na lang"): no 6000 seismic drift combinations; the
 primary EQ cases (class C: the REPEAT LOAD cases) are their own SERVICEABILITY envelope and the PRINT STORY DRIFT load list
 (StaadCombinations.SeismicDriftCases, v10.0.65). Wind drift 5000 stays as combinations.
+Owner (28 November 2026, "automatic na 2 ang liveload, tapos piliin mo na agad doon if ano ang f1=1.0"; "kaya susunod na din ang LL report"):
+the automatic primaries always have LL1 (f1 0.5) and LL2 (f1 1.0), F1One = LL2 by itself (LoadCombinationsForm.LiveCasesFor), the inputs hidden;
+the Live Loads report always shows both cases (v10.0.66). Update notice (owner: "kung di maupdate sana allow offline use"): never forced -
+"Continue without updating" unlocks the app until a still newer version is published (StoreUpdateMonitor skipped, v10.0.66).

@@ -1,0 +1,14 @@
+DTCE Tool Kit v10.0.66 (28 November 2026) - test build; not uploaded to the Microsoft Store (needs a new explicit request).
+
+PATCH - Update notice: the app stays usable when it cannot be updated (owner: "kung di maupdate sana allow offline use"):
+- When the Store lists a newer version, the notice now has "Continue without updating". It closes the notice and unlocks the app; the
+  notice comes back only when a still newer version is published. Offline (Store not reachable) the app was and stays usable.
+
+PATCH - Load Combinations / Live Loads: always two live cases (owner: "automatic na 2 ang liveload, tapos piliin mo na agad doon if ano ang
+f1=1.0"; "kaya susunod na din ang LL report"):
+- The automatic primary loads always have LL1 (f1 = 0.5) and LL2 (f1 = 1.0); f1 = 1.0 is set on LL2 by itself, whatever spaces are
+  checked in Live Loads. The Live cases / f1 inputs are hidden.
+- The Live Loads report states the two cases and always shows the LL1 and LL2 parts; a case without a checked space says so.
+Tests: StaadCombinationsTests 38, UpdateAndQuantityTests 31, LiveLoadsTests 548; DesignLoadsFileTests updated (runs on the Windows CI;
+it does not finish under Mono, also before this change).
+Includes everything of v10.0.65.
