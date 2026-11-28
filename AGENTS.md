@@ -384,6 +384,9 @@ Store API at the first read, before any submission (nothing changed); re-run of 
 visibility Public) and Admin (1152921505702532237; visibility Private) submissions were created and committed; Partner Center reported "accepted
 for processing" (PreProcessing). The log names no cancelled pending submission. Certification is not guaranteed. v10.0.70 and later need a new
 explicit request.
+New owner request (28 November 2026, "upload, make sure tama yung pagcheck ng irregularities"; chose "Replace v10.0.69"): publish v10.0.73 (User and Admin)
+after its Windows CI passes (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User
+visibility stays Public). Later versions again need a new explicit request.
 Checked 26 November 2026 (read-only store_status job, run 45825954870): v10.0.18 is Published for User and Admin; no submission pending;
 the public catalog lists DTCE.DTCEToolKit_10.0.18.0 / DTCE.DTCEToolKit-Admin_10.0.18.0.
 Update check (owner, 26 November 2026: "di namang gumagana yung pagcheck ng updates"; "ayaw ko ng check for updates, gusto ko automatic na",
