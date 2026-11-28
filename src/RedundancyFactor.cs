@@ -74,7 +74,11 @@ static class RedundancyFactor {
  static bool AtLevel(StaadModel m,List<StaadMember> cols,StaadJoint j){double h=m.H(j);return cols.Any(c=>{StaadJoint a,b;return m.Joints.TryGetValue(c.A,out a)&&Math.Abs(m.H(a)-h)<1e-3||m.Joints.TryGetValue(c.B,out b)&&Math.Abs(m.H(b)-h)<1e-3;});}
  /* member end forces: member, load case, joint -> Fx, Fy, Fz (local); from the STAAD table copy or the .ANL block */
  internal static Dictionary<string,double[]> ReadForces(string text){var f=new Dictionary<string,double[]>();int member=0,load=0;
+  /* in an .ANL only the MEMBER END FORCES blocks count (joint displacement / reaction rows look alike) */bool header=Regex.IsMatch(text??"",@"MEMBER\s+END\s+FORCES",RegexOptions.IgnoreCase),inBlock=false;
   foreach(var raw in (text??"").Replace("\r","").Split('\n')){string line=raw.Trim();if(line=="")continue;
+   if(Regex.IsMatch(line,@"MEMBER\s+END\s+FORCES",RegexOptions.IgnoreCase)){inBlock=true;continue;}
+   if(Regex.IsMatch(line,@"JOINT\s+DISPLACEMENT|SUPPORT\s+REACTION",RegexOptions.IgnoreCase)){inBlock=false;continue;}
+   if(header&&!inBlock&&!raw.Contains("\t"))continue;
    if(raw.Contains("\t")){var c=raw.Split('\t').Select(x=>x.Trim()).ToArray();if(c.Length>=9){int mm,ll,jj;var lc=Regex.Match(c[1],@"^\d+");
      if(c[0]!=""&&int.TryParse(c[0],out mm))member=mm;if(lc.Success)load=int.Parse(lc.Value,Ci);if(int.TryParse(c[2],out jj)&&IsNum(c[3])&&IsNum(c[4])&&IsNum(c[5])&&member>0&&load>0)f[member+"|"+load+"|"+jj]=new[]{N(c[3]),N(c[4]),N(c[5])};}continue;}
    var t=line.Split(new[]{' '},StringSplitOptions.RemoveEmptyEntries);if(!t.All(IsNum))continue;var v=t.Select(N).ToArray();

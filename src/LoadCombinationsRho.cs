@@ -12,7 +12,7 @@ partial class LoadCombinationsForm {
   var bar=new FlowLayoutPanel{Dock=DockStyle.Top,Height=96,Padding=new Padding(8),WrapContents=true};Func<string,Control,Control> pair=(t,c)=>{var p=new FlowLayoutPanel{AutoSize=true,Margin=new Padding(0,0,18,6)};p.Controls.Add(new Label{Text=t,AutoSize=true,Padding=new Padding(0,6,4,0),Font=ModernUi.Strong});p.Controls.Add(c);return p;};
   var system=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Width=470};system.Items.AddRange(RhoSystems);system.SelectedIndex=0;var zone=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Width=90};zone.Items.AddRange(new object[]{"Zone 4","Zone 2"});zone.SelectedIndex=0;
   var area=new TextBox{Width=110};var go=new Button{Text="Recompute ρ",AutoSize=true};
-  bar.Controls.Add(pair("Lateral system",system));bar.Controls.Add(pair("Seismic zone",zone));bar.Controls.Add(pair("A_B (m²), blank = from the base joints",area));bar.Controls.Add(go);
+  bar.Controls.Add(pair("Lateral system",system));bar.Controls.Add(pair("Seismic zone",zone));bar.Controls.Add(pair("A_B (m²), blank = from the base joints",area));bar.Controls.Add(go);var anl=new Button{Text="Open .ANL file…",AutoSize=true};anl.Click+=(s9,e9)=>OpenAnl();bar.Controls.Add(anl);
   Func<string,string,TextBox> box=(key,hint)=>{var t=new TextBox{MaxLength=int.MaxValue,Multiline=true,ScrollBars=ScrollBars.Both,WordWrap=false,Dock=DockStyle.Fill,Font=new Font("Consolas",9f),AcceptsReturn=true};Inputs.Add(key,t);return t;};
   var model=box("RhoModel","");var forces=box("RhoForces","");var walls=box("RhoWalls","");Inputs.Add("RhoSystem",system);Inputs.Add("RhoZone",zone);Inputs.Add("RhoArea",area);
   Func<string,Control,Control> titled=(t,c)=>{var p=new Panel{Dock=DockStyle.Fill,Padding=new Padding(4)};p.Controls.Add(c);p.Controls.Add(new Label{Text=t,Dock=DockStyle.Top,Height=34,ForeColor=PowTheme.Ink});return p;};
@@ -30,6 +30,15 @@ partial class LoadCombinationsForm {
      before, only the boxes of this tab started it) */
   HandleCreated+=(s,e)=>{foreach(var key in new[]{"StaadInput","StaadBeams"}){Control pasted;if(Inputs.TryGetValue(key,out pasted))pasted.TextChanged+=(s1,e1)=>{if(Restoring)return;rhoTimer.Stop();rhoTimer.Start();};}};
   if(tab!=null)tab.VisibleChanged+=(s,e)=>{if(tab.Visible&&!Restoring&&!IsDisposed)ComputeRho();};}
+ /* the STAAD output file instead of copy and paste (owner, 28 November 2026: "i open ko na lang yung ANL file tapos bahala na yung app";
+    "para di ko na copy paste"): its JOINT DISPLACEMENT blocks go to the Ax tab and its MEMBER END FORCES blocks to the ρ tab */
+ internal void OpenAnl(){using(var d=new OpenFileDialog{Title="STAAD output file (after the run)",Filter="STAAD output (*.anl)|*.anl|All files (*.*)|*.*"}){if(d.ShowDialog(this)!=DialogResult.OK)return;
+   try{string disp,forces;StaadAnl.Split(StaadAnl.Read(d.FileName),out disp,out forces);
+    if(disp==""&&forces=="")throw new Exception("The file has no JOINT DISPLACEMENT or MEMBER END FORCES output. Keep the PRINT JOINT DISPLACEMENTS / PRINT MEMBER FORCES commands of the generated STAAD input (ANALYSIS AND REPORTS) and run STAAD again.");
+    if(forces!="")Inputs["RhoForces"].Text=forces;if(disp!="")Inputs["AxDisplacements"].Text=disp;
+    ComputeRho();ComputeAx();
+    MessageBox.Show(this,System.IO.Path.GetFileName(d.FileName)+" read:\r\n- member end forces: "+(forces!=""?"yes - Redundancy factor ρ computed":"not in the file")+"\r\n- joint displacements: "+(disp!=""?"yes - Torsional amplification Ax computed":"not in the file"),"Open .ANL file",MessageBoxButtons.OK,MessageBoxIcon.Information);}
+   catch(Exception ex){MessageBox.Show(this,ex.Message,"Open .ANL file",MessageBoxButtons.OK,MessageBoxIcon.Warning);}}}
  static readonly CultureInfo Ci=CultureInfo.InvariantCulture;
  static string Fr(double v,string f="0.###"){return v.ToString(f,Ci);}
  internal void ComputeRho(){rhoGrid.Rows.Clear();rhoFound=double.NaN;bool walls=Value("RhoSystem").StartsWith("Shear");if(walls?Value("RhoWalls").Trim()=="":Value("RhoForces").Trim()==""){rhoStatus.ForeColor=PowTheme.Ink;rhoStatus.Text="After the STAAD run, paste the member end forces; ρ is computed with the model of the Primary loads tab and put into Factors automatically (ρ = 1.0 until then).";return;}

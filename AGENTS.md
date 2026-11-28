@@ -669,3 +669,6 @@ the Live Loads report always shows both cases (v10.0.66). Update notice (owner: 
 "Continue without updating" unlocks the app until a still newer version is published (StoreUpdateMonitor skipped, v10.0.66).
 Owner ("hindi nacocopy lahat ng nodes and beams sa staad"; "baka naka cap or may limit ang characters"): every editable multiline text box
 has MaxLength=int.MaxValue (or 0) - the WinForms default of 32,767 characters cut off pasted STAAD tables (v10.0.67). Give new paste boxes no limit.
+Owner ("joint displacement beam end forces i open ko na lang yung ANL file"; "para di ko na copy paste"): "Open .ANL file…" (Primary loads, rho and
+Ax tabs; LoadCombinationsForm.OpenAnl, src/StaadAnl.cs) keeps only the JOINT DISPLACEMENT / MEMBER END FORCES blocks and fills the Ax / rho boxes;
+RedundancyFactor.ReadForces reads only MEMBER END FORCES blocks when the text has them (v10.0.68).

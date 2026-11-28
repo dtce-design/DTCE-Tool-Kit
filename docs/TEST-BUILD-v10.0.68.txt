@@ -1,0 +1,13 @@
+DTCE Tool Kit v10.0.68 (28 November 2026) - test build; not uploaded to the Microsoft Store (needs a new explicit request).
+
+PATCH - Load Combinations: open the STAAD .ANL file instead of copy and paste (owner: "joint displacement beam end forces i open ko na lang
+yung ANL file tapos bahala na yung app magopen magread"; "para di ko na copy paste"):
+- "Open .ANL file…" on the Primary loads tab (Design Loads), on the Redundancy factor ρ tab and on the Torsional amplification Ax tab.
+- The app reads the file after the STAAD run: the JOINT DISPLACEMENT blocks go to the Ax tab and the MEMBER END FORCES blocks to the ρ
+  tab; ρ and Ax are computed at once and a message says what was found. The rest of the output (input echo, support reactions, story
+  drift ...) is left out, so a large .ANL stays small in the saved sheet. The file may stay open in STAAD while it is read.
+- The generated STAAD input already prints both (ANALYSIS AND REPORTS: PRINT JOINT DISPLACEMENTS / PRINT MEMBER FORCES of the EQ cases).
+- A whole .ANL pasted into the member end forces box now reads only its MEMBER END FORCES rows (before, joint displacement and reaction rows
+  could be taken for forces).
+Tests: RedundancyFactorTests 23 (new: .ANL blocks), TorsionAmplificationTests 4, StructuralIrregularityTests 11, StaadCombinationsTests 38.
+Includes everything of v10.0.67.
