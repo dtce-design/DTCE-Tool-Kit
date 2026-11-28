@@ -359,6 +359,13 @@ Done 27 November 2026: v10.0.60 merged to main (PR #31, Windows CI green; GitHub
 New owner request (28 November 2026, "publish"; chose "Replace v10.0.60"): publish v10.0.64 (User and Admin) after its Windows CI passes (PR to
 main for the GitHub release, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only - the pending
 v10.0.60 submissions are cancelled and replaced; User visibility stays Public). Later versions again need a new explicit request.
+Done 28 November 2026: v10.0.64 merged to main (PR #32, Windows CI green; GitHub release v10.0.64-build-382, run 46100577411). Store run
+46100601422 (first attempt, replace_pending_store_submission=true): new User (1152921505702530720; visibility Public) and Admin
+(1152921505702530788; visibility Private) submissions were created and committed; Partner Center reported "accepted for processing"
+(PreProcessing). Certification is not guaranteed. v10.0.65 and later need a new explicit request.
+New owner request (28 November 2026, "publish"; chose "Replace v10.0.64"): publish v10.0.65 (User and Admin) after its Windows CI passes (PR to
+main for the GitHub release, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only - the pending
+v10.0.64 submissions are cancelled and replaced; User visibility stays Public). Later versions again need a new explicit request.
 Checked 26 November 2026 (read-only store_status job, run 45825954870): v10.0.18 is Published for User and Admin; no submission pending;
 the public catalog lists DTCE.DTCEToolKit_10.0.18.0 / DTCE.DTCEToolKit-Admin_10.0.18.0.
 Update check (owner, 26 November 2026: "di namang gumagana yung pagcheck ng updates"; "ayaw ko ng check for updates, gusto ko automatic na",
@@ -648,3 +655,6 @@ A = span x max(spacing, span/3)); CCElements is only "Other elements (optional)"
 Owner (28 November 2026, "mejo magulo yung pag input ng rotation ng building"; chose "azimuth based sa map, ilalagay pa din if yung +x sa staad e
 along ridge or else"): the site map outline has a round handle at the ridge end; dragging it sets RidgeAzimuth (WindSiteMap.RidgeChanged, Shift = 5°);
 the StaadPlusX choice stays and the map draws the +X / +Z arrows (SetStaadX); the outline follows the inputs as typed (v10.0.64).
+Owner (28 November 2026, "huwag ka na gumawa ng load combo for seismic drift sa envelope na lang"): no 6000 seismic drift combinations; the
+primary EQ cases (class C: the REPEAT LOAD cases) are their own SERVICEABILITY envelope and the PRINT STORY DRIFT load list
+(StaadCombinations.SeismicDriftCases, v10.0.65). Wind drift 5000 stays as combinations.
