@@ -37,7 +37,7 @@ class SpectrumChart:Control {
 partial class RsaCurveForm:DesignSheetForm {
  static readonly string[] SoilNames={"SA - Hard rock","SB - Rock","SC - Very dense soil and soft rock","SD - Stiff soil profile","SE - Soft soil profile"};
  static readonly string[] Importance={"Essential facilities (I = 1.50)","Hazardous facilities (I = 1.25)","Special occupancy (I = 1.00)","Standard occupancy (I = 1.00)","Miscellaneous (I = 1.00)"};
- readonly SpectrumChart chart=new SpectrumChart();readonly TextBox staad=new TextBox{Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Both,WordWrap=false,Height=560,Width=1000,Tag="FullWidth",Font=new Font("Consolas",9.5f)};readonly Label summary=new Label{Width=1000,Height=86,Tag="FullWidth",Font=ModernUi.Strong,ForeColor=PowTheme.Teal};
+ readonly SpectrumChart chart=new SpectrumChart();readonly TextBox staad=new TextBox{Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Both,WordWrap=false,Dock=DockStyle.Fill,Font=new Font("Consolas",9.5f)};readonly TextBox elf=new TextBox{Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Both,WordWrap=false,Dock=DockStyle.Fill,Font=new Font("Consolas",9.5f)};readonly Label summary=new Label{Width=1000,Height=86,Tag="FullWidth",Font=ModernUi.Strong,ForeColor=PowTheme.Teal};
  public RsaCurveForm():base("Earthquake Load & RSA Curve Builder | NSCP 2015","RSA-Curve"){
   BuildEarthquakeTab();
   var site=Section("Site and structure","NSCP 2015 Section 208 design response spectrum for STAAD.Pro response spectrum analysis. Soil profile SF needs a site-specific study and is not offered. Check the seismic source type and distance against the PHIVOLCS active fault map.");
@@ -54,8 +54,15 @@ partial class RsaCurveForm:DesignSheetForm {
   NumberField(lateral,"Omega","System overstrength Ω0 (Table 208-11)","2.8");NumberField(lateral,"Rho","Reliability / redundancy factor ρ (Section 208.5.1.1)","1.0");
   Toggle(lateral,"LcLinked","ρ and regularity from the Load Combinations sheet (computed ρ; structure C = irregular)",true);Choice(lateral,"Regularity","Structure regularity (Section 208.4.5 / 208.5.4.5)",new[]{"Regular (dynamic base shear ≥ 90% of static)","Irregular (dynamic base shear ≥ 100% of static)"});EnableWhen(()=>!(On("LcLinked")&&LcLink()!=null),"Regularity");VisibleChanged+=(s0,e0)=>{if(Visible&&!Restoring)ApplyLcLink();};EnableWhen(()=>{if(!On("LcLinked"))return true;var d=LcLink();return d==null||!d.ContainsKey("rho")||d["rho"]=="";},"Rho");
   NumberField(lateral,"DynamicV","Dynamic base shear from STAAD kN (optional, for the scale factor)","0");
-  var output=Section("STAAD input","Copy into the STAAD input file (Edit Input) after the modal CUT OFF / MODAL CALCULATION commands, one load case per direction. Spectrum ordinates are in g; ACC SCALE = g x I / R x additional factor in the model length unit.");
-  var actions=new FlowLayoutPanel{Width=1000,Height=48,Tag="FullWidth"};var copy=new Button{Text="Copy STAAD input",AutoSize=true};copy.Click+=(s,e)=>{if(staad.Text.Length>0)Clipboard.SetText(staad.Text);};var copyTable=new Button{Text="Copy period table",AutoSize=true};copyTable.Click+=(s,e)=>{try{Clipboard.SetText(Table());}catch(Exception ex){MessageBox.Show(this,ex.Message,"RSA Curve Builder");}};actions.Controls.Add(copy);actions.Controls.Add(copyTable);output.Controls.Add(actions);output.Controls.Add(staad);
+  /* dynamic (response spectrum) and static (equivalent lateral force, DEFINE UBC LOAD) side by side (owner, 28 November 2026: "staad input
+     for Dynamic and ELF, side by side") */
+  var output=Section("STAAD input","Left: the response spectrum load cases (paste after the modal CUT OFF / MODAL CALCULATION commands; ordinates in g, ACC SCALE = g x I / R x factor). Right: the static lateral force procedure as STAAD DEFINE UBC LOAD (zone, I, R, soil, Na, Nv, period and the seismic weight), pasted before the first LOAD; the EQ load cases themselves come from the Load Combinations sheet.");
+  var pair=new TableLayoutPanel{Width=1000,Height=640,Tag="FullWidth",ColumnCount=2,RowCount=2,BackColor=PaneBack};pair.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));pair.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));pair.RowStyles.Add(new RowStyle(SizeType.Absolute,52));pair.RowStyles.Add(new RowStyle(SizeType.Percent,100));
+  Func<string,Button[],Control> head=(title,buttons)=>{var bar=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=false,Margin=new Padding(0,0,8,0)};bar.Controls.Add(new Label{Text=title,AutoSize=true,Font=ModernUi.Strong,Margin=new Padding(0,12,10,0)});foreach(var b0 in buttons)bar.Controls.Add(b0);return bar;};
+  var copy=new Button{Text="Copy dynamic input",AutoSize=true};copy.Click+=(s,e)=>{if(staad.Text.Length>0)Clipboard.SetText(staad.Text);};var copyTable=new Button{Text="Copy period table",AutoSize=true};copyTable.Click+=(s,e)=>{try{Clipboard.SetText(Table());}catch(Exception ex){MessageBox.Show(this,ex.Message,"RSA Curve Builder");}};
+  var copyElf=new Button{Text="Copy ELF input",AutoSize=true};copyElf.Click+=(s,e)=>{if(elf.Text.Length>0)Clipboard.SetText(elf.Text);};
+  pair.Controls.Add(head("Dynamic (response spectrum)",new[]{copy,copyTable}),0,0);pair.Controls.Add(head("ELF (static lateral force)",new[]{copyElf}),1,0);
+  staad.Margin=new Padding(0,0,8,0);elf.Margin=new Padding(8,0,0,0);pair.Controls.Add(staad,0,1);pair.Controls.Add(elf,1,1);output.Controls.Add(pair);
   foreach(var input in Inputs.Values){input.TextChanged+=(s,e)=>Refresh0();var combo=input as ComboBox;if(combo!=null)combo.SelectedIndexChanged+=(s,e)=>Refresh0();}
   Shown+=(s,e)=>Refresh0();
  }
@@ -77,10 +84,21 @@ partial class RsaCurveForm:DesignSheetForm {
   for(int d=0;d<axes.Length;d++){b.AppendLine("LOAD "+(load+d)+" LOADTYPE SEISMIC TITLE RSA "+axes[d]);b.AppendLine("SPECTRUM "+Value("Method")+" "+axes[d]+" 1 ACC SCALE "+F(c.Scale,"0.######")+" DAMP "+F(c.Damping,"0.###")+" LIN");
    for(int i=0;i<c.Points.Count;i+=4){var pairs=c.Points.Skip(i).Take(4).Select(p=>F(p[0],"0.####")+" "+F(p[1],"0.#####"));b.AppendLine(string.Join("; ",pairs));/* ";" separates STAAD lines, so each pair is its own data line */}}
   return b.ToString().TrimEnd();}
+ /* the static lateral force procedure as STAAD's UBC 1997 definition (NSCP 2015 208.5.2): Z, I, R, soil STYP 1 SA .. 5 SE, Na / Nv and the
+    Method A period as PX / PZ (seconds, so no unit question with CT) */
+ string Elf(Curve c){StaticLateralResult st=null;string err=null;try{st=Static(c);}catch(Exception ex){err=ex.Message;}var b=new StringBuilder();
+  b.AppendLine("* NSCP 2015 static lateral force procedure (208.5.2), UBC 1997 in STAAD");b.AppendLine("* Zone "+c.Zone+" (Z = "+(c.Zone==4?"0.40":"0.20")+"), soil "+NscpSpectrum.Soils[c.Soil]+" (STYP "+(c.Soil+1)+"), source "+c.Source+" at "+F(c.Km,"0.##")+" km");
+  b.AppendLine("* Ca = "+F(c.Ca,"0.####")+", Cv = "+F(c.Cv,"0.####")+", Na = "+F(c.Na,"0.###")+", Nv = "+F(c.Nv,"0.###")+", I = "+F(c.I,"0.##")+", R = "+F(c.R,"0.##"));
+  if(st!=null){b.AppendLine("* T (Method A) = Ct hn^3/4 = "+F(st.Ct,"0.####")+" x "+F(st.Hn,"0.##")+"^0.75 = "+F(st.T,"0.###")+" s");b.AppendLine("* sheet check: W = "+F(st.W,"0.#")+" kN, V = "+F(st.V,"0.##")+" kN ("+F(st.Cs,"0.####")+" W), Ft = "+F(st.Ft,"0.##")+" kN");}
+  else b.AppendLine("* period not computed ("+err+"); STAAD computes it");
+  b.AppendLine("DEFINE UBC LOAD");b.AppendLine("ZONE "+(c.Zone==4?"0.4":"0.2")+" I "+F(c.I,"0.##")+" RWX "+F(c.R,"0.##")+" RWZ "+F(c.R,"0.##")+" STYP "+(c.Soil+1)+" NA "+F(c.Na,"0.###")+" NV "+F(c.Nv,"0.###")+(st!=null?" PX "+F(st.T,"0.###")+" PZ "+F(st.T,"0.###"):""));
+  b.AppendLine("* seismic weight W (208.5.1.1): dead + 25 % storage live");b.AppendLine("SELFWEIGHT 1");b.AppendLine("* add FLOOR / MEMBER / JOINT WEIGHT, or REFERENCE LOAD Y");b.AppendLine("* with the dead reference loads (e.g. R1 1.0)");
+  b.AppendLine("* EQ load cases (UBC LOAD X / Z): Load Combinations sheet");
+  return StaadLines.Wrap(b.ToString().TrimEnd());}
  string Table(){var c=Compute();var b=new StringBuilder("T (s)\tSa (g)\r\n");foreach(var p in c.Points)b.Append(F(p[0],"0.####")+"\t"+F(p[1],"0.#####")+"\r\n");return StaadLines.Wrap(b.ToString());/* STAAD lines kept to 72 columns */}
- void Refresh0(){if(Restoring)return;try{var c=Compute();chart.Points=c.Points;chart.T0=c.T0;chart.Ts=c.Ts;chart.Invalidate();staad.Text=Staad(c).Replace("\n","\r\n").Replace("\r\r\n","\r\n");summary.ForeColor=PowTheme.Teal;string sv="";try{var st=Static(c);sv="\nStatic: T = "+F(st.T,"0.###")+" s   W = "+F(st.W,"0.#")+" kN   V = "+F(st.V,"0.##")+" kN ("+F(st.Cs,"0.####")+" W)   Ft = "+F(st.Ft,"0.##")+" kN"+(st.DynamicFactor>0?"   dynamic scale factor = "+F(st.DynamicFactor,"0.###"):"");}catch(Exception ex){sv="\nStatic lateral force: "+ex.Message;}
+ void Refresh0(){if(Restoring)return;try{var c=Compute();chart.Points=c.Points;chart.T0=c.T0;chart.Ts=c.Ts;chart.Invalidate();staad.Text=Staad(c).Replace("\n","\r\n").Replace("\r\r\n","\r\n");elf.Text=Elf(c).Replace("\n","\r\n").Replace("\r\r\n","\r\n");summary.ForeColor=PowTheme.Teal;string sv="";try{var st=Static(c);sv="\nStatic: T = "+F(st.T,"0.###")+" s   W = "+F(st.W,"0.#")+" kN   V = "+F(st.V,"0.##")+" kN ("+F(st.Cs,"0.####")+" W)   Ft = "+F(st.Ft,"0.##")+" kN"+(st.DynamicFactor>0?"   dynamic scale factor = "+F(st.DynamicFactor,"0.###"):"");}catch(Exception ex){sv="\nStatic lateral force: "+ex.Message;}
    summary.Text="Ca = "+F(c.Ca,"0.###")+"   Cv = "+F(c.Cv,"0.###")+"   Na = "+F(c.Na,"0.###")+"   Nv = "+F(c.Nv,"0.###")+"   T0 = "+F(c.T0,"0.###")+" s   Ts = "+F(c.Ts,"0.###")+" s   peak 2.5Ca = "+F(2.5*c.Ca,"0.###")+" g   ACC SCALE = "+F(c.Scale,"0.####")+sv;}
-  catch(Exception ex){summary.ForeColor=Color.Firebrick;summary.Text=ex.Message;staad.Text="";chart.Points=new List<double[]>();chart.Invalidate();}}
+  catch(Exception ex){summary.ForeColor=Color.Firebrick;summary.Text=ex.Message;staad.Text="";elf.Text="";chart.Points=new List<double[]>();chart.Invalidate();}}
  /* Earthquake Load tab (owner, 19 November 2026): coordinates -> nearest active fault (HazardHunterPH, DOST-PHIVOLCS), seismic source
     type (Table 208-3) and historical earthquakes (USGS); the distance and source type feed the spectrum inputs */
  FaultSite fault;List<QuakeEvent> quakes=new List<QuakeEvent>();readonly Label faultSummary=new Label{Width=1000,Height=150,Tag="FullWidth",Font=ModernUi.Body};readonly Label sourceSummary=new Label{Width=1000,Height=52,Tag="FullWidth",Font=ModernUi.Strong,ForeColor=PowTheme.Teal};
@@ -175,7 +193,7 @@ partial class RsaCurveForm:DesignSheetForm {
   b.AppendLine("0 <= T < T0:  Sa = Ca (1 + 1.5 T / T0)");b.AppendLine("T0 <= T <= Ts: Sa = 2.5 Ca = "+F(2.5*c.Ca,"0.####")+" g");b.AppendLine("T > Ts:        Sa = Cv / T");b.AppendLine();
   b.AppendLine("## 04  STAAD SCALE");b.AppendLine("ACC SCALE = g x I / R x factor = "+F(c.G,"0.#####")+" x "+F(c.I,"0.##")+" / "+F(c.R,"0.##")+" x "+F(c.Extra,"0.####")+" = "+F(c.Scale,"0.######"));b.AppendLine();
   b.AppendLine("## 05  SPECTRUM ORDINATES");b.AppendLine("T (s)      Sa (g)");foreach(var p in c.Points)b.AppendLine(F(p[0],"0.0000").PadRight(11)+F(p[1],"0.00000"));b.AppendLine();
-  b.AppendLine("## 06  STAAD INPUT");b.AppendLine(Staad(c));b.AppendLine();
+  b.AppendLine("## 06  STAAD INPUT");b.AppendLine("Dynamic (response spectrum):");b.AppendLine(Staad(c));b.AppendLine();b.AppendLine("ELF (static lateral force):");b.AppendLine(Elf(c));b.AppendLine();
   b.AppendLine("## 07  NOTES");b.AppendLine("Section 208.5.4.5: scale the dynamic base shear to not less than the static base shear requirement (90% regular / 100% irregular structures); enter the resulting ratio as the additional scale factor.");b.AppendLine("Soil profile SF and structures needing a site-specific spectrum are outside this sheet. Verify the seismic source type and distance from the PHIVOLCS fault map.");b.AppendLine("This sheet prepares analysis input only; it is not an engineer's approval.");
   return b.ToString();}
 }

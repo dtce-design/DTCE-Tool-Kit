@@ -51,7 +51,8 @@ partial class RsaCurveForm {
   rep.Heading("8  SPECTRUM ORDINATES");var ord=new List<string[]>();int per=(c.Points.Count+3)/4;for(int r=0;r<per;r++){var row=new List<string>();for(int col=0;col<4;col++){int k=col*per+r;row.Add(k<c.Points.Count?F(c.Points[k][0],"0.000"):"");row.Add(k<c.Points.Count?F(c.Points[k][1],"0.0000"):"");}ord.Add(row.ToArray());}
   rep.Table(new[]{"T (s)","Sa (g)","T (s)","Sa (g)","T (s)","Sa (g)","T (s)","Sa (g)"},ord,new[]{1f,1f,1f,1f,1f,1f,1f,1f});
   /* 8 STAAD input */
-  rep.Heading("9  STAAD INPUT");foreach(var line in Staad(c).Split('\n'))rep.Paragraph(line.TrimEnd('\r'),line.StartsWith("*"));
+  rep.Heading("9  STAAD INPUT");rep.Paragraph("9.1  Dynamic (response spectrum)",true);foreach(var line in Staad(c).Split('\n'))rep.Paragraph(line.TrimEnd('\r'),line.StartsWith("*"));
+  rep.Paragraph("9.2  ELF (static lateral force, STAAD DEFINE UBC LOAD)",true);foreach(var line in Elf(c).Split('\n'))rep.Paragraph(line.TrimEnd('\r'),line.StartsWith("*"));
   rep.Heading("10  NOTES").Paragraph("Section 208.5.4.5: scale the dynamic base shear to not less than the static base shear requirement (90% for regular / 100% for irregular structures) and enter that ratio as the additional factor. Soil profile SF and structures needing a site-specific spectrum are outside this sheet. Verify the seismic source type and distance against the PHIVOLCS active fault map. This sheet prepares analysis input; it is not an engineer's approval.",true);
   rep.Signatures("Prepared by","Checked by");return rep.Build();}
  /* every parameter and step of the static lateral force procedure as a calculation sheet, the storey forces table and diagram */

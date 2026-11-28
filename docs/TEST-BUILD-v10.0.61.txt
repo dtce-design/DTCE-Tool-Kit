@@ -1,0 +1,15 @@
+DTCE Tool Kit v10.0.61 (28 November 2026) - test build; not uploaded to the Microsoft Store (needs a new explicit request).
+
+PATCH - Earthquake STAAD input, wind profiles, report scrolling:
+- Earthquake Load & RSA Curve Builder, tab "STAAD input" (owner: "staad input for Dynamic and ELF, side by side"): two boxes side by
+  side - Dynamic (response spectrum, as before, "Copy dynamic input" / "Copy period table") and ELF (static lateral force procedure,
+  "Copy ELF input"): DEFINE UBC LOAD with ZONE, I, RWX / RWZ = R, STYP (soil SA..SE = 1..5), NA, NV and the Method A period as PX / PZ,
+  SELFWEIGHT 1 for the seismic weight with a note to add the floor / member weights or REFERENCE LOAD Y. The EQ load cases themselves
+  stay in the Load Combinations sheet. The report's STAAD input section has 9.1 Dynamic and 9.2 ELF.
+- Wind Load report (owner: "pwede ba each elevation profile ilagay before kzt check"): each direction's elevation profile is drawn on its
+  exposure / Kzt page, right before its Kzt check table; the separate "TERRAIN PROFILES" pages are gone.
+- Report pages (owner: "every time na lumilipat ako ng window yung reports page diko na mascroll lahat pababa"; "yung scroll bar end na
+  pero meron pa sa dulo"): the report view sets its scroll range again whenever its window is activated, its tab is shown or its client
+  size changes, so the scroll bar reaches the last page; the place in the report is kept.
+Tests: RsaCurveTests 23, WindAuditTests 79, ProfessionalReportTests 7, EarthquakeSiteTests 25.
+Includes everything of v10.0.60.

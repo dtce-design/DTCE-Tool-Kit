@@ -12,6 +12,9 @@ class RsaCurveTests {
   var points=NscpSpectrum.Points(ca,cv,4,.05);Check(points.Any(p=>Math.Abs(p[0]-ts)<1e-9&&Math.Abs(p[1]-2.5*ca)<1e-9)&&points.Any(p=>Math.Abs(p[0]-t0)<1e-9&&Math.Abs(p[1]-2.5*ca)<1e-9)&&points[0][0]==0&&Math.Abs(points.Last()[0]-4)<1e-9,"T0, Ts, 0 and the last period are curve points");
   AccessCodes.Granted=true;using(var form=new RsaCurveForm()){string report=form.CurrentReport();
    Check(report.Contains("SPECTRUM CQC X 1 ACC SCALE 1.153724 DAMP 0.05 LIN")&&report.Contains("SPECTRUM CQC Z 1 ACC SCALE")&&report.Contains("LOAD 101 LOADTYPE SEISMIC TITLE RSA X")&&report.Contains("LOAD 102"),"STAAD input: two directions, scale g x I / R");
-   Check(report.Contains("Ca (Table 208-7) = 0.44")&&report.Contains("Cv (Table 208-8) = 0.768")&&report.Contains("Ts = Cv / (2.5 Ca)"),"defaults: zone 4, SD, source A at 10 km (Na 1.0, Nv 1.2)");}
+   Check(report.Contains("Ca (Table 208-7) = 0.44")&&report.Contains("Cv (Table 208-8) = 0.768")&&report.Contains("Ts = Cv / (2.5 Ca)"),"defaults: zone 4, SD, source A at 10 km (Na 1.0, Nv 1.2)");
+   /* ELF beside the dynamic input (owner, 28 November 2026): DEFINE UBC LOAD with the sheet's zone, I, R, soil, Na / Nv and the Method A period */
+   Check(report.Contains("DEFINE UBC LOAD")&&report.Contains("ZONE 0.4 I 1 RWX 8.5 RWZ 8.5 STYP 4 NA 1 NV 1.2 PX ")&&report.Contains("SELFWEIGHT 1"),"ELF input: DEFINE UBC LOAD from the sheet");
+   Check(report.IndexOf("ELF (static lateral force)")>report.IndexOf("SPECTRUM CQC Z 1"),"report: dynamic first, then ELF");}
   Console.WriteLine("PASS: "+checks+" NSCP 2015 response spectrum checks");}
 }

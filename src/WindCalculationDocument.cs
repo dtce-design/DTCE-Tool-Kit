@@ -43,10 +43,7 @@ partial class WindDesignForm {
      CalculationDocument.Text(g,"Category "+category+" · source image "+wind.Map+" · magenta marker = project",CalculationDocument.L,784,CalculationDocument.CW,15,7);
     });
    }
-   for(int i=0;i<directions.Count;i+=2){var pair=directions.Skip(i).Take(2).ToArray();doc.Sheets.Add(g=>{
-    CalculationDocument.Section(g,"TERRAIN PROFILES / "+string.Join(" & ",pair.Select(d=>d.Name)),130);
-    for(int n=0;n<pair.Length;n++)WindProfileDrawing.Draw(g,new RectangleF(CalculationDocument.L,172+n*305,CalculationDocument.CW,295),pair[n]);
-   });}
+   /* the terrain profiles are drawn on each direction's exposure / Kzt page (WindAuditPages), right before its Kzt check */
    {List<WindStaadBand> staadBands=null;string staadText="";if(BuildingEnabled&&terrain!=null){var sb=Building();var sd=WindAssessment.Calculate(terrain,sb.Height,wind.V,sb.Kd,sb.Height);staadBands=WindStaadInput.WallBands(sb,wind.V,sd);staadText=StaadLines.Wrap(WindStaadInput.FaceCommands(sb,wind.V,sd,StaadBearing()));}Dictionary<int,string> faces=null;if(BuildingEnabled&&terrain!=null)try{var fb=Building();faces=WindLoadCasesReport.FaceLabels(fb,PressureRows(fb));}catch(Exception){}string alignNote=null;if(BuildingEnabled&&terrain!=null&&Math.Abs(terrain.Offset-TerrainOffset())>1e-6)alignNote="NOTE: the terrain was sampled from "+WindBuildingLoads.BearingName(terrain.Offset)+" in 45° steps, not from the building faces ("+WindBuildingLoads.BearingName(TerrainOffset())+" in 45° steps); each face uses the neighbouring direction with the larger qh. Load the site terrain again to assess exposure and Kzt normal to the faces.";WindAuditPages.Add(doc,directions,staadBands,staadText,terrain,faces,alignNote);}
    if(BuildingEnabled){var b=Building();string ridge=RidgeLabel();var pressure=PressureRows(b);var grouped=pressure.GroupBy(r=>r.Direction).ToArray();
     doc.Sheets.Add(g=>{

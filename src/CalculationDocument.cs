@@ -44,9 +44,21 @@ sealed partial class CalculationDocument:IDisposable {
 class CalculationReportView:ScrollableControl {
  CalculationDocument document;bool owns;float scale;int pw,ph;internal CalculationDocument Document{get{return document;}}internal int PageCount{get{return document==null?0:document.Sheets.Count;}}
  internal CalculationReportView(){DoubleBuffered=true;ResizeRedraw=true;AutoScroll=true;TabStop=true;SetStyle(ControlStyles.Selectable,true);BackColor=Color.FromArgb(224,230,236);}
- internal void SetDocument(CalculationDocument value,bool own=true){if(owns&&document!=null)document.Dispose();document=value;owns=own;AutoScrollPosition=Point.Empty;LayoutPages();}
- void LayoutPages(){float W=document==null?595.28f:document.PageWidth,H=document==null?841.89f:document.PageHeight;scale=Math.Max(.3f,Math.Min(1.8f,(ClientSize.Width-44)/W));pw=(int)(W*scale);ph=(int)(H*scale);AutoScrollMinSize=new Size(pw+40,PageCount*(ph+24)+24);Invalidate();}
- protected override void OnResize(EventArgs e){base.OnResize(e);LayoutPages();}
+ internal void SetDocument(CalculationDocument value,bool own=true){if(owns&&document!=null)document.Dispose();document=value;owns=own;AutoScrollMinSize=Size.Empty;AutoScrollPosition=Point.Empty;LayoutPages();}
+ /* the scroll range is set again from the pages every time the view comes back (owner, 28 November 2026: "every time na lumilipat ako ng
+    window yung reports page diko na mascroll lahat pababa"; "yung scroll bar end na pero meron pa sa dulo"): WinForms kept a stale, shorter
+    range after the window or tab was switched, or after a client-size change that raises no Resize (scroll bar shown / hidden, DPI). The
+    range is cleared and set again so the scroll bars are rebuilt, and the place in the report is kept. */
+ void LayoutPages(){float W=document==null?595.28f:document.PageWidth,H=document==null?841.89f:document.PageHeight;if(ClientSize.Width<=0||ClientSize.Height<=0)return;
+  int oldTotal=AutoScrollMinSize.Height,oldY=-AutoScrollPosition.Y;scale=Math.Max(.3f,Math.Min(1.8f,(ClientSize.Width-44)/W));pw=(int)(W*scale);ph=(int)(H*scale);var want=new Size(pw+40,PageCount*(ph+24)+24);
+  double at=oldTotal>0?(double)oldY/oldTotal:0;AutoScrollMinSize=Size.Empty;AutoScrollMinSize=want;int max=Math.Max(0,want.Height-ClientSize.Height);AutoScrollPosition=new Point(0,Math.Max(0,Math.Min(max,(int)Math.Round(at*want.Height))));Invalidate();}
+ bool laying;void Relayout(){if(laying||!IsHandleCreated||!Visible)return;laying=true;try{LayoutPages();}finally{laying=false;}}
+ protected override void OnResize(EventArgs e){base.OnResize(e);Relayout();}
+ protected override void OnClientSizeChanged(EventArgs e){base.OnClientSizeChanged(e);Relayout();}
+ protected override void OnVisibleChanged(EventArgs e){base.OnVisibleChanged(e);Relayout();}
+ protected override void OnParentVisibleChanged(EventArgs e){base.OnParentVisibleChanged(e);Relayout();}
+ Form hooked;protected override void OnHandleCreated(EventArgs e){base.OnHandleCreated(e);var form=FindForm();if(form!=null&&form!=hooked){if(hooked!=null)hooked.Activated-=FormActivated;hooked=form;form.Activated+=FormActivated;}Relayout();}
+ void FormActivated(object sender,EventArgs e){Relayout();}
  protected override void OnScroll(ScrollEventArgs e){base.OnScroll(e);Invalidate();}
  /* the mouse wheel scrolls without OnScroll: repaint the whole view, or the shifted pages show cut / blank parts (owner, 23 November
     2026: "fix napuputol yung scroll"); Page Up / Down, Home / End and the arrows scroll too */
@@ -60,6 +72,6 @@ class CalculationReportView:ScrollableControl {
  internal static void ShowReport(IWin32Window owner,CalculationDocument doc){using(var form=new Form{Text="Calculation report / Print preview",Width=1150,Height=850,MinimumSize=new Size(760,600),StartPosition=FormStartPosition.CenterParent})using(var printer=doc.Printer()){
   var view=new CalculationReportView{Dock=DockStyle.Fill};view.SetDocument(doc,false);var tools=new FlowLayoutPanel{Dock=DockStyle.Top,Height=46,Padding=new Padding(7)};var print=new Button{Text="Print report…",AutoSize=true};print.Click+=(s,e)=>{using(var dialog=new PrintDialog{Document=printer,UseEXDialog=true})if(dialog.ShowDialog(form)==DialogResult.OK)printer.Print();};var save=new Button{Text="Save PDF",AutoSize=true};save.Click+=(s,e)=>{using(var dialog=new SaveFileDialog{Filter="PDF|*.pdf",FileName="DTCE-Calculation-Report.pdf"})if(dialog.ShowDialog(form)==DialogResult.OK)doc.WritePdf(dialog.FileName);};tools.Controls.Add(print);tools.Controls.Add(save);if(doc.ReportFile!=null){var file=new Button{Text="Export report file",AutoSize=true};file.Click+=(sender,args)=>ProfessionalReportExport.Show(form,doc.ReportFile);tools.Controls.Add(file);}tools.Controls.Add(new Label{Text=doc.Sheets.Count+" pages · scroll to review",AutoSize=true,Padding=new Padding(10,7,0,0)});form.Controls.Add(view);form.Controls.Add(tools);PowTheme.Apply(form);form.ShowDialog(owner);
  }}
- protected override void Dispose(bool disposing){if(disposing&&owns&&document!=null)document.Dispose();base.Dispose(disposing);}
+ protected override void Dispose(bool disposing){if(disposing&&hooked!=null){hooked.Activated-=FormActivated;hooked=null;}if(disposing&&owns&&document!=null)document.Dispose();base.Dispose(disposing);}
 }
 }
