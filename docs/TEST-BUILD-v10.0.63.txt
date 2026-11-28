@@ -1,0 +1,20 @@
+DTCE Tool Kit v10.0.63 (28 November 2026) - test build; not uploaded to the Microsoft Store (needs a new explicit request).
+
+PATCH - Load Combinations settings in a window, more automatic settings, terrain profiles in the exported Wind report:
+- Settings (owner: "yung mga settings, hindi na siguro tab, button na lang tapos window, mas maayos pa ata"): the Load Combinations settings
+  are no longer a tab. A "Settings" button (on the Load Combinations command bar and on the "Primary loads (Load Combinations)" tab of Design
+  Loads) opens them in a window of their own (Close hides it; the values are kept and saved with the sheet). The Design Loads sub tab
+  "Settings (Load Combinations)" of v10.0.62 is gone.
+- Automatic (owner: "automatic na sana"):
+  - the seismic load cases (structure A / B / C) follow the Structural irregularities check by themselves once it has a result (the
+    check now runs on its own after the STAAD data changes, not only when its tab is open); the choice is locked while it does;
+  - rho is locked while it is computed from the STAAD data;
+  - fixed by the code / the app and no longer shown: ACC = 0.05 (x Ax), seismic command UBC LOAD, Ev = 0 in ASD (208-18), alternate basic
+    ASD 203-13 to 203-18 (2000) on, basic ASD (4000) off, special seismic 203-19 / 203-20 (3000) on, wind drift D + 0.5L + 0.6W, seismic
+    drift 1.0 Eh (no D + 0.5L);
+  - still in the window: the seismic load case set (only until the irregularity check has a result), rho (until computed), the live load cases
+    when not linked to the Live Loads sheet, and "Leave out the wind torsion (Cases 2 and 4)".
+- Wind report file (Export; owner: "terrain profile before kzt check sa report yun"): each direction's terrain profile is drawn right before
+  its Kzt check table, as in the printed report since v10.0.61; the separate "Terrain profiles" sections at the end are gone.
+Tests: StaadCombinationsTests 38, RedundancyFactorTests 20, WindAuditTests 79.
+Includes everything of v10.0.62.

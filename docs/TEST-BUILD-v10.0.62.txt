@@ -1,0 +1,14 @@
+DTCE Tool Kit v10.0.62 (28 November 2026) - test build; not uploaded to the Microsoft Store (needs a new explicit request).
+
+PATCH - Design Loads tabs, automatic rho, report scrolling after switching apps:
+- Design Loads (owner: "yung steps sa design load alisin mo, ilipat mo na lang doon yung primary loads ng load combo, pati settings"): the
+  "Steps (how to use Design Loads)" sub tab is removed. The first sub tabs are now "Primary loads (Load Combinations)" and "Settings (Load
+  Combinations)" - the Primary loads and Settings pages of the Load Combinations sheet, shown at the Design Loads level. They remain part of
+  the Load Combinations sheet (same inputs, saving, links and report); the Load Combinations tab keeps its other pages.
+- Redundancy factor rho (owner: "automatic ba ito?"): rho is computed by itself 0.7 s after the STAAD model on the Primary loads tab, the
+  member end forces or the other rho inputs change, and whenever the rho tab is shown; "Recompute rho" stays for a manual run.
+- Report pages (owner: "yung scroll ng report kapag lumilipat ako ng ibang window na ibang app bukod sa tool kit"): the scroll range is also
+  rebuilt when the Tool Kit window is activated again from another app (the window itself, not the design sheet inside it) and when the
+  report gets the focus.
+Tests: StaadCombinationsTests 38, RedundancyFactorTests 20, WindAuditTests 79, RsaCurveTests 23.
+Includes everything of v10.0.61.

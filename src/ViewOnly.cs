@@ -36,9 +36,12 @@ static class ViewOnly {
  internal static int UnlockAllowed(){int n=0;var forms=new List<Form>();Action<Control> walk=null;walk=c=>{var f=c as Form;if(f!=null&&IsLocked(f)&&!forms.Contains(f))forms.Add(f);foreach(Control ch in c.Controls)walk(ch);};
   foreach(Form f in Application.OpenForms.Cast<Form>().ToList())walk(f);
   foreach(var f in forms){bool ok;try{ok=AccessCodes.CanUseApp(AccessCodes.AppFor(f));}catch(Exception){ok=false;}if(ok){Unlock(f);n++;}}return n;}
+ /* controls of a form shown outside it (pages moved to another tab control) follow the form's lock */
+ static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Form,List<Control>> parts=new System.Runtime.CompilerServices.ConditionalWeakTable<Form,List<Control>>();
+ internal static void AddPart(Form form,Control part){if(form==null||part==null)return;parts.GetOrCreateValue(form).Add(part);if(IsLocked(form))LockTree(part);}
  internal static void Unlock(Form form){if(form==null||!IsLocked(form))return;Action<Control> undo=null;undo=c=>{foreach(Control ch in c.Controls.Cast<Control>().ToList())if(!(ch is Form))undo(ch);
    if(IsLocked(c)){locked.Remove(c);Action a;if(restore.TryGetValue(c,out a)){restore.Remove(c);try{a();}catch(Exception){}}}};
-  undo(form);/* windows hosted inside this one (design sheets in tabs) follow their own access */form.Invalidate(true);}
+  undo(form);List<Control> extra;if(parts.TryGetValue(form,out extra))foreach(var part in extra)if(!part.IsDisposed)undo(part);/* windows hosted inside this one (design sheets in tabs) follow their own access */form.Invalidate(true);}
  static void LockTree(Control c){if(c==null||IsLocked(c))return;locked.Add(c,new object());LockOne(c);foreach(Control child in c.Controls)LockTree(child);
   c.ControlAdded+=(s,e)=>{if(IsLocked(c))LockTree(e.Control);};
   if(c.ContextMenuStrip!=null){var menu=c.ContextMenuStrip;var was=menu.Items.Cast<ToolStripItem>().Select(i=>new{I=i,E=i.Enabled}).ToList();foreach(ToolStripItem item in menu.Items)item.Enabled=false;Remember(c,()=>{foreach(var w in was)w.I.Enabled=w.E;});}}

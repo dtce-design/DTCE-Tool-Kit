@@ -1,0 +1,12 @@
+DTCE Tool Kit v10.0.64 (28 November 2026) - test build; not uploaded to the Microsoft Store (needs a new explicit request).
+
+PATCH - Wind Load: turn the building on the site map (owner: "mejo magulo yung pag input ng rotation ng building sa wind load"; chose
+"azimuth based sa map, ilalagay pa din if yung +x sa staad e along ridge or else"):
+- The building outline on the site map has a round handle at the ridge end. Drag it to turn the building; the ridge azimuth is written into
+  the "Ridge azimuth" input by itself (whole degrees; hold Shift for 5° steps). Typing the azimuth still works and turns the outline.
+- Before an azimuth is set, the outline is drawn N-S with "Drag the round handle to turn the building".
+- The STAAD +X choice stays (along the ridge either way, or across it); the map draws the model's +X and +Z arrows from the building centre
+  so the choice can be checked against the site.
+- The outline and arrows follow the width, length, azimuth and +X inputs as they are typed (before, only after Calculate).
+Tests: WindBuildingLoadsTests, WindAuditTests 79, WindRecoveryTests; map rotation smoke (drag to 45° -> azimuth 45, +X 45°).
+Includes everything of v10.0.63.

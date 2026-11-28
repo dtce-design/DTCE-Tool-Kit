@@ -48,7 +48,7 @@ partial class LoadCombinationsForm {
   check.Click+=(s,e)=>CheckIrregularities();
   use.Click+=(s,e)=>{var combo=(ComboBox)Inputs["Structure"];for(int i=0;i<combo.Items.Count;i++)if(Convert.ToString(combo.Items[i]).StartsWith(irrSuggested+" "))combo.SelectedIndex=i;};
   /* rechecked by itself when the tab opens and when one of its inputs changes */
-  irrTimer.Tick+=(s,e)=>{irrTimer.Stop();if(!IsDisposed&&tab!=null&&tab.Visible)CheckIrregularities();};Disposed+=(s,e)=>irrTimer.Dispose();
+  irrTimer.Tick+=(s,e)=>{irrTimer.Stop();if(!IsDisposed&&IsHandleCreated)CheckIrregularities();};Disposed+=(s,e)=>irrTimer.Dispose();
   foreach(Control c in new Control[]{weights,px,lx,pz,lz,op,fa,inPlane,weak,outPlane}){c.TextChanged+=(s,e)=>{if(Restoring)return;irrTimer.Stop();irrTimer.Start();};var cb=c as CheckBox;if(cb!=null)cb.CheckedChanged+=(s,e)=>{if(Restoring)return;irrTimer.Stop();irrTimer.Start();};}
   tab.VisibleChanged+=(s,e)=>{if(tab.Visible&&!Restoring)CheckIrregularities();};}
  IrregularityInput IrrInput(){Func<string,double> d=k=>{double v;return double.TryParse(Value(k),NumberStyles.Float,CultureInfo.InvariantCulture,out v)?v:0;};
@@ -68,6 +68,7 @@ partial class LoadCombinationsForm {
   for(int k=0;k<10&&k<irrRows.Count;k++){var r=irrRows[k];if(irrHead[k]==null)continue;bool bad=r.Result.StartsWith(StructuralIrregularity.Irregular),open=r.Result==StructuralIrregularity.NotChecked;
    irrHead[k].Text="Table "+r.Table+"  ·  "+r.Type+"\n"+r.Criterion;irrResult[k].Text="Result: "+r.Result;irrResult[k].ForeColor=bad?Color.Firebrick:open?PowTheme.Muted:PowTheme.Teal;irrValue[k].Text=r.Value;
    irrDetail[k].Text=("How it is found: "+IrrHow[k]+(string.IsNullOrEmpty(r.Detail)?"":"\n\n"+r.Detail)).Replace("\n","\r\n");var page=irrHead[k].Parent as TabPage;if(page!=null)page.Text=IrrTitles[k]+(bad?" ✕":open?"":" ✓");}
+  /* the class follows the check by itself (owner, 28 November 2026: "automatic na sana") */if(irrSuggested!=""){var combo=(ComboBox)Inputs["Structure"];for(int i=0;i<combo.Items.Count;i++)if(Convert.ToString(combo.Items[i]).StartsWith(irrSuggested+" ")&&combo.SelectedIndex!=i)combo.SelectedIndex=i;}
   irrStatus.ForeColor=irrSuggested=="C"?Color.Firebrick:PowTheme.Teal;irrStatus.Text=text+"  Now used: "+CaseSet(Value("Structure").Substring(0,1))+".";if(irrUse!=null){irrUse.Enabled=irrSuggested!="";irrUse.Text=irrSuggested==""?"Use these seismic load cases":"Use "+CaseSet(irrSuggested);}}
  bool IrregularReport(RichReport rep,int no){string text;var rows=Irregularities(out text);if(rows.All(r=>r.Result==StructuralIrregularity.NotChecked||r.Value.StartsWith("marked absent")))return false;
   rep.Heading(no+"  STRUCTURAL IRREGULARITIES (Tables 208-9 and 208-10)").Paragraph("Vertical irregularities of Table 208-9 and plan irregularities of Table 208-10, from the STAAD model, the member end forces and the joint displacements of the EQ cases (storey stiffness k = storey shear / storey drift), and the designer's inputs where marked. A structure with any irregularity is taken as irregular (structure C: orthogonal effects); a regular structure with dmax / davg over 1.05 as unsymmetrical (structure B: natural and accidental torsion).");
