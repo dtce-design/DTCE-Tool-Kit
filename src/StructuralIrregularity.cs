@@ -19,22 +19,25 @@ static class StructuralIrregularity {
     storeys run between the real floor levels (beams) from the ground up - not at every column joint (a wall mesh splits columns every 0.5 m)
     and not the pedestals below the ground; the storey shear is the sum of the shears of the columns and braces cut at mid-storey; the drift is
     the mean displacement of the floor above minus the floor below. Rows: bottom, top (m from the lowest joint), V, drift, k. */
- internal static List<double[]> Stiffness(StaadModel m,Dictionary<string,double[]> forces,Dictionary<string,double[]> disp,int load,string axis){var res=new List<double[]>();
-  double k=m.ToMetre,baseH=m.Joints.Values.Min(j=>m.H(j)),ground=WindEdgeLoads.GroundLevel(m)/k;int comp=axis!="Z"?0:(m.ZUp?1:2);
+ /* the storey levels of a model in model units, base first: the FLOOR DIAPHRAGM heights and BASE when given (as STAAD takes them), else the
+    floor levels (beams) from the ground up - not every column joint (a wall mesh splits columns every 0.51 m) and not the pedestals below the
+    ground; a plane frame uses the levels of its horizontal members */
+ internal static List<double> StoreyLevels(StaadModel m){double k=m.ToMetre,ground=WindEdgeLoads.GroundLevel(m)/k;
   var floors=WindEdgeLoads.FloorPlans(m).Select(p=>p.Level/k).Where(h=>h>=ground-1e-6).ToList();
-  /* the FLOOR DIAPHRAGM heights of the model are its storeys, as STAAD takes them (owner, 28 November 2026: "may defined diaphragm naman ako") */
   if(m.Diaphragms.Count>0){floors=m.Diaphragms.Select(h=>h/k).ToList();double bs=double.IsNaN(m.DiaphragmBase)?ground:m.DiaphragmBase/k;floors.Add(bs);ground=bs;floors=floors.Where(h=>h>=bs-1e-6).ToList();}
-  /* a plane frame has no floor plans: its floors are the levels of its horizontal members */
   if(floors.Count<2)floors=m.Members.Values.Where(mm=>m.Joints.ContainsKey(mm.A)&&m.Joints.ContainsKey(mm.B)&&Math.Abs(m.H(m.Joints[mm.A])-m.H(m.Joints[mm.B]))<1e-6).Select(mm=>Math.Round(m.H(m.Joints[mm.A]),4)).Where(h=>h>=ground-1e-6).Distinct().ToList();
-  if(floors.Count==0||floors.Min()>ground+1e-6)floors.Insert(0,ground);floors=floors.Distinct().OrderBy(v=>v).ToList();
+  if(floors.Count==0||floors.Min()>ground+1e-6)floors.Insert(0,ground);return floors.Distinct().OrderBy(v=>v).ToList();}
+ /* a height inside the storey that cuts every vertical member once: the middle of the widest gap between member ends */
+ internal static double CutHeight(List<double> ends,double b0,double b1){var hs=ends.Where(h=>h>b0+1e-6&&h<b1-1e-6).Concat(new[]{b0,b1}).Distinct().OrderBy(h=>h).ToList();double cut=(b0+b1)/2,gap=0;for(int q=0;q+1<hs.Count;q++)if(hs[q+1]-hs[q]>gap){gap=hs[q+1]-hs[q];cut=(hs[q]+hs[q+1])/2;}return cut;}
+ /* storey stiffness k = storey shear / storey drift (owner, 28 November 2026: "bakit fail sa soft storey sa computation pero pasado sa staad mismo"):
+    storeys from StoreyLevels; the storey shear is the sum of the shears of the columns and braces cut once in the storey; the drift is the mean
+    displacement of the floor above minus the floor below. Rows: bottom, top (m from the lowest joint), V, drift, k. */
+ internal static List<double[]> Stiffness(StaadModel m,Dictionary<string,double[]> forces,Dictionary<string,double[]> disp,int load,string axis){var res=new List<double[]>();
+  double k=m.ToMetre,baseH=m.Joints.Values.Min(j=>m.H(j));var floors=StoreyLevels(m);double ground=floors[0];int comp=axis!="Z"?0:(m.ZUp?1:2);
   Func<double,double> mean=h=>{var v=m.Joints.Values.Where(j=>Math.Abs(m.H(j)-h)<1e-3&&disp.ContainsKey(j.No+"|"+load)).Select(j=>Math.Abs(disp[j.No+"|"+load][comp])).ToList();return v.Count==0?double.NaN:v.Average();};
   Func<StaadMember,int,double[]> F=(mm,jn)=>{double[] v;return forces.TryGetValue(mm.No+"|"+load+"|"+jn,out v)?v:null;};
   var ends=m.Members.Values.SelectMany(mm=>new[]{mm.A,mm.B}).Where(no=>m.Joints.ContainsKey(no)).Select(no=>m.H(m.Joints[no])).Distinct().ToList();
-  for(int i=0;i+1<floors.Count;i++){double b0=floors[i],b1=floors[i+1];
-   /* the cut lies in the widest gap between member ends inside the storey, so a column split by a wall mesh (joints every 0.51 m, one of them at
-      mid-storey) is still cut exactly once */
-   var hs=ends.Where(h=>h>b0+1e-6&&h<b1-1e-6).Concat(new[]{b0,b1}).Distinct().OrderBy(h=>h).ToList();double cut=(b0+b1)/2,gap=0;for(int q=0;q+1<hs.Count;q++)if(hs[q+1]-hs[q]>gap){gap=hs[q+1]-hs[q];cut=(hs[q]+hs[q+1])/2;}
-   double shear=0;int n=0;
+  for(int i=0;i+1<floors.Count;i++){double b0=floors[i],b1=floors[i+1],cut=CutHeight(ends,b0,b1);double shear=0;int n=0;
    foreach(var mm in m.Members.Values){StaadJoint a,b;if(!m.Joints.TryGetValue(mm.A,out a)||!m.Joints.TryGetValue(mm.B,out b))continue;double lo=Math.Min(m.H(a),m.H(b)),hi=Math.Max(m.H(a),m.H(b));if(!(lo<cut-1e-9&&hi>cut+1e-9))continue;
     double dv=hi-lo,dh=Math.Sqrt(Math.Pow(m.P1(b)-m.P1(a),2)+Math.Pow(m.P2(b)-m.P2(a),2));var v=F(mm,mm.A)??F(mm,mm.B);if(v==null)continue;n++;
     if(dh<=0.02*dv)shear+=Math.Sqrt(v[1]*v[1]+v[2]*v[2]);else{double L=Math.Sqrt(dh*dh+dv*dv);shear+=Math.Abs(v[0])*dh/L;}}

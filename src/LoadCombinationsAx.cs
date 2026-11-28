@@ -28,10 +28,16 @@ partial class LoadCombinationsForm {
    Func<double,string> f3=v=>v.ToString("0.###",CultureInfo.InvariantCulture);
    axRows=results.SelectMany(r=>r.Levels.Select(l=>new[]{r.Case,l.Level.ToString("0.##",CultureInfo.InvariantCulture),f3(l.D1),f3(l.D2),f3(l.DMax),f3(l.DAvg),f3(l.Ratio),f3(l.Ax)})).ToList();
    var g=results.OrderByDescending(r=>r.Ax).First();summary="Governing: load case "+g.Case+", "+g.Governing+". Displacements in the load direction at the two extreme edges of each level (units as pasted).";
+   /* Ax only where a torsional irregularity exists (owner, 28 November 2026: "if required ba talaga ... pati yung amplification factor"): NSCP
+      2015 208.5.7.6 [UBC 1630.7] amplifies the accidental torsion only for a structure with the torsional irregularity of Table 208-10 type 1 -
+      storey drift at one end over 1.2 times the average of the two ends */
+   var dr=results.SelectMany(r=>StructuralIrregularity.TorsionDrifts(r).Select(d=>new{r,d})).OrderByDescending(x=>x.d[5]).FirstOrDefault();
+   if(dr!=null&&dr.d[5]<=1.2){summary+=" No torsional irregularity (largest storey drift ratio "+dr.d[5].ToString("0.###",CultureInfo.InvariantCulture)+" ≤ 1.2 at "+dr.r.Case+"): Ax is not required, Ax = 1.0.";return 1.0;}
+   if(dr!=null)summary+=" Torsional irregularity (storey drift ratio "+dr.d[5].ToString("0.###",CultureInfo.InvariantCulture)+" > 1.2 at "+dr.r.Case+"): Ax applies.";
    return g.Ax;}
   catch(Exception ex){summary=ex.Message;return double.NaN;}}
  void AxReport(RichReport rep,int no){if(Value("AxDisplacements").Trim()=="")return;string text;double ax=ComputeAx(out text);
-  rep.Heading(no+"  TORSIONAL AMPLIFICATION FACTOR Ax").Paragraph("Torsional irregularity when dmax > 1.2 davg at a level; Ax = (dmax / 1.2 davg)^2, not less than 1.0 nor more than 3.0; the accidental torsion of case B is applied as ACC = 0.05 Ax. dmax is the larger and davg the average of the displacements in the load direction at the two extreme edges of the level, from the STAAD analysis with Ax = 1.0.");
+  rep.Heading(no+"  TORSIONAL AMPLIFICATION FACTOR Ax").Paragraph("Ax applies only where the torsional irregularity of Table 208-10 type 1 exists (storey drift at one end over 1.2 times the average of the two ends; NSCP 2015 208.5.7.6). Ax = (dmax / 1.2 davg)^2 from the floor displacements, not less than 1.0 nor more than 3.0; the accidental torsion of case B is applied as ACC = 0.05 Ax. dmax is the larger and davg the average of the displacements in the load direction at the two extreme edges of the level, from the STAAD analysis with Ax = 1.0.");
   rep.Paragraph(text);if(axRows.Count>0)rep.Table(new[]{"Load case","Level (m)","d edge 1","d edge 2","dmax","davg","dmax/davg","Ax"},axRows,new float[]{20,10,10,10,10,10,12,8});
   if(!double.IsNaN(ax))rep.Paragraph("Ax = "+ax.ToString("0.0##",CultureInfo.InvariantCulture)+"; ACC = 0.05 × "+ax.ToString("0.0##",CultureInfo.InvariantCulture)+" = "+(0.05*ax).ToString("0.0###",CultureInfo.InvariantCulture)+".");}
 }

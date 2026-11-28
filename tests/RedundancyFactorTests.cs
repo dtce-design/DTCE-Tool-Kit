@@ -1,4 +1,4 @@
-using System;using System.Linq;using System.Text;using BeamScheduleFormatter;
+using System;using System.Collections.Generic;using System.Linq;using System.Text;using BeamScheduleFormatter;
 /* Redundancy factor (NSCP 2015 208.5.1.1, Eq. 208-20) from a STAAD model and the member end forces of the EQ cases */
 class RedundancyFactorTests {
  static int checks;static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}
@@ -48,5 +48,14 @@ class RedundancyFactorTests {
    Check(fd.Count==4&&Math.Abs(fd["1|5|1"][1]-3.5)<1e-9&&Math.Abs(fd["1|6|7"][2]+4)<1e-9&&!forces.Contains("SUPPORT")&&!forces.Contains("X-TRANS"),".ANL member end forces block: "+fd.Count);
    Check(dd.Count==4&&Math.Abs(dd["7|5"][0]-1.2)<1e-9&&Math.Abs(dd["7|6"][2]-1.1)<1e-9&&!disp.Contains("AXIAL"),".ANL joint displacement block: "+dd.Count);
    var whole=RedundancyFactor.ReadForces(anlOut);Check(whole.Count==4&&!whole.ContainsKey("5|0.0000|0"),"the whole .ANL in the forces box reads only MEMBER END FORCES: "+whole.Count);}
+  /* owner (28 November 2026, "paki make sure tama yung computation ng redundancy factor"): pedestals below the ground beams, a column split at
+     mid-storey (wall mesh) and beams split between the columns give one story with one bay pair, not thin false stories */
+  {var t=new StringBuilder("UNIT METER KN\nJOINT COORDINATES\n");int jn=0;var id=new Dictionary<string,int>();Func<double,double,int> J=(x,y)=>{string k=x+","+y;int v;if(id.TryGetValue(k,out v))return v;id[k]=++jn;t.Append(jn+" "+x+" "+y+" 0;\n");return jn;};
+   var mem=new List<int[]>();foreach(var x in new[]{0.0,6,12}){mem.Add(new[]{J(x,-1.5),J(x,0)});}mem.Add(new[]{J(0,0),J(0,1.75)});mem.Add(new[]{J(0,1.75),J(0,3.5)});mem.Add(new[]{J(6,0),J(6,3.5)});mem.Add(new[]{J(12,0),J(12,3.5)});
+   foreach(var y in new[]{0.0,3.5})foreach(var x in new[]{0.0,3,6,9}){mem.Add(new[]{J(x,y),J(x+3,y)});}
+   t.Append("MEMBER INCIDENCES\n");for(int q=0;q<mem.Count;q++)t.Append((q+1)+" "+mem[q][0]+" "+mem[q][1]+";\n");var md=RedundancyFactor.ReadModel(t.ToString());
+   var fs=new StringBuilder();for(int q=0;q<mem.Count;q++){var a2=md.Joints[mem[q][0]];var b2=md.Joints[mem[q][1]];if(Math.Abs(a2.Y-b2.Y)<1e-9)continue;fs.AppendLine((q+1)+" 1 "+mem[q][0]+" 50 20 0 0 0 0");fs.AppendLine("  "+mem[q][1]+" -50 -20 0 0 0 0");}
+   var rr=RedundancyFactor.Compute(md,RedundancyFactor.ReadForces(fs.ToString()),1,"1 EQ+X","X","Moment");var st=rr.Stories.Where(x=>x.Shear>0).ToList();
+   Check(st.Count==1&&Math.Abs(st[0].Shear-60)<1e-6&&Math.Abs(st[0].Element-34)<1e-6&&Math.Abs(rr.RMax-34.0/60)<1e-9,"one story from the ground beams, bay found through split beams (20 + 0.7 x 20 = 34 of 60): "+string.Join(" | ",rr.Stories.Select(x=>x.Bottom+"-"+x.Top+" V "+x.Shear+" "+x.Element0)));}
   Console.WriteLine("RedundancyFactorTests passed: "+checks+" checks");}
 }
