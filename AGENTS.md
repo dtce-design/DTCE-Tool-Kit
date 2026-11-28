@@ -374,6 +374,10 @@ Certification (v10.0.64 Published). Certification is not guaranteed. v10.0.66 an
 New owner request (28 November 2026, "publish"; chose "Replace v10.0.65"): publish v10.0.68 (User and Admin) after its Windows CI passes (PR to
 main for the GitHub release, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only - the v10.0.65
 submissions in certification are cancelled and replaced; User visibility stays Public). Later versions again need a new explicit request.
+Result 28 November 2026: PR #34 merged to main (GitHub release of v10.0.68, run 46130116652). Owner then: "yung 69 na ang iupload" - Store run
+46130143299 was cancelled while still queued (no job started; nothing uploaded, nothing changed in Partner Center). The Store release is v10.0.69
+(User and Admin), the same way (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only - the
+v10.0.65 submissions in certification are replaced; User visibility stays Public). Later versions again need a new explicit request.
 Checked 26 November 2026 (read-only store_status job, run 45825954870): v10.0.18 is Published for User and Admin; no submission pending;
 the public catalog lists DTCE.DTCEToolKit_10.0.18.0 / DTCE.DTCEToolKit-Admin_10.0.18.0.
 Update check (owner, 26 November 2026: "di namang gumagana yung pagcheck ng updates"; "ayaw ko ng check for updates, gusto ko automatic na",
