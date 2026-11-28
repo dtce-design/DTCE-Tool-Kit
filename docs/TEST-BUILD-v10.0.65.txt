@@ -1,0 +1,10 @@
+DTCE Tool Kit v10.0.65 (28 November 2026) - test build; not uploaded to the Microsoft Store (needs a new explicit request).
+
+PATCH - Load Combinations: seismic drift by envelope, no load combinations (owner: "huwag ka na gumawa ng load combo for seismic drift sa
+envelope na lang"):
+- The 6000 seismic drift LOAD COMBINATIONs (1.0 Eh of each seismic case) are no longer written; they only repeated the primary EQ cases.
+- DEFINE ENVELOPE gets one more SERVICEABILITY envelope with the primary EQ cases themselves (class C: the orthogonal REPEAT LOAD cases),
+  and PRINT STORY DRIFT uses their LOAD LIST. dS (Section 208.6.4) and dM = 0.7 R dS are unchanged.
+- Wind drift (5000, D + 0.5L + 0.6W) stays as combinations. The report basis and the STAAD header notes say so.
+Tests: StaadCombinationsTests 38, RedundancyFactorTests 20, WindEdgeLoadsTests 42, RoofLiveLoadsTests 22, OpeningHardwareLinkTests.
+Includes everything of v10.0.64.

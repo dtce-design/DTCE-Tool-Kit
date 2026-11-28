@@ -652,3 +652,6 @@ A = span x max(spacing, span/3)); CCElements is only "Other elements (optional)"
 Owner (28 November 2026, "mejo magulo yung pag input ng rotation ng building"; chose "azimuth based sa map, ilalagay pa din if yung +x sa staad e
 along ridge or else"): the site map outline has a round handle at the ridge end; dragging it sets RidgeAzimuth (WindSiteMap.RidgeChanged, Shift = 5°);
 the StaadPlusX choice stays and the map draws the +X / +Z arrows (SetStaadX); the outline follows the inputs as typed (v10.0.64).
+Owner (28 November 2026, "huwag ka na gumawa ng load combo for seismic drift sa envelope na lang"): no 6000 seismic drift combinations; the
+primary EQ cases (class C: the REPEAT LOAD cases) are their own SERVICEABILITY envelope and the PRINT STORY DRIFT load list
+(StaadCombinations.SeismicDriftCases, v10.0.65). Wind drift 5000 stays as combinations.
