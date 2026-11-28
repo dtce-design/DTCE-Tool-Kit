@@ -148,8 +148,14 @@ static class WindEdgeLoads {
     range would hold another closed panel */
  internal static List<double[]> PanelBoxes(WindPlanLevel p,List<SlabPanel> panels,double?[] val,out int open,out int clash){open=0;clash=0;var boxes=new List<double[]>();var used=new bool[panels.Count];
   Func<double[],int,int> rel=(bx,k)=>{int n=0;foreach(var c in panels[k].Cells){double cx=(p.Xs[c[0]]+p.Xs[c[0]+1])/2,cz=(p.Zs[c[1]]+p.Zs[c[1]+1])/2;if(cx>bx[0]&&cx<bx[1]&&cz>bx[2]&&cz<bx[3])n++;}return n==0?0:n==panels[k].Cells.Count?1:2;};
+  /* a range holds only the cells of its own panels: never an open panel (no beam across it - STAAD would find a larger loop of beams
+     around it and load the gap; owner, 28 November 2026: "naimomodel ng roof kahit wala naman beam doon na parte sa gitna"); cells
+     outside the outline only inside one panel's own box */
+  Func<double[],HashSet<int>,bool> clean=(bx,mem)=>{var own=new HashSet<long>();foreach(var k in mem)foreach(var c in panels[k].Cells)own.Add(c[0]*100000L+c[1]);
+   for(int i=0;i<p.Xs.Count-1;i++){double cx=(p.Xs[i]+p.Xs[i+1])/2;if(cx<=bx[0]||cx>=bx[1])continue;for(int j=0;j<p.Zs.Count-1;j++){double cz=(p.Zs[j]+p.Zs[j+1])/2;if(cz<=bx[2]||cz>=bx[3])continue;if(own.Contains(i*100000L+j))continue;if(p.Inside[i,j])return false;
+    /* ground outside the outline only within one panel's own box (an L-shaped panel), never as a bridge between panels */bool within=false;foreach(var k in mem)if(cx>panels[k].X1&&cx<panels[k].X2&&cz>panels[k].Z1&&cz<panels[k].Z2){within=true;break;}if(!within)return false;}}return true;};
   Func<double[],HashSet<int>,double,bool> fit=(bx,mem,v)=>{bool again=true;while(again){again=false;for(int k=0;k<panels.Count;k++){if(!panels[k].Closed||mem.Contains(k))continue;int r=rel(bx,k);if(r==0)continue;
-     if(r==1&&!used[k]&&val[k]!=null&&Math.Abs(val[k].Value-v)<1e-9){mem.Add(k);again=true;continue;}return false;}}return true;};
+     if(r==1&&!used[k]&&val[k]!=null&&Math.Abs(val[k].Value-v)<1e-9){mem.Add(k);again=true;continue;}return false;}}return clean(bx,mem);};
   var order=Enumerable.Range(0,panels.Count).Where(k=>val[k]!=null).OrderBy(k=>panels[k].X1).ThenBy(k=>panels[k].Z1).ToList();
   foreach(var k in order){if(!panels[k].Closed){open++;used[k]=true;}}
   foreach(var k in order){if(used[k])continue;double v=val[k].Value;var mem=new HashSet<int>{k};var bx=new[]{panels[k].X1,panels[k].X2,panels[k].Z1,panels[k].Z2};

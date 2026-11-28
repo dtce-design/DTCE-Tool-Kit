@@ -675,3 +675,9 @@ has MaxLength=int.MaxValue (or 0) - the WinForms default of 32,767 characters cu
 Owner ("joint displacement beam end forces i open ko na lang yung ANL file"; "para di ko na copy paste"): "Open .ANL file…" (Primary loads, rho and
 Ax tabs; LoadCombinationsForm.OpenAnl, src/StaadAnl.cs) keeps only the JOINT DISPLACEMENT / MEMBER END FORCES blocks and fills the Ax / rho boxes;
 RedundancyFactor.ReadForces reads only MEMBER END FORCES blocks when the text has them (v10.0.68).
+Owner (28 November 2026, "yung no. of wind load cases lang ang automatic, pero yung eq ll, llr automatic pa din ... yung sa eq ako magseselect if
+anong case sa primary cases"; supersedes the v10.0.63 automatic structure class): the EQ case set (Structure A / B / C) is chosen by the owner on the
+Primary loads tab (eqPick, kept in step with Settings); the irregularity check only suggests. Owner ("diba dapat separate na tab ang LLR?"): "Roof live
+load (LLR)" is its own Design Loads sub tab (LauncherForm.MoveLcParts LoadsRoof) and its own report part (LoadCombinationsForm.RoofLiveDocument,
+DesignLoadsReport), not in the Load Combinations report. Owner ("naimomodel ng roof kahit wala naman beam ... sa gitna"): FLOOR LOAD ranges hold only their
+own panels' cells (WindEdgeLoads.PanelBoxes clean): no bridge over an open panel or between separate roofs (v10.0.69).

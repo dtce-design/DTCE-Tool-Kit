@@ -7,11 +7,12 @@ partial class LoadCombinationsForm:DesignSheetForm {
  readonly TextBox output=new TextBox{Dock=DockStyle.Fill,Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Both,WordWrap=false,Font=new Font("Consolas",9.5f),BackColor=Color.White};
  readonly DataGridView cases=new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill};
  readonly DataGridView combos=new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill};
+ ComboBox eqPick;Label eqHint;bool eqSync;
  readonly Label status=new Label{Dock=DockStyle.Top,Height=52,Padding=new Padding(10),ForeColor=PowTheme.Teal};
  public LoadCombinationsForm():base("Load Combinations (NSCP 2015) - STAAD input with orthogonal seismic effects","Load-Combinations"){
   var loads=Section("Primary loads","Paste the primary load cases of the STAAD model, one per line, as in the STAAD input (LOAD 4 LOADTYPE SEISMIC-H TITLE EQ+X) or the load case list (4 EQ+X Seismic-H). The load type gives D (Dead), L (Live), Lr (Roof Live), W (Wind) and E (Seismic-H; Seismic-V = Ev); without a type the title is read (DL, SDL, LL, LLR, WL+X, EQ+X ...). The combinations use the same titles.");
   var text=new TextBox{MaxLength=int.MaxValue,Multiline=true,ScrollBars=ScrollBars.Vertical,Width=560,Height=300,Font=new Font("Consolas",9.5f),Text=StaadCombinations.Example.Replace("\n","\r\n"),AcceptsReturn=true};/* the whole page is the box for the pasted lines (no two-column input layout) */var tab=loads.Parent.Parent as TabPage;var box=new Panel{Dock=DockStyle.Fill,BackColor=Color.White,Padding=new Padding(14)};text.Dock=DockStyle.Fill;text.Width=0;
-  var cap=new Label{Text="Primary load cases - automatic from the structure class (Settings tab). To paste your own, uncheck Automatic there and paste them here as in the STAAD input (LOAD 5 LOADTYPE SEISMIC-H TITLE EQ+X).",Dock=DockStyle.Top,Height=52,Font=ModernUi.Strong,ForeColor=PowTheme.Ink};
+  var cap=new Label{Text="Primary load cases - automatic: EQ cases from the choice above, wind cases from the code, DL / LL1 / LL2 / LLR. To paste your own, uncheck Automatic there and paste them here as in the STAAD input (LOAD 5 LOADTYPE SEISMIC-H TITLE EQ+X).",Dock=DockStyle.Top,Height=52,Font=ModernUi.Strong,ForeColor=PowTheme.Ink};
   /* the STAAD input pasted before the run (owner, 26 November 2026: "hindi magbabase sa redundancy factor. kasi bago ko irun loaded na dapat ito"):
      the wind loads on recessed faces and the floor plans of the irregularity checks need only the model, not the results */
   /* two inputs (owner, 26 November 2026: "2 inputs na lang joint from table and beams from table. or staad command file or .std"): the STAAD
@@ -27,6 +28,11 @@ partial class LoadCombinationsForm:DesignSheetForm {
   model.Panel2.Controls.Add(beamsBox);model.Panel2.Controls.Add(new Label{Text="2  Beams - STAAD Beams table (Beam, Node A, Node B); not needed with a .std file",Dock=DockStyle.Top,Height=24,ForeColor=PowTheme.Teal,Font=new Font("Segoe UI Semibold",9f),UseMnemonic=false});
   var pair=new SplitContainer{Dock=DockStyle.Fill,Orientation=Orientation.Vertical,SplitterWidth=7,BackColor=Color.FromArgb(176,186,182)};pair.Panel1.BackColor=Color.White;pair.Panel2.BackColor=Color.White;pair.Panel1.Padding=new Padding(0,0,8,0);pair.Panel2.Padding=new Padding(8,0,0,0);
   text.BorderStyle=BorderStyle.FixedSingle;pair.Panel1.Controls.Add(text);pair.Panel1.Controls.Add(cap);pair.Panel2.Controls.Add(model);pair.Panel2.Controls.Add(openAnl);pair.Panel2.Controls.Add(openStd);pair.Panel2.Controls.Add(modelCap);box.Controls.Add(pair);
+  /* the seismic load cases are chosen here (owner, 28 November 2026: "yung sa eq ako magseselect if anong case sa primary cases") - a copy of the
+     Settings choice "Structure", kept in step both ways; the irregularity check only suggests */
+  var eqBar=new FlowLayoutPanel{Dock=DockStyle.Top,Height=74,Padding=new Padding(4,6,4,0),WrapContents=true,BackColor=Color.White};
+  eqPick=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Width=560};eqHint=new Label{AutoSize=false,Width=1100,Height=30,ForeColor=PowTheme.Muted,Padding=new Padding(0,4,0,0)};
+  eqBar.Controls.Add(new Label{Text="EQ primary cases:",AutoSize=true,Padding=new Padding(0,6,6,0),Font=ModernUi.Strong});eqBar.Controls.Add(eqPick);eqBar.Controls.Add(eqHint);box.Controls.Add(eqBar);
   if(tab!=null){tab.Controls.Clear();tab.Controls.Add(box);}else loads.Controls.Add(box);Inputs.Add("Primary",text);
   Shown+=(s0,e0)=>{try{pair.SplitterDistance=Math.Max(200,pair.Width/2);model.SplitterDistance=Math.Max(80,model.Height/2);}catch(Exception){}};
   /* one Settings tab in four groups (owner, 26 November 2026: "masyadong confusing ito at paulit ulit yung ibang inputs. sana masmaayos na
@@ -38,6 +44,9 @@ partial class LoadCombinationsForm:DesignSheetForm {
   /* the seismic cases as in the owner's STAAD notes: A regular / symmetrical, B regular / unsymmetrical (accidental torsion), C irregular /
      unsymmetrical (orthogonal effects as REPEAT LOAD cases) */
   Choice(set,"Structure","Seismic load cases",new[]{"C - Irregular and unsymmetrical: orthogonal 1.0(EQ+X)+0.3(EQ+Z) ...","B - Regular and unsymmetrical: EQ +X +E, EQ +X -E ... (accidental torsion)","A - Regular and symmetrical: EQ +X, -X, +Z, -Z"});
+  {var st=(ComboBox)Inputs["Structure"];foreach(var it in st.Items)eqPick.Items.Add(it);eqPick.SelectedIndex=st.SelectedIndex;
+   st.SelectedIndexChanged+=(s9,e9)=>{if(eqSync)return;eqSync=true;try{eqPick.SelectedIndex=st.SelectedIndex;}finally{eqSync=false;}};
+   eqPick.SelectedIndexChanged+=(s9,e9)=>{if(eqSync)return;eqSync=true;try{st.SelectedIndex=eqPick.SelectedIndex;}finally{eqSync=false;}};}
   NumberField(set,"Rho","Redundancy factor ρ","1.0");tip("Rho","Reliability / redundancy factor ρ (Section 208.5.1.1); computed on the Redundancy factor ρ tab from the pasted STAAD data.");
   Toggle(set,"EqLinked","Ca, I, Ω0 from the Earthquake sheet",true);tip("EqLinked","Seismic coefficient Ca, importance factor I and overstrength Ω0 taken from the Earthquake Load sheet (calculate it first).");
   NumberField(set,"Ca","Seismic coefficient Ca","0.44");NumberField(set,"I","Importance factor I","1.0");NumberField(set,"Omega0","Overstrength Ω0 (Table 208-11)","2.8");
@@ -85,7 +94,7 @@ partial class LoadCombinationsForm:DesignSheetForm {
   settingsPage=TakePage("Settings");AddCommand("Settings",ShowSettingsWindow);
   /* the structure class follows the structural irregularity check by itself once it has a result (owner: "automatic na sana") */
   HandleCreated+=(s,e)=>{foreach(var kv in Inputs){if(kv.Key=="Structure")continue;kv.Value.TextChanged+=(s1,e1)=>{if(Restoring)return;irrTimer.Stop();irrTimer.Start();};}};
-  EnableWhen(()=>irrSuggested=="","Structure");EnableWhen(()=>double.IsNaN(rhoFound),"Rho");
+  EnableWhen(()=>double.IsNaN(rhoFound),"Rho");
   /* the STAAD text gets the wider half */Shown+=(s,e)=>{try{split.SplitterDistance=Math.Max(320,split.Width*42/100);left.SplitterDistance=Math.Max(160,left.Height*40/100);}catch(Exception){}Refresh0();};}
  /* required by the code or by the STAAD / RCDC run, so not a choice any more (owner, 27 November 2026: "alisin na yung options na required
     talaga gaya nung add perform analysis and change every eq load, tapos yung iba pa"): the hidden settings read as fixed whatever an older
@@ -190,11 +199,15 @@ partial class LoadCombinationsForm:DesignSheetForm {
   if(Value("AxDisplacements").Trim()!=""){AxReport(rep,sec);sec++;}
   if(IrregularReport(rep,sec))sec++;
   /* the wind load cases (figures, torsion) are reported in the Wind Load sheet (owner, 27 November 2026) */
-  /* the roof live load chosen for each roof of the model (Table 205-3) */
-  if(On("RoofLive")&&RoofLiveRegions.Count>0){rep.Heading(sec+++"  ROOF LIVE LOAD (LLR) ON THE STAAD MODEL").Paragraph("NSCP 2015 Section 205.4, Table 205-3 (Method 1): Lr acts vertically on the area projected on a horizontal plane and depends on the roof slope (row 1: flat or rise less than 4 in 12; row 2: 4 in 12 to less than 12 in 12; row 3: 12 in 12 and over) and on the tributary area of the member (0 to 20, 21 to 60, over 60 m²). Slab roofs: each panel between beams, its area being the tributary area of the beams around it. Trusses: the tributary area of the truss, horizontal span × spacing; the top chords carry w = Lr × spacing projected on the horizontal. Roof decks used as an occupancy are not roofs here: they take Table 205-1, 18 (as the area served) in a live load case.")
+  /* the roof live load has its own report part (owner, 28 November 2026: "bakit yung LLR nasa load combo report? diba dapat separate na tab") */
+  rep.Heading(sec+"  LOAD COMBINATIONS");foreach(var g in all.GroupBy(c=>c.Group)){rep.Paragraph(g.Key,false,true);rep.Table(new[]{"No.","Eq.","Combination","Factors (load case x factor)"},g.Select(c=>new[]{c.No.ToString(),c.Eq,c.Title,string.Join("  ",c.Terms.OrderBy(t=>t.Key.No).Select(t=>t.Key.No+" x "+StaadCombinations.F(t.Value)))}),new float[]{9,14,42,35});}
+  return rep.Build();}
+ /* the Roof live load (LLR) part of the Design Loads report */
+ internal CalculationDocument RoofLiveDocument(){Settings();var rep=new RichReport("Roof Live Load (LLR) - NSCP 2015");
+  if(On("RoofLive")&&RoofLiveRegions.Count>0){rep.Heading("1  ROOF LIVE LOAD (LLR) ON THE STAAD MODEL").Paragraph("NSCP 2015 Section 205.4, Table 205-3 (Method 1): Lr acts vertically on the area projected on a horizontal plane and depends on the roof slope (row 1: flat or rise less than 4 in 12; row 2: 4 in 12 to less than 12 in 12; row 3: 12 in 12 and over) and on the tributary area of the member (0 to 20, 21 to 60, over 60 m²). Slab roofs: each panel between beams, its area being the tributary area of the beams around it. Trusses: the tributary area of the truss, horizontal span × spacing; the top chords carry w = Lr × spacing projected on the horizontal. Roof decks used as an occupancy are not roofs here: they take Table 205-1, 18 (as the area served) in a live load case.")
     .Table(new[]{"Roof","Where","Basis","Row","Lr (kPa)"},RoofLiveRegions.Select(r=>new[]{r.Kind=="Truss"?"Trussed roof":"Slab roof",r.Where,r.Basis,r.Row.ToString(),StaadCombinations.F(r.Lr)}),new float[]{14,16,48,7,12});
    foreach(var y in RoofLevels()){var lv=y;rep.Figure(RoofPlanHeight(lv,CalculationDocument.CW),RichReport.Raster((g,r)=>DrawRoofPlan(g,r,lv,9)),"Roof live load at level "+StaadCombinations.F(lv)+" m: panels and truss top chords coloured by the Lr chosen (Table 205-3).");}}
-  rep.Heading(sec+"  LOAD COMBINATIONS");foreach(var g in all.GroupBy(c=>c.Group)){rep.Paragraph(g.Key,false,true);rep.Table(new[]{"No.","Eq.","Combination","Factors (load case x factor)"},g.Select(c=>new[]{c.No.ToString(),c.Eq,c.Title,string.Join("  ",c.Terms.OrderBy(t=>t.Key.No).Select(t=>t.Key.No+" x "+StaadCombinations.F(t.Value)))}),new float[]{9,14,42,35});}
+  else rep.Heading("1  ROOF LIVE LOAD (LLR)").Paragraph(roofLiveNote==""?"No roof found yet: open the .std file (or paste the Nodes and Beams tables) on the Primary loads tab.":"Roof live load: "+roofLiveNote+".");
   return rep.Build();}
  protected override bool OptionalSavedInput(string key){return key.StartsWith("Rho")&&key!="Rho"||key=="AutoPrimary"||key=="LiveCases"||key=="RoofLive"||key=="WindCases"||key=="EqCommand"||key=="Acc"||key=="Ax"||key=="DriftGravity"||key=="AxDisplacements"||key=="PrintReports"||key.StartsWith("Reg")||key=="EqLinked"||key=="PerformChange"||key=="LlLinked"||key=="StaadBeams"||key=="WindAllCases"||key=="WindTorsionExempt"||key=="WindLinked"||key=="StaadInput";}
  /* sheets saved before the automatic primary loads keep their pasted primary loads */

@@ -1,0 +1,16 @@
+DTCE Tool Kit v10.0.69 (28 November 2026) - test build; not uploaded to the Microsoft Store (needs a new explicit request).
+
+PATCH - Design Loads / Load Combinations (owner, 28 November 2026: "huwag gawin automatic"; "yung no. of wind load cases lang ang automatic,
+pero yung eq ll, llr automatic pa din ... yung sa eq ako magseselect if anong case sa primary cases"; "bakit yung LLR nasa load combo report?
+diba dapat separate na tab ang LLR?"; "naimomodel ng roof kahit wala naman beam doon na parte sa gitna na nagdudugtong"):
+- EQ primary cases are chosen on the Primary loads tab ("EQ primary cases": C orthogonal / B accidental torsion / A each direction alone; the
+  same choice as in Settings, kept in step). The irregularity check no longer changes it; it shows its suggestion under the choice and the
+  "Use ..." button on the Structural irregularities tab stays. The wind load cases, LL1 / LL2 and LLR stay automatic.
+- "Roof live load (LLR)" is its own Design Loads sub tab (after Live Loads) and its own part of the Design Loads calculation report
+  ("Roof Live Load (LLR) - NSCP 2015"); it is no longer a section of the Load Combinations report.
+- Roof FLOOR LOAD ranges never bridge a gap without beams: a range holds only the cells of its own panels (never an open panel inside the
+  outline, nor ground between two separate roofs). Two rooftop structures with no beam between them are loaded and drawn apart. The same
+  rule applies to the wind roof FLOOR LOADs.
+Tests: RoofLiveLoadsTests 23 (new: two rooftop housings), WindEdgeLoadsTests 42, WindEdgeShapesTests 33, StaadCombinationsTests 38,
+RedundancyFactorTests 23, StructuralIrregularityTests 11; smoke: EQ choice in step both ways, LLR page and report part.
+Includes everything of v10.0.68.
