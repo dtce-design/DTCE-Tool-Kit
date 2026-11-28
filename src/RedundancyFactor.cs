@@ -16,7 +16,7 @@ namespace BeamScheduleFormatter {
    horizontal resultant sqrt(Fy^2 + Fz^2) of the member end force; the story shear is the sum over the columns and braces of the story. */
 sealed class StaadJoint {public int No;public double X,Y,Z;}
 sealed class StaadMember {public int No,A,B;}
-sealed class StaadModel {public Dictionary<int,StaadJoint> Joints=new Dictionary<int,StaadJoint>();public Dictionary<int,StaadMember> Members=new Dictionary<int,StaadMember>();public double ToMetre=1;public bool ZUp;/* the input has plate / shell elements (walls carry storey shear the member forces do not show) */public bool Plates;public List<string> Notes=new List<string>();
+sealed class StaadModel {public Dictionary<int,StaadJoint> Joints=new Dictionary<int,StaadJoint>();public Dictionary<int,StaadMember> Members=new Dictionary<int,StaadMember>();public double ToMetre=1;public bool ZUp;/* the input has plate / shell elements (walls carry storey shear the member forces do not show) */public bool Plates;/* FLOOR DIAPHRAGM heights and BASE in metres (owner: "may defined diaphragm naman ako") */public List<double> Diaphragms=new List<double>();public double DiaphragmBase=double.NaN;public List<string> Notes=new List<string>();
  /* plan coordinates and the height, whatever axis is up */
  public double H(StaadJoint j){return ZUp?j.Z:j.Y;}public double P1(StaadJoint j){return j.X;}public double P2(StaadJoint j){return ZUp?j.Y:j.Z;}}
 sealed class RhoStory {public double Bottom,Top,Shear,Element,Ratio;public string Element0="";public bool Counted;}
@@ -44,6 +44,9 @@ static class RedundancyFactor {
    if(u.StartsWith("SET Z UP")){m.ZUp=true;continue;}
    if(u.StartsWith("JOINT COORD")){block="J";m.ToMetre=unit;line=Regex.Replace(line,@"^JOINT\s+COORD\w*(\s+CYL\w*)?","",RegexOptions.IgnoreCase).Trim();if(line=="")continue;}
    else if(u.StartsWith("ELEMENT INCI")){m.Plates=true;block="";continue;}
+   else if(u.StartsWith("FLOOR DIAPH")){block="D";continue;}
+   else if(block=="D"&&Regex.IsMatch(u,@"^DIA\s")){var hm=Regex.Match(u,@"\bHEI\w*\s+(-?[\d.]+)");double hv;if(hm.Success&&double.TryParse(hm.Groups[1].Value,NumberStyles.Float,Ci,out hv))m.Diaphragms.Add(hv*unit);continue;}
+   else if(block=="D"&&Regex.IsMatch(u,@"^BASE\s")){double bv;if(double.TryParse(u.Substring(4).Trim().Split(' ')[0],NumberStyles.Float,Ci,out bv))m.DiaphragmBase=bv*unit;continue;}
    else if(u.StartsWith("MEMBER INCI")){block="M";line=Regex.Replace(line,@"^MEMBER\s+INCI\w*","",RegexOptions.IgnoreCase).Trim();if(line=="")continue;}
    else if(Regex.IsMatch(u,@"^[A-Z]")){if(u.StartsWith("REPEAT"))m.Notes.Add("REPEAT / REPEAT ALL generation in the joint or member list is not read: list the joints and members explicitly.");block="";continue;}
    if(block=="")continue;

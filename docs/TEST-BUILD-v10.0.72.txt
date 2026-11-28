@@ -1,0 +1,9 @@
+DTCE Tool Kit v10.0.72 (28 November 2026) - test build; not uploaded to the Microsoft Store (needs a new explicit request).
+
+PATCH - Soft storey follows the model's FLOOR DIAPHRAGM (owner: "may defined diaphragm naman ako"):
+- When the STAAD input (the .std opened on the Primary loads tab) has FLOOR DIAPHRAGM, its DIA ... HEI heights and BASE are the storeys of
+  the stiffness check, as STAAD takes them (e.g. BASE 0, HEI 5.1 / 9.6 / 12.6 -> storeys 0-5.1, 5.1-9.6, 9.6-12.6). Without diaphragms the
+  floor levels of v10.0.71 are used. Pasted Nodes / Beams tables carry no diaphragm; open the .std for this.
+Tests: StructuralIrregularityTests 13 (new: FLOOR DIAPHRAGM read and used), RedundancyFactorTests 23, StaadCombinationsTests 39,
+WindEdgeLoadsTests 42.
+Includes everything of v10.0.71.

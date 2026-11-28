@@ -21,6 +21,8 @@ static class StructuralIrregularity {
  internal static List<double[]> Stiffness(StaadModel m,Dictionary<string,double[]> forces,Dictionary<string,double[]> disp,int load,string axis){var res=new List<double[]>();
   double k=m.ToMetre,baseH=m.Joints.Values.Min(j=>m.H(j)),ground=WindEdgeLoads.GroundLevel(m)/k;int comp=axis!="Z"?0:(m.ZUp?1:2);
   var floors=WindEdgeLoads.FloorPlans(m).Select(p=>p.Level/k).Where(h=>h>=ground-1e-6).ToList();
+  /* the FLOOR DIAPHRAGM heights of the model are its storeys, as STAAD takes them (owner, 28 November 2026: "may defined diaphragm naman ako") */
+  if(m.Diaphragms.Count>0){floors=m.Diaphragms.Select(h=>h/k).ToList();double bs=double.IsNaN(m.DiaphragmBase)?ground:m.DiaphragmBase/k;floors.Add(bs);ground=bs;floors=floors.Where(h=>h>=bs-1e-6).ToList();}
   /* a plane frame has no floor plans: its floors are the levels of its horizontal members */
   if(floors.Count<2)floors=m.Members.Values.Where(mm=>m.Joints.ContainsKey(mm.A)&&m.Joints.ContainsKey(mm.B)&&Math.Abs(m.H(m.Joints[mm.A])-m.H(m.Joints[mm.B]))<1e-6).Select(mm=>Math.Round(m.H(m.Joints[mm.A]),4)).Where(h=>h>=ground-1e-6).Distinct().ToList();
   if(floors.Count==0||floors.Min()>ground+1e-6)floors.Insert(0,ground);floors=floors.Distinct().OrderBy(v=>v).ToList();
