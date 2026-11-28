@@ -642,3 +642,6 @@ each - dimensions once, one RidgeAzimuth box, one StaadPlusX choice relative to 
 StaadRidgeAxis / StaadX / StaadZ stay hidden only to read older sheets (LegacyBuildingInputs converts them) (v7.2.38).
 Owner ("diko magets sa components and claddings"): C&C elements come from spacings (CcFrameSpacing, CcPurlinSpacing, CcGirtSpan, CcGirtSpacing;
 A = span x max(spacing, span/3)); CCElements is only "Other elements (optional)" (CcElementsText) (v7.2.39).
+Owner (28 November 2026, "mejo magulo yung pag input ng rotation ng building"; chose "azimuth based sa map, ilalagay pa din if yung +x sa staad e
+along ridge or else"): the site map outline has a round handle at the ridge end; dragging it sets RidgeAzimuth (WindSiteMap.RidgeChanged, Shift = 5°);
+the StaadPlusX choice stays and the map draws the +X / +Z arrows (SetStaadX); the outline follows the inputs as typed (v10.0.64).
