@@ -366,6 +366,14 @@ Done 28 November 2026: v10.0.64 merged to main (PR #32, Windows CI green; GitHub
 New owner request (28 November 2026, "publish"; chose "Replace v10.0.64"): publish v10.0.65 (User and Admin) after its Windows CI passes (PR to
 main for the GitHub release, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only - the pending
 v10.0.64 submissions are cancelled and replaced; User visibility stays Public). Later versions again need a new explicit request.
+Done 28 November 2026: v10.0.65 merged to main (PR #33, Windows CI green; GitHub release v10.0.65-build-385, run 46106294570). Store run
+46106319774: v10.0.64 was already Published (nothing to replace). User 1152921505702531192 (visibility Public) created and committed,
+"accepted for processing". Admin 1152921505702530940 (visibility Private) was created and committed, but the job failed on an HTTP 500
+from the Store API while polling the status; the read-only store_status run 46109477669 then showed both User and Admin v10.0.65 in
+Certification (v10.0.64 Published). Certification is not guaranteed. v10.0.66 and later need a new explicit request.
+New owner request (28 November 2026, "publish"; chose "Replace v10.0.65"): publish v10.0.68 (User and Admin) after its Windows CI passes (PR to
+main for the GitHub release, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only - the v10.0.65
+submissions in certification are cancelled and replaced; User visibility stays Public). Later versions again need a new explicit request.
 Checked 26 November 2026 (read-only store_status job, run 45825954870): v10.0.18 is Published for User and Admin; no submission pending;
 the public catalog lists DTCE.DTCEToolKit_10.0.18.0 / DTCE.DTCEToolKit-Admin_10.0.18.0.
 Update check (owner, 26 November 2026: "di namang gumagana yung pagcheck ng updates"; "ayaw ko ng check for updates, gusto ko automatic na",
@@ -658,3 +666,12 @@ the StaadPlusX choice stays and the map draws the +X / +Z arrows (SetStaadX); th
 Owner (28 November 2026, "huwag ka na gumawa ng load combo for seismic drift sa envelope na lang"): no 6000 seismic drift combinations; the
 primary EQ cases (class C: the REPEAT LOAD cases) are their own SERVICEABILITY envelope and the PRINT STORY DRIFT load list
 (StaadCombinations.SeismicDriftCases, v10.0.65). Wind drift 5000 stays as combinations.
+Owner (28 November 2026, "automatic na 2 ang liveload, tapos piliin mo na agad doon if ano ang f1=1.0"; "kaya susunod na din ang LL report"):
+the automatic primaries always have LL1 (f1 0.5) and LL2 (f1 1.0), F1One = LL2 by itself (LoadCombinationsForm.LiveCasesFor), the inputs hidden;
+the Live Loads report always shows both cases (v10.0.66). Update notice (owner: "kung di maupdate sana allow offline use"): never forced -
+"Continue without updating" unlocks the app until a still newer version is published (StoreUpdateMonitor skipped, v10.0.66).
+Owner ("hindi nacocopy lahat ng nodes and beams sa staad"; "baka naka cap or may limit ang characters"): every editable multiline text box
+has MaxLength=int.MaxValue (or 0) - the WinForms default of 32,767 characters cut off pasted STAAD tables (v10.0.67). Give new paste boxes no limit.
+Owner ("joint displacement beam end forces i open ko na lang yung ANL file"; "para di ko na copy paste"): "Open .ANL file…" (Primary loads, rho and
+Ax tabs; LoadCombinationsForm.OpenAnl, src/StaadAnl.cs) keeps only the JOINT DISPLACEMENT / MEMBER END FORCES blocks and fills the Ax / rho boxes;
+RedundancyFactor.ReadForces reads only MEMBER END FORCES blocks when the text has them (v10.0.68).

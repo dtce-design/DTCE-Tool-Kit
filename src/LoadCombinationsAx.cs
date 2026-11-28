@@ -6,9 +6,9 @@ partial class LoadCombinationsForm {
  readonly DataGridView axGrid=new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill};
  readonly Label axStatus=new Label{Dock=DockStyle.Top,Height=78,Padding=new Padding(8),ForeColor=PowTheme.Ink,Font=ModernUi.Strong};readonly Timer axTimer=new Timer{Interval=700};List<string[]> axRows=new List<string[]>();internal List<AxResult> axResults=new List<AxResult>();
  void AddAxPage(){var sec=Section("Torsional amplification Ax","Ax = (dmax / 1.2 davg)^2, 1.0 to 3.0. Start with Ax = 1.0, run STAAD, then paste the joint displacements of the EQ cases here: Ax and ACC = 0.05 Ax are replaced.");var tab=sec.Parent.Parent as TabPage;
-  var box=new TextBox{Multiline=true,ScrollBars=ScrollBars.Both,WordWrap=false,Dock=DockStyle.Fill,Font=new Font("Consolas",9f),AcceptsReturn=true};Inputs.Add("AxDisplacements",box);
+  var box=new TextBox{MaxLength=int.MaxValue,Multiline=true,ScrollBars=ScrollBars.Both,WordWrap=false,Dock=DockStyle.Fill,Font=new Font("Consolas",9f),AcceptsReturn=true};Inputs.Add("AxDisplacements",box);
   var cap=new Label{Dock=DockStyle.Top,Height=40,Padding=new Padding(4),ForeColor=PowTheme.Ink,Text="Paste the joint displacements of the EQ cases: Post-processing > Node > Displacements table, select all, copy (or the .ANL JOINT DISPLACEMENT). The joints and levels come from the STAAD input of the Redundancy factor ρ tab (or an .ANL pasted here)."};
-  var paste=new Panel{Dock=DockStyle.Top,Height=230,Padding=new Padding(8)};paste.Controls.Add(box);paste.Controls.Add(cap);
+  var paste=new Panel{Dock=DockStyle.Top,Height=230,Padding=new Padding(8)};paste.Controls.Add(box);var anl=new Button{Text="Open .ANL file…",AutoSize=true,Dock=DockStyle.Top};anl.Click+=(s9,e9)=>OpenAnl();paste.Controls.Add(anl);paste.Controls.Add(cap);
   foreach(var h in new[]{"Load case","Level (m)","d edge 1","d edge 2","dmax","davg","dmax / davg","Ax"})axGrid.Columns.Add(h,h);GridAppearance.Apply(axGrid);
   var body=new Panel{Dock=DockStyle.Fill};body.Controls.Add(axGrid);body.Controls.Add(axStatus);body.Controls.Add(paste);if(tab!=null){tab.Controls.Clear();tab.Controls.Add(body);}
   axStatus.Text="Ax = 1.0 until the joint displacements are pasted.";

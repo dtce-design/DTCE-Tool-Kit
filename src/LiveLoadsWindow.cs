@@ -9,7 +9,7 @@ sealed class LiveLoadsForm:DesignSheetForm {
  /* search bars (owner: "INCLUDE SEARCH BAR"): any word of any column, e.g. "toilet", "gym", "4.8", "hospital" */
  readonly TextBox spaceSearch=new TextBox{Width=420},tableSearch=new TextBox{Width=420};
  /* check boxes "In report" (owner: "ADD CHECK ARROW TO BE INCLUDED IN THE REPORT"): the unchecked spaces, kept with the sheet */
- /* owner: "yung live load uncheck lahat. ako ang mag check" - every space starts unchecked; the checked ones are kept with the sheet */readonly TextBox included=new TextBox{Multiline=true,Visible=false};
+ /* owner: "yung live load uncheck lahat. ako ang mag check" - every space starts unchecked; the checked ones are kept with the sheet */readonly TextBox included=new TextBox{MaxLength=int.MaxValue,Multiline=true,Visible=false};
  static string Key(string[] row){return row[0]+"|"+row[6];}
  /* the STAAD live load case of a space (owner: "ilagay if LL1 or LL2 yung live load ipaghiwalay"): LL2 where f1 = 1.0 (assembly, over 4.8 kPa,
     garages), LL1 where f1 = 0.5 */
@@ -83,7 +83,10 @@ sealed class LiveLoadsForm:DesignSheetForm {
   rep.Paragraph("Load case of each space. Eq. 203-3 / 203-5: f1 = 1.0 for floors in places of public assembly, for live loads in excess of 4.8 kPa and for garage live load; f1 = 0.5 for other live loads. The spaces with f1 = 0.5 form STAAD load case LL1 and those with f1 = 1.0 load case LL2, so each combination applies its own f1. \"In excess of 4.8 kPa\" means above 4.8 kPa: a space of exactly 4.8 kPa (exit facilities, office lobbies, computer access floors) stays at f1 = 0.5 unless it is a place of public assembly or a garage, while an assembly area takes f1 = 1.0 whatever its load. Live load reduction (Section 205.5) follows the same limits: not for places of public assembly and not for live loads over 4.8 kPa (except as the section allows). The column \"Why\" gives the reason for each space.");
   var chosen=Rows().Where(Included).ToList();if(chosen.Count==0)rep.Paragraph("No space is checked for the report: check the spaces in Live loads per space.");
   /* LL1 and LL2 apart, as the STAAD live load cases */
-  foreach(var lc in new[]{"LL1","LL2","-"}){var part=chosen.Where(x=>x[4]==lc).ToList();if(part.Count==0)continue;
+  /* the two STAAD live cases are always there (owner, 28 November 2026: "automatic na 2 ang liveload"; "kaya susunod na din ang LL report") */
+  rep.Paragraph("STAAD live load cases: LL1 (f1 = 0.5) and LL2 (f1 = 1.0) are both always in the load combinations; each checked space is assigned to one of them below.");
+  foreach(var lc in new[]{"LL1","LL2","-"}){var part=chosen.Where(x=>x[4]==lc).ToList();if(part.Count==0&&lc=="-")continue;
+   if(part.Count==0){rep.Paragraph(lc=="LL1"?"LL1 - live loads with f1 = 0.5 (STAAD load case LL1)":"LL2 - places of public assembly, live loads over 4.8 kPa and garages, f1 = 1.0 (STAAD load case LL2)",false,true);rep.Paragraph("No checked space is in "+lc+"; the case stays in the combinations and carries the loads assigned to it in the STAAD model.");continue;}
    rep.Paragraph(lc=="LL1"?"LL1 - live loads with f1 = 0.5 (STAAD load case LL1)":lc=="LL2"?"LL2 - places of public assembly, live loads over 4.8 kPa and garages, f1 = 1.0 (STAAD load case LL2)":"Roofs and roof decks (Section 205.4 / as the area served)",false,true);
    rep.Table(new[]{"Space","Uniform (kPa)","Conc. (kN)","f1","Why this load case, f1 and reduction","NSCP 2015 basis","Remarks"},part.Select(x=>new[]{x[0],x[1],x[2],x[3],Why(x),x[6],x[7]}),new float[]{17,7,7,4,29,20,16});}
   rep.Heading("3  TABLE 205-1  MINIMUM UNIFORM AND CONCENTRATED LIVE LOADS").Table(new[]{"Use or occupancy","Description","Uniform (kPa)","Conc. (kN)","Note"},NscpLiveLoads.Table.Select(r=>new[]{r.Category,r.Description,r.UniformText,r.ConcentratedText,r.Note}),new float[]{28,32,10,9,21});

@@ -56,24 +56,27 @@ static class StoreUpdateQuery {
 }
 sealed class StoreUpdateMonitor:IDisposable {
  readonly Form owner;readonly StoreUpdatePolicy policy=new StoreUpdatePolicy();readonly Timer timer=new Timer{Interval=2000};
- static Version announced;readonly Dictionary<Form,bool> disabled=new Dictionary<Form,bool>();Form gate;Label message;Button retry;bool disposed,closing;
+ static Version announced,skipped;readonly Dictionary<Form,bool> disabled=new Dictionary<Form,bool>();Form gate;Label message;Button retry;bool disposed,closing;
  internal static void OpenStore(){try{Process.Start(new ProcessStartInfo("ms-windows-store://pdp/?ProductId="+StoreUpdateQuery.ProductId){UseShellExecute=true});}catch(Exception){}}
  public StoreUpdateMonitor(Form owner){this.owner=owner;timer.Tick+=async(s,e)=>{timer.Interval=30000;await Check(false);};owner.Shown+=(s,e)=>timer.Start();owner.FormClosed+=(s,e)=>Dispose();}
  async Task Check(bool force){if(disposed||closing||owner.IsDisposed||policy.Checking)return;IntPtr hwnd=owner.Handle;if(retry!=null)retry.Enabled=false;
   await policy.CheckAsync(()=>Task.Run(()=>StoreUpdateQuery.CheckAsync(hwnd)),DateTime.UtcNow,force);
   if(disposed||owner.IsDisposed)return;
-  StoreUpdateState.Blocked=policy.Blocked;
+  /* owner (28 November 2026, "kung di maupdate sana allow offline use"): the update is never forced - "Continue without updating" keeps the
+     app usable until a still newer version is published (the Store may not offer the update yet, or the PC cannot update now) */
+  var published=StoreUpdateQuery.LastPublished;bool block=policy.Blocked&&!(published!=null&&skipped!=null&&published<=skipped);
+  StoreUpdateState.Blocked=block;
   /* automatic (owner, 26 November 2026: "ayaw ko ng check for updates, gusto ko automatic na"): a newer published version opens the Store
      page by itself once per version (Update there); a copy not installed from the Store is told once per version */
-  var published=StoreUpdateQuery.LastPublished;
-  if(policy.Blocked&&published!=null&&announced!=published){announced=published;OpenStore();}
+  if(block&&published!=null&&announced!=published){announced=published;OpenStore();}
   if(!StoreUpdateQuery.LastPackaged&&published!=null&&published>StoreUpdateQuery.Running&&announced!=published){announced=published;if(MessageBox.Show(owner,"A newer DTCE Tool Kit is available: v"+published.ToString(3)+" (this copy is v"+StoreUpdateQuery.Running.ToString(3)+").\r\n\r\nOpen the Microsoft Store page to get it?","Update available",MessageBoxButtons.YesNo,MessageBoxIcon.Information)==DialogResult.Yes)OpenStore();}
-  if(policy.Blocked){if(gate==null){gate=new Form{Text="Update required",ClientSize=new Size(610,235),FormBorderStyle=FormBorderStyle.FixedDialog,ControlBox=false,StartPosition=FormStartPosition.CenterParent,ShowInTaskbar=false};AppBrand.Apply(gate);
-    message=new Label{Text="A newer DTCE Tool Kit version"+(StoreUpdateQuery.LastPublished!=null?" (v"+StoreUpdateQuery.LastPublished.ToString(3)+")":"")+" is available from Microsoft Store. The Store page has been opened: click Update there. Save your work when closing the app; restart after updating.\n\nIf the Store cannot be reached, Check again allows offline use.",Left=20,Top=18,Width=570,Height=130,Font=new Font("Segoe UI",10)};
+  if(block){if(gate==null){gate=new Form{Text="Update available",ClientSize=new Size(770,235),FormBorderStyle=FormBorderStyle.FixedDialog,ControlBox=false,StartPosition=FormStartPosition.CenterParent,ShowInTaskbar=false};AppBrand.Apply(gate);
+    message=new Label{Text="A newer DTCE Tool Kit version"+(StoreUpdateQuery.LastPublished!=null?" (v"+StoreUpdateQuery.LastPublished.ToString(3)+")":"")+" is available from Microsoft Store. The Store page has been opened: click Update there. Save your work when closing the app; restart after updating.\n\nIf it cannot be updated now (offline, or the Store does not offer the update yet), click Continue without updating: the app keeps working as it is.",Left=20,Top=18,Width=730,Height=130,Font=new Font("Segoe UI",10)};
     var open=new Button{Text="Open Microsoft Store",Left=20,Top=169,Width=190,Height=40};open.Click+=(s,e)=>{try{Process.Start(new ProcessStartInfo("ms-windows-store://pdp/?ProductId="+StoreUpdateQuery.ProductId){UseShellExecute=true});}catch{message.Text="Microsoft Store could not be opened. Open Store manually, update DTCE Tool Kit, then restart. You can also Check again for offline use.";}};
     retry=new Button{Text="Check again",Left=220,Top=169,Width=150,Height=40};retry.Click+=async(s,e)=>await Check(true);
-    var close=new Button{Text="Close app",Left=380,Top=169,Width=150,Height=40};close.Click+=(s,e)=>{closing=true;RestoreWindows();StoreUpdateState.Blocked=false;try{owner.Close();}finally{closing=false;if(!disposed){StoreUpdateState.Blocked=policy.Blocked;DisableWindows();}}};
-    gate.Controls.AddRange(new Control[]{message,open,retry,close});gate.Show(owner);
+    var later=new Button{Text="Continue without updating",Left=540,Top=169,Width=210,Height=40};later.Click+=(s,e)=>{skipped=StoreUpdateQuery.LastPublished??StoreUpdateQuery.Running;StoreUpdateState.Blocked=false;RestoreWindows();if(gate!=null){var g=gate;gate=null;retry=null;g.Close();g.Dispose();}};
+    var close=new Button{Text="Close app",Left=380,Top=169,Width=150,Height=40};close.Click+=(s,e)=>{closing=true;RestoreWindows();StoreUpdateState.Blocked=false;try{owner.Close();}finally{closing=false;if(!disposed&&gate!=null){StoreUpdateState.Blocked=true;DisableWindows();}}};
+    gate.Controls.AddRange(new Control[]{message,open,retry,close,later});gate.Show(owner);
    }DisableWindows();
   }else{RestoreWindows();if(gate!=null){gate.Close();gate.Dispose();gate=null;retry=null;}}
   if(retry!=null)retry.Enabled=true;
