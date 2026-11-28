@@ -8,7 +8,9 @@ static class DesignLoadsReportTests {
    new KeyValuePair<string,DesignSheetForm>("Wind Load (NSCP 2015)",null),new KeyValuePair<string,DesignSheetForm>("Load Combinations (NSCP 2015)",lc)};
   var problems=new List<string>();var t=DesignLoadsReport.Build(sheets,problems);while(!t.IsCompleted)Application.DoEvents();var doc=t.Result;
   int d=0,l=0,c=0;foreach(var s in sheets){if(s.Value==null)continue;using(var one=s.Value.ReportForBundle().Result){if(s.Value==dl)d=one.Sheets.Count;else if(s.Value==ll)l=one.Sheets.Count;else c=one.Sheets.Count;}}
-  Check(doc.Sheets.Count==1+d+l+c,"contents + every sheet's pages ("+doc.Sheets.Count+" = 1 + "+d+" + "+l+" + "+c+")");
+  /* the roof live load (LLR) is its own part after the Live Loads (v10.0.69) */int r=0;using(var roof=lc.RoofLiveDocument())r=roof.Sheets.Count;
+  Check(r>0&&doc.Sheets.Count==1+d+l+r+c,"contents + every sheet's pages + the LLR part ("+doc.Sheets.Count+" = 1 + "+d+" + "+l+" + "+r+" + "+c+")");
+  Check(doc.PageTitles[1+d+l].StartsWith("Roof Live Load"),"the LLR part follows the Live Loads: "+doc.PageTitles[1+d+l]);
   Check(doc.PageTitles.Count==doc.Sheets.Count&&doc.PageTitles[1]!=doc.PageTitles[doc.PageTitles.Count-1],"each page keeps its sheet's title");
   Check(problems.Count==1&&problems[0].StartsWith("Wind Load"),"a sheet that is not open is listed as not included");
   using(var bmp=new System.Drawing.Bitmap(800,1100))using(var g=System.Drawing.Graphics.FromImage(bmp))for(int p=0;p<doc.Sheets.Count;p++)doc.Draw(g,p);checks++;

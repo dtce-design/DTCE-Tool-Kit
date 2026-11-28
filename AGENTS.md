@@ -374,6 +374,10 @@ Certification (v10.0.64 Published). Certification is not guaranteed. v10.0.66 an
 New owner request (28 November 2026, "publish"; chose "Replace v10.0.65"): publish v10.0.68 (User and Admin) after its Windows CI passes (PR to
 main for the GitHub release, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only - the v10.0.65
 submissions in certification are cancelled and replaced; User visibility stays Public). Later versions again need a new explicit request.
+Result 28 November 2026: PR #34 merged to main (GitHub release of v10.0.68, run 46130116652). Owner then: "yung 69 na ang iupload" - Store run
+46130143299 was cancelled while still queued (no job started; nothing uploaded, nothing changed in Partner Center). The Store release is v10.0.69
+(User and Admin), the same way (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only - the
+v10.0.65 submissions in certification are replaced; User visibility stays Public). Later versions again need a new explicit request.
 Checked 26 November 2026 (read-only store_status job, run 45825954870): v10.0.18 is Published for User and Admin; no submission pending;
 the public catalog lists DTCE.DTCEToolKit_10.0.18.0 / DTCE.DTCEToolKit-Admin_10.0.18.0.
 Update check (owner, 26 November 2026: "di namang gumagana yung pagcheck ng updates"; "ayaw ko ng check for updates, gusto ko automatic na",
@@ -675,3 +679,9 @@ has MaxLength=int.MaxValue (or 0) - the WinForms default of 32,767 characters cu
 Owner ("joint displacement beam end forces i open ko na lang yung ANL file"; "para di ko na copy paste"): "Open .ANL file…" (Primary loads, rho and
 Ax tabs; LoadCombinationsForm.OpenAnl, src/StaadAnl.cs) keeps only the JOINT DISPLACEMENT / MEMBER END FORCES blocks and fills the Ax / rho boxes;
 RedundancyFactor.ReadForces reads only MEMBER END FORCES blocks when the text has them (v10.0.68).
+Owner (28 November 2026, "yung no. of wind load cases lang ang automatic, pero yung eq ll, llr automatic pa din ... yung sa eq ako magseselect if
+anong case sa primary cases"; supersedes the v10.0.63 automatic structure class): the EQ case set (Structure A / B / C) is chosen by the owner on the
+Primary loads tab (eqPick, kept in step with Settings); the irregularity check only suggests. Owner ("diba dapat separate na tab ang LLR?"): "Roof live
+load (LLR)" is its own Design Loads sub tab (LauncherForm.MoveLcParts LoadsRoof) and its own report part (LoadCombinationsForm.RoofLiveDocument,
+DesignLoadsReport), not in the Load Combinations report. Owner ("naimomodel ng roof kahit wala naman beam ... sa gitna"): FLOOR LOAD ranges hold only their
+own panels' cells (WindEdgeLoads.PanelBoxes clean): no bridge over an open panel or between separate roofs (v10.0.69).

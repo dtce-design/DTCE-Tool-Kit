@@ -24,6 +24,16 @@ static class RoofLiveLoadsTests {
   Check(text.Contains("YRANGE 10.95 11.05 FLOAD -0.75"),"stair roof at 11 m loaded too (48 m2 panel)");
   Check(!text.Contains("XRANGE -0.01 6.01 ZRANGE -0.01 8.01 GY")||text.Contains("YRANGE 10.95 11.05 FLOAD -0.75 XRANGE -0.01 6.01 ZRANGE -0.01 8.01"),"the panel under the stair roof is covered at 8 m");
   Check(regs.All(r=>r.Kind=="Slab"&&r.Row==1)&&regs.Any(r=>Math.Abs(r.Lr-0.75)<1e-9),"regions: slab roofs, row 1");
+  /* two rooftop housings at 11 m (x 0-6 and 24-30, z 0-8) with no beam between them (owner: "naimomodel ng roof kahit wala naman beam doon na
+     parte sa gitna"): each is loaded on its own, the gap never */
+  {var b4=new StringBuilder("STAAD SPACE\nUNIT METER KN\nJOINT COORDINATES\n");id.Clear();n=0;var m4=new List<int[]>();Func<double,double,double,int> K=(x,y,z)=>{string k=N(x)+","+N(y)+","+N(z);int v;if(id.TryGetValue(k,out v))return v;id[k]=++n;b4.Append(n+" "+N(x)+" "+N(y)+" "+N(z)+";\n");return n;};
+   foreach(var y in new[]{0.0,4,8}){foreach(var z in zs)for(int i=0;i+1<xs.Length;i++)m4.Add(new[]{K(xs[i],y,z),K(xs[i+1],y,z)});foreach(var x in xs)for(int j=0;j+1<zs.Length;j++)m4.Add(new[]{K(x,y,zs[j]),K(x,y,zs[j+1])});}
+   foreach(var x in xs)foreach(var z in zs){m4.Add(new[]{K(x,0,z),K(x,4,z)});m4.Add(new[]{K(x,4,z),K(x,8,z)});}
+   foreach(var x0 in new[]{0.0,24}){foreach(var p in new[]{new[]{x0,0},new[]{x0+6,0},new[]{x0+6,8},new[]{x0,8}})m4.Add(new[]{K(p[0],8,p[1]),K(p[0],11,p[1])});
+    m4.Add(new[]{K(x0,11,0),K(x0+6,11,0)});m4.Add(new[]{K(x0+6,11,0),K(x0+6,11,8)});m4.Add(new[]{K(x0+6,11,8),K(x0,11,8)});m4.Add(new[]{K(x0,11,8),K(x0,11,0)});}
+   b4.Append("MEMBER INCIDENCES\n");for(int i=0;i<m4.Count;i++)b4.Append((i+1)+" "+m4[i][0]+" "+m4[i][1]+";\n");
+   string t4=RoofLiveLoads.Text(RedundancyFactor.ReadModel(b4.ToString()),out note,out regs);var at11=t4.Split('\n').Where(l=>l.StartsWith("YRANGE 10.95 11.05")).ToList();
+   Check(at11.Count==2&&at11.Any(l=>l.Contains("XRANGE -0.01 6.01"))&&at11.Any(l=>l.Contains("XRANGE 23.99 30.01"))&&RoofLiveLoads.LastPanels.Where(r=>Math.Abs(r[0]-11)<1e-6).All(r=>r[2]-r[1]<=6+1e-6),"two housings at 11 m loaded apart, the gap between them not: "+string.Join(" | ",at11));}
   /* small panels: 4 x 4 m = 16 m2 -> 1.0 kPa */
   {var b2=new StringBuilder("STAAD SPACE\nUNIT METER KN\nJOINT COORDINATES\n");id.Clear();n=0;var m2=new List<int[]>();Func<double,double,double,int> K=(x,y,z)=>{string k=N(x)+","+N(y)+","+N(z);int v;if(id.TryGetValue(k,out v))return v;id[k]=++n;b2.Append(n+" "+N(x)+" "+N(y)+" "+N(z)+";\n");return n;};
    double[] g={0,4,8};foreach(var y in new[]{0.0,3}){foreach(var z in g)for(int i=0;i<2;i++)m2.Add(new[]{K(g[i],y,z),K(g[i+1],y,z)});foreach(var x in g)for(int j=0;j<2;j++)m2.Add(new[]{K(x,y,g[j]),K(x,y,g[j+1])});}

@@ -1,7 +1,7 @@
 using System;using System.Collections.Generic;using System.Drawing;using System.IO;using System.Linq;using System.Threading.Tasks;using System.Windows.Forms;
 namespace BeamScheduleFormatter {
 /* one calculation report for all the Design Loads (owner, 27 November 2026: "yung report sa design loads minsanan na lang"; "calculation report
-   sa tabi ng load combo, nandon lahat ng design loads"): a contents page, then the full report of Dead Loads, Live Loads, Wind Load,
+   sa tabi ng load combo, nandon lahat ng design loads"): a contents page, then the full report of Dead Loads, Live Loads, Roof Live Load (LLR), Wind Load,
    Earthquake Load and Load Combinations in that order; every page keeps the title of its sheet. */
 static class DesignLoadsReport {
  internal static async Task<CalculationDocument> Build(IList<KeyValuePair<string,DesignSheetForm>> sheets,List<string> problems){var all=new CalculationDocument("Design Loads - NSCP 2015");all.PageTitles=new List<string>();
@@ -9,6 +9,10 @@ static class DesignLoadsReport {
   foreach(var s in sheets){if(s.Value==null||s.Value.IsDisposed){problems.Add(s.Key+": not open (no access or not loaded)");continue;}
    try{var doc=await s.Value.ReportForBundle();if(doc==null||doc.Sheets.Count==0){problems.Add(s.Key+": nothing to report yet");continue;}parts.Add(new KeyValuePair<string,CalculationDocument>(s.Key,doc));}
    catch(Exception ex){problems.Add(s.Key+": "+ex.Message);}}
+  /* the roof live load (LLR) is its own part, after the Live Loads (owner, 28 November 2026: "diba dapat separate na tab ang LLR?") */
+  {var lc=sheets.Select(x=>x.Value as LoadCombinationsForm).FirstOrDefault(f=>f!=null&&!f.IsDisposed);if(lc!=null&&parts.Any(x=>x.Value!=null&&x.Key==sheets.First(y=>y.Value==lc).Key)){
+    try{var roof=lc.RoofLiveDocument();if(roof!=null&&roof.Sheets.Count>0){int at=parts.FindIndex(x=>x.Key.StartsWith("Live Loads"));if(at<0)at=parts.FindIndex(x=>x.Value!=null&&x.Key==sheets.First(y=>y.Value==lc).Key)-1;parts.Insert(at+1,new KeyValuePair<string,CalculationDocument>("Roof Live Load (LLR)",roof));}}
+    catch(Exception ex){problems.Add("Roof Live Load (LLR): "+ex.Message);}}}
   /* contents: pages of each sheet */
   var rows=new List<string[]>();int pageNo=2,no=1;foreach(var p in parts){rows.Add(new[]{(no++).ToString(),p.Key,pageNo+(p.Value.Sheets.Count>1?" - "+(pageNo+p.Value.Sheets.Count-1):"")});pageNo+=p.Value.Sheets.Count;}
   var missing=problems.ToList();

@@ -126,18 +126,18 @@ class LauncherForm:Form {
  /* Design Loads: Wind, Earthquake and Load Combinations as sub tabs of one main tab */
  void AddLoadsGroup(){var group=new TabPage(DesignLoads);group.Controls.Add(loadTabs);designTabs.TabPages.Add(group);
   /* owner (28 November 2026): the Primary loads of Load Combinations replaces the steps page (v10.0.59) as the first sub tab; its Settings open in a window (Settings button) */AddLoadEntry(LoadsPrimary,()=>OpenLcPart(LoadsPrimary,"Primary loads"));
-  /* owner, 26 November 2026: live loads of government buildings per space *//* owner: "ANOTHER SUB TAB FOR DEAD LOAD" */AddLoadEntry("Dead Loads (NSCP 2015)",()=>OpenDesign("Dead Loads (NSCP 2015)",()=>new DeadLoadsForm()));AddLoadEntry("Live Loads (NSCP 2015)",()=>OpenDesign("Live Loads (NSCP 2015)",()=>new LiveLoadsForm()));AddLoadEntry("Wind Load (NSCP 2015)",()=>OpenDesign("Wind Load (NSCP 2015)",()=>new WindDesignForm()));AddLoadEntry("Earthquake Load & RSA Curve Builder",()=>OpenDesign("Earthquake Load & RSA Curve Builder",()=>new RsaCurveForm()));AddLoadEntry(LcTitle,()=>{OpenDesign(LcTitle,()=>new LoadCombinationsForm());Form lc;if(designModules.TryGetValue(LcTitle,out lc))MoveLcParts(lc);});
+  /* owner, 26 November 2026: live loads of government buildings per space *//* owner: "ANOTHER SUB TAB FOR DEAD LOAD" */AddLoadEntry("Dead Loads (NSCP 2015)",()=>OpenDesign("Dead Loads (NSCP 2015)",()=>new DeadLoadsForm()));AddLoadEntry("Live Loads (NSCP 2015)",()=>OpenDesign("Live Loads (NSCP 2015)",()=>new LiveLoadsForm()));/* its own sub tab (owner, 28 November 2026: "diba dapat separate na tab ang LLR?") */AddLoadEntry(LoadsRoof,()=>OpenLcPart(LoadsRoof,"Roof live load (LLR)"));AddLoadEntry("Wind Load (NSCP 2015)",()=>OpenDesign("Wind Load (NSCP 2015)",()=>new WindDesignForm()));AddLoadEntry("Earthquake Load & RSA Curve Builder",()=>OpenDesign("Earthquake Load & RSA Curve Builder",()=>new RsaCurveForm()));AddLoadEntry(LcTitle,()=>{OpenDesign(LcTitle,()=>new LoadCombinationsForm());Form lc;if(designModules.TryGetValue(LcTitle,out lc))MoveLcParts(lc);});
   /* owner (27 November 2026): "calculation report sa tabi ng load combo, nandon lahat ng design loads" */AddLoadEntry(LoadsReport,ShowLoadsReport);}
- const string LoadsReport="Calculation report",LoadsPrimary="Primary loads (Load Combinations)";
+ const string LoadsReport="Calculation report",LoadsPrimary="Primary loads (Load Combinations)",LoadsRoof="Roof live load (LLR)";
  /* Primary loads and Settings of the Load Combinations sheet as the first sub tabs of Design Loads (owner, 28 November 2026: "yung steps sa
     design load alisin mo, ilipat mo na lang doon yung primary loads ng load combo, pati settings"); the pages stay part of the Load
     Combinations sheet (its inputs, saving and report), only shown here */
  const string LcTitle="Load Combinations (NSCP 2015)";
  void MoveLcParts(Form form){if(form==null||form.IsDisposed)return;
-   foreach(var cap in new[]{LoadsPrimary}){var host=loadTabs.TabPages.Cast<TabPage>().First(p=>p.Text==cap);if(host.Tag==form)continue;
-    var sheet=form as DesignSheetForm;var taken=sheet==null?null:sheet.TakePage("Primary loads");if(taken==null)continue;
+   foreach(var part in new[]{new[]{LoadsPrimary,"Primary loads"},new[]{LoadsRoof,"Roof live load (LLR)"}}){string cap=part[0];var host=loadTabs.TabPages.Cast<TabPage>().First(p=>p.Text==cap);if(host.Tag==form)continue;
+    var sheet=form as DesignSheetForm;var taken=sheet==null?null:sheet.TakePage(part[1]);if(taken==null)continue;
     host.Controls.Clear();host.Tag=form;host.BackColor=taken.BackColor;host.Padding=taken.Padding;host.AutoScroll=taken.AutoScroll;foreach(var c in taken.Controls.Cast<Control>().ToList()){taken.Controls.Remove(c);host.Controls.Add(c);ViewOnly.AddPart(form,c);}taken.Dispose();
-    /* the Load Combinations settings open in their own window from here too (owner: "button na lang tapos window") */var lcForm=form as LoadCombinationsForm;if(lcForm!=null){var bar=new FlowLayoutPanel{Dock=DockStyle.Top,Height=52,Padding=new Padding(8),BackColor=host.BackColor};var settings=new Button{Text="Settings",AutoSize=true,Height=36};settings.Click+=(s1,e1)=>lcForm.ShowSettingsWindow();bar.Controls.Add(settings);host.Controls.Add(bar);bar.SendToBack();}
+    /* the Load Combinations settings open in their own window from here too (owner: "button na lang tapos window") */var lcForm=cap==LoadsPrimary?form as LoadCombinationsForm:null;if(lcForm!=null){var bar=new FlowLayoutPanel{Dock=DockStyle.Top,Height=52,Padding=new Padding(8),BackColor=host.BackColor};var settings=new Button{Text="Settings",AutoSize=true,Height=36};settings.Click+=(s1,e1)=>lcForm.ShowSettingsWindow();bar.Controls.Add(settings);host.Controls.Add(bar);bar.SendToBack();}
     var h=host;form.Disposed+=(s,e)=>{if(!h.IsDisposed&&h.Tag==s){h.Controls.Clear();h.Tag=null;}};}
   }
  void OpenLcPart(string caption,string section){var page=loadTabs.TabPages.Cast<TabPage>().First(p=>p.Text==caption);
@@ -161,7 +161,7 @@ class LauncherForm:Form {
    {bool was=loadingDesign;loadingDesign=true;try{loadTabs.SelectedTab=page;}finally{loadingDesign=was;}}
    var sheets=LoadSheets.Select(t=>{Form f;designModules.TryGetValue(t,out f);return new KeyValuePair<string,DesignSheetForm>(t,f as DesignSheetForm);}).ToList();var problems=new List<string>();
    var doc=await DesignLoadsReport.Build(sheets,problems);loadsView.SetDocument(doc);
-   loadsStatus.ForeColor=problems.Count>0?Color.Firebrick:PowTheme.Teal;loadsStatus.Text=doc.Sheets.Count+" pages"+(problems.Count>0?" - not included: "+string.Join("; ",problems):": Dead, Live, Wind, Earthquake and Load Combinations.");}
+   loadsStatus.ForeColor=problems.Count>0?Color.Firebrick:PowTheme.Teal;loadsStatus.Text=doc.Sheets.Count+" pages"+(problems.Count>0?" - not included: "+string.Join("; ",problems):": Dead, Live, Roof live, Wind, Earthquake and Load Combinations.");}
   catch(Exception ex){loadsStatus.ForeColor=Color.Firebrick;loadsStatus.Text="Report: "+ex.Message;}
   finally{loadsBuilding=false;}}
  void AddLoadEntry(string title,Action open){designLoaders.Add(title,open);var page=new TabPage(title);page.Controls.Add(new Label{Text="This design sheet requires its own program access.",Dock=DockStyle.Top,Height=60,Padding=new Padding(20)});loadTabs.TabPages.Add(page);}
