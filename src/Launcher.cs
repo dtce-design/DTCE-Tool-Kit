@@ -125,18 +125,19 @@ class LauncherForm:Form {
  void AddFormatterEntry(string title,Action open){formatterLoaders.Add(title,open);formatterTabs.TabPages.Add(new TabPage(title));}
  /* Design Loads: Wind, Earthquake and Load Combinations as sub tabs of one main tab */
  void AddLoadsGroup(){var group=new TabPage(DesignLoads);group.Controls.Add(loadTabs);designTabs.TabPages.Add(group);
-  /* owner (28 November 2026): the Primary loads and Settings of Load Combinations replace the steps page (v10.0.59) as the first sub tabs */AddLoadEntry(LoadsPrimary,()=>OpenLcPart(LoadsPrimary,"Primary loads"));AddLoadEntry(LoadsSettings,()=>OpenLcPart(LoadsSettings,"Settings"));
+  /* owner (28 November 2026): the Primary loads of Load Combinations replaces the steps page (v10.0.59) as the first sub tab; its Settings open in a window (Settings button) */AddLoadEntry(LoadsPrimary,()=>OpenLcPart(LoadsPrimary,"Primary loads"));
   /* owner, 26 November 2026: live loads of government buildings per space *//* owner: "ANOTHER SUB TAB FOR DEAD LOAD" */AddLoadEntry("Dead Loads (NSCP 2015)",()=>OpenDesign("Dead Loads (NSCP 2015)",()=>new DeadLoadsForm()));AddLoadEntry("Live Loads (NSCP 2015)",()=>OpenDesign("Live Loads (NSCP 2015)",()=>new LiveLoadsForm()));AddLoadEntry("Wind Load (NSCP 2015)",()=>OpenDesign("Wind Load (NSCP 2015)",()=>new WindDesignForm()));AddLoadEntry("Earthquake Load & RSA Curve Builder",()=>OpenDesign("Earthquake Load & RSA Curve Builder",()=>new RsaCurveForm()));AddLoadEntry(LcTitle,()=>{OpenDesign(LcTitle,()=>new LoadCombinationsForm());Form lc;if(designModules.TryGetValue(LcTitle,out lc))MoveLcParts(lc);});
   /* owner (27 November 2026): "calculation report sa tabi ng load combo, nandon lahat ng design loads" */AddLoadEntry(LoadsReport,ShowLoadsReport);}
- const string LoadsReport="Calculation report",LoadsPrimary="Primary loads (Load Combinations)",LoadsSettings="Settings (Load Combinations)";
+ const string LoadsReport="Calculation report",LoadsPrimary="Primary loads (Load Combinations)";
  /* Primary loads and Settings of the Load Combinations sheet as the first sub tabs of Design Loads (owner, 28 November 2026: "yung steps sa
     design load alisin mo, ilipat mo na lang doon yung primary loads ng load combo, pati settings"); the pages stay part of the Load
     Combinations sheet (its inputs, saving and report), only shown here */
  const string LcTitle="Load Combinations (NSCP 2015)";
  void MoveLcParts(Form form){if(form==null||form.IsDisposed)return;
-   foreach(var cap in new[]{LoadsPrimary,LoadsSettings}){var host=loadTabs.TabPages.Cast<TabPage>().First(p=>p.Text==cap);if(host.Tag==form)continue;
-    var sheet=form as DesignSheetForm;var taken=sheet==null?null:sheet.TakePage(cap==LoadsPrimary?"Primary loads":"Settings");if(taken==null)continue;
+   foreach(var cap in new[]{LoadsPrimary}){var host=loadTabs.TabPages.Cast<TabPage>().First(p=>p.Text==cap);if(host.Tag==form)continue;
+    var sheet=form as DesignSheetForm;var taken=sheet==null?null:sheet.TakePage("Primary loads");if(taken==null)continue;
     host.Controls.Clear();host.Tag=form;host.BackColor=taken.BackColor;host.Padding=taken.Padding;host.AutoScroll=taken.AutoScroll;foreach(var c in taken.Controls.Cast<Control>().ToList()){taken.Controls.Remove(c);host.Controls.Add(c);ViewOnly.AddPart(form,c);}taken.Dispose();
+    /* the Load Combinations settings open in their own window from here too (owner: "button na lang tapos window") */var lcForm=form as LoadCombinationsForm;if(lcForm!=null){var bar=new FlowLayoutPanel{Dock=DockStyle.Top,Height=52,Padding=new Padding(8),BackColor=host.BackColor};var settings=new Button{Text="Settings",AutoSize=true,Height=36};settings.Click+=(s1,e1)=>lcForm.ShowSettingsWindow();bar.Controls.Add(settings);host.Controls.Add(bar);bar.SendToBack();}
     var h=host;form.Disposed+=(s,e)=>{if(!h.IsDisposed&&h.Tag==s){h.Controls.Clear();h.Tag=null;}};}
   }
  void OpenLcPart(string caption,string section){var page=loadTabs.TabPages.Cast<TabPage>().First(p=>p.Text==caption);
