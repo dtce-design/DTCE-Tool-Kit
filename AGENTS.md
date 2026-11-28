@@ -378,6 +378,12 @@ Result 28 November 2026: PR #34 merged to main (GitHub release of v10.0.68, run 
 46130143299 was cancelled while still queued (no job started; nothing uploaded, nothing changed in Partner Center). The Store release is v10.0.69
 (User and Admin), the same way (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only - the
 v10.0.65 submissions in certification are replaced; User visibility stays Public). Later versions again need a new explicit request.
+Done 28 November 2026: v10.0.69 merged to main (PR #35; the first Windows CI failed on DesignLoadsReportTests, which did not count the new LLR report
+part - test fixed; GitHub release v10.0.69-build-393, run 46132502514). Store run 46132526457: both upload jobs first failed on an HTTP 500 from the
+Store API at the first read, before any submission (nothing changed); re-run of the failed jobs (attempt 2): new User (1152921505702532847;
+visibility Public) and Admin (1152921505702532237; visibility Private) submissions were created and committed; Partner Center reported "accepted
+for processing" (PreProcessing). The log names no cancelled pending submission. Certification is not guaranteed. v10.0.70 and later need a new
+explicit request.
 Checked 26 November 2026 (read-only store_status job, run 45825954870): v10.0.18 is Published for User and Admin; no submission pending;
 the public catalog lists DTCE.DTCEToolKit_10.0.18.0 / DTCE.DTCEToolKit-Admin_10.0.18.0.
 Update check (owner, 26 November 2026: "di namang gumagana yung pagcheck ng updates"; "ayaw ko ng check for updates, gusto ko automatic na",
