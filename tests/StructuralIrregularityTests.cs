@@ -25,7 +25,12 @@ class StructuralIrregularityTests {
     Check(m3.Diaphragms.Count==3&&m3.DiaphragmBase==0&&k3.Count==3&&k3.All(x=>Math.Abs(x[4]-20)<1e-6),"FLOOR DIAPHRAGM heights read and used as the storeys: "+m3.Diaphragms.Count+" / "+k3.Count);}
    Check(k2.Count==3&&Math.Abs(k2[0][2]-60)<1e-6&&Math.Abs(k2[0][4]-20)<1e-6&&Math.Abs(k2[1][4]-20)<1e-6&&Math.Abs(k2[2][4]-20)<1e-6,"three storeys from the ground up, the split column cut once: "+string.Join(" | ",k2.Select(x=>x[0]+"-"+x[1]+" V "+x[2]+" k "+x[4])));}
   var rows=StructuralIrregularity.Check(model,forces,disp,eq,null,new IrregularityInput{Weights="3.5;900\n7;880\n10.5;400"});
-  Check(rows.Count==10,"5 vertical + 5 plan rows");Check(rows[0].Result.StartsWith("Irregular")&&rows[0].Result.Contains("0 m"),"soft storey at the ground storey: "+rows[0].Value);
+  Check(rows.Count==10,"5 vertical + 5 plan rows");
+  /* recommendations (owner: "ano recommendation if may irregularities") */Check(rows[0].Recommend.Contains("soft storey")&&rows[0].Recommend.Contains("dynamic")&&rows.Where(r=>!r.Result.StartsWith("Irregular")).All(r=>r.Recommend==""),"a recommendation for each irregularity found, none for the regular ones");
+  /* Table 208-10 type 1 uses storey drifts at the two ends: displacements 10 / 10 then 16 / 12 (16 / 14 = 1.14) but drifts 6 / 2 (6 / 4 = 1.5) */
+  {var axr=new AxResult{Case="1 EQ+X",Axis="X"};axr.Levels.Add(new AxLevel{Level=3.5,D1=10,D2=10});axr.Levels.Add(new AxLevel{Level=7,D1=16,D2=12});var td=StructuralIrregularity.TorsionDrifts(axr);
+   var rt=StructuralIrregularity.Check(model,forces,disp,eq,new List<AxResult>{axr},new IrregularityInput()).First(r=>r.Type.StartsWith("1 Torsional"));
+   Check(td.Count==2&&Math.Abs(td[1][5]-1.5)<1e-9&&rt.Result=="Irregular"&&rt.Recommend.Contains("Ax"),"torsional irregularity from the storey drifts at the two ends: "+rt.Value);}Check(rows[0].Result.StartsWith("Irregular")&&rows[0].Result.Contains("0 m"),"soft storey at the ground storey: "+rows[0].Value);
   Check(rows[1].Result=="Regular","a lighter roof is excepted (880 vs 400)");Check(rows[2].Result=="Regular","same plan every storey");Check(rows[9].Result=="Regular","beams along X / Z");
   var heavy=StructuralIrregularity.Check(model,null,null,eq,null,new IrregularityInput{Weights="3.5;500\n7;900\n10.5;400"});Check(heavy[1].Result.StartsWith("Irregular"),"900 > 150 % of 500");
   /* a setback: the top storey half as wide; a skewed beam */

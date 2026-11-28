@@ -7,7 +7,8 @@ sealed class IrregularityRow {public string Table,Type,Criterion,Value,Result;/*
  /* the full check for the report (owner, 28 November 2026: "yung sa irregularities sana full check naman with tables diagrams calculations"):
     a data table, calculation lines {label, formula, result} and a figure */
  public string[] Head;public float[] Widths;public List<string[]> Rows=new List<string[]>();public List<string[]> Calcs=new List<string[]>();
- public Action<Graphics,RectangleF> Figure;public float FigureH;public string Caption="";}
+ public Action<Graphics,RectangleF> Figure;public float FigureH;public string Caption="";
+ /* what to do about it (owner, 28 November 2026: "ano recommendation if may irregularities") */public string Recommend="";}
 sealed class IrregularityInput {public string Weights="";public double ProjX,PlanX,ProjZ,PlanZ,Opening,FloorArea;public bool InPlane,OutOfPlane,WeakStory;}
 static class StructuralIrregularity {
  static readonly CultureInfo Ci=CultureInfo.InvariantCulture;
@@ -98,8 +99,10 @@ static class StructuralIrregularity {
   add("208-9","4 In-plane discontinuity in vertical lateral-force-resisting elements","in-plane offset of the lateral elements greater than their length",(inp.InPlane?"marked present":"marked absent")+(broken.Count>0?"; "+broken.Count+" column(s) start on beams - check whether they are offset in the plane of their frame":""),inp.InPlane?Irregular:Regular);rows[rows.Count-1].Detail=broken.Count>0?"Columns that start on a beam (from the STAAD model):\n"+string.Join("\n",broken):"No column starts on a beam in the STAAD model.";
   add("208-9","5 Discontinuity in capacity - weak storey","storey strength < 80 % of the storey above",inp.WeakStory?"marked present":"marked absent",inp.WeakStory?Irregular:Regular);
   /* plan 1: torsion */
-  if(ax!=null&&ax.Count>0){var g=ax.SelectMany(r=>r.Levels.Select(l=>new{r,l})).OrderByDescending(x=>x.l.Ratio).First();add("208-10","1 Torsional irregularity","dmax > 1.2 davg at a level (displacements at the two edges)","dmax / davg = "+F(g.l.Ratio)+" ("+g.r.Case+", "+F(g.l.Level,"0.##")+" m)",g.l.Ratio>1.2?Irregular:Regular);}
-  else add("208-10","1 Torsional irregularity","dmax > 1.2 davg at a level","needs the joint displacements (Ax tab)",NotChecked);
+  /* Table 208-10 type 1 compares storey DRIFTS at the two ends (not the floor displacements, which Ax uses) */
+  var tdr=ax==null?new List<Tuple<AxResult,double[]>>():ax.SelectMany(r=>TorsionDrifts(r).Select(d=>Tuple.Create(r,d))).ToList();
+  if(tdr.Count>0){var g=tdr.OrderByDescending(x=>x.Item2[5]).First();add("208-10","1 Torsional irregularity","maximum storey drift at one end > 1.2 times the average of the storey drifts of the two ends","drift max / avg = "+F(g.Item2[5])+" ("+g.Item1.Case+", storey to "+F(g.Item2[0],"0.##")+" m)",g.Item2[5]>1.2?Irregular:Regular);}
+  else add("208-10","1 Torsional irregularity","maximum storey drift at one end > 1.2 times the average of the two ends","needs the joint displacements (Ax tab)",NotChecked);
   /* plan 2: re-entrant corners */
   if(inp.PlanX>0&&inp.PlanZ>0){double rx=inp.ProjX/inp.PlanX,rz=inp.ProjZ/inp.PlanZ;add("208-10","2 Re-entrant corners","both projections beyond a re-entrant corner > 15 % of the plan dimension in that direction","typed: X "+F(inp.ProjX,"0.##")+" / "+F(inp.PlanX,"0.##")+" m = "+F(rx*100,"0")+" %, Z "+F(inp.ProjZ,"0.##")+" / "+F(inp.PlanZ,"0.##")+" m = "+F(rz*100,"0")+" %",rx>0.15&&rz>0.15?Irregular:Regular);}
   else if(plans.Count>0){if(re==null)add("208-10","2 Re-entrant corners","both projections beyond a re-entrant corner > 15 % of the plan dimension in that direction","no recess in the floor plans (STAAD model)",Regular);
@@ -114,6 +117,9 @@ static class StructuralIrregularity {
   else add("208-10","5 Nonparallel systems","vertical lateral elements not parallel to the major axes","needs the STAAD input (ρ tab)",NotChecked);
   Details(rows,m,forces,disp,eq,ax,inp,plans,re,broken);
   return rows;}
+ /* storey drifts at the two edges of each level of an EQ case: {level, drift 1, drift 2, max, avg, max / avg}; the floor below is the previous level
+    (the base has no drift) */
+ internal static List<double[]> TorsionDrifts(AxResult r){var res=new List<double[]>();double p1=0,p2=0;foreach(var l in r.Levels.OrderBy(x=>x.Level)){double d1=Math.Abs(l.D1-p1),d2=Math.Abs(l.D2-p2);p1=l.D1;p2=l.D2;double avg=(d1+d2)/2;if(avg<=1e-12)continue;double mx=Math.Max(d1,d2);res.Add(new[]{l.Level,d1,d2,mx,avg,mx/avg});}return res;}
  /* the tables, calculations and figures of each check for the report */
  static void Details(List<IrregularityRow> rows,StaadModel m,Dictionary<string,double[]> forces,Dictionary<string,double[]> disp,List<StaadPrimary> eq,List<AxResult> ax,IrregularityInput inp,List<WindEdgeLoads.FloorPlan> plans,ReEntrantResult re,List<string> broken){
   Func<string,IrregularityRow> row=t=>rows.FirstOrDefault(r=>r.Type.StartsWith(t));
@@ -143,12 +149,12 @@ static class StructuralIrregularity {
     for(int i=0;i+1<d.Count;i++)foreach(int c in new[]{1,2}){double hi=Math.Max(d[i][c],d[i+1][c]),lo=Math.Min(d[i][c],d[i+1][c]);if(lo<=0)continue;vg.Calcs.Add(new[]{(c==1?"X":"Z")+", storeys at "+F(d[i][0],"0.##")+" / "+F(d[i+1][0],"0.##")+" m","larger / smaller = "+F(hi,"0.##")+" / "+F(lo,"0.##"),F(hi/lo*100,"0")+" %"+(hi>1.3*lo?" > 130 %":" ≤ 130 %")});}
     var dd=d;vg.FigureH=150;vg.Caption="Elevation: plan dimension X of the lateral system per storey (to scale).";
     vg.Figure=(g,rc)=>{double mx=dd.Max(x=>x[1]);float h=(rc.Height-20)/dd.Count;using(var f=new Font("Segoe UI",7f))for(int i=0;i<dd.Count;i++){float w=(float)((rc.Width-120)*dd[i][1]/mx);float y=rc.Bottom-10-(i+1)*h;var r=new RectangleF(rc.Left+100+(rc.Width-120-w)/2,y,w,h-3);using(var br=new SolidBrush(Color.FromArgb(225,235,236)))g.FillRectangle(br,r);g.DrawRectangle(Pens.SlateGray,r.X,r.Y,r.Width,r.Height);g.DrawString(F(dd[i][0],"0.##")+" m: "+F(dd[i][1],"0.##")+" m",f,Brushes.Black,rc.Left,y+h/2-6);}};}}
-  /* 208-10 type 1: torsion per level */
-  var tor=row("1 Torsional");if(tor!=null&&ax!=null&&ax.Count>0){tor.Head=new[]{"Load case","Level (m)","d edge 1","d edge 2","dmax","davg","dmax / davg","Result"};tor.Widths=new float[]{20,10,11,11,11,11,12,14};
-   foreach(var r in ax)foreach(var l in r.Levels)tor.Rows.Add(new[]{r.Case,F(l.Level,"0.##"),F(l.D1),F(l.D2),F(l.DMax),F(l.DAvg),F(l.Ratio),l.Ratio>1.2?Irregular:Regular});
-   var gv=ax.SelectMany(r=>r.Levels.Select(l=>new{r,l})).OrderByDescending(x=>x.l.Ratio).First();
-   tor.Calcs.Add(new[]{"Governing: "+gv.r.Case+", "+F(gv.l.Level,"0.##")+" m","davg = (d1 + d2) / 2 = ("+F(gv.l.D1)+" + "+F(gv.l.D2)+") / 2",F(gv.l.DAvg)});
-   tor.Calcs.Add(new[]{"","dmax / davg = "+F(gv.l.DMax)+" / "+F(gv.l.DAvg),F(gv.l.Ratio)+(gv.l.Ratio>1.2?" > 1.2":" ≤ 1.2")});}
+  /* 208-10 type 1: storey drifts at the two ends per storey */
+  var tor=row("1 Torsional");if(tor!=null&&ax!=null&&ax.Count>0){tor.Head=new[]{"Load case","Storey to (m)","drift end 1","drift end 2","drift max","drift avg","max / avg","Result"};tor.Widths=new float[]{20,10,11,11,11,11,12,14};
+   Tuple<AxResult,double[]> gv=null;foreach(var r in ax)foreach(var d in TorsionDrifts(r)){tor.Rows.Add(new[]{r.Case,F(d[0],"0.##"),F(d[1]),F(d[2]),F(d[3]),F(d[4]),F(d[5]),d[5]>1.2?Irregular:Regular});if(gv==null||d[5]>gv.Item2[5])gv=Tuple.Create(r,d);}
+   if(gv!=null){tor.Calcs.Add(new[]{"Governing: "+gv.Item1.Case+", storey to "+F(gv.Item2[0],"0.##")+" m","drift avg = (Δ1 + Δ2) / 2 = ("+F(gv.Item2[1])+" + "+F(gv.Item2[2])+") / 2",F(gv.Item2[4])});
+    tor.Calcs.Add(new[]{"","drift max / drift avg = "+F(gv.Item2[3])+" / "+F(gv.Item2[4]),F(gv.Item2[5])+(gv.Item2[5]>1.2?" > 1.2":" ≤ 1.2")});}
+   tor.Caption="";}
   /* 208-10 type 2: re-entrant corner with its plan */
   var rc0=row("2 Re-entrant");if(rc0!=null&&re!=null&&re.PlanX>0&&re.PlanZ>0&&inp.PlanX<=0){rc0.Calcs.Add(new[]{"X","projection / plan = "+F(re.ProjX,"0.##")+" / "+F(re.PlanX,"0.##"),F(re.ProjX/re.PlanX*100,"0")+" %"});
    rc0.Calcs.Add(new[]{"Z","projection / plan = "+F(re.ProjZ,"0.##")+" / "+F(re.PlanZ,"0.##"),F(re.ProjZ/re.PlanZ*100,"0")+" %"});
@@ -159,7 +165,23 @@ static class StructuralIrregularity {
   /* 208-10 type 4: columns on beams */
   var oop=row("4 Out-of-plane");if(oop!=null&&broken.Count>0){oop.Head=new[]{"Column that starts on a beam (STAAD model)"};oop.Widths=new float[]{100};foreach(var b in broken)oop.Rows.Add(new[]{b});}
   /* 208-10 type 5: nonparallel */
-  var np=row("5 Nonparallel");if(np!=null&&m!=null){int n=NonParallel(m);np.Calcs.Add(new[]{"Horizontal members off the X / Z axes","plan angle not a multiple of 90° (± 2°)",n+(n>0?" - "+Irregular:" - "+Regular)});}}
+  var np=row("5 Nonparallel");if(np!=null&&m!=null){int n=NonParallel(m);np.Calcs.Add(new[]{"Horizontal members off the X / Z axes","plan angle not a multiple of 90° (± 2°)",n+(n>0?" - "+Irregular:" - "+Regular)});}
+  Recommend(rows,m);}
+ /* recommendations for each irregularity found; the clause references follow NSCP 2015 Section 208 (UBC 1997 Chapter 16 numbering in brackets) -
+    check them against the code text */
+ static void Recommend(List<IrregularityRow> rows,StaadModel m){double h=0;int storeys=0;if(m!=null&&m.Joints.Count>0){double g=WindEdgeLoads.GroundLevel(m);h=m.Joints.Values.Max(j=>m.H(j))*m.ToMetre-g;storeys=Math.Max(0,PlanDimensions(m).Count(d=>d[0]>=-1e-6));}
+  bool tall=h>20||storeys>5;string dyn=" Static or dynamic: structures over 5 storeys or 20 m with a vertical irregularity of type 1, 2 or 3 need a dynamic (response spectrum) analysis in Zone 4 (NSCP 2015 208.4.8.3 [UBC 1629.8.3]); this model is "+F(h,"0.#")+" m high with "+storeys+" storeys"+(m==null?"":tall?" - use the dynamic analysis (Earthquake sheet, response spectrum).":" - the static lateral force procedure remains allowed.");
+  foreach(var r in rows){if(!r.Result.StartsWith(Irregular))continue;string t=r.Type;
+   if(t.StartsWith("1 Stiffness"))r.Recommend="Stiffen the soft storey: enlarge its columns, add shear walls or braces in that storey, or bring its height closer to the storeys above; then run STAAD again and recheck."+dyn;
+   else if(t.StartsWith("2 Weight"))r.Recommend="Balance the storey masses: move heavy equipment, water tanks or storage off the heavy storey, use lighter partitions or finishes there, or stiffen and strengthen that storey for the added mass."+dyn;
+   else if(t.StartsWith("3 Vertical"))r.Recommend="Avoid an abrupt set-back of the lateral system: continue the frames or walls of the larger storey down / up, or separate the parts with a seismic joint; design the set-back storey and its diaphragm for the transfer of forces."+dyn;
+   else if(t.StartsWith("4 In-plane"))r.Recommend="Elements that support the offset wall or frame (beams, transfer girders, the columns under them) are designed for the special seismic load combinations with Em = Ω0 Eh (group 3000, Eq. 203-19 / 203-20; NSCP 2015 208.7 [UBC 1630.8.2]). Better: align the lateral elements down to the foundation.";
+   else if(t.StartsWith("5 Discontinuity"))r.Recommend="Strengthen the weak storey to at least 80 % of the storey above. While it stays weak the structure is limited to two storeys or 9 m unless the weak storey resists Ω0 times the design forces (NSCP 2015 208.4 [UBC 1629.9.1]).";
+   else if(t.StartsWith("1 Torsional"))r.Recommend="Reduce the eccentricity between the centre of mass and the centre of rigidity: place walls or braces symmetrically, preferably at the perimeter, or move the stiff core toward the centre. While it remains, the accidental torsion is amplified by Ax (Torsional amplification tab, ACC = 0.05 Ax; NSCP 2015 208.5.7.6) and the orthogonal seismic load cases (C) are used.";
+   else if(t.StartsWith("2 Re-entrant"))r.Recommend="Design the diaphragm chords and collectors at the re-entrant corner for the transfer of forces between the wings, or separate the wings with a seismic joint, or add a wall / frame along the re-entrant edges (NSCP 2015 208.7 diaphragm and collector requirements [UBC 1633.2.9]).";
+   else if(t.StartsWith("3 Diaphragm"))r.Recommend="Provide chords, collectors and edge beams around the large openings, check the in-plane diaphragm forces and shears around them, or reduce the openings; consider a flexible diaphragm in the STAAD model for that floor.";
+   else if(t.StartsWith("4 Out-of-plane"))r.Recommend="Columns or walls that start on a beam: the supporting beams / transfer girders and the columns under them are designed for the special seismic combinations Em = Ω0 Eh (group 3000, Eq. 203-19 / 203-20; NSCP 2015 208.7 [UBC 1630.8.2]). Better: carry the columns down to the foundation.";
+   else if(t.StartsWith("5 Nonparallel"))r.Recommend="Use the orthogonal seismic load cases (100 % of one direction + 30 % of the other: choice C on the Primary loads tab) so the elements not parallel to X / Z get both directions (NSCP 2015 208.7 orthogonal effects [UBC 1633.1]).";}}
  static void DrawPlan(Graphics g,RectangleF rc,WindEdgeLoads.FloorPlan p,ReEntrantResult re){double x0=p.Xs.First(),x1=p.Xs.Last(),z0=p.Zs.First(),z1=p.Zs.Last();float s=(float)Math.Min((rc.Width-20)/(x1-x0),(rc.Height-30)/(z1-z0));
   Func<double,float> X=x=>rc.Left+10+(float)((x-x0)*s);Func<double,float> Z=z=>rc.Top+10+(float)((z-z0)*s);
   using(var grey=new SolidBrush(Color.FromArgb(214,220,222)))for(int i=0;i+1<p.Xs.Count;i++)for(int j=0;j+1<p.Zs.Count;j++)if(p.Inside[i,j])g.FillRectangle(grey,X(p.Xs[i]),Z(p.Zs[j]),X(p.Xs[i+1])-X(p.Xs[i])+0.5f,Z(p.Zs[j+1])-Z(p.Zs[j])+0.5f);

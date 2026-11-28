@@ -15,7 +15,7 @@ partial class LoadCombinationsForm {
   "Plan size of the lateral system (columns) of each storey from the STAAD input. Irregular when a storey is more than 130 % of an adjacent storey; a one-storey rooftop structure (penthouse) is not counted.",
   "An in-plane offset of a lateral-force-resisting element greater than its length. The columns that start on a beam (from the STAAD input) are listed below; mark it present when one of them is offset in the plane of its frame.",
   "Storey strength (the lateral strength of the columns, walls and braces of the storey) below 80 % of the storey above. Not available from the STAAD input: mark it present when the design shows it.",
-  "dmax / davg at the edges of each floor from the joint displacements of the EQ cases (Ax tab). Irregular above 1.2.",
+  "Storey drifts at the two ends of each storey (edge displacement of the floor minus the floor below) from the joint displacements of the EQ cases (Ax tab). Irregular when the larger drift exceeds 1.2 times their average. (Ax uses the floor displacements themselves.)",
   "The recesses of each floor plan found from the beams of the STAAD input: a corner recess projects by its own size, a recess in a side by its depth and the narrower wing beside it. Irregular when both projections exceed 15 % of the plan dimension. Typed values override.",
   "Floor area from the STAAD plan; type the openings (stairs, shafts, voids) - the beams alone do not show where the slab is open. Irregular when the openings exceed 50 % of the floor area.",
   "Columns that start on a beam instead of a column below (from the STAAD input) break the lateral force path: listed below.",
@@ -67,7 +67,7 @@ partial class LoadCombinationsForm {
   /* each check on its own tab */
   for(int k=0;k<10&&k<irrRows.Count;k++){var r=irrRows[k];if(irrHead[k]==null)continue;bool bad=r.Result.StartsWith(StructuralIrregularity.Irregular),open=r.Result==StructuralIrregularity.NotChecked;
    irrHead[k].Text="Table "+r.Table+"  ·  "+r.Type+"\n"+r.Criterion;irrResult[k].Text="Result: "+r.Result;irrResult[k].ForeColor=bad?Color.Firebrick:open?PowTheme.Muted:PowTheme.Teal;irrValue[k].Text=r.Value;
-   irrDetail[k].Text=("How it is found: "+IrrHow[k]+(string.IsNullOrEmpty(r.Detail)?"":"\n\n"+r.Detail)).Replace("\n","\r\n");var page=irrHead[k].Parent as TabPage;if(page!=null)page.Text=IrrTitles[k]+(bad?" ✕":open?"":" ✓");}
+   irrDetail[k].Text=("How it is found: "+IrrHow[k]+(string.IsNullOrEmpty(r.Detail)?"":"\n\n"+r.Detail)+(r.Recommend==""?"":"\n\nRecommendation: "+r.Recommend)).Replace("\n","\r\n");var page=irrHead[k].Parent as TabPage;if(page!=null)page.Text=IrrTitles[k]+(bad?" ✕":open?"":" ✓");}
   /* the class is the owner's choice on the Primary loads tab; the check only suggests it (owner, 28 November 2026: "yung sa eq ako magseselect if
      anong case sa primary cases"; supersedes the v10.0.63 automatic class) */if(eqHint!=null)eqHint.Text=irrSuggested==""?"Irregularity check: "+text:"Suggested by the irregularity check: "+CaseSet(irrSuggested)+". "+text;
   irrStatus.ForeColor=irrSuggested=="C"?Color.Firebrick:PowTheme.Teal;irrStatus.Text=text+"  Now used: "+CaseSet(Value("Structure").Substring(0,1))+".";if(irrUse!=null){irrUse.Enabled=irrSuggested!="";irrUse.Text=irrSuggested==""?"Use these seismic load cases":"Use "+CaseSet(irrSuggested);}}
@@ -82,7 +82,8 @@ partial class LoadCombinationsForm {
    foreach(var c in r.Calcs)rep.Calc("",c[0],c[1],c[2]);
    if(r.Figure!=null)rep.Figure(r.FigureH,RichReport.Raster(r.Figure),r.Caption);
    if(r.Head==null&&r.Calcs.Count==0)rep.Paragraph("Value: "+r.Value+".");
-   rep.Paragraph("Result: "+r.Result+".",false,true);}
+   rep.Paragraph("Result: "+r.Result+".",false,true);if(r.Recommend!="")rep.Paragraph("Recommendation: "+r.Recommend);}
+  if(rows.Any(r=>r.Result.StartsWith(StructuralIrregularity.Irregular))&&!Value("Structure").StartsWith("C"))rep.Paragraph("Recommendation: the structure has an irregularity - choose the orthogonal seismic load cases (C) under EQ primary cases on the Primary loads tab; the cases now used are "+CaseSet(Value("Structure").Substring(0,1))+".",false,true);
   return true;}
 }
 }

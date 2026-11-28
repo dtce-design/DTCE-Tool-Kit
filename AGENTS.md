@@ -697,3 +697,4 @@ Owner ("bakit fail sa soft storey sa computation pero pasado sa staad"; "full ch
 uses the floor levels from the ground up (not every column joint / pedestal), storey shear from the members cut once per storey; StaadModel.Plates notes walls;
 IrregularityRow carries Head / Rows / Calcs / Figure (StructuralIrregularity.Details) and the report shows a full check per irregularity (v10.0.71).
 Owner ("may defined diaphragm naman ako"): FLOOR DIAPHRAGM DIA ... HEI and BASE (StaadModel.Diaphragms / DiaphragmBase) are the soft-storey storeys when present (v10.0.72).
+Owner ("make sure tama yung pagcheck ng irregularities"; "ano recommendation"): torsional irregularity uses storey drifts at the two ends (StructuralIrregularity.TorsionDrifts; Ax keeps the displacements); IrregularityRow.Recommend gives each irregularity found its recommendation (v10.0.73).
