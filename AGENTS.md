@@ -667,3 +667,5 @@ Owner (28 November 2026, "automatic na 2 ang liveload, tapos piliin mo na agad d
 the automatic primaries always have LL1 (f1 0.5) and LL2 (f1 1.0), F1One = LL2 by itself (LoadCombinationsForm.LiveCasesFor), the inputs hidden;
 the Live Loads report always shows both cases (v10.0.66). Update notice (owner: "kung di maupdate sana allow offline use"): never forced -
 "Continue without updating" unlocks the app until a still newer version is published (StoreUpdateMonitor skipped, v10.0.66).
+Owner ("hindi nacocopy lahat ng nodes and beams sa staad"; "baka naka cap or may limit ang characters"): every editable multiline text box
+has MaxLength=int.MaxValue (or 0) - the WinForms default of 32,767 characters cut off pasted STAAD tables (v10.0.67). Give new paste boxes no limit.

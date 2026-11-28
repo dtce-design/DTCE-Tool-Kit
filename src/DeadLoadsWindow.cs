@@ -20,7 +20,7 @@ sealed class DeadLoadsForm:DesignSheetForm {
   del.Click+=(s,e)=>{g.EndEdit();var rows=g.SelectedCells.Cast<DataGridViewCell>().Select(c=>c.OwningRow).Concat(g.SelectedRows.Cast<DataGridViewRow>()).Where(x=>!x.IsNewRow).Distinct().ToList();if(rows.Count==0)return;
    loading=true;try{foreach(var x in rows)g.Rows.Remove(x);}finally{loading=false;}Save(g,t);Compute();};bar.Controls.Add(add);bar.Controls.Add(del);}
  static Control Stack(Control a,Control b,float topPercent){var t=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=2};t.RowStyles.Add(new RowStyle(SizeType.Percent,topPercent));t.RowStyles.Add(new RowStyle(SizeType.Percent,100-topPercent));a.Dock=DockStyle.Fill;b.Dock=DockStyle.Fill;t.Controls.Add(a,0,0);t.Controls.Add(b,0,1);return t;}
- static TextBox Hidden(){return new TextBox{Multiline=true,Visible=false};}
+ static TextBox Hidden(){return new TextBox{MaxLength=int.MaxValue,Multiline=true,Visible=false};}
  static DataGridView Edit(){return new DataGridView{Dock=DockStyle.Fill,AllowUserToAddRows=true,AllowUserToDeleteRows=true,RowHeadersVisible=true,RowHeadersWidth=28,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill};}
  static DataGridView View(){return new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill};}
  public DeadLoadsForm():base("Dead Loads (NSCP 2015) - floor, roof, wall and other dead loads","Dead-Loads"){

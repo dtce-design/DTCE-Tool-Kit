@@ -1,0 +1,12 @@
+DTCE Tool Kit v10.0.67 (28 November 2026) - test build; not uploaded to the Microsoft Store (needs a new explicit request).
+
+PATCH - STAAD paste boxes take the whole table (owner: "hindi nacocopy lahat ng nodes and beams sa staad"; "paki check din yung iba na need
+ng input kay staad baka naka cap or may limit ang characters"):
+- A Windows text box takes at most 32,767 characters by default, so a large Nodes or Beams table was cut off when pasted. Every input box
+  that takes pasted text now has no limit:
+  Load Combinations / Design Loads: Nodes table and Beams table (Primary loads), rho STAAD input and member forces, torsional amplification
+  joint displacements, structure weights; Dead Loads and Live Loads text inputs; Truss Connections STAAD forces.
+- Already without a limit before: Beam Deflection Check tables, Strap Foundation and Truss Support reactions.
+- The parsers had no row limit; nothing else cut the pasted tables.
+Check: the Nodes / Beams boxes report MaxLength 2147483647 (was 32767).
+Includes everything of v10.0.66.

@@ -13,7 +13,7 @@ partial class LoadCombinationsForm {
   var system=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Width=470};system.Items.AddRange(RhoSystems);system.SelectedIndex=0;var zone=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Width=90};zone.Items.AddRange(new object[]{"Zone 4","Zone 2"});zone.SelectedIndex=0;
   var area=new TextBox{Width=110};var go=new Button{Text="Recompute ρ",AutoSize=true};
   bar.Controls.Add(pair("Lateral system",system));bar.Controls.Add(pair("Seismic zone",zone));bar.Controls.Add(pair("A_B (m²), blank = from the base joints",area));bar.Controls.Add(go);
-  Func<string,string,TextBox> box=(key,hint)=>{var t=new TextBox{Multiline=true,ScrollBars=ScrollBars.Both,WordWrap=false,Dock=DockStyle.Fill,Font=new Font("Consolas",9f),AcceptsReturn=true};Inputs.Add(key,t);return t;};
+  Func<string,string,TextBox> box=(key,hint)=>{var t=new TextBox{MaxLength=int.MaxValue,Multiline=true,ScrollBars=ScrollBars.Both,WordWrap=false,Dock=DockStyle.Fill,Font=new Font("Consolas",9f),AcceptsReturn=true};Inputs.Add(key,t);return t;};
   var model=box("RhoModel","");var forces=box("RhoForces","");var walls=box("RhoWalls","");Inputs.Add("RhoSystem",system);Inputs.Add("RhoZone",zone);Inputs.Add("RhoArea",area);
   Func<string,Control,Control> titled=(t,c)=>{var p=new Panel{Dock=DockStyle.Fill,Padding=new Padding(4)};p.Controls.Add(c);p.Controls.Add(new Label{Text=t,Dock=DockStyle.Top,Height=34,ForeColor=PowTheme.Ink});return p;};
   var pastes=new TableLayoutPanel{Dock=DockStyle.Top,Height=260,ColumnCount=3};for(int k=0;k<3;k++)pastes.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,k==2?20:40));

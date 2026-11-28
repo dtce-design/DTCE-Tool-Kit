@@ -23,7 +23,7 @@ partial class LoadCombinationsForm {
  readonly Label[] irrResult=new Label[10],irrValue=new Label[10],irrHead=new Label[10];readonly TextBox[] irrDetail=new TextBox[10];readonly Timer irrTimer=new Timer{Interval=600};
  void AddIrregularPage(){var sec=Section("Structural irregularities","NSCP 2015 Table 208-9 (vertical) and Table 208-10 (plan): one tab per irregularity. Computed from the STAAD input (Primary loads tab), the EQ member end forces (ρ tab) and the joint displacements (Ax tab); typed values override the automatic ones.");var tab=sec.Parent.Parent as TabPage;
   Func<string,string,int,TextBox> num=(key,text,w)=>{var t=new TextBox{Width=w,Text=text,TextAlign=HorizontalAlignment.Right};Inputs.Add(key,t);return t;};
-  var weights=new TextBox{Multiline=true,ScrollBars=ScrollBars.Vertical,Width=300,Height=110,Font=new Font("Consolas",9f),AcceptsReturn=true};Inputs.Add("RegWeights",weights);
+  var weights=new TextBox{MaxLength=int.MaxValue,Multiline=true,ScrollBars=ScrollBars.Vertical,Width=300,Height=110,Font=new Font("Consolas",9f),AcceptsReturn=true};Inputs.Add("RegWeights",weights);
   var px=num("RegProjX","0",70);var lx=num("RegPlanX","0",70);var pz=num("RegProjZ","0",70);var lz=num("RegPlanZ","0",70);var op=num("RegOpening","0",80);var fa=num("RegFloorArea","0",80);
   var inPlane=new CheckBox{Text="Mark as present (judged from the drawings)",AutoSize=true};var weak=new CheckBox{Text="Mark as present: storey strength < 80 % of the storey above",AutoSize=true};var outPlane=new CheckBox{Text="Mark as present (judged from the drawings)",AutoSize=true};
   Inputs.Add("RegInPlane",inPlane);Inputs.Add("RegWeakStory",weak);Inputs.Add("RegOutOfPlane",outPlane);

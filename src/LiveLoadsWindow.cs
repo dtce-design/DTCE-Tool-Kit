@@ -9,7 +9,7 @@ sealed class LiveLoadsForm:DesignSheetForm {
  /* search bars (owner: "INCLUDE SEARCH BAR"): any word of any column, e.g. "toilet", "gym", "4.8", "hospital" */
  readonly TextBox spaceSearch=new TextBox{Width=420},tableSearch=new TextBox{Width=420};
  /* check boxes "In report" (owner: "ADD CHECK ARROW TO BE INCLUDED IN THE REPORT"): the unchecked spaces, kept with the sheet */
- /* owner: "yung live load uncheck lahat. ako ang mag check" - every space starts unchecked; the checked ones are kept with the sheet */readonly TextBox included=new TextBox{Multiline=true,Visible=false};
+ /* owner: "yung live load uncheck lahat. ako ang mag check" - every space starts unchecked; the checked ones are kept with the sheet */readonly TextBox included=new TextBox{MaxLength=int.MaxValue,Multiline=true,Visible=false};
  static string Key(string[] row){return row[0]+"|"+row[6];}
  /* the STAAD live load case of a space (owner: "ilagay if LL1 or LL2 yung live load ipaghiwalay"): LL2 where f1 = 1.0 (assembly, over 4.8 kPa,
     garages), LL1 where f1 = 0.5 */
