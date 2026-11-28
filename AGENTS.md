@@ -378,6 +378,18 @@ Result 28 November 2026: PR #34 merged to main (GitHub release of v10.0.68, run 
 46130143299 was cancelled while still queued (no job started; nothing uploaded, nothing changed in Partner Center). The Store release is v10.0.69
 (User and Admin), the same way (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only - the
 v10.0.65 submissions in certification are replaced; User visibility stays Public). Later versions again need a new explicit request.
+Done 28 November 2026: v10.0.69 merged to main (PR #35; the first Windows CI failed on DesignLoadsReportTests, which did not count the new LLR report
+part - test fixed; GitHub release v10.0.69-build-393, run 46132502514). Store run 46132526457: both upload jobs first failed on an HTTP 500 from the
+Store API at the first read, before any submission (nothing changed); re-run of the failed jobs (attempt 2): new User (1152921505702532847;
+visibility Public) and Admin (1152921505702532237; visibility Private) submissions were created and committed; Partner Center reported "accepted
+for processing" (PreProcessing). The log names no cancelled pending submission. Certification is not guaranteed. v10.0.70 and later need a new
+explicit request.
+New owner request (28 November 2026, "upload, make sure tama yung pagcheck ng irregularities"; chose "Replace v10.0.69"): publish v10.0.73 (User and Admin)
+after its Windows CI passes (PR to main, then publish_microsoft_store=true with replace_pending_store_submission=true for this release only; User
+visibility stays Public). Later versions again need a new explicit request.
+Owner (28 November 2026, chose "v10.0.74"): the Store release is v10.0.74 (v10.0.73 plus LOADTYPE SEISMIC-H), the same way (PR #36).
+Owner (28 November 2026, chose "Upload v10.0.75"): the Store release is v10.0.75 (v10.0.74 plus the rho / Ax corrections), the same way (PR #36; the v10.0.74 run was stopped before CI finished, nothing uploaded).
+Owner (28 November 2026, "ito na ang ipush mo"): the Store release is v10.0.76 (v10.0.75 plus the automatic lateral system for rho), the same way (PR #36, replace_pending_store_submission=true for this release only; the v10.0.75 run was stopped before CI finished, nothing uploaded).
 Checked 26 November 2026 (read-only store_status job, run 45825954870): v10.0.18 is Published for User and Admin; no submission pending;
 the public catalog lists DTCE.DTCEToolKit_10.0.18.0 / DTCE.DTCEToolKit-Admin_10.0.18.0.
 Update check (owner, 26 November 2026: "di namang gumagana yung pagcheck ng updates"; "ayaw ko ng check for updates, gusto ko automatic na",
@@ -685,3 +697,13 @@ Primary loads tab (eqPick, kept in step with Settings); the irregularity check o
 load (LLR)" is its own Design Loads sub tab (LauncherForm.MoveLcParts LoadsRoof) and its own report part (LoadCombinationsForm.RoofLiveDocument,
 DesignLoadsReport), not in the Load Combinations report. Owner ("naimomodel ng roof kahit wala naman beam ... sa gitna"): FLOOR LOAD ranges hold only their
 own panels' cells (WindEdgeLoads.PanelBoxes clean): no bridge over an open panel or between separate roofs (v10.0.69).
+Owner's STAAD Error List ("LOAD COMBINATION list has been ignored" 2029-2036): never continue a LOAD COMBINATION / LOAD TITLE line with " -";
+long titles write the orthogonal term (EQ+X,0.3EQ+Z) (StaadCombinations.FitTitle) and only then are cut (StaadLines.Wrap) (v10.0.70).
+Owner ("bakit fail sa soft storey sa computation pero pasado sa staad"; "full check naman with tables diagrams calculations"): StructuralIrregularity.Stiffness
+uses the floor levels from the ground up (not every column joint / pedestal), storey shear from the members cut once per storey; StaadModel.Plates notes walls;
+IrregularityRow carries Head / Rows / Calcs / Figure (StructuralIrregularity.Details) and the report shows a full check per irregularity (v10.0.71).
+Owner ("may defined diaphragm naman ako"): FLOOR DIAPHRAGM DIA ... HEI and BASE (StaadModel.Diaphragms / DiaphragmBase) are the soft-storey storeys when present (v10.0.72).
+Owner ("make sure tama yung pagcheck ng irregularities"; "ano recommendation"): torsional irregularity uses storey drifts at the two ends (StructuralIrregularity.TorsionDrifts; Ax keeps the displacements); IrregularityRow.Recommend gives each irregularity found its recommendation (v10.0.73).
+Owner's STAAD.Pro 2026 message (SEISMIC updated to SEISMIC-H): generated seismic load cases (REPEAT orthogonal cases, RSA cases) use LOADTYPE SEISMIC-H (v10.0.74).
+Owner ("paki make sure tama yung computation ng redundancy factor ... pati yung amplification factor"): rho stories from StructuralIrregularity.StoreyLevels, bays through chained beam lines, A_B = ground floor plan area (hull fallback); Ax = 1.0 unless the drift-based torsional irregularity exists (v10.0.75).
+Owner ("di ba madetermine yung frame type"; "SMRF lang naman ang tinatanggap sa ph e zone 4"): rho "Automatic" = braced (braces) / dual (plates) / SMRF in Zone 4, ordinary moment frame in Zone 2; zone from EarthquakeLink (v10.0.76).

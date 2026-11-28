@@ -1,0 +1,8 @@
+DTCE Tool Kit v10.0.74 (28 November 2026) - test build; not uploaded to the Microsoft Store (needs a new explicit request).
+
+PATCH - STAAD.Pro 2026 load type (owner's STAAD message: "Load cases defined as type 'SEISMIC' ... have been updated to a new type,
+'SEISMIC-H'"):
+- The orthogonal seismic load cases (REPEAT LOAD, class C) and the response spectrum cases of the Earthquake sheet are written LOADTYPE
+  SEISMIC-H, so STAAD.Pro 2026 no longer converts them and shows the message. Older inputs with LOADTYPE SEISMIC are still read.
+Tests: StaadCombinationsTests 39, RsaCurveTests 23, RedundancyFactorTests 23.
+Includes everything of v10.0.73.

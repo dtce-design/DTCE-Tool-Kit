@@ -16,7 +16,7 @@ namespace BeamScheduleFormatter {
    horizontal resultant sqrt(Fy^2 + Fz^2) of the member end force; the story shear is the sum over the columns and braces of the story. */
 sealed class StaadJoint {public int No;public double X,Y,Z;}
 sealed class StaadMember {public int No,A,B;}
-sealed class StaadModel {public Dictionary<int,StaadJoint> Joints=new Dictionary<int,StaadJoint>();public Dictionary<int,StaadMember> Members=new Dictionary<int,StaadMember>();public double ToMetre=1;public bool ZUp;public List<string> Notes=new List<string>();
+sealed class StaadModel {public Dictionary<int,StaadJoint> Joints=new Dictionary<int,StaadJoint>();public Dictionary<int,StaadMember> Members=new Dictionary<int,StaadMember>();public double ToMetre=1;public bool ZUp;/* the input has plate / shell elements (walls carry storey shear the member forces do not show) */public bool Plates;/* FLOOR DIAPHRAGM heights and BASE in metres (owner: "may defined diaphragm naman ako") */public List<double> Diaphragms=new List<double>();public double DiaphragmBase=double.NaN;public List<string> Notes=new List<string>();
  /* plan coordinates and the height, whatever axis is up */
  public double H(StaadJoint j){return ZUp?j.Z:j.Y;}public double P1(StaadJoint j){return j.X;}public double P2(StaadJoint j){return ZUp?j.Y:j.Z;}}
 sealed class RhoStory {public double Bottom,Top,Shear,Element,Ratio;public string Element0="";public bool Counted;}
@@ -43,6 +43,10 @@ static class RedundancyFactor {
    if(u.StartsWith("UNIT")){if(Regex.IsMatch(u,@"\bMMS?\b"))unit=0.001;else if(Regex.IsMatch(u,@"\bCMS?\b"))unit=0.01;else if(Regex.IsMatch(u,@"\b(METER|METRES?|METERS?|M)\b"))unit=1;else if(Regex.IsMatch(u,@"\b(FEET|FT)\b"))unit=0.3048;else if(Regex.IsMatch(u,@"\b(INCH|INCHES|IN)\b"))unit=0.0254;continue;}
    if(u.StartsWith("SET Z UP")){m.ZUp=true;continue;}
    if(u.StartsWith("JOINT COORD")){block="J";m.ToMetre=unit;line=Regex.Replace(line,@"^JOINT\s+COORD\w*(\s+CYL\w*)?","",RegexOptions.IgnoreCase).Trim();if(line=="")continue;}
+   else if(u.StartsWith("ELEMENT INCI")){m.Plates=true;block="";continue;}
+   else if(u.StartsWith("FLOOR DIAPH")){block="D";continue;}
+   else if(block=="D"&&Regex.IsMatch(u,@"^DIA\s")){var hm=Regex.Match(u,@"\bHEI\w*\s+(-?[\d.]+)");double hv;if(hm.Success&&double.TryParse(hm.Groups[1].Value,NumberStyles.Float,Ci,out hv))m.Diaphragms.Add(hv*unit);continue;}
+   else if(block=="D"&&Regex.IsMatch(u,@"^BASE\s")){double bv;if(double.TryParse(u.Substring(4).Trim().Split(' ')[0],NumberStyles.Float,Ci,out bv))m.DiaphragmBase=bv*unit;continue;}
    else if(u.StartsWith("MEMBER INCI")){block="M";line=Regex.Replace(line,@"^MEMBER\s+INCI\w*","",RegexOptions.IgnoreCase).Trim();if(line=="")continue;}
    else if(Regex.IsMatch(u,@"^[A-Z]")){if(u.StartsWith("REPEAT"))m.Notes.Add("REPEAT / REPEAT ALL generation in the joint or member list is not read: list the joints and members explicitly.");block="";continue;}
    if(block=="")continue;
@@ -88,44 +92,50 @@ static class RedundancyFactor {
   if(f.Count==0)throw new Exception("Paste the member end forces of the EQ load cases (STAAD table Beam / L/C / Node / Fx ... or the .ANL MEMBER END FORCES).");
   return f;}
  /* the ground floor area: the convex hull, on plan, of the joints at the base level */
- internal static double BaseArea(StaadModel m){double baseH=m.Joints.Values.Min(j=>m.H(j));var pts=m.Joints.Values.Where(j=>Math.Abs(m.H(j)-baseH)<1e-6).Select(j=>new[]{m.P1(j)*m.ToMetre,m.P2(j)*m.ToMetre}).Distinct(new PtEq()).OrderBy(p=>p[0]).ThenBy(p=>p[1]).ToList();
+ /* A_B: the ground floor area - the floor plan at the base level when the beams give one, else the convex hull of the base joints */
+ internal static double BaseArea(StaadModel m){var levels=StructuralIrregularity.StoreyLevels(m);var plans=WindEdgeLoads.FloorPlans(m);if(plans.Count>0){var pl=plans.Where(p=>p.Level>=levels[0]*m.ToMetre-1e-3).OrderBy(p=>p.Level).FirstOrDefault();if(pl!=null&&pl.Area>0)return pl.Area;}
+  return BaseHullArea(m);}
+ internal static double BaseHullArea(StaadModel m){double baseH=m.Joints.Values.Min(j=>m.H(j));var pts=m.Joints.Values.Where(j=>Math.Abs(m.H(j)-baseH)<1e-6).Select(j=>new[]{m.P1(j)*m.ToMetre,m.P2(j)*m.ToMetre}).Distinct(new PtEq()).OrderBy(p=>p[0]).ThenBy(p=>p[1]).ToList();
   if(pts.Count<3)return 0;Func<double[],double[],double[],double> cross=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);var hull=new List<double[]>();
   foreach(var p in pts){while(hull.Count>=2&&cross(hull[hull.Count-2],hull[hull.Count-1],p)<=0)hull.RemoveAt(hull.Count-1);hull.Add(p);}int lower=hull.Count+1;
   for(int i=pts.Count-2;i>=0;i--){var p=pts[i];while(hull.Count>=lower&&cross(hull[hull.Count-2],hull[hull.Count-1],p)<=0)hull.RemoveAt(hull.Count-1);hull.Add(p);}hull.RemoveAt(hull.Count-1);
   double a2=0;for(int i=0;i<hull.Count;i++){var p=hull[i];var q=hull[(i+1)%hull.Count];a2+=p[0]*q[1]-q[0]*p[1];}return Math.Abs(a2)/2;}
  sealed class PtEq:IEqualityComparer<double[]>{public bool Equals(double[] a,double[] b){return Math.Abs(a[0]-b[0])<1e-6&&Math.Abs(a[1]-b[1])<1e-6;}public int GetHashCode(double[] a){return Math.Round(a[0],4).GetHashCode()^Math.Round(a[1],4).GetHashCode();}}
  /* r_i per story for one load case; system: "Moment", "Braced", "Dual" */
+ /* r_i per story for one load case; system: "Moment", "Braced", "Dual" (owner, 28 November 2026: "paki make sure tama yung computation ng
+    redundancy factor"). NSCP 2015 208.5.1.1 [UBC 1630.1.1]: stories from the FLOOR DIAPHRAGM / floor levels (StructuralIrregularity.StoreyLevels,
+    not every column joint); story shear = the column shears and brace horizontal components cut once in the story; moment frames: the two
+    columns of a bay - the column lines joined at the floor above by a beam line along the loading direction (beam segments chained through
+    joints without columns) - with 70 % of a column that has bays on both sides; braced: the most loaded brace's horizontal component; dual: 80 %.
+    r_max = the largest r_i of the stories in the lower two-thirds of the height above the base. */
  internal static RhoResult Compute(StaadModel m,Dictionary<string,double[]> forces,int load,string caseName,string axis,string system){var r=new RhoResult{Case=caseName,Axis=axis};
   Func<int,StaadJoint> J=n=>{StaadJoint j;if(!m.Joints.TryGetValue(n,out j))throw new Exception("Joint "+n+" of a member is not in the joint list.");return j;};
-  var cols=new List<StaadMember>();var beams=new List<StaadMember>();var braces=new List<StaadMember>();
-  var inclined=new List<StaadMember>();
-  foreach(var mem in m.Members.Values){var a=J(mem.A);var b=J(mem.B);double dv=Math.Abs(m.H(b)-m.H(a)),dh=Math.Sqrt(Math.Pow(m.P1(b)-m.P1(a),2)+Math.Pow(m.P2(b)-m.P2(a),2));
-   if(dv<1e-6&&dh>1e-6)beams.Add(mem);else if(dh<=0.02*dv)cols.Add(mem);else if(dv>1e-6)inclined.Add(mem);}
-  /* a brace runs between two floor levels (column ends); sloping rafters and other inclined members are not braces */
-  braces.AddRange(inclined.Where(b=>AtLevel(m,cols,J(b.A))&&AtLevel(m,cols,J(b.B))));
-  if(cols.Count==0)throw new Exception("No columns (vertical members) found in the model.");
-  Func<StaadMember,StaadJoint> low=mm=>m.H(J(mm.A))<=m.H(J(mm.B))?J(mm.A):J(mm.B);Func<StaadMember,StaadJoint> high=mm=>m.H(J(mm.A))<=m.H(J(mm.B))?J(mm.B):J(mm.A);
-  Func<StaadMember,double[]> F=mm=>{double[] v;int jl=low(mm).No;if(forces.TryGetValue(mm.No+"|"+load+"|"+jl,out v))return v;int other=jl==mm.A?mm.B:mm.A;return forces.TryGetValue(mm.No+"|"+load+"|"+other,out v)?v:null;};
-  double baseH=m.Joints.Values.Min(j=>m.H(j)),topH=m.Joints.Values.Max(j=>m.H(j)),limit=baseH+2.0/3*(topH-baseH);bool missing=false;
-  foreach(var lvl in cols.Select(c=>Math.Round(m.H(low(c)),4)).Distinct().OrderBy(x=>x)){
-   var sc=cols.Where(c=>Math.Abs(m.H(low(c))-lvl)<1e-3).ToList();var shear=new Dictionary<int,double>();var topOf=new Dictionary<int,int>();
-   foreach(var c in sc){var v=F(c);if(v==null){missing=true;continue;}shear[c.No]=Math.Sqrt(v[1]*v[1]+v[2]*v[2]);topOf[c.No]=high(c).No;}
-   var sb=braces.Where(b=>Math.Abs(m.H(low(b))-lvl)<1e-3).ToList();var bh=new Dictionary<int,double>();
-   foreach(var b in sb){var v=F(b);if(v==null){missing=true;continue;}var a=J(b.A);var e=J(b.B);double L=Math.Sqrt(Math.Pow(m.P1(e)-m.P1(a),2)+Math.Pow(m.P2(e)-m.P2(a),2)+Math.Pow(m.H(e)-m.H(a),2)),h=Math.Sqrt(Math.Pow(m.P1(e)-m.P1(a),2)+Math.Pow(m.P2(e)-m.P2(a),2));bh[b.No]=Math.Abs(v[0])*h/L;}
-   var st=new RhoStory{Bottom=(lvl-baseH)*m.ToMetre,Top=(sc.Max(c=>m.H(high(c)))-baseH)*m.ToMetre,Shear=shear.Values.Sum()+bh.Values.Sum()};st.Counted=lvl<=limit+1e-6;
+  bool alongX=axis!="Z";var floors=StructuralIrregularity.StoreyLevels(m);double baseL=floors[0],topH=Math.Max(floors.Last(),m.Joints.Values.Max(j=>m.H(j))),limit=baseL+2.0/3*(topH-baseL);
+  var ends=m.Members.Values.SelectMany(mm=>new[]{mm.A,mm.B}).Where(no=>m.Joints.ContainsKey(no)).Select(no=>m.H(m.Joints[no])).Distinct().ToList();
+  Func<StaadMember,double[]> F=mm=>{double[] v;if(forces.TryGetValue(mm.No+"|"+load+"|"+mm.A,out v))return v;return forces.TryGetValue(mm.No+"|"+load+"|"+mm.B,out v)?v:null;};
+  Func<double,double,string> key=(x,z)=>Math.Round(x,3).ToString(Ci)+"|"+Math.Round(z,3).ToString(Ci);bool missing=false;
+  if(!m.Members.Values.Any(mm=>{var a=J(mm.A);var b=J(mm.B);return Math.Abs(m.H(b)-m.H(a))>1e-6;}))throw new Exception("No columns (vertical members) found in the model.");
+  for(int i=0;i+1<floors.Count;i++){double b0=floors[i],b1=floors[i+1],cut=StructuralIrregularity.CutHeight(ends,b0,b1);
+   var colShear=new Dictionary<string,double>();var colName=new Dictionary<string,int>();var bh=new Dictionary<int,double>();
+   foreach(var mm in m.Members.Values){var a=J(mm.A);var b=J(mm.B);double lo=Math.Min(m.H(a),m.H(b)),hi=Math.Max(m.H(a),m.H(b));if(!(lo<cut-1e-9&&hi>cut+1e-9))continue;
+    double dv=hi-lo,dh=Math.Sqrt(Math.Pow(m.P1(b)-m.P1(a),2)+Math.Pow(m.P2(b)-m.P2(a),2));var v=F(mm);if(v==null){missing=true;continue;}
+    if(dh<=0.02*dv){var t=m.H(a)>m.H(b)?a:b;string kk=key(m.P1(t),m.P2(t));colShear[kk]=(colShear.ContainsKey(kk)?colShear[kk]:0)+Math.Sqrt(v[1]*v[1]+v[2]*v[2]);colName[kk]=mm.No;}
+    else{double L=Math.Sqrt(dh*dh+dv*dv);bh[mm.No]=Math.Abs(v[0])*dh/L;}}
+   var st=new RhoStory{Bottom=(b0-baseL)*m.ToMetre,Top=(b1-baseL)*m.ToMetre,Shear=colShear.Values.Sum()+bh.Values.Sum()};st.Counted=b0<=limit+1e-6;
    if(st.Shear<=1e-9){r.Stories.Add(st);continue;}
-   /* moment-frame bays along the loading direction: two columns whose tops a beam joins */
-   double best=0;string what="";bool alongX=axis!="Z";
-   if(system!="Braced"){var tops=topOf.ToDictionary(p=>p.Value,p=>p.Key);
-    Func<StaadMember,bool> along=bm=>{var a=J(bm.A);var e=J(bm.B);double d1=Math.Abs(m.P1(e)-m.P1(a)),d2=Math.Abs(m.P2(e)-m.P2(a));return alongX?d1>=d2:d2>d1;};
-    var bayBeams=beams.Where(bm=>tops.ContainsKey(bm.A)&&tops.ContainsKey(bm.B)&&along(bm)).ToList();
-    /* 70 %: a column with frame beams on both sides along the loading direction */
-    Func<int,double> share=node=>{var at=bayBeams.Where(bm=>bm.A==node||bm.B==node).Select(bm=>{var o=J(bm.A==node?bm.B:bm.A);var n0=J(node);return Math.Sign(alongX?m.P1(o)-m.P1(n0):m.P2(o)-m.P2(n0));}).ToList();return at.Contains(1)&&at.Contains(-1)?0.7:1.0;};
-    foreach(var bm in bayBeams){double v=shear[tops[bm.A]]*share(bm.A)+shear[tops[bm.B]]*share(bm.B);if(v>best){best=v;what="columns "+tops[bm.A]+" + "+tops[bm.B]+(share(bm.A)<1||share(bm.B)<1?" (70 % of an interior column)":"");}}
-    if(bayBeams.Count==0&&shear.Count>0){var mx=shear.OrderByDescending(p=>p.Value).First();best=mx.Value;what="column "+mx.Key+" (no beam along the loading direction joins two column tops)";}}
+   double best=0;string what="";
+   if(system!="Braced"){/* beam lines at the floor above along the loading direction, chained through joints that have no column */
+    var adj=new Dictionary<string,List<string>>();var pos=new Dictionary<string,double[]>();
+    foreach(var bm in m.Members.Values){var a=J(bm.A);var e=J(bm.B);if(Math.Abs(m.H(a)-b1)>1e-3||Math.Abs(m.H(e)-b1)>1e-3)continue;double d1=Math.Abs(m.P1(e)-m.P1(a)),d2=Math.Abs(m.P2(e)-m.P2(a));if(d1+d2<1e-9)continue;bool al=alongX?d2<=1e-6*Math.Max(1,d1)&&d1>0:d1<=1e-6*Math.Max(1,d2)&&d2>0;if(!al)continue;
+     string ka=key(m.P1(a),m.P2(a)),ke=key(m.P1(e),m.P2(e));pos[ka]=new[]{m.P1(a),m.P2(a)};pos[ke]=new[]{m.P1(e),m.P2(e)};if(!adj.ContainsKey(ka))adj[ka]=new List<string>();if(!adj.ContainsKey(ke))adj[ke]=new List<string>();adj[ka].Add(ke);adj[ke].Add(ka);}
+    Func<string,int,string> walk=(start,dir)=>{string cur=start;var seen=new HashSet<string>{start};while(true){List<string> nb;if(!adj.TryGetValue(cur,out nb))return null;double c0=alongX?pos[cur][0]:pos[cur][1];string next=nb.Where(n=>!seen.Contains(n)&&Math.Sign((alongX?pos[n][0]:pos[n][1])-c0)==dir).OrderBy(n=>Math.Abs((alongX?pos[n][0]:pos[n][1])-c0)).FirstOrDefault();if(next==null)return null;if(colShear.ContainsKey(next))return next;seen.Add(next);cur=next;}};
+    Func<string,double> share=c=>walk(c,1)!=null&&walk(c,-1)!=null?0.7:1.0;
+    foreach(var c in colShear.Keys.ToList()){if(!pos.ContainsKey(c))continue;var o=walk(c,1);if(o==null)continue;double v=colShear[c]*share(c)+colShear[o]*share(o);if(v>best){best=v;what="columns "+colName[c]+" + "+colName[o]+(share(c)<1||share(o)<1?" (70 % of an interior column)":"");}}
+    if(best<=0&&colShear.Count>0){var mx=colShear.OrderByDescending(p=>p.Value).First();best=mx.Value;what="column "+colName[mx.Key]+" (no beam along the loading direction joins two column lines)";}}
    if(!system.StartsWith("Moment")&&bh.Count>0){var mb=bh.OrderByDescending(p=>p.Value).First();if(system=="Braced"||mb.Value>best){best=mb.Value;what="brace "+mb.Key+" (horizontal component)";}}
    st.Element=best;st.Element0=what;st.Ratio=best/st.Shear*(system=="Dual"?0.8:1.0);r.Stories.Add(st);}
   if(missing)r.Governing="Some members have no end forces for load case "+load+" (copy the end forces of every member for this case). ";
+  if(m.Plates)r.Governing+="The model has plate (wall) elements: their shear is not in the member end forces - for walls use the lateral system Shear walls (typed) or Dual. ";
   var counted=r.Stories.Where(s=>s.Counted&&s.Shear>1e-9).ToList();if(counted.Count==0)throw new Exception("Load case "+load+": no story shear found at or below two-thirds of the height.");
   var g=counted.OrderByDescending(s=>s.Ratio).First();r.RMax=g.Ratio;r.Governing+="r_max = "+g.Ratio.ToString("0.000",Ci)+" at the story from "+g.Bottom.ToString("0.##",Ci)+" m ("+g.Element0+")";return r;}
  /* rho from r_max and A_B with the limits; returns the raw value through raw */

@@ -1,0 +1,12 @@
+DTCE Tool Kit v10.0.76 (28 November 2026) - test build; not uploaded to the Microsoft Store (needs a new explicit request).
+
+PATCH - Redundancy factor: the lateral system from the inputs (owner: "di ba madetermine yung frame type based sa inputs?"; "SMRF lang naman ang
+tinatanggap sa ph e zone 4 di naman sa palawan lahat ng projects ko"):
+- "Automatic" now decides from the model and the zone: braces -> braced frame; plate (wall) elements with the frames -> dual system (80 %);
+  otherwise a moment frame - special (SMRF, rho shall not exceed 1.25) in Zone 4, where only SMRF is accepted for concrete moment frames, and
+  ordinary in Zone 2.
+- The seismic zone comes from the Earthquake Load sheet (Zone 2: Palawan, Sulu, Tawi-Tawi; Zone 4 elsewhere); the Zone choice of the rho tab
+  is used only when the Earthquake sheet has not been calculated. Zone 2 keeps rho = 1.0.
+- The summary names the system and why, and A_B "ground floor plan of the model".
+Smoke: 3-storey frame without braces or walls, Zone 4 -> SMRF. Tests: RedundancyFactorTests 24, StaadCombinationsTests 39.
+Includes everything of v10.0.75.

@@ -84,7 +84,7 @@ static class StaadCombinations {
   int[] next={1000,2000,3000,4000,5000,6000};string eqNow="";
   Action<int,string,Action<StaadCombo>> add=(g,group,fill)=>{var c=new StaadCombo{Group=group,Eq=eqNow};fill(c);var terms=c.Terms.GroupBy(t=>t.Key).Select(x=>new KeyValuePair<StaadPrimary,double>(x.Key,x.Sum(y=>y.Value))).Where(t=>Math.Abs(t.Value)>1e-9).ToList();c.Terms=terms;if(terms.Count==0)return;
    string key=string.Join(" ",terms.OrderBy(t=>t.Key.No).Select(t=>t.Key.No+":"+F(t.Value)));if(list.Any(o=>o.Group==group&&string.Join(" ",o.Terms.OrderBy(t=>t.Key.No).Select(t=>t.Key.No+":"+F(t.Value)))==key))return;
-   c.No=++next[g];c.Title=Title(terms);list.Add(c);};
+   c.No=++next[g];c.Title=FitTitle("LOAD COMBINATION "+c.No+" ",Title(terms));list.Add(c);};
   Action<StaadCombo,IEnumerable<StaadPrimary>,double> put=(c,g,f)=>{if(Math.Abs(f)<1e-12)return;foreach(var p in g)c.Terms.Add(new KeyValuePair<StaadPrimary,double>(p,f));};
   Action<StaadCombo,double> putL=(c,k)=>{foreach(var p in l)c.Terms.Add(new KeyValuePair<StaadPrimary,double>(p,k*s.F1(p)));};
   Action<StaadCombo,List<KeyValuePair<StaadPrimary,double>>,double> putE=(c,e,f)=>{foreach(var t in e)c.Terms.Add(new KeyValuePair<StaadPrimary,double>(t.Key,f*s.Rho*t.Value));};
@@ -119,6 +119,12 @@ static class StaadCombinations {
   return list;}
  /* "1.2DL+1.2SDL+1.6LL+0.5LR", "0.9DL-1.0EQ+X-0.3EQ+Z" with the STAAD titles */
  static string Title(List<KeyValuePair<StaadPrimary,double>> terms){var b=new StringBuilder();foreach(var t in terms.OrderBy(t=>Order(t.Key.Kind)).ThenBy(t=>t.Key.No)){string f=F(Math.Abs(t.Value));b.Append(t.Value<0?"-":b.Length>0?"+":"").Append(f=="1"?"":f).Append(t.Key.Repeat!=null&&f!="1"?"["+t.Key.Title.Replace(" ","")+"]":Paren(t.Key));}return b.ToString();}
+ /* a LOAD COMBINATION / LOAD title stays on its own line (owner's STAAD Error List, 28 November 2026: "LOAD COMBINATION list has been
+    ignored" - a title wrapped with " -" is not read): an orthogonal term [1.0(EQ+X)+0.3(EQ+Z)] is written (EQ+X,0.3EQ+Z) when the line would pass
+    72 columns, and only then the title is cut */
+ internal static string FitTitle(string head,string title){if(head.Length+title.Length<=StaadLines.Width)return title;
+  string t=Regex.Replace(title,@"\[1\.0\(([^()]*)\)\+0\.3\(([^()]*)\)\]","($1,0.3$2)");if(head.Length+t.Length<=StaadLines.Width)return t;
+  return t.Substring(0,Math.Max(1,StaadLines.Width-head.Length));}
  /* a title with + / - inside is bracketed, so 1.3(EQ+X+E) and +(WL-Z) read as one load */
  /* load numbers as STAAD lists: 1001 TO 1031, single numbers apart */
  static string Ranges(List<int> nos){var parts=new List<string>();for(int i=0;i<nos.Count;){int j=i;while(j+1<nos.Count&&nos[j+1]==nos[j]+1)j++;parts.Add(j>i?nos[i]+" TO "+nos[j]:nos[i].ToString(Ci));i=j+1;}return string.Join(" ",parts);}
@@ -207,7 +213,7 @@ static class StaadCombinations {
   if(s.Drift)b.Append("\n* Drift: wind D + 0.5L + ").Append(F(s.DriftWind)).Append("W; seismic: the primary EQ cases 1.0 Eh, no combinations\n* (dS, Section 208.6.4; dM = 0.7 R dS).");
   b.Append(s.Structure=="C"?"\n* Seismic: irregular and unsymmetrical - orthogonal effects, 100 % of one direction + 30 % of the other.":s.Structure=="B"?"\n* Seismic: regular and unsymmetrical - natural torsion (centre of mass offset)\n* plus accidental torsion (+E / -E) in each EQ case.":"\n* Seismic: regular and symmetrical - each EQ direction alone.");
   var rpt=RepeatCases(combos);if(rpt.Count>0){b.Append("\n* ---- ORTHOGONAL SEISMIC LOAD CASES (paste after the primary loads; the EQ cases are Load Type None) ----");
-   foreach(var r in rpt){b.Append("\nLOAD ").Append(r.No).Append(" LOADTYPE SEISMIC TITLE ").Append(r.Title).Append("\nREPEAT LOAD\n").Append(string.Join(" ",r.Repeat.Select(t=>t.Key.No.ToString(Ci)+" "+F(t.Value))));}}
+   foreach(var r in rpt){b.Append("\nLOAD ").Append(r.No).Append(" LOADTYPE SEISMIC-H TITLE ").Append(r.Title).Append("\nREPEAT LOAD\n").Append(string.Join(" ",r.Repeat.Select(t=>t.Key.No.ToString(Ci)+" "+F(t.Value))));}}
   string group="";foreach(var c in combos){if(c.Group!=group){group=c.Group;b.Append("\n* ---- ").Append(group.ToUpperInvariant()).Append(" ----");}
    if(c.Eq!=""&&(combos.IndexOf(c)==0||combos[combos.IndexOf(c)-1].Eq!=c.Eq))b.Append("\n* ").Append(c.Eq.StartsWith("203-")?"Eq. "+c.Eq:c.Eq);
    b.Append("\nLOAD COMBINATION ").Append(c.No).Append(" ").Append(c.Title);

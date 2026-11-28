@@ -7,7 +7,7 @@ partial class LoadCombinationsForm {
  readonly DataGridView rhoGrid=new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill};
  readonly Label rhoStatus=new Label{Dock=DockStyle.Top,Height=92,Padding=new Padding(8),ForeColor=PowTheme.Teal,Font=ModernUi.Strong};
  readonly Timer rhoTimer=new Timer{Interval=700};double rhoFound=double.NaN;List<string[]> rhoRows=new List<string[]>();
- internal static readonly string[] RhoSystems={"Automatic (braced frame if the model has braces, else moment frame)","Moment-resisting frame","Special moment-resisting frame (SMRF, ρ ≤ 1.25)","Braced frame","Dual system (80 % of r_i)","Shear walls (typed below)"};
+ internal static readonly string[] RhoSystems={"Automatic (braces: braced; walls: dual; else SMRF in Zone 4)","Moment-resisting frame","Special moment-resisting frame (SMRF, ρ ≤ 1.25)","Braced frame","Dual system (80 % of r_i)","Shear walls (typed below)"};
  void AddRhoPage(){var sec=Section("Redundancy factor ρ","NSCP 2015 Eq. 208-20: ρ = 2 − 6.1 / (r_max √A_B). Paste the STAAD input and the member end forces; the rest is automatic and ρ goes into Factors.");var tab=sec.Parent.Parent as TabPage;
   var bar=new FlowLayoutPanel{Dock=DockStyle.Top,Height=96,Padding=new Padding(8),WrapContents=true};Func<string,Control,Control> pair=(t,c)=>{var p=new FlowLayoutPanel{AutoSize=true,Margin=new Padding(0,0,18,6)};p.Controls.Add(new Label{Text=t,AutoSize=true,Padding=new Padding(0,6,4,0),Font=ModernUi.Strong});p.Controls.Add(c);return p;};
   var system=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Width=470};system.Items.AddRange(RhoSystems);system.SelectedIndex=0;var zone=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Width=90};zone.Items.AddRange(new object[]{"Zone 4","Zone 2"});zone.SelectedIndex=0;
@@ -59,6 +59,7 @@ partial class LoadCombinationsForm {
  /* the governing ρ (NaN on error); fills the grid when asked */
  internal double ComputeRho(out string summary,bool fill){summary="";rhoRows=new List<string[]>();try{
    string sys=Value("RhoSystem");string kind=sys.StartsWith("Automatic")?"Auto":sys.StartsWith("Special")?"Moment SMRF":sys.StartsWith("Moment")?"Moment":sys.StartsWith("Braced")?"Braced":sys.StartsWith("Dual")?"Dual":"Walls";bool zone2=Value("RhoZone")=="Zone 2";
+   /* the zone of the Earthquake Load sheet wins (Zone 2: Palawan, Sulu, Tawi-Tawi; Zone 4 elsewhere) */var eqz=EarthquakeLink.Load();if(eqz!=null&&(eqz.Zone==2||eqz.Zone==4))zone2=eqz.Zone==2;
    var results=new List<RhoResult>();double area=double.NaN,typed;
    if(kind=="Walls"){/* typed: bottom; V; Vwall; lw */var r=new RhoResult{Case="Shear walls (typed)",Axis=""};
     foreach(var line in Value("RhoWalls").Split('\n')){var t=line.Split(new[]{';',',','\t'},StringSplitOptions.RemoveEmptyEntries).Select(x=>x.Trim()).ToArray();double b,v,vw,lw;if(t.Length<4||!double.TryParse(t[0],NumberStyles.Float,Ci,out b)||!double.TryParse(t[1],NumberStyles.Float,Ci,out v)||!double.TryParse(t[2],NumberStyles.Float,Ci,out vw)||!double.TryParse(t[3],NumberStyles.Float,Ci,out lw)||v<=0||lw<=0)continue;
@@ -66,7 +67,11 @@ partial class LoadCombinationsForm {
     if(r.Stories.Count==0)throw new Exception("Shear walls: type one line per story (bottom m; story shear kN; wall shear kN; lw m), for the stories at or below two-thirds of the height.");
     var g=r.Stories.OrderByDescending(x=>x.Ratio).First();r.RMax=g.Ratio;r.Governing="r_max = "+Fr(g.Ratio)+" at "+Fr(g.Bottom,"0.##")+" m";results.Add(r);}
    else{string modelText,forceText;RhoTexts(out modelText,out forceText);var model=RedundancyFactor.ReadModel(modelText);var forces=RedundancyFactor.ReadForces(forceText);area=RedundancyFactor.BaseArea(model);
-    if(kind=="Auto"){kind=RedundancyFactor.HasBraces(model)?"Braced":"Moment";summary+="Lateral system (automatic): "+(kind=="Braced"?"braced frame - the model has braces":"moment-resisting frame - no braces in the model")+".\n";}
+    /* the lateral system from the model (owner, 28 November 2026: "di ba madetermine yung frame type based sa inputs?"; "SMRF lang naman ang
+       tinatanggap sa ph e zone 4"): braces -> braced frame; plate walls with the frames -> dual (80 %); otherwise a moment frame, special (SMRF,
+       rho <= 1.25) in Zone 4 where only SMRF is accepted for concrete moment frames, ordinary in Zone 2 */
+    if(kind=="Auto"){bool br=RedundancyFactor.HasBraces(model);kind=br?"Braced":model.Plates?"Dual":zone2?"Moment":"Moment SMRF";
+     summary+="Lateral system (automatic, Seismic Zone "+(zone2?"2":"4")+(eqz!=null?" from the Earthquake Load sheet":"")+"): "+(br?"braced frame - the model has braces":model.Plates?"dual system - shear walls (plate elements) with the moment frames; ρ = 80 % of the value (the wall shears are not in the member end forces: type them under Shear walls to check the walls' r_i)":zone2?"moment-resisting frame":"special moment-resisting frame (SMRF) - the only moment frame accepted in Zone 4; ρ shall not exceed 1.25")+".\n";}
     /* the EQ cases and their directions: the LOAD cases of the STAAD input, else the Primary loads, else the titles of the force table */
     var eq=RedundancyFactor.SeismicCases(modelText).Where(p=>p.Axis!="").ToList();if(eq.Count==0)eq=StaadCombinations.Parse(Value("Primary")).Where(p=>p.Kind=="E"&&p.Axis!="").ToList();if(eq.Count==0)eq=RedundancyFactor.TableCases(forceText).Where(p=>p.Axis!="").ToList();
     if(eq.Count==0)throw new Exception("No seismic load case with an X or Z direction was found (LOAD n LOADTYPE SEISMIC TITLE EQ+X, or UBC / IBC LOAD X): paste the whole STAAD input.");
@@ -79,7 +84,7 @@ partial class LoadCombinationsForm {
    var lines=new List<string>();double governing=1;
    foreach(var g in results.GroupBy(r=>r.Axis)){var worst=g.OrderByDescending(r=>r.RMax).First();double raw;string note;double rho=RedundancyFactor.Rho(worst.RMax,area,kind,zone2,out raw,out note);governing=Math.Max(governing,rho);
     lines.Add((g.Key==""?"":"Direction "+g.Key+", ")+"load case "+worst.Case+": "+worst.Governing+". ρ = 2 − 6.1/("+Fr(worst.RMax)+" × √"+Fr(area,"0.#")+") = "+Fr(raw)+"; "+(note!=""?note:"ρ = "+Fr(rho))+".");}
-   summary+=string.Join("\n",lines)+"\nA_B = "+Fr(area,"0.#")+" m²"+(typed>0?" (typed)":" (from the base joints)")+". Use ρ = "+Fr(governing,"0.0##")+" (the larger direction; ρ = 1.0 for drift). Story shears are the sums of the column shears and brace horizontal components of each story.";
+   summary+=string.Join("\n",lines)+"\nA_B = "+Fr(area,"0.#")+" m²"+(typed>0?" (typed)":" (ground floor plan of the model)")+". Use ρ = "+Fr(governing,"0.0##")+" (the larger direction; ρ = 1.0 for drift). Story shears are the sums of the column shears and brace horizontal components of each story.";
    return governing;}
   catch(Exception ex){summary=ex.Message;return double.NaN;}}
  /* report: section "Redundancy factor" when the STAAD model / forces (or the typed walls) were given */

@@ -7,6 +7,7 @@ static class StaadLines {
  internal const int Width=72;
  internal static string Wrap(string text){if(string.IsNullOrEmpty(text))return text;bool crlf=text.Contains("\r\n");var output=new List<string>();
   foreach(var raw in text.Replace("\r\n","\n").Split('\n')){var line=raw.TrimEnd();if(line.Length<=Width){output.Add(line);continue;}
+   /* a load title is never continued: STAAD ignores a LOAD COMBINATION whose title runs on with " -" */if(System.Text.RegularExpressions.Regex.IsMatch(line,@"^(LOAD COMBINATION \d+ |LOAD \d+ .*TITLE )",System.Text.RegularExpressions.RegexOptions.IgnoreCase)){output.Add(line.Substring(0,Width));continue;}
    if(line.StartsWith("*")){var words=line.Substring(1).Trim().Split(' ').Where(w=>w!="").ToList();var cur=new StringBuilder("*");
     foreach(var w in words){if(cur.Length>1&&cur.Length+1+w.Length>Width){output.Add(cur.ToString());cur=new StringBuilder("*");}if(cur.Length+1+w.Length>Width&&cur.Length==1){/* a single very long word */for(int i=0;i<w.Length;i+=Width-2)output.Add("* "+w.Substring(i,Math.Min(Width-2,w.Length-i)));continue;}cur.Append(' ').Append(w);}
     if(cur.Length>1)output.Add(cur.ToString());continue;}

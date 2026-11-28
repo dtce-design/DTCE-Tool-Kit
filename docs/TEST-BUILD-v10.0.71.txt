@@ -1,0 +1,17 @@
+DTCE Tool Kit v10.0.71 (28 November 2026) - test build; not uploaded to the Microsoft Store (needs a new explicit request).
+
+PATCH - Structural irregularities (owner: "bakit fail sa soft storey sa computation pero pasado sa staad mismo"; "yung sa irregularities sana
+full check naman with tables diagrams calculations"):
+- Soft storey (Table 208-9 type 1): storeys now run between the real floor levels from the ground up. Before, every column joint started a
+  "storey": a wall mesh that splits the columns every 0.51 m and the pedestals below the ground beams gave thin false storeys, so the check
+  failed where STAAD passed. The storey shear is the sum of the column / brace shears cut once in each storey (in the widest gap between
+  member ends), the drift the mean floor displacement above minus below. A plane frame uses the levels of its horizontal members.
+- When the model has plate (wall) elements the report says that their shear is not in the member end forces (k from the columns and braces
+  only) and to compare with STAAD CHECK SOFT STORY.
+- The Load Combinations report has a full check per irregularity after the summary table: criterion, data table (storey stiffness per
+  direction, storey weights, plan dimensions per storey, torsion per level and load case, columns on beams), calculation lines (k = V / drift,
+  ratios against 70 % / 80 %, 150 %, 130 %, dmax / davg against 1.2, projections against 15 %, openings against 50 %) and figures (storey
+  stiffness bars, elevation of the plan dimensions, floor plan with the re-entrant recess), then the result.
+Tests: StructuralIrregularityTests 12 (new: pedestals + split column, three storeys, equal stiffness regular), RedundancyFactorTests 23,
+StaadCombinationsTests 39, RoofLiveLoadsTests, WindEdgeShapesTests, TorsionAmplificationTests.
+Includes everything of v10.0.70.

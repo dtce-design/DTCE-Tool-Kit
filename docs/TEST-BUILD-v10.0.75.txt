@@ -1,0 +1,19 @@
+DTCE Tool Kit v10.0.75 (28 November 2026) - test build.
+
+PATCH - Redundancy factor rho and torsional amplification Ax checked against NSCP 2015 (owner: "paki make sure tama yung computation ng
+redundancy factor, if required ba talaga yon, pati yung amplification factor"):
+- When required: rho applies to E = rho Eh + Ev in the strength and ASD combinations in Zone 4 (1.0 <= rho <= 1.5; Zone 2 rho = 1.0); not to
+  drift (1.0 Eh) and not to Em = Omega0 Eh - the combinations already did this. Ax applies only where the torsional irregularity of Table
+  208-10 type 1 exists (storey drift at one end > 1.2 x average of the two ends; 208.5.7.6): now Ax = 1.0 with "not required" when there is
+  no torsional irregularity; before, Ax was used whenever the floor displacement ratio passed 1.2.
+- rho stories: from the FLOOR DIAPHRAGM / floor levels (as the soft storey check), not every column joint - a wall mesh splitting the columns
+  every 0.51 m and the pedestals below the ground beams gave thin false stories and a wrong r_max. Story shear: the columns and braces cut once
+  in the story. Bays: two column lines joined at the floor above by a beam line along the loading direction, the beam segments chained through
+  joints without a column (beams split by mesh joints); 70 % of a column with bays on both sides; dual 80 %. r_max from the stories in the
+  lower two-thirds of the height above the base.
+- A_B: the ground floor plan area from the beams (before: the convex hull of the lowest joints, larger for L / U plans); the hull stays the
+  fallback; a typed A_B still wins.
+- A model with plate (wall) elements gets the note that the wall shear is not in the member end forces (use Shear walls / Dual).
+Tests: RedundancyFactorTests 24 (new: pedestals, split column, split beams, one story, 20 + 0.7 x 20 = 34 of 60), StructuralIrregularityTests
+15, TorsionAmplificationTests 4, StaadCombinationsTests 39.
+Includes everything of v10.0.74.
