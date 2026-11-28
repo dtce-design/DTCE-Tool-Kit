@@ -1,0 +1,11 @@
+DTCE Tool Kit v10.0.70 (28 November 2026) - test build; not uploaded to the Microsoft Store (needs a new explicit request).
+
+PATCH - Load Combinations: long combination titles no longer break STAAD (owner's STAAD Error List: "LOAD COMBINATION list has been
+ignored by the program" for 2029-2036, then "Load/Comb Case # 2029 is not defined explicitly" in the envelope):
+- A LOAD COMBINATION line longer than 72 columns was continued on the next line with " -"; STAAD does not continue a load title, so it
+  read the title's second half as the factor list and dropped the combination.
+- A title that would pass 72 columns now writes its orthogonal term short: [1.0(EQ+X)+0.3(EQ+Z)] -> (EQ+X,0.3EQ+Z); only if still too long
+  is the title cut. LOAD COMBINATION and LOAD ... TITLE lines are never continued.
+Tests: StaadCombinationsTests 39 (new: owner's case, every line within 72 columns, no title continued), WindEdgeLoadsTests 42,
+RoofLiveLoadsTests 23.
+Includes everything of v10.0.69.

@@ -691,3 +691,5 @@ Primary loads tab (eqPick, kept in step with Settings); the irregularity check o
 load (LLR)" is its own Design Loads sub tab (LauncherForm.MoveLcParts LoadsRoof) and its own report part (LoadCombinationsForm.RoofLiveDocument,
 DesignLoadsReport), not in the Load Combinations report. Owner ("naimomodel ng roof kahit wala naman beam ... sa gitna"): FLOOR LOAD ranges hold only their
 own panels' cells (WindEdgeLoads.PanelBoxes clean): no bridge over an open panel or between separate roofs (v10.0.69).
+Owner's STAAD Error List ("LOAD COMBINATION list has been ignored" 2029-2036): never continue a LOAD COMBINATION / LOAD TITLE line with " -";
+long titles write the orthogonal term (EQ+X,0.3EQ+Z) (StaadCombinations.FitTitle) and only then are cut (StaadLines.Wrap) (v10.0.70).
