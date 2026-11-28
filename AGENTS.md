@@ -390,6 +390,10 @@ visibility stays Public). Later versions again need a new explicit request.
 Owner (28 November 2026, chose "v10.0.74"): the Store release is v10.0.74 (v10.0.73 plus LOADTYPE SEISMIC-H), the same way (PR #36).
 Owner (28 November 2026, chose "Upload v10.0.75"): the Store release is v10.0.75 (v10.0.74 plus the rho / Ax corrections), the same way (PR #36; the v10.0.74 run was stopped before CI finished, nothing uploaded).
 Owner (28 November 2026, "ito na ang ipush mo"): the Store release is v10.0.76 (v10.0.75 plus the automatic lateral system for rho), the same way (PR #36, replace_pending_store_submission=true for this release only; the v10.0.75 run was stopped before CI finished, nothing uploaded).
+Done 28 November 2026: v10.0.76 merged to main (PR #36, Windows CI green; GitHub release v10.0.76-build-401, run 46152094106). Store run
+46152119088 (first attempt, replace_pending_store_submission=true): new User (1152921505702534163; visibility Public) and Admin
+(1152921505702533887; visibility Private) submissions were created and committed; Partner Center reported "accepted for processing"
+(PreProcessing). Certification is not guaranteed. v10.0.77 and later need a new explicit request.
 Checked 26 November 2026 (read-only store_status job, run 45825954870): v10.0.18 is Published for User and Admin; no submission pending;
 the public catalog lists DTCE.DTCEToolKit_10.0.18.0 / DTCE.DTCEToolKit-Admin_10.0.18.0.
 Update check (owner, 26 November 2026: "di namang gumagana yung pagcheck ng updates"; "ayaw ko ng check for updates, gusto ko automatic na",
